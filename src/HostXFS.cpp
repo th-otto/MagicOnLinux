@@ -917,7 +917,7 @@ INT32 CHostXFS::xfs_attrib(UINT16 drv, MXFSDD *dd, char *name, UINT16 rwflag, UI
 INT32 CHostXFS::xfs_fchown(UINT16 drv, MXFSDD *dd, char *name,
                     UINT16 uid, UINT16 gid)
 {
-#pragma unused(drv, dd, name, uid, gid)
+    // TODO: implement
     return(EINVFN);
 }
 
@@ -1071,7 +1071,9 @@ INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, UINT16 drv,
 INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, UINT16 drv)
 {
     if (drv_rvsDirOrder[drv])
+    {
         return(xfs_dopendir(dirh, drv, (MXFSDD*) (&dirh->dirID), dirh->tosflag));
+    }
     dirh -> index = 1;
     return(E_OK);
 }
@@ -1085,7 +1087,7 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, UINT16 drv)
 
 INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, UINT16 drv)
 {
-#pragma unused(drv)
+    (void) drv;
     dirh -> dirID = -1L;
     return(E_OK);
 }
@@ -1130,7 +1132,7 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, UINT16 drv)
 
 INT32 CHostXFS::xfs_dpathconf(UINT16 drv, MXFSDD *dd, UINT16 which)
 {
-#pragma unused(dd)
+    (void) dd;
     switch(which)
     {
         case    DP_MAXREQ:    return(DP_XATTRFIELDS);
@@ -1201,7 +1203,7 @@ INT32 CHostXFS::xfs_wlabel(UINT16 drv, MXFSDD *dd, char *name)
         return(EDRIVE);
     }
 
-#pragma unused(drv, dd, name)
+    // TODO: implement
     return(EINVFN);
 }
 
@@ -1423,7 +1425,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, UINT16 cmd, void *buf)
 
 INT32 CHostXFS::dev_getc(MAC_FD *f, UINT16 mode)
 {
-#pragma unused(mode)
+    (void) mode;
     unsigned char c;
     INT32 ret;
 
@@ -1438,7 +1440,7 @@ INT32 CHostXFS::dev_getc(MAC_FD *f, UINT16 mode)
 
 INT32 CHostXFS::dev_getline( MAC_FD *f, char *buf, INT32 size, UINT16 mode )
 {
-#pragma unused(mode)
+    (void) mode;
     char c;
     INT32 gelesen,ret;
 
@@ -1462,7 +1464,7 @@ INT32 CHostXFS::dev_getline( MAC_FD *f, char *buf, INT32 size, UINT16 mode )
 
 INT32 CHostXFS::dev_putc( MAC_FD *f, UINT16 mode, INT32 val )
 {
-#pragma unused(mode)
+    (void) mode;
     char c;
 
     c = (char) val;
@@ -1484,7 +1486,6 @@ INT32 CHostXFS::dev_putc( MAC_FD *f, UINT16 mode, INT32 val )
 
 INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
 {
-#pragma options align=packed
     UINT16 fncode;
     INT32 doserr;
     unsigned char *params = AdrOffset68k + param;
@@ -1512,7 +1513,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             struct syncparm
             {
                 UINT16 drv;
-            };
+            } __attribute__((packed));
             syncparm *psyncparm = (syncparm *) params;
             doserr = xfs_sync(be16toh(psyncparm->drv));
             break;
@@ -1523,7 +1524,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             struct ptermparm
             {
                 UINT32 pd;        // PD *
-            };
+            } __attribute__((packed));
             ptermparm *pptermparm = (ptermparm *) params;
             xfs_pterm((PD *) (AdrOffset68k + be32toh(pptermparm->pd)));
             doserr = E_OK;
@@ -1537,7 +1538,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT16 drv;
                 UINT32 dd;        // MXFSDD *
                 INT32 flg_ask_diskchange;    // in fact: DMD->D_XFS (68k-Pointer or NULL)
-            };
+            } __attribute__((packed));
             drv_openparm *pdrv_openparm = (drv_openparm *) params;
             doserr = xfs_drv_open(
                     be16toh(pdrv_openparm->drv),
@@ -1552,7 +1553,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             {
                 UINT16 drv;
                 UINT16 mode;
-            };
+            } __attribute__((packed));
             drv_closeparm *pdrv_closeparm = (drv_closeparm *) params;
             doserr = xfs_drv_close(be16toh(pdrv_closeparm->drv),
                                         be16toh(pdrv_closeparm->mode));
@@ -1572,7 +1573,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 symlink;        // char **
                 UINT32 dd;        // MXFSDD *
                 UINT32 dir_drive;
-            };
+            } __attribute__((packed));
             char *restpath;
             char *symlink;
 
@@ -1615,7 +1616,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 name;    // char *
                 UINT32 dta;        // MAC_DTA *
                 UINT16 attrib;
-            };
+            } __attribute__((packed));
             sfirstparm *psfirstparm = (sfirstparm *) params;
             doserr = xfs_sfirst(
                     be16toh(psfirstparm->drv),
@@ -1633,7 +1634,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             {
                 UINT16 drv;
                 UINT32 dta;        // MAC_DTA *
-            };
+            } __attribute__((packed));
             snextparm *psnextparm = (snextparm *) params;
             doserr = xfs_snext(
                     be16toh(psnextparm->drv),
@@ -1651,7 +1652,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 dd;        //MXFSDD *
                 UINT16 omode;
                 UINT16 attrib;
-            };
+            } __attribute__((packed));
             fopenparm *pfopenparm = (fopenparm *) params;
             doserr = xfs_fopen(
                     (char *) (AdrOffset68k + be32toh(pfopenparm->name)),
@@ -1670,7 +1671,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT16 drv;
                 UINT32 dd;        //MXFSDD *
                 UINT32 name;    // char *
-            };
+            } __attribute__((packed));
             fdeleteparm *pfdeleteparm = (fdeleteparm *) params;
             doserr = xfs_fdelete(
                     be16toh(pfdeleteparm->drv),
@@ -1691,7 +1692,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 dd2;        // MXFSDD *
                 UINT16 mode;
                 UINT16 dst_drv;
-            };
+            } __attribute__((packed));
             flinkparm *pflinkparm = (flinkparm *) params;
             doserr = xfs_link(
                     be16toh(pflinkparm->drv),
@@ -1714,7 +1715,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 name;    // char *
                 UINT32 xattr;    // XATTR *
                 UINT16 mode;
-            };
+            } __attribute__((packed));
             xattrparm *pxattrparm = (xattrparm *) params;
             doserr = xfs_xattr(
                     be16toh(pxattrparm->drv),
@@ -1735,7 +1736,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 name;    // char *
                 UINT16 rwflag;
                 UINT16 attr;
-            };
+            } __attribute__((packed));
             attribparm *pattribparm = (attribparm *) params;
             doserr = xfs_attrib(
                     be16toh(pattribparm->drv),
@@ -1756,7 +1757,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 name;    // char *
                 UINT16 uid;
                 UINT16 gid;
-            };
+            } __attribute__((packed));
             chownparm *pchownparm = (chownparm *) params;
             doserr = xfs_fchown(
                     be16toh(pchownparm->drv),
@@ -1776,7 +1777,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 dd;    // MXFSDD *
                 UINT32 name;    // char *
                 UINT16 fmode;
-            };
+            } __attribute__((packed));
             chmodparm *pchmodparm = (chmodparm *) params;
             doserr = xfs_fchmod(
                     be16toh(pchmodparm->drv),
@@ -1794,7 +1795,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT16 drv;
                 UINT32 dd;    // MXFSDD *
                 UINT32 name;    // char *
-            };
+            } __attribute__((packed));
             dcreateparm *pdcreateparm = (dcreateparm *) params;
             if (be32toh((UINT32) (pdcreateparm->name)) >= m_AtariMemSize)
             {
@@ -1816,7 +1817,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             {
                 UINT16 drv;
                 UINT32 dd;    // MXFSDD *
-            };
+            } __attribute__((packed));
             ddeleteparm *pddeleteparm = (ddeleteparm *) params;
             doserr = xfs_ddelete(
                     be16toh(pddeleteparm->drv),
@@ -1833,7 +1834,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 dd;    // MXFSDD *
                 UINT32 buf;        // char *
                 UINT16 bufsiz;
-            };
+            } __attribute__((packed));
             dd2nameparm *pdd2nameparm = (dd2nameparm *) params;
             doserr = xfs_DD2name(
                     be16toh(pdd2nameparm->drv),
@@ -1852,7 +1853,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT16 drv;
                 UINT32 dd;    // MXFSDD *
                 UINT16 tosflag;
-            };
+            } __attribute__((packed));
             dopendirparm *pdopendirparm = (dopendirparm *) params;
             doserr = xfs_dopendir(
                     (MAC_DIRHANDLE *) (AdrOffset68k + be32toh(pdopendirparm->dirh)),
@@ -1873,7 +1874,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 buf;        // char *
                 UINT32 xattr;    // XATTR * oder NULL
                 UINT32 xr;        // INT32 * oder NULL
-            };
+            } __attribute__((packed));
             dreaddirparm *pdreaddirparm = (dreaddirparm *) params;
             doserr = xfs_dreaddir(
                     (MAC_DIRHANDLE *) (AdrOffset68k + be32toh(pdreaddirparm->dirh)),
@@ -1892,7 +1893,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             {
                 UINT32 dirh;        // MAC_DIRHANDLE *
                 UINT16 drv;
-            };
+            } __attribute__((packed));
             drewinddirparm *pdrewinddirparm = (drewinddirparm *) params;
             doserr = xfs_drewinddir(
                     (MAC_DIRHANDLE *) (AdrOffset68k + be32toh(pdrewinddirparm->dirh)),
@@ -1907,7 +1908,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             {
                 UINT32 dirh;        // MAC_DIRHANDLE *
                 UINT16 drv;
-            };
+            } __attribute__((packed));
             dclosedirparm *pdclosedirparm = (dclosedirparm *) params;
             doserr = xfs_dclosedir(
                     (MAC_DIRHANDLE *) (AdrOffset68k + be32toh(pdclosedirparm->dirh)),
@@ -1923,7 +1924,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT16 drv;
                 UINT32 dd;    // MXFSDD *
                 UINT16 which;
-            };
+            } __attribute__((packed));
             dpathconfparm *pdpathconfparm = (dpathconfparm *) params;
             doserr = xfs_dpathconf(
                     be16toh(pdpathconfparm->drv),
@@ -1940,7 +1941,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT16 drv;
                 INT32 dirID;
                 UINT32 data;    // UINT32 data[4]
-            };
+            } __attribute__((packed));
             dfreeparm *pdfreeparm = (dfreeparm *) params;
             doserr = xfs_dfree(
                     be16toh(pdfreeparm->drv),
@@ -1960,7 +1961,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT16 drv;
                 UINT32 dd;    // MXFSDD *
                 UINT32 name;    // char *
-            };
+            } __attribute__((packed));
             wlabelparm *pwlabelparm = (wlabelparm *) params;
             doserr = xfs_wlabel(
                     be16toh(pwlabelparm->drv),
@@ -1978,7 +1979,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 dd;    // MXFSDD *
                 UINT32 name;    // char *
                 UINT16 bufsiz;
-            };
+            } __attribute__((packed));
             rlabelparm *prlabelparm = (rlabelparm *) params;
             doserr = xfs_rlabel(
                     be16toh(prlabelparm->drv),
@@ -1997,7 +1998,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 dd;    // MXFSDD *
                 UINT32 name;    // char *
                 UINT32 to;        // char *
-            };
+            } __attribute__((packed));
             symlinkparm *psymlinkparm = (symlinkparm *) params;
             doserr = xfs_symlink(
                     be16toh(psymlinkparm->drv),
@@ -2017,7 +2018,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 name;    // char *
                 UINT32 buf;        // char *
                 UINT16 bufsiz;
-            };
+            } __attribute__((packed));
             readlinkparm *preadlinkparm = (readlinkparm *) params;
             doserr = xfs_readlink(
                     be16toh(preadlinkparm->drv),
@@ -2038,7 +2039,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 name;    // char *
                 UINT16 cmd;
                 INT32 arg;
-            };
+            } __attribute__((packed));
             dcntlparm *pdcntlparm = (dcntlparm *) params;
             doserr = xfs_dcntl(
                     be16toh(pdcntlparm->drv),
@@ -2106,7 +2107,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 //                UINT32 f;    // MAC_FD *
                 INT32 count;
                 UINT32 buf;        // char *
-            };
+            } __attribute__((packed));
             devreadparm *pdevreadparm = (devreadparm *) params;
             doserr = dev_read(
                     f,
@@ -2123,7 +2124,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 //                UINT32 f;    // MAC_FD *
                 INT32 count;
                 UINT32 buf;        // char *
-            };
+            } __attribute__((packed));
             devwriteparm *pdevwriteparm = (devwriteparm *) params;
             doserr = dev_write(
                     f,
@@ -2141,7 +2142,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 unsel;    //void *
                 UINT16 rwflag;
                 INT32 apcode;
-            };
+            } __attribute__((packed));
             devstatparm *pdevstatparm = (devstatparm *) params;
             doserr = dev_stat(
                     f,
@@ -2159,7 +2160,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 //                UINT32 f;    // MAC_FD *
                 INT32 pos;
                 UINT16 mode;
-            };
+            } __attribute__((packed));
             devseekparm *pdevseekparm = (devseekparm *) params;
             doserr = dev_seek(
                     f,
@@ -2176,7 +2177,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 //                UINT32 f;    // MAC_FD *
                 UINT32 d;        // UINT16[2]
                 UINT16 rwflag;
-            };
+            } __attribute__((packed));
             devdatimeparm *pdevdatimeparm = (devdatimeparm *) params;
             doserr = dev_datime(
                     f,
@@ -2193,7 +2194,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 //                UINT32 f;    // MAC_FD *
                 UINT16 cmd;
                 UINT32 buf;        // void *
-            };
+            } __attribute__((packed));
             devioctlparm *pdevioctlparm = (devioctlparm *) params;
             doserr = dev_ioctl(
                     f,
@@ -2209,7 +2210,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
             {
 //                UINT32 f;    // MAC_FD *
                 UINT16 mode;
-            };
+            } __attribute__((packed));
             devgetcparm *pdevgetcparm = (devgetcparm *) params;
             doserr = dev_getc(
                     f,
@@ -2226,7 +2227,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 buf;        // char *
                 INT32 size;
                 UINT16 mode;
-            };
+            } __attribute__((packed));
             devgetlineparm *pdevgetlineparm = (devgetlineparm *) params;
             doserr = dev_getline(
                     f,
@@ -2244,7 +2245,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 //                UINT32 f;    // MAC_FD *
                 UINT16 mode;
                 INT32 val;
-            };
+            } __attribute__((packed));
             devputcparm *pdevputcparm = (devputcparm *) params;
             doserr = dev_putc(
                     f,
@@ -2263,7 +2264,6 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 #endif
     return(doserr);
 }
-#pragma options align=reset
 
 
 /** **********************************************************************************************

@@ -44,7 +44,7 @@ typedef uint32_t PTR32_HOST;        // host pointer, unfortunately only 32 bit, 
 typedef uint32_t PTR32x4_HOST[4];   // might be used as 64 bit function pointer and "this" argument
 
 // Atari struct members are NOT aligned to 32 bit!
-#pragma options align=packed
+// So we must use __attribute__((packed)) for every struct.
 
 /* File Attributes */
 
@@ -150,7 +150,7 @@ struct mutimbuf
     UINT16_BE  acdate;
     UINT16_BE  modtime;         /* latest modification */
     UINT16_BE  moddate;
-};
+} __attribute__((packed));
 
 /* structure for getxattr (-> MiNT) */
 
@@ -197,7 +197,7 @@ struct XATTR
     UINT16_BE attr;
     UINT16_BE reserved2;
     UINT32_BE reserved3[2];
-};
+} __attribute__((packed));
 
 struct BasePage
 {
@@ -218,7 +218,7 @@ struct BasePage
     INT8 p_defdrv;
     UINT32_BE unused[2+16];
     UINT8 p_cmdline[128];
-};
+} __attribute__((packed));
 
 struct ExeHeader
 {
@@ -230,7 +230,7 @@ struct ExeHeader
     INT32_BE  dum1;
     INT32_BE  dum2;
     INT16_BE  relmod;
-};
+} __attribute__((packed));
 
 /* The system variable _sysbase (0x4F2L) points to: */
 
@@ -253,7 +253,7 @@ struct SYSHDR
     UINT32_BE kbshift;      /* $24 -> 68-Adresse der Atari-Variablen "kbshift" und "kbrepeat" */
     UINT32_BE _run;         /* $28 -> GEMDOS PID of current process */
     UINT32_BE p_rsv2;       /* $2c << unused, reserved >>           */
-};
+} __attribute__((packed));
 
 /* interrupt vectors */
 
@@ -635,7 +635,7 @@ struct strXCMD
             UINT8 m_SymClass;           // <-    type of symbol
         } m_12_13;
     };
-};
+} __attribute__((packed));
 
 
 /*
@@ -719,7 +719,7 @@ struct CMagiC_CPPCCallback
     UINT32 dummy;
     #endif
     CMagiC *m_thisptr;
-};
+} __attribute__((packed));
 
 class CMacXFS;
 struct CMacXFS_CPPCCallback
@@ -730,7 +730,7 @@ struct CMacXFS_CPPCCallback
     UINT32 dummy;
     #endif
     CMacXFS *m_thisptr;
-};
+} __attribute__((packed));
 
 class CXCmd;
 struct CXCmd_CPPCCallback
@@ -741,7 +741,7 @@ struct CXCmd_CPPCCallback
     UINT32 dummy;
     #endif
     CXCmd *m_thisptr;
-};
+} __attribute__((packed));
 
 
 typedef struct
@@ -765,7 +765,7 @@ typedef struct
     UINT32_BE planeBytes;       /* offset to next plane */
     PTR32_BE  pmTable;          /* color map for this pixMap (definiert CtabHandle), in fact of type CTabHandle */
     UINT32_BE pmReserved;       /* for future use. MUST BE 0 */
-} MXVDI_PIXMAP;
+} __attribute__((packed)) MXVDI_PIXMAP;
 
 struct OldMmSysHdr
 {
@@ -821,7 +821,7 @@ struct OldMmSysHdr
     UINT32_BE res1;                // reserviert
     UINT32_BE res2;                // reserviert
     UINT32_BE res3;                // reserviert
-};
+} __attribute__((packed));
 
 // Die Cookie-Struktur wird vom Emulator bereitgestellt. Ihre Adresse
 // erh�lt der Kernel �ber die �bergabestruktur. Ausgef�llt werden die
@@ -836,7 +836,7 @@ struct MgMxCookieData
     UINT32_BE mgmx_xcmd_exec;        // PPC-Aufruf aus PPC-Bibliothek
     UINT32_BE mgmx_internal;        // 68k-Adresse der �bergabestruktur
     UINT32_BE mgmx_daemon;        // Routine f�r den "mmx.prg"-Hintergrundproze�
-};
+} __attribute__((packed));
 
 /*
 PTRLEN    EQU    4        ; Zeiger auf Elementfunktion braucht 4 Zeiger
@@ -992,20 +992,20 @@ struct MacXSysHdr
     PTR32x4_HOST MacSys_Daemon;             // call for the mmx daemon
     PTR32_HOST   MacSys_Yield;              // call to yield CPU time (idle)
     OldMmSysHdr  MacSys_OldHdr;             // for compatibility with Behne's code
-};
+} __attribute__((packed));
 
 struct MagiC_SA
 {
     UINT32    _ATARI_sa_handler;            // 0x00: Signalhandler
     UINT32    _ATARI_sa_sigextra;        // 0x04: OR-Maske bei Ausf�hrung des Signals
     UINT16    _ATARI_sa_flags;
-};
+} __attribute__((packed));
 
 struct MagiC_FH
 {
     UINT32    fh_fd;
     UINT16    fh_flag;
-};
+} __attribute__((packed));
 
 /// @brief MagiC Process Information
 struct MagiC_ProcInfo
@@ -1037,7 +1037,7 @@ struct MagiC_ProcInfo
     MagiC_FH    pr_hndm2;           /* handle -2: by default this is AUX: */
     MagiC_FH    pr_hndm1;           /* handle -1: by default this is CON: */
     MagiC_FH    pr_handle[32];      /* handles 0..31 */
-};
+} __attribute__((packed));
 
 /// @brief MagiC Process Descriptor
 struct MagiC_PD
@@ -1070,7 +1070,7 @@ struct MagiC_PD
     UINT32_BE   p_ssp;          /* 0x78: ssp at process start */
     UINT32_BE   p_reg;          /* 0x7c: for compatibility with TOS */
     UINT8       p_cmdlin[128];  /* 0x80: command line */
-};
+} __attribute__((packed));
 
 /* Values for ap_status */
 
@@ -1160,9 +1160,8 @@ struct MagiC_APP
     PTR32_BE  ap_etvterm;
     UINT32_BE  ap_stkchk;       // magic value for stack overflow check
     UINT8   ap_stack[0];        // stack
-};
+} __attribute__((packed));
 
 #pragma GCC diagnostic pop
 
-       #pragma options align=reset
 #endif

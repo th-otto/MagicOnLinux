@@ -76,7 +76,6 @@ class CMagiC
     std::atomic_bool bVideoBufChanged;
    private:
    	// Typdefinitionen
-   	#pragma options align=packed
 
 	void UpdateAtariDoubleBuffer(void);
 
@@ -84,9 +83,7 @@ class CMagiC
 	{
 		MXVDI_PIXMAP m_PixMap;	// the Atari screen, baseAddr is virtual 68k addresse
 		MgMxCookieData m_CookieData;
-	};
-
-   	#pragma options align=reset
+	} __attribute__((packed));
 
 	// private Funktionen
 	void Init_CookieData(MgMxCookieData *pCookieData);

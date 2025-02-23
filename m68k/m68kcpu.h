@@ -58,10 +58,10 @@
 
 #define sint8  signed   char			/* ASG: changed from char to signed char */
 #define sint16 signed   short
-#define sint32 signed   long
+#define sint32 signed   int				// AK: changed to int, because int is 32 bit on 64-bit host
 #define uint8  unsigned char
 #define uint16 unsigned short
-#define uint32 unsigned long
+#define uint32 unsigned int				// AK: changed to int, because int is 32 bit on 64-bit host
 
 /* signed and unsigned int must be at least 32 bits wide */
 #define sint   signed   int
@@ -1605,40 +1605,40 @@ INLINE void m68ki_stack_frame_buserr_new(uint sr)
 
 		/* INTERNAL REGISTER */
 		m68ki_push_16(0);
-		
+
 		/* INTERNAL REGISTER */
 		m68ki_push_16(0);
-		
+
 		/* DATA OUTPUT BUFFER (2 words) */
 		m68ki_push_32(0);
-		
+
 		/* INTERNAL REGISTER */
 		m68ki_push_16(0);
-		
+
 		/* INTERNAL REGISTER */
 		m68ki_push_16(0);
-		
+
 		/* DATA CYCLE FAULT ADDRESS (2 words) */
 		m68ki_push_32(m68ki_aerr_address);
-		
+
 		/* INSTRUCTION PIPE STAGE B */
 		m68ki_push_16(0);
-		
+
 		/* INSTRUCTION PIPE STAGE C */
 		m68ki_push_16(0);
-		
+
 		/* SPECIAL STATUS REGISTER */
 		m68ki_push_16(m68ki_aerr_write_mode | CPU_INSTR_MODE | m68ki_aerr_fc);
-		
+
 		/* INTERNAL REGISTER */
 		m68ki_push_16(0);
-		
+
 		/* 1010, VECTOR OFFSET */
 		m68ki_push_16(0xa000 | (vector<<2));
-		
+
 		/* PROGRAM COUNTER */
 		m68ki_push_32(pc);
-		
+
 		/* STATUS REGISTER */
 		m68ki_push_16(sr);
 	}

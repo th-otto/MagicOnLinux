@@ -36,7 +36,7 @@ EmulationRunner::EmulationRunner(void)
 	printf("%s()\n", __func__);
     m_bQuitLoop = false;
     //drawContext = NULL;
-	m_EmulatorThread = NULL;
+	m_EmulatorThread = nullptr;
 	m_200HzCnt = 0;
 	m_EmulatorRunning = false;
 

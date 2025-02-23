@@ -91,12 +91,10 @@ class CHostXFS
     uint32_t m_AtariMemSize;
     typedef void PD;
 
-#pragma options align=packed
-
 	struct MX_DHD
 	{
 		UINT32	dhd_dmd;            // struct _mx_dmd *dhd_dmd;
-	};
+	} __attribute__((packed));
 
 	struct MX_DEV
 	{
@@ -110,13 +108,13 @@ class CHostXFS
 		INT32   dev_getc;
 		INT32   dev_getline;
 		INT32   dev_putc;
-	};
+	} __attribute__((packed));
 
     struct MX_DD
     {
         UINT32  dd_dmd;                // struct _mx_dmd *dd_dmd;
         UINT16  dd_refcnt;
-    };
+    } __attribute__((packed));
 
     // Atari DTA Buffer (Disk Transfer Address)
     struct MX_DTA
@@ -128,7 +126,7 @@ class CHostXFS
         UINT16  dta_date;           // file modification date (big endian)
         UINT32  dta_len;            // file length (big endian)
         char    dta_name[14];       // file name, maximum 8+3 plus "." plus NUL
-    };
+    } __attribute__((packed));
 
     struct MX_DMD
     {
@@ -138,7 +136,7 @@ class CHostXFS
         UINT16      biosdev;
         UINT32      driver;
         UINT32      devcode;
-    };
+    } __attribute__((packed));
 
     struct MX_FD
     {
@@ -146,7 +144,7 @@ class CHostXFS
         UINT16      fd_refcnt;
         UINT16      fd_mode;
         UINT32        fd_dev;                // MX_DEV    *fd_dev;
-    };
+    } __attribute__((packed));
 
     /* Open- Modus von Dateien (Mag!X- intern)                                 */
     /* NOINHERIT wird nicht unterstuetzt, weil nach TOS- Konvention nur die     */
@@ -168,7 +166,7 @@ class CHostXFS
          INT32      dirID;            /* Verzeichnis */
          INT16    vRefNum;        /* Mac-Volume */
          UINT16      index;        /* Index innerhalb des Verzeichnis */
-    };
+    } __attribute__((packed));
 
     struct MAC_FD
     {
@@ -176,7 +174,7 @@ class CHostXFS
          short    refnum;        /* Mac-Teil: Handle (host native endian) */
          UINT16    mod_time_dirty;    /* Mac-Teil: Fdatime war aufgerufen (host native endian) */
          UINT16    mod_time[2];    /* Mac-Teil: Zeit fuer Fdatime (DOS-Codes) (host native endian) */
-    };
+    } __attribute__((packed));
 
     struct MAC_DIRHANDLE
     {
@@ -185,27 +183,25 @@ class CHostXFS
          short    vRefNum;        // Mac-Volume (host native endian)
          UINT16    index;        /* Position des Lesezeigers (host native endian) */
          UINT16    tosflag;        /* TOS-Modus, d.h. 8+3 und ohne Inode (host native endian) */
-    };
+    } __attribute__((packed));
 
     union MAC_DTA
     {
          MX_DTA    mxdta;
          _MAC_DTA  macdta;
-    };
+    } __attribute__((packed));
 
     struct MX_SYMLINK
     {
       UINT16    len;            /* Symlink-Laenge inklusive EOS, gerade */
       char        data[256];
-    };
+    } __attribute__((packed));
 
     struct MXFSDD
     {
         long dirID;
         short vRefNum;
-    };
-
-    #pragma options align=reset
+    } __attribute__((packed));
 
     //bool GetXFSRootDir (short drv, short *vRefNum, long *dirID);
     UINT32 DriveToDeviceCode (short drv);

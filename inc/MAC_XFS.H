@@ -60,15 +60,13 @@ typedef struct
  * MagiCMac specific functions:
  */
 
-       #pragma options align=packed
 typedef struct
 {
     UINT16    funcNo;
     UINT32    longVal;
     UINT32    srcPtr;            // 68k pointer
     UINT32    destPtr;            // 68k pointer
-} MMEXRec;
-       #pragma options align=reset
+} __attribute__((packed)) MMEXRec;
 
 #define FMACMAGICEX     (('F' << 8) | 75)
 #define MMEX_INFO       0    /* Dcntl & Fcntl */

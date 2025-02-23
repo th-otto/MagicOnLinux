@@ -25,6 +25,7 @@
 #include "config.h"
 // System-Header
 #include <cassert>
+#include <cerrno>
 #include <sys/param.h>
 #include <time.h>
 // Programm-Header
@@ -46,6 +47,10 @@
 //#define _DEBUG_NO_ATARI_HZ200_INTERRUPTS
 //#define _DEBUG_NO_ATARI_VBL_INTERRUPTS
 #endif
+
+// 68k emulator callback jump table
+void *jump_table[256];	// pointers to functions
+void *self_table[256];	// pointers to objects
 
 // Kram für den 68k-Emulator
 extern "C" {
@@ -78,7 +83,7 @@ void TellDebugCurrentPC(uint32_t pc)
 }
 #endif
 
-static CMagiC *pTheMagiC = 0;
+static CMagiC *pTheMagiC = nullptr;
 unsigned char *OpcodeROM;		// Zeiger auf den 68k-Speicher
 static uint32_t addr68kVideo;			// Beginn Bildschirmspeicher 68k
 static uint32_t addr68kVideoEnd;			// Ende Bildschirmspeicher 68k
@@ -956,9 +961,10 @@ int CMagiC::LoadReloc
 	FILE *f = nullptr;
 
 
-	DebugInfo("CMagiC::LoadReloc()");
+	DebugInfo("CMagiC::LoadReloc(\"%s\")", path);
 
 	int64_t fileSize = getFileSize(path);
+	DebugInfo("CMagiC::LoadReloc() - kernel file size = %ld", fileSize);
 	if (fileSize > 0)
 	{
 		f = fopen(path, "rb");
@@ -966,7 +972,7 @@ int CMagiC::LoadReloc
 
 	if (f == nullptr)
 	{
-		DebugError("CMagiC::LoadReloc() - Kann Datei nicht öffnen");
+		DebugError("CMagiC::LoadReloc() - Cannot open file \"%s\")", path);
 /*
 MagicMacX kann die MagiC-Kernel-Datei MagicMacX.OS nicht finden.
 
@@ -981,11 +987,11 @@ Reinstall the application.
 		return -1;
 	}
 
-	size_t bytes_read;
+	size_t items_read;
 	len = sizeof(ExeHeader);
 	// read PRG Header
-	bytes_read = fread(&exehead, len, 1, f);
-	if (bytes_read != len)
+	items_read = fread(&exehead, len, 1, f);
+	if (items_read != 1)
 	{
 		DebugError("CMagiC::LoadReloc() - MagiC kernel file is too small.");
 		goto exitReloc;
@@ -1003,7 +1009,7 @@ Reinstall the application.
 	}
 	tpaSize = sizeof(BasePage) + codlen + be32toh(exehead.blen) + stackSize;
 
-	DebugInfo("CMagiC::LoadReloc() - result. Gesamtlänge inkl. Basepage und Stack = 0x%08x (%ld)", tpaSize, tpaSize);
+	DebugInfo("CMagiC::LoadReloc() - Size overall, including basepage and stack = 0x%08x (%ld)", tpaSize, tpaSize);
 
 	if	(tpaSize > m_RAM68ksize)
 	{
@@ -1060,8 +1066,8 @@ Reinstall the application.
 	#endif
 
 	// read TEXT+DATA from file
-	bytes_read = fread(tbase, codlen, 1, f);
-	if	(codlen != bytes_read)
+	items_read = fread(tbase, codlen, 1, f);
+	if	(items_read != 1)
 	{
 		readerr:
 		DebugError("CMagiC::LoadReloc() - read error");
@@ -1071,15 +1077,19 @@ Reinstall the application.
 	if	(!be16toh(exehead.relmod))	// we must relocate
 	{
 		// seek to relocation table
-		Fpos = (be32toh(exehead.slen) + codlen + sizeof(exehead));
-		err = fseek(f, SEEK_SET, Fpos);
+		Fpos = be32toh(exehead.slen) + codlen + sizeof(exehead);
+		DebugInfo("CMagiC::LoadReloc() - seek to relocation table, file offset %u\n", Fpos);
+
+		err = fseek(f, Fpos, SEEK_SET);
 		if	(err)
 		{
+			DebugError("CMagiC::LoadReloc() - cannot seek to relocation table, file offset %u\n", Fpos);
+			DebugError("CMagiC::LoadReloc() - error code %d\n", errno);
 			goto readerr;
 		}
 		len = 4;
-		bytes_read = fread(&loff, len, 1, f);
-		if	(len != bytes_read)
+		items_read = fread(&loff, len, 1, f);
+		if	(items_read != 1)
 		{
 			goto readerr;
 		}
@@ -1106,8 +1116,8 @@ Reinstall the application.
 			*tp = htobe32((uint32_t) (reloff - m_RAM68k) + be32toh(*tp));
 
 			// Reloc-Tabelle in einem Rutsch einlesen
-			bytes_read = fread(relBuf, RelocBufSize, 1, f);
-			if	(RelocBufSize != bytes_read)
+			items_read = fread(relBuf, RelocBufSize, 1, f);
+			if	(items_read != 1)
 			{
 				goto readerr;
 			}
@@ -1291,24 +1301,24 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 
 	// Konfiguration
 
-	DebugInfo("MultiThread-Version für MacOS X mit Carbon-Events");
+	DebugInfo("MultiThread version for Linux");
 #ifdef EMULATE_68K_TRACE
-	DebugInfo("68k-Trace wird emuliert (Emulator läuft etwas langsamer)");
+	DebugInfo("68k trace is emulated (slows down the emulator a bit)");
 #else
-	DebugInfo("68k-Trace wird nicht emuliert (Emulator läuft etwas schneller)");
+	DebugInfo("68k trace is not emulated (makes the emulator a bit faster)");
 #endif
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
-	DebugInfo("68k-ROM wird schreibgeschützt (Emulator läuft etwas langsamer)");
+	DebugInfo("68k ROM is write-protected (slows down the emulator a bit)");
 #else
-	DebugInfo("68k-ROM wird nicht schreibgeschützt (Emulator läuft etwas schneller)");
+	DebugInfo("68k ROM is not write-protected (makes the emulator a bit faster)");
 #endif
 #ifdef WATCH_68K_PC
-	DebugInfo("68k-PC wird auf Gültigkeit überprüft (Emulator läuft etwas langsamer)");
+	DebugInfo("68k PC is checked for validity (slows down the emulator a bit)");
 #else
-	DebugInfo("68k-PC wird nicht auf Gültigkeit überprüft (Emulator läuft etwas schneller)");
+	DebugInfo("68k PC is not checked for validity (makes the emulator a bit faster)");
 #endif
-	DebugInfo("Mac-Menü %s", (CGlobals::s_bShowMacMenu) ? "ein" : "aus");
-	DebugInfo("Autostart %s", (CGlobals::s_Preferences.m_bAutoStartMagiC) ? "ein" : "aus");
+	//DebugInfo("Mac-Menü %s", (CGlobals::s_bShowMacMenu) ? "ein" : "aus");
+	DebugInfo("Autostart %s", (CGlobals::s_Preferences.m_bAutoStartMagiC) ? "ON" : "OFF");
 
 	p_bVideoBufChanged = &bVideoBufChanged;
 
@@ -1324,7 +1334,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 	numVideoLines = m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top + 1;
 	m_FgBufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
 	m_Video68ksize = m_FgBufferLineLenInBytes * numVideoLines;
-	// Atari-Speicher holen
+	// get Atari memory
 	m_RAM68k = (unsigned char *) malloc(m_RAM68ksize);
 	if	(!m_RAM68k)
 	{
@@ -1346,10 +1356,11 @@ Assign more memory to the application using the Finder dialogue "Information"!
 	err = LoadReloc(CGlobals::s_atariKernelPath, 0, -1, &m_BasePage);
 	if	(err)
 		return(err);
+	DebugInfo("MagiC kernel loaded and relocated successfully");
 
 	// 68k Speicherbegrenzungen ausrechnen
 	addr68kVideo = m_RAM68ksize;
-	DebugInfo("68k-Videospeicher beginnt bei 68k-Adresse 0x%08x und ist %u Bytes groß.", addr68kVideo, m_Video68ksize);
+	DebugInfo("68k video memory starts at 68k address 0x%08x and uses %u bytes.", addr68kVideo, m_Video68ksize);
 	addr68kVideoEnd = addr68kVideo + m_Video68ksize;
 	// real (host) address of video memory
 	m_pFgBuffer = m_RAM68k + Globals.s_Preferences.m_AtariMemSize;
@@ -1395,6 +1406,10 @@ Assign more memory to the application using the Finder dialogue "Information"!
 		DebugError("CMagiC::Init() - magic value mismatch");
 		goto err_inv_os;
 	}
+
+	DebugInfo("CMagiC::Init() - sizeof(CMagiC_CPPCCallback) = %u", (unsigned) sizeof(CMagiC_CPPCCallback));
+    typedef UINT32 (CMagiC::*CMagiC_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
+	DebugInfo("CMagiC::Init() - sizeof(CMagiC_PPCCallback) = %u", (unsigned) sizeof(CMagiC_PPCCallback));
 
 	assert(sizeof(CMagiC_CPPCCallback) == 16);
 
@@ -2755,14 +2770,12 @@ uint32_t CMagiC::AtariExec68k(uint32_t params, uint8_t *addrOffset68k)
 {
 	char Old68kContext[128];
 	uint32_t ret;
-   	#pragma options align=packed
 	struct New68Context
 	{
 		uint32_t regPC;
 		uint32_t regSP;
 		uint32_t arg;
-	};
-   	#pragma options align=reset
+	} __attribute__((packed));
 	New68Context *pNew68Context = (New68Context *) (addrOffset68k + params);
 
 	if	(!pNew68Context)
@@ -2840,13 +2853,11 @@ uint32_t CMagiC::AtariExec68k(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariDOSFn(uint32_t params, uint8_t *addrOffset68k)
 {
-  	#pragma options align=packed
 	struct AtariDOSFnParm
 	{
 		uint16_t dos_fnr;
 		uint32_t parms;
-	};
-   	#pragma options align=reset
+	} __attribute__((packed));
 
 #if defined(_DEBUG)
 	AtariDOSFnParm *theAtariDOSFnParm = (AtariDOSFnParm *) (addrOffset68k + params);
@@ -2941,14 +2952,12 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
 	int i,j;
 	uint32_t c;
 	uint32_t *pColourTable;
-  	#pragma options align=packed
 	struct VsetRGBParm
 	{
 		uint16_t index;
 		uint16_t cnt;
 		uint32_t pValues;
-	};
-   	#pragma options align=reset
+	} __attribute__((packed));
 
 	VsetRGBParm *theVsetRGBParm = (VsetRGBParm *) (addrOffset68k + params);
 	const uint8_t *pValues = (const uint8_t *) (addrOffset68k + be32toh(theVsetRGBParm->pValues));
@@ -2990,14 +2999,12 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
 {
 	int i,j;
 	uint32_t *pColourTable;
-   	#pragma options align=packed
 	struct VgetRGBParm
 	{
 		uint16_t index;
 		uint16_t cnt;
 		uint32_t pValues;
-	};
-    	#pragma options align=reset
+	} __attribute__((packed));
 
  	VgetRGBParm *theVgetRGBParm = (VgetRGBParm *) (addrOffset68k + params);
  	uint8_t *pValues = (uint8_t *) (addrOffset68k + be32toh(theVgetRGBParm->pValues));
@@ -3424,7 +3431,6 @@ uint32_t CMagiC::OpenSerialBIOS(void)
 
 uint32_t CMagiC::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
 {
-   	#pragma options align=packed
 	struct SerConfParm
 	{
 		uint16_t baud;
@@ -3438,8 +3444,7 @@ uint32_t CMagiC::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
 		uint16_t cmd;			// Ioctl-Kommando
 		uint32_t parm;		// Ioctl-Parameter
 		uint32_t ptr2zero;		// deref. und auf ungleich 0 setzen!
-	};
-    	#pragma options align=reset
+	} __attribute__((packed));
 	unsigned int nBitsTable[] =
 	{
 		8,7,6,5
@@ -4003,13 +4008,11 @@ uint32_t CMagiC::AtariSerClose(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariSerRead(uint32_t params, uint8_t *addrOffset68k)
 {
-   	#pragma options align=packed
 	struct SerReadParm
 	{
 		uint32_t buf;
 		uint32_t len;
-	};
-    	#pragma options align=reset
+	} __attribute__((packed));
 	uint32_t ret;
 
 	SerReadParm *theSerReadParm = (SerReadParm *) (addrOffset68k + params);
@@ -4034,13 +4037,11 @@ uint32_t CMagiC::AtariSerRead(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariSerWrite(uint32_t params, uint8_t *addrOffset68k)
 {
-   	#pragma options align=packed
 	struct SerWriteParm
 	{
 		uint32_t buf;
 		uint32_t len;
-	};
-    	#pragma options align=reset
+	} __attribute__((packed));
 	uint32_t ret;
 
 	SerWriteParm *theSerWriteParm = (SerWriteParm *) (addrOffset68k + params);
@@ -4065,12 +4066,10 @@ uint32_t CMagiC::AtariSerWrite(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariSerStat(uint32_t params, uint8_t *addrOffset68k)
 {
-   	#pragma options align=packed
 	struct SerStatParm
 	{
 		uint16_t rwflag;
-	};
-    	#pragma options align=reset
+	} __attribute__((packed));
 
 //	DebugInfo("CMagiC::AtariSerWrite()");
 	SerStatParm *theSerStatParm = (SerStatParm *) (addrOffset68k + params);
@@ -4094,13 +4093,11 @@ uint32_t CMagiC::AtariSerStat(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
 {
-   	#pragma options align=packed
 	struct SerIoctlParm
 	{
 		uint16_t cmd;
 		uint32_t parm;
-	};
-    	#pragma options align=reset
+	} __attribute__((packed));
 
 //	DebugInfo("CMagiC::AtariSerWrite()");
 	SerIoctlParm *theSerIoctlParm = (SerIoctlParm *) (addrOffset68k + params);
@@ -4383,12 +4380,10 @@ uint32_t CMagiC::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
 {
-   	#pragma options align=packed
 	struct YieldParm
 	{
 		uint32_t num;
-	};
-    	#pragma options align=reset
+	} __attribute__((packed));
 	uint32_t eventFlags;
 
 
@@ -4495,14 +4490,12 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
 uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
 {
 	uint32_t ret;
-   	#pragma options align=packed
 	struct MmxDaemonParm
 	{
 		uint16_t cmd;
 		uint32_t parm;
-	};
+	} __attribute__((packed));
 	unsigned char *pBuf;
-    	#pragma options align=reset
 
 
 //	CDebug::DebugInfo("CMagiC::MmxDaemon()");

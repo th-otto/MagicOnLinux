@@ -27,6 +27,7 @@
 #ifndef _EmulationMain_h
 #define _EmulationMain_h
 
+#include <stdbool.h>
 
 #if defined (__cplusplus)
 extern "C"

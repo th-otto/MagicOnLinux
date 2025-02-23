@@ -18,7 +18,7 @@
 
 /*
 *
-* Enthält die Debugger-Ausgaben
+* Manages debug output
 *
 */
 
@@ -31,11 +31,11 @@
 // Schalter
 
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 class CDebug
 {
 	public:
-	static void _DebugInit(const unsigned char *DebugFileName);
+	static void _DebugInit(const char *DebugFileName);
 	static void _DebugInfo(const char *format, ...);
 	static void _DebugWarning(const char *format, ...);
 	static void _DebugError(const char *format, ...);
@@ -44,7 +44,7 @@ class CDebug
 
 	private:
 	static void _DebugPrint(const char *head, const char *format, va_list arglist);
-	static short RefNum;
+	static FILE *dbgFile;
 };
 
 #if 0

@@ -31,8 +31,16 @@
 #include "Debug.h"
 #include "missing.h"
 
-extern "C" int GuiMyAlert(const char *msg_text, const char *info_txt, int nButtons);
-extern "C" void GuiAtariCrash
+// TODO: make a GUI from this
+static int GuiMyAlert(const char *msg_text, const char *info_txt, int nButtons)
+{
+	fprintf(stderr, "Alert (%d buttons):\n", nButtons);
+	fprintf(stderr, "    %d\n", msg_text);
+	fprintf(stderr, "    %d\n", info_txt);
+}
+
+// TODO: make a GUI from this
+static void GuiAtariCrash
 (
 	uint16_t exc,
 	uint32_t ErrAddr,
@@ -40,12 +48,32 @@ extern "C" void GuiAtariCrash
 	uint32_t pc,
 	uint16_t sr,
 	uint32_t usp,
-	const uint32_t *pDx,
+	const uint32_t *pDx,		// TODO: Is this big endian or host endian?
 	const uint32_t *pAx,
 	const char *ProcPath,
 	uint32_t pd
-);
-extern "C" void GuiShowMouse(void);
+)
+{
+	fprintf(stderr, "Atari crash:\n");
+	fprintf(stderr, "    exc = %u\n", exc);
+	fprintf(stderr, "    ErrAddr = 0x%08x\n", ErrAddr);
+	fprintf(stderr, "    AccessMode = %s\n", AccessMode);
+	fprintf(stderr, "    pc = 0x%08x\n", pc);
+	fprintf(stderr, "    sr = 0x%04x\n", sr);
+	fprintf(stderr, "    usp = 0x%08x\n", usp);
+	for (int i = 0; i < 8; i++)
+	{
+		fprintf(stderr, "     d%i = 0x%08x\n", i, pDx[i]);
+	}
+	for (int i = 0; i < 8; i++)
+	{
+		fprintf(stderr, "     a%i = 0x%08x\n", i, pAx[i]);
+	}
+	fprintf(stderr, "    ProcPath = %s\n", ProcPath);
+	fprintf(stderr, "    pd = 0x%08x\n", pd);
+}
+
+
 
 #if 0
 // TODO: implement

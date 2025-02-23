@@ -18,20 +18,22 @@
 
 /*
 *
-* Enthält die Debugger-Ausgaben
+* Manages debug output
 *
 */
 
-#ifdef _DEBUG
+#if !defined(NDEBUG)
 // System-Header
-#include <Carbon/Carbon.h>
-#include <machine/endian.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <endian.h>
 // Programm-Header
 #include "Debug.h"
 
 // Schalter
 
-short CDebug::RefNum = 0;
+FILE *CDebug::dbgFile = nullptr;
 int CDebug::GeneralPurposeVariable = 0;
 
 
@@ -41,23 +43,11 @@ int CDebug::GeneralPurposeVariable = 0;
 *
 **********************************************************************/
 
-void CDebug::_DebugInit(const unsigned char *DebugFileName)
+void CDebug::_DebugInit(const char *debugFileName)
 {
-	if (DebugFileName)
+	if (debugFileName != nullptr)
 	{
-		FSSpec spec;
-		OSErr err;
-
-		err = FSMakeFSSpec(0, 0, DebugFileName, &spec);
-		if	((err != 0) && (err != fnfErr))
-			return;		// Fehler
-		// Bestehende Datei löschen
-		FSpDelete(&spec);
-		// Neue Datei anlegen
-		err = FSpCreate(&spec, 0, 0, smSystemScript);
-		// Neue Datei öffnen
-		if	(!err)
-			err = FSpOpenDF(&spec, fsWrPerm, &RefNum);
+		dbgFile = fopen(debugFileName, "wt");
 	}
 }
 
@@ -72,15 +62,11 @@ void CDebug::_DebugPrint(const char *head, const char *format, va_list arglist)
 {
 	char line[1024];
 	char *s;
-//	unsigned long SystemTime;		// in 60stel Sekunden
-	DateTimeRec dtr;
 
-	//return;
-
-//	SystemTime = TickCount();
-//	sprintf(line, "(%ld) %s", SystemTime, head);
-	GetTime(&dtr);
-	sprintf(line, "(%02d:%02d:%02d) %s", dtr.hour, dtr.minute, dtr.second, head);
+	time_t t = time(nullptr);
+	struct tm tm;
+	(void) localtime_r(&t, &tm);
+	sprintf(line, "(%02d:%02d:%02d) %s", tm.tm_hour, tm.tm_min, tm.tm_sec, head);
 
 	s = line + strlen(line);
 	vsprintf(s, format, arglist);
@@ -95,13 +81,11 @@ void CDebug::_DebugPrint(const char *head, const char *format, va_list arglist)
 		memmove(s, s+1, strlen(s+1) + 1);
 	}
 
-	if (RefNum)
+	if (dbgFile != nullptr)
 	{
 		// Zeilenende
 		strcat(line, "\r\n");
-		long count;
-		count = (long) strlen(line);
-		(void) FSWrite(RefNum, &count, line);
+		(void) fwrite(line, 1, strlen(line), dbgFile);
 	}
 	else
 	{

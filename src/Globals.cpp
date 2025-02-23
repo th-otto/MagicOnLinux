@@ -38,6 +38,7 @@ bool CGlobals::s_bRunning;
 char CGlobals::s_atariKernelPath[1024];
 char CGlobals::s_atariRootfsPath[1024];
 char CGlobals::s_atariScrapFileUnixPath[1024];
+char CGlobals::s_atariTempFilesUnixPath[1024];
 
 CMyPreferences CGlobals::s_Preferences;
 bool CGlobals::s_XFSDrvWasChanged[NDRIVES];

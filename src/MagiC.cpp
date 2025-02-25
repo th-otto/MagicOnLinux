@@ -18,17 +18,17 @@
 
 /*
 *
-* Enthält alles, was mit "MagicMac OS" zu tun hat
+* Does everything that deals with "MagicMac OS"
 *
 */
 
 #include "config.h"
-// System-Header
+// system headers
 #include <cassert>
 #include <cerrno>
 #include <sys/param.h>
 #include <time.h>
-// Programm-Header
+// programm headers
 #include "Debug.h"
 #include "Globals.h"
 #include "MagiC.h"
@@ -37,7 +37,7 @@
 //#include "DialogueSysHalt.h"
 #include "missing.h"
 
-// Schalter
+// compile time switches
 
 #ifdef _DEBUG
 #define _DEBUG_WRITEPROTECT_ATARI_OS
@@ -48,11 +48,7 @@
 //#define _DEBUG_NO_ATARI_VBL_INTERRUPTS
 #endif
 
-// 68k emulator callback jump table
-void *jump_table[256];	// pointers to functions
-void *self_table[256];	// pointers to objects
-
-// Kram für den 68k-Emulator
+// Stuff for the 68k emulator
 extern "C" {
 
 #if defined(USE_ASGARD_PPC_68K_EMU)
@@ -84,17 +80,17 @@ void TellDebugCurrentPC(uint32_t pc)
 #endif
 
 static CMagiC *pTheMagiC = nullptr;
-unsigned char *OpcodeROM;		// Zeiger auf den 68k-Speicher
-static uint32_t addr68kVideo;			// Beginn Bildschirmspeicher 68k
-static uint32_t addr68kVideoEnd;			// Ende Bildschirmspeicher 68k
+uint8_t *OpcodeROM;					// pointer to 68k memory (host address)
+static uint32_t addr68kVideo;		// start of 68k video memory (68k address)
+static uint32_t addr68kVideoEnd;	// end of 68k video memory (68k address)
 #ifdef _DEBUG
-static uint32_t AdrOsRomStart;			// Beginn schreibgeschützter Bereich
-static uint32_t AdrOsRomEnd;			// Ende schreibgeschützter Bereich
+static uint32_t addrOsRomStart;		// beginning of write-protected memory area (68k address)
+static uint32_t addrOsRomEnd;		// end of write-protected memory area (68k address)
 #endif
-static unsigned char *HostVideoAddr;		// Beginn Bildschirmspeicher Host
+static uint8_t *hostVideoAddr;		// start of host video memory (host address)
 //static unsigned char *HostVideo2Addr;		// Beginn Bildschirmspeicher Host (Hintergrundpuffer)
 static std::atomic_bool *p_bVideoBufChanged;
-static bool bAtariVideoRamHostEndian = true;
+static bool bAtariVideoRamHostEndian = true;	// true: video RAM is stored in host endian-mode
 
 static const char *AtariAddr2Description(uint32_t addr);
 
@@ -138,18 +134,19 @@ static inline void OS_CreateEvent(uint32_t *eventId)
 }
 
 
-/**********************************************************************
-*
-* Berechnet aus der Adresse, welcher Chip angesprochen werden sollte.
-* Rückgabe "?", wenn unbekannt.
-*
-* IN	addr
-*
-**********************************************************************/
+/** **********************************************************************************************
+ *
+ * @brief Debug helper to get the name of the addressed Atari chip from 68k address
+ *
+ * @param[in] addr		68k address
+ *
+ * @return name or "?", if unknown
+ *
+ ************************************************************************************************/
 
 static const char *AtariAddr2Description(uint32_t addr)
 {
-	// Rechne ST-Adresse in TT-Adresse um
+	// Convert ST address to TT address
 
 	if	((addr >= 0xff0000) && (addr < 0xffffff))
 		addr |= 0xff000000;
@@ -181,39 +178,67 @@ static const char *AtariAddr2Description(uint32_t addr)
 }
 
 
-/**********************************************************************
-*
-* 68k-Emu: Byte lesen
-*
-**********************************************************************/
+/** **********************************************************************************************
+ *
+ * @brief Helper to get the Atari process name, including "unknown"
+ *
+ * @param[in] address		68k address
+ *
+ * @return byte read, extended to 32-bit unsigned
+ *
+ ************************************************************************************************/
 
-m68k_addr_type m68k_read_memory_8(m68k_addr_type address)
+static void getAtariPrg(const char **pprocName, uint32_t *pact_pd)
+{
+	CMagiC::GetActAtariPrg(pprocName, pact_pd);
+	if	(*pprocName == nullptr)
+	{
+		*pprocName = "<unknown>";
+	}
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief 68k-Emu function: read a single byte
+ *
+ * @param[in] address		68k address
+ *
+ * @return byte read, extended to 32-bit unsigned
+ *
+ ************************************************************************************************/
+
+m68k_data_type m68k_read_memory_8(m68k_addr_type address)
 {
 #if !COUNT_CYCLES
 	if	(address < addr68kVideo)
+	{
+		// read regular memory
 		return(*((uint8_t *) (OpcodeROM + address)));
+	}
 	else
 #endif
 	if	(address < addr68kVideoEnd)
 	{
-		return(*((uint8_t *) (HostVideoAddr + (address - addr68kVideo))));
+		// read from host's video memory
+		return(*((uint8_t *) (hostVideoAddr + (address - addr68kVideo))));
 	}
 	else
 	{
-		const char *Name;
+		// handle access error
+		const char *procName;
 		uint32_t act_pd;
-		CMagiC::GetActAtariPrg(&Name, &act_pd);
-		if	(!Name)
-			Name = "<unknown>";
+		getAtariPrg(&procName, &act_pd);
 
-		DebugError("CMagiC::ReadByte(adr = 0x%08lx) --- Busfehler (%s) durch Prozeß %s", address, AtariAddr2Description(address), Name);
-/*
+		DebugError("m68k_read_memory_8(addr = 0x%08lx) --- bus error (%s) by process %s",
+					 address, AtariAddr2Description(address), procName);
+		/*
 		if	(address == 0xfffffa11)
 		{
-			DebugWarning("CMagiC::ReadByte() --- Zugriff auf \"MFP ISRB\" wird ignoriert, damit ZBENCH.PRG läuft!");
+			DebugWarning("CMagiC::ReadByte() --- Access to \"MFP ISRB\" is ignored to make ZBENCH.PRG working!");
 		}
 		else
-*/
+		*/
 			pTheMagiC->SendBusError(address, "read byte");
 
 		return(0xff);
@@ -221,117 +246,126 @@ m68k_addr_type m68k_read_memory_8(m68k_addr_type address)
 }
 
 
-/**********************************************************************
-*
-* 68k-Emu: Wort lesen
-*
-**********************************************************************/
+/** **********************************************************************************************
+ *
+ * @brief 68k-Emu function: read a single 16-bit halfword in big-endian mode
+ *
+ * @param[in] address		68k address
+ *
+ * @return halfword read, extended to 32-bit unsigned
+ *
+ ************************************************************************************************/
 
-m68k_addr_type m68k_read_memory_16(m68k_addr_type address)
+m68k_data_type m68k_read_memory_16(m68k_addr_type address)
 {
-	uint16_t val;
-
 #if !COUNT_CYCLES
 	if	(address < addr68kVideo)
 	{
-		val = *((uint16_t *) (OpcodeROM + address));
-		return(be16toh(val));
+		// read regular memory and convert to big-endian
+		return getAtariBE16(OpcodeROM + address);
 	}
 	else
 #endif
 	if	(address < addr68kVideoEnd)
 	{
-		val = *((uint16_t *) (HostVideoAddr + (address - addr68kVideo)));
-		if (bAtariVideoRamHostEndian)
-			return val;		// x86 has bgr instead of rgb
-		else
-			return(be16toh(val));
-	}
-	else
-	{
-		const char *Name;
-		uint32_t act_pd;
-		CMagiC::GetActAtariPrg(&Name, &act_pd);
-		if	(!Name)
-			Name = "<unknown>";
-
-		DebugError("CMagiC::ReadWord(adr = 0x%08lx) --- Busfehler (%s) durch Prozeß %s", address, AtariAddr2Description(address), Name);
-		pTheMagiC->SendBusError(address, "read word");
-		return(0xffff);		// eigentlich Busfehler
-	}
-}
-
-
-/**********************************************************************
-*
-* 68k-Emu: Langwort lesen
-*
-**********************************************************************/
-
-m68k_addr_type m68k_read_memory_32(m68k_addr_type address)
-{
-	uint32_t val;
-
-#if !COUNT_CYCLES
-	if	(address < addr68kVideo)
-	{
-		val = getAtariBE32(OpcodeROM + address);
-		return val;
-	}
-	else
-#endif
-	if	(address < addr68kVideoEnd)
-	{
+		// read from host's video memory
 		if (bAtariVideoRamHostEndian)
 		{
 			// x86 has bgr instead of rgb
-			val = *((uint32_t *) (HostVideoAddr + (address - addr68kVideo)));
+			return *((uint16_t *) (hostVideoAddr + (address - addr68kVideo)));
 		}
 		else
 		{
-			val = getAtariBE32(HostVideoAddr + (address - addr68kVideo));
+			return getAtariBE16(hostVideoAddr + (address - addr68kVideo));
 		}
-
-		return val;
 	}
 	else
 	{
-		const char *Name;
+		const char *procName;
 		uint32_t act_pd;
-		CMagiC::GetActAtariPrg(&Name, &act_pd);
-		if	(!Name)
-			Name = "<unknown>";
-		DebugError("CMagiC::ReadLong(adr = 0x%08lx) --- Busfehler bei Prozeß %s", address, Name);
-		return(0xffffffff);		// eigentlich Busfehler
+		getAtariPrg(&procName, &act_pd);
+
+		DebugError("m68k_read_memory_16(addr = 0x%08lx) --- bus error (%s) by process %s",
+					 address, AtariAddr2Description(address), procName);
+		pTheMagiC->SendBusError(address, "read word");
+		return(0xffff);		// in fact this was a bus error
 	}
 }
 
 
-/**********************************************************************
-*
-* 68k-Emu: Byte schreiben
-*
-**********************************************************************/
+/** **********************************************************************************************
+ *
+ * @brief 68k-Emu function: read a single 32-bit word in big-endian mode
+ *
+ * @param[in] address		68k address
+ *
+ * @return word read
+ *
+ ************************************************************************************************/
+
+m68k_data_type m68k_read_memory_32(m68k_addr_type address)
+{
+#if !COUNT_CYCLES
+	if	(address < addr68kVideo)
+	{
+		// read regular memory and convert to big-endian
+		return getAtariBE32(OpcodeROM + address);
+	}
+	else
+#endif
+	if	(address < addr68kVideoEnd)
+	{
+		// read from host's video memory
+		if (bAtariVideoRamHostEndian)
+		{
+			// x86 has bgr instead of rgb
+			return *((uint32_t *) (hostVideoAddr + (address - addr68kVideo)));
+		}
+		else
+		{
+			return getAtariBE32(hostVideoAddr + (address - addr68kVideo));
+		}
+	}
+	else
+	{
+		// handle access error
+		const char *procName;
+		uint32_t act_pd;
+		getAtariPrg(&procName, &act_pd);
+
+		DebugError("m68k_read_memory_32(addr = 0x%08lx) --- bus error by process %s", address, procName);
+		return(0xffffffff);		// in fact this was a bus error
+	}
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief 68k-Emu function: write a single byte
+ *
+ * @param[in] address		68k address
+ * @param[in] value			datum to write
+ *
+ ************************************************************************************************/
 
 void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
 {
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
-	if	((address >= AdrOsRomStart) && (address < AdrOsRomEnd))
+	if	((address >= addrOsRomStart) && (address < addrOsRomEnd))
 	{
-		const char *Name;
+		const char *procName;
 		uint32_t act_pd;
-		CMagiC::GetActAtariPrg(&Name, &act_pd);
-		if	(!Name)
-			Name = "<unknown>";
+		getAtariPrg(&procName, &act_pd);
 
-		DebugError("WriteByte() --- MagiC-ROM durch Prozeß %s überschrieben auf Adresse 0x%08x",
-						Name, address);
+		DebugError("m68k_write_memory_8() --- MagiC ROM tried to be overwritten by process %s at address 0x%08x",
+						procName, address);
 		pTheMagiC->SendBusError(address, "write byte");
 	}
 #endif
 #if !COUNT_CYCLES
 	if	(address < addr68kVideo)
 	{
+		// write regular memory
 		*((uint8_t *) (OpcodeROM + address)) = (uint8_t) value;
 	}
 	else
@@ -339,7 +373,7 @@ void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
 	if	(address < addr68kVideoEnd)
 	{
 		address -= addr68kVideo;
-		*((uint8_t *) (HostVideoAddr + address)) = (uint8_t) value;
+		*((uint8_t *) (hostVideoAddr + address)) = (uint8_t) value;
 		//*((uint8_t*) (HostVideo2Addr + address)) = (uint8_t) value;
 		atomic_store(p_bVideoBufChanged, true);
 		//DebugInfo("vchg");
@@ -347,24 +381,21 @@ void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
 	}
 	else
 	{
-		const char *Name;
+		const char *procName;
 		uint32_t act_pd;
-		CMagiC::GetActAtariPrg(&Name, &act_pd);
-		if	(Name == nullptr)
-		{
-			Name = "<unknown>";
-		}
+		getAtariPrg(&procName, &act_pd);
 
-		DebugError("CMagiC::WriteByte(adr = 0x%08lx, dat = 0x%02hx) --- Busfehler (%s) durch Prozeß %s", address, (uint8_t) value, AtariAddr2Description(address), Name);
+		DebugError("m68k_write_memory_8(adr = 0x%08lx, dat = 0x%02hx) --- bus error (%s) by process %s",
+					 address, (uint8_t) value, AtariAddr2Description(address), procName);
 
 		if	((address == 0xffff8201) || (address == 0xffff8203) || (address == 0xffff820d))
 		{
-			DebugWarning("CMagiC::WriteByte() --- Zugriff auf \"Video Base Register\" wird ignoriert, damit PD.PRG läuft!");
+			DebugWarning("m68k_write_memory_8() --- Access to \"Video Base Register\" ignored to make PD.PRG working!");
 		}
 		else
 		if	(address == 0xfffffa11)
 		{
-			DebugWarning("CMagiC::WriteByte() --- Zugriff auf \"MFP ISRB\" wird ignoriert, damit ZBENCH.APP läuft!");
+			DebugWarning("m68k_write_memory_8() --- Access to \"MFP ISRB\" ignored to make ZBENCH.APP working!");
 		}
 		else
 			pTheMagiC->SendBusError(address, "write byte");
@@ -372,31 +403,33 @@ void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
 }
 
 
-/**********************************************************************
-*
-* 68k-Emu: Wort schreiben
-*
-**********************************************************************/
+/** **********************************************************************************************
+ *
+ * @brief 68k-Emu function: write a single 16-bit halfword in big-endian order
+ *
+ * @param[in] address		68k address
+ * @param[in] value			datum to write
+ *
+ ************************************************************************************************/
 
 void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
 {
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
-	if	((address >= AdrOsRomStart-1) && (address < AdrOsRomEnd))
+	if	((address >= addrOsRomStart-1) && (address < addrOsRomEnd))
 	{
-		const char *Name;
+		const char *procName;
 		uint32_t act_pd;
-		CMagiC::GetActAtariPrg(&Name, &act_pd);
-		if	(!Name)
-			Name = "<unknown>";
+		getAtariPrg(&procName, &act_pd);
 
-		DebugError("WriteWord() --- MagiC-ROM durch Prozeß %s überschrieben auf Adresse 0x%08x",
-						Name, address);
+		DebugError("m68k_write_memory_16() --- MagiC ROM tried to be overwritten by process %s at address 0x%08x",
+						procName, address);
 		pTheMagiC->SendBusError(address, "write word");
 	}
 #endif
 #if !COUNT_CYCLES
 	if	(address < addr68kVideo)
 	{
+		// write regular 68k memory (big endian)
 		setAtariBE16(OpcodeROM + address, value);
 	}
 	else
@@ -406,11 +439,12 @@ void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
 		address -= addr68kVideo;
 		if (bAtariVideoRamHostEndian)
 		{
-			*((uint16_t *) (HostVideoAddr + address)) = (uint16_t) value;		// x86 has bgr instead of rgb
+			// x86 has bgr instead of rgb
+			*((uint16_t *) (hostVideoAddr + address)) = (uint16_t) value;
 		}
 		else
 		{
-			setAtariBE16(HostVideoAddr + address, value);
+			setAtariBE16(hostVideoAddr + address, value);
 		}
 
 // //		*((uint16_t*) (HostVideo2Addr + address)) = (uint16_t) htobe16(value);
@@ -420,45 +454,44 @@ void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
 	}
 	else
 	{
-		const char *Name;
+		const char *procName;
 		uint32_t act_pd;
-		CMagiC::GetActAtariPrg(&Name, &act_pd);
-		if	(Name == nullptr)
-		{
-			Name = "<unknown>";
-		}
+		getAtariPrg(&procName, &act_pd);
 
-		DebugError("CMagiC::WriteWord(adr = 0x%08lx, dat = 0x%04hx) --- Busfehler(%s) durch Prozeß %s", address, (uint16_t) value, AtariAddr2Description(address), Name);
+		DebugError("m68k_write_memory_16(addr = 0x%08lx, dat = 0x%04hx) --- bus error (%s) by process %s",
+					 address, (uint16_t) value, AtariAddr2Description(address), procName);
 		pTheMagiC->SendBusError(address, "write word");
 	}
 }
 
 
-/**********************************************************************
-*
-* 68k-Emu: Langwort schreiben
-*
-**********************************************************************/
+/** **********************************************************************************************
+ *
+ * @brief 68k-Emu function: write a single 32-bit word in big-endian order
+ *
+ * @param[in] address		68k address
+ * @param[in] value			datum to write
+ *
+ ************************************************************************************************/
 
 void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
 {
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
-	if	((address >= AdrOsRomStart - 3) && (address < AdrOsRomEnd))
+	if	((address >= addrOsRomStart - 3) && (address < addrOsRomEnd))
 	{
-		const char *Name;
+		const char *procName;
 		uint32_t act_pd;
-		CMagiC::GetActAtariPrg(&Name, &act_pd);
-		if	(!Name)
-			Name = "<unknown>";
+		getAtariPrg(&procName, &act_pd);
 
-		DebugError("WriteLong() --- MagiC-ROM durch Prozeß %s überschrieben auf Adresse 0x%08x",
-						Name, address);
+		DebugError("m68k_write_memory_32() --- MagiC ROM tried to be overwritten by process %s at address 0x%08x",
+						procName, address);
 		pTheMagiC->SendBusError(address, "write long");
 	}
 #endif
 #if !COUNT_CYCLES
 	if	(address < addr68kVideo)
 	{
+		// write regular 68k memory (big endian)
 		setAtariBE32(OpcodeROM + address, value);
 	}
 	else
@@ -470,14 +503,14 @@ void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
 			 (DebugCurrentPC <= p68k_ScreenDriver + 0xa96))
 		{
 			(WriteCounters[0])++;
-			// Bildschirm-Treiber
+			// Screen driver
 			//value = 0x000000ff;
 		}
 		else
 		if	(DebugCurrentPC == p68k_ScreenDriver + 0xbd8)
 		{
 			(WriteCounters[1])++;
-			// Bildschirm-Treiber
+			// Screen driver
 			// 8*16 Text im Textmodus (echter VT52)
 			//value = 0x00ff0000;
 		}
@@ -785,11 +818,11 @@ void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
 		if (bAtariVideoRamHostEndian)
 		{
 			// x86 has brg instead of rgb
-			*((uint32_t *) (HostVideoAddr + address)) = value;
+			*((uint32_t *) (hostVideoAddr + address)) = value;
 		}
 		else
 		{
-			setAtariBE32(HostVideoAddr + address, value);
+			setAtariBE32(hostVideoAddr + address, value);
 		}
 
 // //		*((uint32_t*) (HostVideo2Addr + address)) = value;		// x86 has brg instead of rgb
@@ -799,33 +832,106 @@ void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
 	}
 	else
 	{
-		const char *Name;
+		const char *procName;
 		uint32_t act_pd;
-		CMagiC::GetActAtariPrg(&Name, &act_pd);
-		if	(Name == nullptr)
-		{
-			Name = "<unknown>";
-		}
+		getAtariPrg(&procName, &act_pd);
 
-		DebugError("CMagiC::WriteLong(adr = 0x%08lx, dat = 0x%08lx) --- Busfehler (%s) durch Prozeß %s", address, value, AtariAddr2Description(address), Name);
+		DebugError("m68k_write_memory_32(addr = 0x%08lx, dat = 0x%08lx) --- bus error (%s) by process %s",
+					 address, value, AtariAddr2Description(address), procName);
 		pTheMagiC->SendBusError(address, "write long");
 	}
 }
 } // end extern "C"
 
 
-// statische Variablen
+#if __UINTPTR_MAX__ == 0xFFFFFFFFFFFFFFFF
+
+// 68k emulator callback jump table
+#define JUMP_TABLE_LEN 256
+void *jump_table[256];	// pointers to functions
+unsigned jump_table_len = 0;
+#define SELF_TABLE_LEN 32
+void *self_table[32];	// pointers to objects
+unsigned self_table_len = 0;
+
+void setHostCallback(PTR32_HOST *dest, tfHostCallback callback)
+{
+	assert(jump_table_len < JUMP_TABLE_LEN);
+	dest[0] = jump_table_len;
+	jump_table[jump_table_len++] = (void *) callback;
+}
+
+void setCMagiCHostCallback(PTR32x4_HOST *dest4, tpfCMagiC_HostCallback callback, CMagiC *pthis)
+{
+	assert(jump_table_len < JUMP_TABLE_LEN);
+	assert(self_table_len < SELF_TABLE_LEN);
+	uint32_t *dest = (uint32_t *) dest4;
+	dest[0] = jump_table_len;
+	jump_table[jump_table_len++] = (void *) callback;
+	dest[1] = self_table_len;
+	self_table[self_table_len++] = (void *) pthis;
+}
+
+void setCXCmdHostCallback(PTR32x4_HOST *dest4, tpfCXCmd_HostCallback callback, CXCmd *pthis)
+{
+	assert(jump_table_len < JUMP_TABLE_LEN);
+	assert(self_table_len < SELF_TABLE_LEN);
+	uint32_t *dest = (uint32_t *) dest4;
+	dest[0] = jump_table_len;
+	jump_table[jump_table_len++] = (void *) callback;
+	dest[1] = self_table_len;
+	self_table[self_table_len++] = (void *) pthis;
+}
+
+void setCHostXFSHostCallback(PTR32x4_HOST *dest4, tpfCHostXFS_HostCallback callback, CHostXFS *pthis)
+{
+	assert(jump_table_len < JUMP_TABLE_LEN);
+	assert(self_table_len < SELF_TABLE_LEN);
+	uint32_t *dest = (uint32_t *) dest4;
+	dest[0] = jump_table_len;
+	jump_table[jump_table_len++] = (void *) callback;
+	dest[1] = self_table_len;
+	self_table[self_table_len++] = (void *) pthis;
+}
+
+
+#else
+
+void setHostCallback(PTR32_HOST *dest, tfHostCallback callback)
+{
+	dest[0] = callback;
+}
+void setCMagiCHostCallback(PTR32x4_HOST *dest, tpfCMagiC_HostCallback callback, CMagiC *pthis)
+{
+	dest[0] = callback;
+	dest[2] = pThis;
+}
+void setCXCmdHostCallback(PTR32x4_HOST *dest, tpfCXCmd_HostCallback callback, CMagiC *pthis)
+{
+	dest[0] = callback;
+	dest[2] = pThis;
+}
+void setCHostXFSHostCallback(PTR32x4_HOST *dest, tpfCHostXFS_HostCallback callback, CMagiC *pthis)
+{
+	dest[0] = callback;
+	dest[2] = pThis;
+}
+#endif
+
+
+// static variables
 
 uint32_t CMagiC::s_LastPrinterAccess = 0;
 
 CMagiCSerial *pTheSerial;
 CMagiCPrint *pThePrint;
 
-/**********************************************************************
-*
-* Konstruktor
-*
-**********************************************************************/
+
+/** **********************************************************************************************
+ *
+ * @brief Constructor
+ *
+ ************************************************************************************************/
 
 CMagiC::CMagiC()
 {
@@ -872,11 +978,11 @@ CMagiC::CMagiC()
 }
 
 
-/**********************************************************************
-*
-* Destruktor
-*
-**********************************************************************/
+/** **********************************************************************************************
+ *
+ * @brief Destructor
+ *
+ ************************************************************************************************/
 
 CMagiC::~CMagiC()
 {
@@ -894,7 +1000,15 @@ CMagiC::~CMagiC()
 }
 
 
-// send message to emulator
+/** **********************************************************************************************
+ *
+ * @brief Send message to 68k emulator
+ *
+ * @param[in] event		bit vector where to set flags
+ * @param[in] flags		bit mask of flags to be set
+ *
+ ************************************************************************************************/
+
 void CMagiC::OS_SetEvent(uint32_t *event, uint32_t flags)
 {
 	pthread_mutex_lock(&m_EventMutex);
@@ -910,7 +1024,15 @@ void CMagiC::OS_SetEvent(uint32_t *event, uint32_t flags)
 }
 
 
-// emulator waits for message
+/** **********************************************************************************************
+ *
+ * @brief 68k emulator waits for a message
+ *
+ * @param[in,out]  event		bit vector to wait for, is cleared on arrival
+ * @param[out]     flags		bit vector with '1' and '0' flags
+ *
+ ************************************************************************************************/
+
 void CMagiC::OS_WaitForEvent(uint32_t *event, uint32_t *flags)
 {
 	pthread_mutex_lock(&m_ConditionMutex);
@@ -928,7 +1050,7 @@ void CMagiC::OS_WaitForEvent(uint32_t *event, uint32_t *flags)
 }
 
 
-/******************************************************************************
+/** **********************************************************************************************
 *
 * @brief Load and relocate an Atari executable file
 *
@@ -939,7 +1061,7 @@ void CMagiC::OS_WaitForEvent(uint32_t *event, uint32_t *flags)
 *
 * @return 0 = OK, otherwise error code
 *
-******************************************************************************/
+ ************************************************************************************************/
 
 int CMagiC::LoadReloc
 (
@@ -1035,7 +1157,7 @@ Reinstall the application.
 	reloff = tbase;
 	bbase = tbase + codlen;
 
-	// Alle 68k-Adressen sind relativ zu <m_RAM68k>
+	// All 68k addresses are relative to m_RAM68k
 	bp = (BasePage *) tpaStart;
 	memset(bp, 0, sizeof(BasePage));
 	bp->p_lowtpa = (PTR32_BE) htobe32(tpaStart - m_RAM68k);
@@ -1432,6 +1554,8 @@ Reinstall the application.
 		return(1);
 	}
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
 	pMacXSysHdr->MacSys_verMac = htobe32(10);
 	pMacXSysHdr->MacSys_cpu = htobe16(20);		// 68020
 	pMacXSysHdr->MacSys_fpu = htobe16(0);		// keine FPU
@@ -1479,6 +1603,7 @@ Reinstall the application.
 	setCHostXFSHostCallback(&pMacXSysHdr->MacSys_rawdrvr, &CHostXFS::RawDrvr, &m_HostXFS);
 	setCMagiCHostCallback(&pMacXSysHdr->MacSys_Daemon, &CMagiC::MmxDaemon, this);
 	setHostCallback(&pMacXSysHdr->MacSys_Yield, AtariYield);
+#pragma GCC diagnostic pop
 
 	// ssp nach Reset
 	setAtariBE32(m_RAM68k + 0, 512*1024);		// Stack auf 512k
@@ -1505,8 +1630,8 @@ Reinstall the application.
 	uint32_t *toptr = (uint32_t *) (m_RAM68k + be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen));
 #ifdef _DEBUG
 //	AdrOsRomStart = be32toh(pMacXSysHdr->MacSys_syshdr);			// Beginn schreibgeschützter Bereich
-	AdrOsRomStart = be32toh((uint32_t) m_BasePage->p_tbase);		// Beginn schreibgeschützter Bereich
-	AdrOsRomEnd = be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen);	// Ende schreibgeschützter Bereich
+	addrOsRomStart = be32toh((uint32_t) m_BasePage->p_tbase);		// Beginn schreibgeschützter Bereich
+	addrOsRomEnd = be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen);	// Ende schreibgeschützter Bereich
 #endif
 	do
 	{
@@ -1588,7 +1713,7 @@ Reinstall the application.
 void CMagiC::UpdateAtariDoubleBuffer(void)
 {
 	DebugInfo("CMagiC::UpdateAtariDoubleBuffer() --- HostVideoAddr =0x%08x", m_pFgBuffer);
-	HostVideoAddr = m_pFgBuffer;
+	hostVideoAddr = m_pFgBuffer;
 
 /*
 	if	(m_pBgBuffer)

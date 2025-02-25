@@ -710,6 +710,18 @@ typedef UINT32 (*PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
 
 
 // occupies four 32-bit words
+
+#if __UINTPTR_MAX__ == 0xFFFFFFFFFFFFFFFF
+
+// variant for 64-bit hosts
+struct CMagiC_CPPCCallback
+{
+    uint32_t data[4];
+} __attribute__((packed));
+
+#else
+
+// variant for 32-bit hosts
 class CMagiC;
 struct CMagiC_CPPCCallback
 {
@@ -720,6 +732,7 @@ struct CMagiC_CPPCCallback
     #endif
     CMagiC *m_thisptr;
 } __attribute__((packed));
+
 
 class CMacXFS;
 struct CMacXFS_CPPCCallback
@@ -743,6 +756,7 @@ struct CXCmd_CPPCCallback
     CXCmd *m_thisptr;
 } __attribute__((packed));
 
+#endif
 
 typedef struct
 {

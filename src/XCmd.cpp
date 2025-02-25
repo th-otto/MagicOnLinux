@@ -200,7 +200,7 @@ int CXCmd::Callback(uint32_t cmd, void *pParm)
 {
 #if 0
 	// TODO: implement
-	#pragma unused(pParm)
+	(void) pParm;
 
 #ifdef _DEBUG
 	CDebug::GeneralPurposeVariable++;

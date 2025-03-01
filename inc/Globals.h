@@ -26,13 +26,37 @@
 #define _INCLUDED_GLOBALS_H
 
 // System-Header
+#include <stdio.h>
 #include <stdint.h>
 #include <endian.h>
-#include <stdio.h>
+#include <atomic>
 // Programm-Header
 #include "MyPreferences.h"
 
+#if defined(USE_ASGARD_PPC_68K_EMU)
+// Asgard 68k emulator (PPC Assembler)
+#include "Asgard68000.h"
+#define COUNT_CYCLES 0
+#else
+extern "C" {
+// Musashi 68k emulator ('C')
+#include "m68k.h"
+} // end extern "C"
+#endif
+
+
 // Schalter
+
+// compile time switches
+
+#ifdef _DEBUG
+#define _DEBUG_WRITEPROTECT_ATARI_OS
+
+//#define _DEBUG_NO_ATARI_KB_INTERRUPTS
+//#define _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
+//#define _DEBUG_NO_ATARI_HZ200_INTERRUPTS
+//#define _DEBUG_NO_ATARI_VBL_INTERRUPTS
+#endif
 
 // endian conversion helpers
 
@@ -79,6 +103,21 @@ static inline void MyAlert(const char *a, const char *b)
 {
  	fprintf(stderr, "%s/%s\n", a, b);
 }
+
+// global variables
+extern std::atomic_bool gbAtariVideoBufChanged;
+extern uint8_t *addrOpcodeROM;
+extern uint32_t addr68kVideo;			// start of 68k video memory (68k address)
+extern uint32_t addr68kVideoEnd;		// end of 68k video memory (68k address)
+extern bool gbAtariVideoRamHostEndian;	// true: video RAM is stored in host endian-mode
+#ifdef _DEBUG
+extern uint32_t addrOsRomStart;			// beginning of write-protected memory area (68k address)
+extern uint32_t addrOsRomEnd;			// end of write-protected memory area (68k address)
+#endif
+extern uint8_t *hostVideoAddr;			// start of host video memory (host address)
+
+void sendBusError(uint32_t addr, const char *AccessMode);
+void getActAtariPrg(const char **pName, uint32_t *pact_pd);
 
 // helper
 int64_t getFileSize(const char *path);

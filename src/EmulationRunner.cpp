@@ -886,7 +886,7 @@ Uint32 EmulationRunner::LoopTimer(Uint32 interval, void *param)
 			p->m_Emulator.SendVBL();
 		}
 
-		if (((p->m_200HzCnt % 8) == 0) && (p->m_Emulator.bVideoBufChanged))
+		if (((p->m_200HzCnt % 8) == 0) && (gbAtariVideoBufChanged))
 		{
 			// screen update runs with 25 Hz
 
@@ -1161,7 +1161,7 @@ void EmulationRunner::EmulatorWindowUpdate(void)
 	SDL_Rect rc = { 0, 0, (int) m_hostScreenW, (int) m_hostScreenH };		// dst
 	SDL_Rect rc2 = { 0, 0, (int) m_atariScreenW, (int) m_atariScreenH };	// src
 
-	if (atomic_exchange(&m_Emulator.bVideoBufChanged, false))
+	if (atomic_exchange(&gbAtariVideoBufChanged, false))
 	{
 		fprintf(stderr, "INF: Atari Screen dirty\n");
 		if (m_sdl_atari_surface != m_sdl_surface)

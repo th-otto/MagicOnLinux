@@ -24,7 +24,6 @@
 
 #include "config.h"
 // System-Header
-#include <atomic>
 #include <pthread.h>
 // Programm-Header
 #include "Globals.h"
@@ -73,7 +72,6 @@ class CMagiC
 	bool m_bShutdown;
 	void DumpAtariMem(const char *filename);
 
-    std::atomic_bool bVideoBufChanged;
    private:
    	// Typdefinitionen
 

@@ -30,7 +30,18 @@
 #include "Globals.h"
 #include "Debug.h"
 
+
 const char scrapFileName[] = "/GEMSYS/GEMSCRAP/SCRAP.TXT";
+std::atomic_bool gbAtariVideoBufChanged;
+uint8_t *addrOpcodeROM;				// pointer to 68k memory (host address)
+uint32_t addr68kVideo;				// start of 68k video memory (68k address)
+uint32_t addr68kVideoEnd;			// end of 68k video memory (68k address)
+bool gbAtariVideoRamHostEndian;		// true: video RAM is stored in host endian-mode
+#ifdef _DEBUG
+uint32_t addrOsRomStart;			// beginning of write-protected memory area (68k address)
+uint32_t addrOsRomEnd;				// end of write-protected memory area (68k address)
+#endif
+uint8_t *hostVideoAddr;				// start of host video memory (host address)
 
 
 bool CGlobals::s_bRunning;

@@ -257,7 +257,6 @@ CMagiC::~CMagiC()
  * @param[in] flags		bit mask of flags to be set
  *
  ************************************************************************************************/
-
 void CMagiC::OS_SetEvent(uint32_t *event, uint32_t flags)
 {
 	pthread_mutex_lock(&m_EventMutex);
@@ -281,7 +280,6 @@ void CMagiC::OS_SetEvent(uint32_t *event, uint32_t flags)
  * @param[out]     flags		bit vector with '1' and '0' flags
  *
  ************************************************************************************************/
-
 void CMagiC::OS_WaitForEvent(uint32_t *event, uint32_t *flags)
 {
 	pthread_mutex_lock(&m_ConditionMutex);
@@ -311,7 +309,6 @@ void CMagiC::OS_WaitForEvent(uint32_t *event, uint32_t *flags)
 * @return 0 = OK, otherwise error code
 *
  ************************************************************************************************/
-
 int CMagiC::LoadReloc
 (
 	const char *path,
@@ -542,7 +539,6 @@ exitReloc:
 * (INTERN) Initialisierung von Atari68kData.m_VDISetupData
 *
 **********************************************************************/
-
 void CMagiC::Init_CookieData(MgMxCookieData *pCookieData)
 {
 	pCookieData->mgmx_magic     = htobe32('MgMx');
@@ -560,7 +556,6 @@ void CMagiC::Init_CookieData(MgMxCookieData *pCookieData)
 * Pixmap ggf. nach big endian wandeln
 *
 **********************************************************************/
-
 #if !defined(__BIG_ENDIAN__)
 static void PixmapToBigEndian(MXVDI_PIXMAP *thePixMap)
 {

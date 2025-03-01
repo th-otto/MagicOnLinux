@@ -491,24 +491,19 @@ bool CHostXFS::nameto_8_3 (const unsigned char *macname,
 }
 
 
-/*************************************************************
-*
-* Laufwerk synchronisieren
-*
-* Der Aufrufer trägt in den ParamBlockRec bereits den Eintrag
-* ioCompletion ein.
-* Der Aufrufer stellt bereits sicher, daß die Routine nur einmal
-* pro Mac-Volume aufgerufen wird.
-*
-* Rückgabe:        0    OK
-*            <0    Fehler
-*            >0    in Arbeit.
-* AK 25.3.98
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Atari callback: Synchronise a drive, i.e. write back caches
+ *
+ * @param[in] drv		Atari drive number 0..25
+ *
+ * @return 0 = OK   < 0 = error  > 0 in progress
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_sync(UINT16 drv)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -523,33 +518,45 @@ INT32 CHostXFS::xfs_sync(UINT16 drv)
 }
 
 
-/*************************************************************
-*
-* Ein Prozeß ist terminiert.
-*
-*************************************************************/
-
-void CHostXFS::xfs_pterm (PD *pd)
+/** **********************************************************************************************
+ *
+ * @brief Atari callback: Tells the host that an Atari process has terminated
+ *
+ * @param[in] pd		Atari process descriptor
+ *
+ ************************************************************************************************/
+void CHostXFS::xfs_pterm(PD *pd)
 {
+	DebugInfo("%s()", __func__);
     (void) pd;
 }
 
 
-/*************************************************************
-* xfs_drv_open
-* ============
-*
-* "Oeffnet" ein Laufwerk.
-* D.h. sieht nach, ob es als Mac-Pfad existiert. Wenn ja,
-* wird ein Deskriptor geliefert (d.h. die DirID der "root").
-*
-* Für Calamus: Für M: wird immer 0 geliefert.
-*
-*************************************************************/
-INT32 CHostXFS::xfs_drv_open (UINT16 drv, MXFSDD *dd, INT32 flg_ask_diskchange)
+/** **********************************************************************************************
+ *
+ * @brief Atari callback: Open a drive, i.e. return a descriptor for it, if valid
+ *
+ * @param[in]  drv		            Atari drive number 0..25
+ * @param[out] dd		            directory descriptor of the drive's root directory
+ * @param[in]  flg_ask_diskchange	only ask if disk has been changed
+ *
+ * @return 0 for OK or negative error code
+ *
+ * @note Due to a bug in Calamus (Atari program), drive M: must never return an error code.
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_drv_open(UINT16 drv, MXFSDD *dd, INT32 flg_ask_diskchange)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+
+	if (flg_ask_diskchange)
+	{
+		return (drv_changed[drv]) ? E_CHNG : E_OK;
+	}
+
+	drv_changed[drv] = false;		// Diskchange reset
+
     (void) dd;
-    (void) flg_ask_diskchange;
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -574,6 +581,8 @@ INT32 CHostXFS::xfs_drv_open (UINT16 drv, MXFSDD *dd, INT32 flg_ask_diskchange)
 
 INT32 CHostXFS::xfs_drv_close(UINT16 drv, UINT16 mode)
 {
+	DebugInfo("%s(drv = %u, mode = %u)", __func__, drv, mode);
+
     (void) mode;
     if (drv_changed[drv])
     {
@@ -658,12 +667,21 @@ INT32 CHostXFS::xfs_path2DD
 (
     UINT16 mode,
     UINT16 drv, MXFSDD *rel_dd, char *pathname,
-    char **restpfad, MXFSDD *symlink_dd, char **symlink,
+    char **remain_path, MXFSDD *symlink_dd, char **symlink,
     MXFSDD *dd,
     UINT16 *dir_drive
 )
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) mode;
+    (void) rel_dd;
+    (void) pathname;
+    (void) remain_path;
+    (void) symlink_dd;
+    (void) symlink;
+    (void) dd;
+    (void) dir_drive;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -696,6 +714,8 @@ INT32 CHostXFS::xfs_path2DD
 
 INT32 CHostXFS::_snext(UINT16 drv, MAC_DTA *dta)
 {
+    (void) dta;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -722,6 +742,12 @@ INT32 CHostXFS::_snext(UINT16 drv, MAC_DTA *dta)
 INT32 CHostXFS::xfs_sfirst(UINT16 drv, MXFSDD *dd, char *name,
                     MAC_DTA *dta, UINT16 attrib)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+    (void) dta;
+    (void) attrib;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -745,6 +771,9 @@ INT32 CHostXFS::xfs_sfirst(UINT16 drv, MXFSDD *dd, char *name,
 
 INT32 CHostXFS::xfs_snext(UINT16 drv, MAC_DTA *dta)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dta;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -781,6 +810,12 @@ INT32 CHostXFS::xfs_snext(UINT16 drv, MAC_DTA *dta)
 INT32 CHostXFS::xfs_fopen(char *name, UINT16 drv, MXFSDD *dd,
             UINT16 omode, UINT16 attrib)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) name;
+    (void) dd;
+    (void) omode;
+    (void) attrib;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -806,6 +841,10 @@ INT32 CHostXFS::xfs_fopen(char *name, UINT16 drv, MXFSDD *dd,
 
 INT32 CHostXFS::xfs_fdelete(UINT16 drv, MXFSDD *dd, char *name)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -839,6 +878,14 @@ INT32 CHostXFS::xfs_fdelete(UINT16 drv, MXFSDD *dd, char *name)
 INT32 CHostXFS::xfs_link(UINT16 drv, char *nam1, char *nam2,
                MXFSDD *dd1, MXFSDD *dd2, UINT16 mode, UINT16 dst_drv)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) nam1;
+    (void) nam2;
+    (void) dd1;
+    (void) dd2;
+    (void) mode;
+    (void) dst_drv;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -864,6 +911,12 @@ INT32 CHostXFS::xfs_link(UINT16 drv, char *nam1, char *nam2,
 INT32 CHostXFS::xfs_xattr(UINT16 drv, MXFSDD *dd, char *name,
                 XATTR *xattr, UINT16 mode)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+    (void) xattr;
+    (void) mode;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -894,6 +947,12 @@ INT32 CHostXFS::xfs_xattr(UINT16 drv, MXFSDD *dd, char *name,
 
 INT32 CHostXFS::xfs_attrib(UINT16 drv, MXFSDD *dd, char *name, UINT16 rwflag, UINT16 attr)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+    (void) rwflag;
+    (void) attr;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -917,6 +976,12 @@ INT32 CHostXFS::xfs_attrib(UINT16 drv, MXFSDD *dd, char *name, UINT16 rwflag, UI
 INT32 CHostXFS::xfs_fchown(UINT16 drv, MXFSDD *dd, char *name,
                     UINT16 uid, UINT16 gid)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+    (void) uid;
+    (void) gid;
+
     // TODO: implement
     return(EINVFN);
 }
@@ -930,6 +995,11 @@ INT32 CHostXFS::xfs_fchown(UINT16 drv, MXFSDD *dd, char *name,
 
 INT32 CHostXFS::xfs_fchmod(UINT16 drv, MXFSDD *dd, char *name, UINT16 fmode)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+    (void) fmode;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -952,6 +1022,10 @@ INT32 CHostXFS::xfs_fchmod(UINT16 drv, MXFSDD *dd, char *name, UINT16 fmode)
 
 INT32 CHostXFS::xfs_dcreate(UINT16 drv, MXFSDD *dd, char *name)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -977,6 +1051,9 @@ INT32 CHostXFS::xfs_dcreate(UINT16 drv, MXFSDD *dd, char *name)
 
 INT32 CHostXFS::xfs_ddelete(UINT16 drv, MXFSDD *dd)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -999,6 +1076,11 @@ INT32 CHostXFS::xfs_ddelete(UINT16 drv, MXFSDD *dd)
 
 INT32 CHostXFS::xfs_DD2name(UINT16 drv, MXFSDD *dd, char *buf, UINT16 bufsiz)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) buf;
+    (void) bufsiz;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -1025,6 +1107,12 @@ INT32 CHostXFS::xfs_DD2name(UINT16 drv, MXFSDD *dd, char *buf, UINT16 bufsiz)
 INT32 CHostXFS::xfs_dopendir(MAC_DIRHANDLE *dirh, UINT16 drv, MXFSDD *dd,
                 UINT16 tosflag)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dirh;
+    (void) drv;
+    (void) dd;
+    (void) tosflag;
+
     // TODO: implement
     return EINVFN;
 }
@@ -1048,6 +1136,13 @@ INT32 CHostXFS::xfs_dopendir(MAC_DIRHANDLE *dirh, UINT16 drv, MXFSDD *dd,
 INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, UINT16 drv,
         UINT16 size, char *buf, XATTR *xattr, INT32 *xr)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dirh;
+    (void) size;
+    (void) buf;
+    (void) xattr;
+    (void) xr;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -1070,6 +1165,8 @@ INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, UINT16 drv,
 
 INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, UINT16 drv)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+
     if (drv_rvsDirOrder[drv])
     {
         return(xfs_dopendir(dirh, drv, (MXFSDD*) (&dirh->dirID), dirh->tosflag));
@@ -1087,6 +1184,8 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, UINT16 drv)
 
 INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, UINT16 drv)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+
     (void) drv;
     dirh -> dirID = -1L;
     return(E_OK);
@@ -1132,6 +1231,8 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, UINT16 drv)
 
 INT32 CHostXFS::xfs_dpathconf(UINT16 drv, MXFSDD *dd, UINT16 which)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+
     (void) dd;
     switch(which)
     {
@@ -1166,6 +1267,10 @@ INT32 CHostXFS::xfs_dpathconf(UINT16 drv, MXFSDD *dd, UINT16 which)
 
 INT32 CHostXFS::xfs_dfree(UINT16 drv, INT32 dirID, UINT32 data[4])
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dirID;
+    (void) data;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -1194,6 +1299,10 @@ INT32 CHostXFS::xfs_dfree(UINT16 drv, INT32 dirID, UINT32 data[4])
 
 INT32 CHostXFS::xfs_wlabel(UINT16 drv, MXFSDD *dd, char *name)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -1209,6 +1318,11 @@ INT32 CHostXFS::xfs_wlabel(UINT16 drv, MXFSDD *dd, char *name)
 
 INT32 CHostXFS::xfs_rlabel(UINT16 drv, MXFSDD *dd, char *name, UINT16 bufsiz)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+    (void) bufsiz;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -1234,6 +1348,11 @@ INT32 CHostXFS::xfs_rlabel(UINT16 drv, MXFSDD *dd, char *name, UINT16 bufsiz)
 
 INT32 CHostXFS::xfs_symlink(UINT16 drv, MXFSDD *dd, char *name, char *to)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+    (void) to;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -1257,6 +1376,12 @@ INT32 CHostXFS::xfs_symlink(UINT16 drv, MXFSDD *dd, char *name, char *to)
 INT32 CHostXFS::xfs_readlink(UINT16 drv, MXFSDD *dd, char *name,
                 char *buf, UINT16 bufsiz)
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+    (void) buf;
+    (void) bufsiz;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -1287,9 +1412,16 @@ INT32 CHostXFS::xfs_dcntl
     char *name,
     UINT16 cmd,
     void *pArg,
-    uint8_t *AdrOffset68kXFS
+    uint8_t *addrOffset68kXFS
 )
 {
+	DebugInfo("%s(drv = %u)", __func__, drv);
+    (void) dd;
+    (void) name;
+    (void) cmd;
+    (void) pArg;
+    (void) addrOffset68kXFS;
+
     if (drv_changed[drv])
     {
         return(E_CHNG);
@@ -1308,8 +1440,10 @@ INT32 CHostXFS::xfs_dcntl
 /******************* Dateitreiber ****************************/
 /*************************************************************/
 
-INT32 CHostXFS::dev_close( MAC_FD *f )
+INT32 CHostXFS::dev_close(MAC_FD *f)
 {
+    (void) f;
+
     // TODO: implement
     return EINVFN;
 }
@@ -1382,15 +1516,23 @@ static INT32 CHostXFS::dev_pread( MAC_FD *f, ParamBlockRec *pb )
 }
 */
 
-INT32 CHostXFS::dev_read( MAC_FD *f, INT32 count, char *buf )
+INT32 CHostXFS::dev_read(MAC_FD *f, INT32 count, char *buf)
 {
+    (void) f;
+    (void) count;
+    (void) buf;
+
     // TODO: implement
     return EINVFN;
 }
 
 
-INT32 CHostXFS::dev_write( MAC_FD *f, INT32 count, char *buf )
+INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, char *buf)
 {
+    (void) f;
+    (void) count;
+    (void) buf;
+
     // TODO: implement
     return EINVFN;
 }
@@ -1398,6 +1540,11 @@ INT32 CHostXFS::dev_write( MAC_FD *f, INT32 count, char *buf )
 
 INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, UINT16 rwflag, INT32 apcode)
 {
+    (void) f;
+    (void) unsel;
+    (void) rwflag;
+    (void) apcode;
+
     // TODO: implement
     return EINVFN;
 }
@@ -1405,6 +1552,10 @@ INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, UINT16 rwflag, INT32 apcode)
 
 INT32 CHostXFS::dev_seek(MAC_FD *f, INT32 pos, UINT16 mode)
 {
+    (void) f;
+    (void) pos;
+    (void) mode;
+
     // TODO: implement
     return EINVFN;
 }
@@ -1412,6 +1563,10 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, INT32 pos, UINT16 mode)
 
 INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], UINT16 rwflag)
 {
+    (void) f;
+    (void) d;
+    (void) rwflag;
+
     // TODO: implement
     return EINVFN;
 }
@@ -1419,6 +1574,9 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], UINT16 rwflag)
 
 INT32 CHostXFS::dev_ioctl(MAC_FD *f, UINT16 cmd, void *buf)
 {
+    (void) f;
+    (void) cmd;
+    (void) buf;
     // TODO: implement
     return EINVFN;
 }
@@ -1489,6 +1647,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
     UINT16 fncode;
     INT32 doserr;
     unsigned char *params = AdrOffset68k + param;
+
+	DebugInfo("%s(param = %u)", __func__, param);
 
     fncode = getAtariBE16(params);
 #ifdef DEBUG_VERBOSE
@@ -2079,6 +2239,8 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
     unsigned char *params = AdrOffset68k + param;
     UINT32 ifd;
 
+
+	DebugInfo("%s(param = %u)", __func__, param);
 
     // first 2 bytes: function code
     uint16_t fncode = getAtariBE16(params + 0);

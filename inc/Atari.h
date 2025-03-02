@@ -142,18 +142,16 @@ typedef uint32_t PTR32x4_HOST[4];   // might be used as 64 bit function pointer 
 #define  DP_CTIME      0x0400
 #define  DP_MTIME      0x0800
 
-/* D/Fcntl(FUTIME,...) */
-
+/// data for D/Fcntl(FUTIME,...)
 struct mutimbuf
 {
-    UINT16_BE  actime;          /* access time */
+    UINT16_BE  actime;          ///< access time
     UINT16_BE  acdate;
-    UINT16_BE  modtime;         /* latest modification */
+    UINT16_BE  modtime;         ///< latest modification
     UINT16_BE  moddate;
 } __attribute__((packed));
 
-/* structure for getxattr (-> MiNT) */
-
+/// structure for getxattr (-> MiNT)
 struct XATTR
 {
     UINT16_BE mode;
@@ -199,6 +197,7 @@ struct XATTR
     UINT32_BE reserved3[2];
 } __attribute__((packed));
 
+/// GEMDOS basepage, not MagiC specific
 struct BasePage
 {
     PTR32_BE p_lowtpa;       //   0 (0x00)
@@ -220,6 +219,7 @@ struct BasePage
     UINT8 p_cmdline[128];
 } __attribute__((packed));
 
+/// file header for GEMDOS executable files, not MagiC specific
 struct ExeHeader
 {
     UINT16_BE code;
@@ -232,8 +232,9 @@ struct ExeHeader
     INT16_BE  relmod;
 } __attribute__((packed));
 
-/* The system variable _sysbase (0x4F2L) points to: */
 
+/// The system variable _sysbase (0x4F2L) points to this structure,
+/// which is not MagiC specific.
 struct SYSHDR
 {
     UINT16_BE os_entry;     /* $00 BRA to reset handler             */
@@ -362,7 +363,7 @@ struct SYSHDR
 #define _timer_ms               0x442
 #define _fverify                0x444
 #define _bootdev                0x446
-#define palmode                 0x448    //unbenutzt
+#define palmode                 0x448    // unused
 #define defshiftmd              0x44a
 #define sshiftmd                0x44c
 #define _v_bas_ad               0x44e
@@ -422,45 +423,45 @@ struct SYSHDR
 
 /* BIOS level errors */
 
-#define E_OK        0L    /* OK, no error         */
-#define ERROR      -1L    /* basic, fundamental error    */
-#define EDRVNR     -2L    /* drive not ready        */
-#define EUNCMD     -3L    /* unknown command        */
-#define E_CRC      -4L    /* CRC error            */
-#define EBADRQ     -5L    /* bad request            */
-#define E_SEEK     -6L    /* seek error            */
-#define EMEDIA     -7L    /* unknown media        */
-#define ESECNF     -8L    /* sector not found        */
-#define EPAPER     -9L    /* no paper                */
-#define EWRITF    -10L    /* write fault            */
-#define EREADF    -11L    /* read fault            */
-#define EGENRL    -12L    /* general error        */
-#define EWRPRO    -13L    /* write protect        */
-#define E_CHNG    -14L    /* media change         */
-#define EUNDEV    -15L    /* unknown device        */
-#define EBADSF    -16L    /* bad sectors on format    */
-#define EOTHER    -17L    /* insert other disk    */
+#define E_OK        0L    // OK, no error
+#define ERROR      -1L    // basic, fundamental error
+#define EDRVNR     -2L    // drive not ready
+#define EUNCMD     -3L    // unknown command
+#define E_CRC      -4L    // CRC error
+#define EBADRQ     -5L    // bad request
+#define E_SEEK     -6L    // seek error
+#define EMEDIA     -7L    // unknown media
+#define ESECNF     -8L    // sector not found
+#define EPAPER     -9L    // no paper
+#define EWRITF    -10L    // write fault
+#define EREADF    -11L    // read fault
+#define EGENRL    -12L    // general error
+#define EWRPRO    -13L    // write protect
+#define E_CHNG    -14L    // media change
+#define EUNDEV    -15L    // unknown device
+#define EBADSF    -16L    // bad sectors on format
+#define EOTHER    -17L    // insert other disk
 
 /* BDOS level errors */
 
-#define EINVFN    -32L    /* invalid function number         1 */
-#define EFILNF    -33L    /* file not found                 2 */
-#define EPTHNF    -34L    /* path not found    (0xffde)         3 */
-#define ENHNDL    -35L    /* no handles left                 4 */
-#define EACCDN    -36L    /* access denied                 5 */
-#define EIHNDL    -37L    /* invalid handle                 6 */
-#define ENSMEM    -39L    /* insufficient memory             8 */
-#define EIMBA     -40L    /* invalid memory block address     9 */
-#define EDRIVE    -46L    /* invalid drive was specified    15 */
-#define ENSAME    -48L    /* MV between two different drives 17 */
-#define ENMFIL    -49L    /* no more files                18 */
-#define ATARIERR_ERANGE    -64L    /* range error                    33 */
-#define EINTRN    -65L    /* internal error                34 */
-#define EPLFMT    -66L    /* invalid program load format    35 */
-#define EGSBF     -67L    /* setblock failure             36 */
-#define EBREAK    -68L    /* user break (^C)                37 */
-#define EXCPT     -69L    /* 68000- exception ("bombs")    38 */
-#define EPTHOV    -70L    /* path overflow                          MAG!X    */
+#define EINVFN    -32L    // invalid function number          1
+#define EFILNF    -33L    // file not found                   2
+#define EPTHNF    -34L    // path not found    (0xffde)       3
+#define ENHNDL    -35L    // no handles left                  4
+#define EACCDN    -36L    // access denied                    5
+#define EIHNDL    -37L    // invalid handle                   6
+#define ENSMEM    -39L    // insufficient memory              8
+#define EIMBA     -40L    // invalid memory block address     9
+#define EDRIVE    -46L    // invalid drive was specified     15
+#define ENSAME    -48L    // MV between two different drives 17
+#define ENMFIL    -49L    // no more files                   18
+#define ATARIERR_ERANGE    -64L    // range error            33
+#define EINTRN    -65L    // internal error                  34
+#define EPLFMT    -66L    // invalid program load format     35
+#define EGSBF     -67L    // setblock failure                36
+#define EBREAK    -68L    // user break (^C)                 37
+#define EXCPT     -69L    // 68000- exception ("bombs")      38
+#define EPTHOV    -70L    // path overflow             MAG!X
 
 // Keyboard Scancodes
 
@@ -599,8 +600,7 @@ struct SYSHDR
 // 132
 
 
-// XCmd Commands:
-
+/// XCmd Commands
 enum eXCMD
 {
     eXCMDVersion = 0,
@@ -612,8 +612,8 @@ enum eXCMD
     eUnLoad = 14
 };
 
-// Format for XCmd commands:
 
+/// Format for XCmd commands
 struct strXCMD
 {
     UINT32_BE m_cmd;            // ->    command
@@ -758,98 +758,101 @@ struct CXCmd_CPPCCallback
 
 #endif
 
+/// screen and video format description for MXVDI
 typedef struct
 {
-    PTR32_BE  baseAddr;         /* pointer to pixels */
-    UINT16_BE rowBytes;         /* offset to next line */
-//  Rect      bounds;           /* encloses bitmap */
-    UINT16_BE bounds_top;       /* first row */
-    UINT16_BE bounds_left;      /* first column */
-    UINT16_BE bounds_bottom;    /* last row */
-    UINT16_BE bounds_right;     /* last column */
-    UINT16_BE pmVersion;        /* pixMap version number */
-    UINT16_BE packType;         /* defines packing format */
-    UINT32_BE packSize;         /* length of pixel data */
-    INT32_BE  hRes;             /* horiz. resolution (ppi), in fact of type "Fixed" */
-    INT32_BE  vRes;             /* vert. resolution (ppi), in fact of type "Fixed" */
-    UINT16_BE pixelType;        /* defines pixel type */
-    UINT16_BE pixelSize;        /* # bits in pixel */
-    UINT16_BE cmpCount;         /* # components in pixel */
-    UINT16_BE cmpSize;          /* # bits per component */
-    UINT32_BE planeBytes;       /* offset to next plane */
-    PTR32_BE  pmTable;          /* color map for this pixMap (definiert CtabHandle), in fact of type CTabHandle */
-    UINT32_BE pmReserved;       /* for future use. MUST BE 0 */
+    PTR32_BE  baseAddr;         // pointer to pixels
+    UINT16_BE rowBytes;         // offset to next line
+//  Rect      bounds;           // encloses bitmap
+    UINT16_BE bounds_top;       // first row
+    UINT16_BE bounds_left;      // first column
+    UINT16_BE bounds_bottom;    // last row
+    UINT16_BE bounds_right;     // last column
+    UINT16_BE pmVersion;        // pixMap version number
+    UINT16_BE packType;         // defines packing format
+    UINT32_BE packSize;         // length of pixel data */
+    INT32_BE  hRes;             // horiz. resolution (ppi), in fact of type "Fixed"
+    INT32_BE  vRes;             // vert. resolution (ppi), in fact of type "Fixed"
+    UINT16_BE pixelType;        // defines pixel type
+    UINT16_BE pixelSize;        // # bits in pixel
+    UINT16_BE cmpCount;         // # components in pixel
+    UINT16_BE cmpSize;          // # bits per component
+    UINT32_BE planeBytes;       // offset to next plane
+    PTR32_BE  pmTable;          // color map for this pixMap (definiert CtabHandle), in fact of type CTabHandle
+    UINT32_BE pmReserved;       // for future use. MUST BE 0
 } __attribute__((packed)) MXVDI_PIXMAP;
 
+/// The old MagiCMac system header which is now included in the
+/// new MacXSysHdr, for compatibility purposes with Behnes' MXVDI.
 struct OldMmSysHdr
 {
-    UINT32_BE magic;            // ist 'MagC'
-    UINT32_BE syshdr;            // Adresse des Atari-Syshdr
-    UINT32_BE keytabs;            // 5*128 Bytes f�r Tastaturtabellen
-    UINT32_BE ver;                // Version
-    UINT16_BE cpu;                // CPU (30=68030, 40=68040)
-    UINT16_BE fpu;                // FPU (0=nix,4=68881,6=68882,8=68040)
-    UINT32_BE boot_sp;            // sp f�rs Booten
-    UINT32_BE biosinit;            // nach Initialisierung aufrufen
-    UINT32_BE pixmap;            // Daten f�rs VDI
-    UINT32_BE offs_32k;            // Adressenoffset f�r erste 32k im MAC
-    UINT32_BE a5;                // globales Register a5 f�r Mac-Programm
-    UINT32_BE tasksw;            // != NULL, wenn Taskswitch erforderlich
-    UINT32_BE gettime;            // Datum und Uhrzeit ermitteln
-    UINT32_BE bombs;            // Atari-Routine, wird vom MAC aufgerufen
-    UINT32_BE syshalt;            // "System halted", String in a0
+    UINT32_BE magic;            // is 'MagC'
+    UINT32_BE syshdr;           // address of the Atari Syshdr structure
+    UINT32_BE keytabs;          // 5*128 Bytes for keyboard tables
+    UINT32_BE ver;              // version
+    UINT16_BE cpu;              // CPU (30=68030, 40=68040)
+    UINT16_BE fpu;              // FPU (0=none, 4=68881, 6=68882, 8=68040)
+    UINT32_BE boot_sp;          // sp for booting
+    UINT32_BE biosinit;         // to be called after initialisation
+    UINT32_BE pixmap;           // data for the VDI
+    UINT32_BE offs_32k;         // address offset for first 32k in the Mac
+    UINT32_BE a5;               // global 68k register a5 for Mac programs
+    UINT32_BE tasksw;           // != NULL, if task switch is necessary
+    UINT32_BE gettime;          // get date and time
+    UINT32_BE bombs;            // Atari function, called by the Mac
+    UINT32_BE syshalt;          // "System halted", text string in 68k register a0
     UINT32_BE coldboot;
-    UINT32_BE debugout;            // f�rs Debugging
-    UINT32_BE prtis;                //     F�r Drucker (PRT)
-    UINT32_BE prtos;                //
-    UINT32_BE prtin;                //
-    UINT32_BE prtout;            //
-    UINT32_BE serconf;            //    Rsconf f�r ser1
-    UINT32_BE seris;                //    F�r ser1 (AUX)
+    UINT32_BE debugout;         // for debugging
+    UINT32_BE prtis;            //    for printer (PRT)
+    UINT32_BE prtos;            //
+    UINT32_BE prtin;            //
+    UINT32_BE prtout;           //
+    UINT32_BE serconf;          //    Rsconf for ser1
+    UINT32_BE seris;            //    for ser1 (AUX)
     UINT32_BE seros;            //
-    UINT32_BE serin;                //
-    UINT32_BE serout;            //
-    UINT32_BE xfs;                // Routinen f�r das XFS
-    UINT32_BE xfs_dev;            //  Zugeh�riger Dateitreiber
-    UINT32_BE set_physbase;        // Bildschirmadresse bei Setscreen umsetzen (a0 zeigt auf den Stack von Setscreen())
-    UINT32_BE VsetRGB;            // Farbe setzen (a0 zeigt auf den Stack bei VsetRGB())
-    UINT32_BE VgetRGB;            // Farbe erfragen (a0 zeigt auf den Stack bei VgetRGB())
-    UINT32_BE error;                // Fehlermeldung in d0.l an das Mac-System zur�ckgeben
-                                  //    Fehlermeldungen bei MacSys_error:
-                                  //    -1: nicht unterst�tzte Grafikaufl�sung => kein VDI-Treiber
-    UINT32_BE init;                // Wird beim Warmstart des Atari aufgerufen
-    UINT32_BE drv2devcode;        // umrechnen Laufwerk->Devicenummer
-    UINT32_BE rawdrvr;            // Raw-Driver (Eject) f�r Mac
+    UINT32_BE serin;            //
+    UINT32_BE serout;           //
+    UINT32_BE xfs;              // functions for the XFS (Mac file system driver)
+    UINT32_BE xfs_dev;          //  corresponding file driver
+    UINT32_BE set_physbase;     // change video memory address in Setscreen() (a0 points to stack of Setscreen())
+    UINT32_BE VsetRGB;          // set colour (a0 points to the stack of VsetRGB())
+    UINT32_BE VgetRGB;          // ask colour (a0 points to the stack of VgetRGB())
+    UINT32_BE error;            // pass error message in 68k register d0.l to the MacOS
+                                //    error messages for MacSys_error:
+                                //    -1: unsupported graphics format => no VDI driver
+    UINT32_BE init;             // called on Atari warmboot
+    UINT32_BE drv2devcode;      // convert drive number to device number
+    UINT32_BE rawdrvr;          // Raw driver (eject) for Mac
     UINT32_BE floprd;
     UINT32_BE flopwr;
     UINT32_BE flopfmt;
     UINT32_BE flopver;
-    UINT32_BE superstlen;            // Gr��e des Supervisorstack pro APP
-    UINT32_BE dos_macfn;            // DOS-Funktionen 0x60..0xfe
-    UINT32_BE settime;            // xbios Settime
-    UINT32_BE prn_wrts;            // String auf Drucker
-    UINT32_BE version;            // Versionsnummer der Struktur
-    UINT32_BE in_interrupt;        // Interruptz�hler f�r Mac-Seite
-    UINT32_BE drv_fsspec;            // Liste der FSSpec f�r Mac-Laufwerke
+    UINT32_BE superstlen;        // size of supervisor stack per application
+    UINT32_BE dos_macfn;         // DOS functions 0x60..0xfe
+    UINT32_BE settime;           // xbios Settime
+    UINT32_BE prn_wrts;          // text string to printer
+    UINT32_BE version;           // version number of this structure
+    UINT32_BE in_interrupt;      // interrupt counter for the MacOS side
+    UINT32_BE drv_fsspec;        // List of FSSpec data for Mac drives
     UINT32_BE cnverr;            // LONG cnverr( WORD mac_errcode )
-    UINT32_BE res1;                // reserviert
-    UINT32_BE res2;                // reserviert
-    UINT32_BE res3;                // reserviert
+    UINT32_BE res1;              // reserved
+    UINT32_BE res2;              // reserved
+    UINT32_BE res3;              // reserved
 } __attribute__((packed));
 
-// Die Cookie-Struktur wird vom Emulator bereitgestellt. Ihre Adresse
-// erh�lt der Kernel �ber die �bergabestruktur. Ausgef�llt werden die
-// Felder vom Kernel, au�er den ersten dreien.
-
+/// The Cookie structure is provided by the emulator. Its address
+/// is passed to the kernel via the information transfer structure.
+/// Except the first three ones, the other structure members are
+/// written by the kernel.
 struct MgMxCookieData
 {
-    UINT32_BE mgmx_magic;            // ist "MgMx"
-    UINT32_BE mgmx_version;        // Versionsnummer
-    UINT32_BE mgmx_len;            // Strukturl�nge
-    UINT32_BE mgmx_xcmd;            // PPC-Bibliotheken laden und verwalten
-    UINT32_BE mgmx_xcmd_exec;        // PPC-Aufruf aus PPC-Bibliothek
-    UINT32_BE mgmx_internal;        // 68k-Adresse der �bergabestruktur
-    UINT32_BE mgmx_daemon;        // Routine f�r den "mmx.prg"-Hintergrundproze�
+    UINT32_BE mgmx_magic;        // is "MgMx"
+    UINT32_BE mgmx_version;      // version number
+    UINT32_BE mgmx_len;          // structure length
+    UINT32_BE mgmx_xcmd;         // load and manage PPC (Mac PowerPC CPU) libraries
+    UINT32_BE mgmx_xcmd_exec;    // call PPC function from a PPC library
+    UINT32_BE mgmx_internal;     // 68k address of the information transfer structure
+    UINT32_BE mgmx_daemon;       // function call for the "mmx.prg" background (idle) process
 } __attribute__((packed));
 
 /*
@@ -943,7 +946,6 @@ MACRO    MACPPCE
 // additionally takes a "this" pointer that is located behind the
 // host callback function pointer and passes this as first parameter
 // of a class method.
-
 struct MacXSysHdr
 {
     // Atari -> Mac
@@ -1008,13 +1010,15 @@ struct MacXSysHdr
     OldMmSysHdr  MacSys_OldHdr;             // for compatibility with Behne's code
 } __attribute__((packed));
 
+/// signal handler, part of the MagiC process information structure
 struct MagiC_SA
 {
-    UINT32    _ATARI_sa_handler;            // 0x00: Signalhandler
-    UINT32    _ATARI_sa_sigextra;        // 0x04: OR-Maske bei Ausf�hrung des Signals
+    UINT32    _ATARI_sa_handler;            // 0x00: signal handler
+    UINT32    _ATARI_sa_sigextra;           // 0x04: OR mask during signal processing
     UINT16    _ATARI_sa_flags;
 } __attribute__((packed));
 
+/// device handler, part of the MagiC process information structure
 struct MagiC_FH
 {
     UINT32    fh_fd;
@@ -1086,8 +1090,7 @@ struct MagiC_PD
     UINT8       p_cmdlin[128];  /* 0x80: command line */
 } __attribute__((packed));
 
-/* Values for ap_status */
-
+/// Values for ap_status
 enum MagiC_APP_STATUS
 {
     eAPSTAT_READY = 0,
@@ -1175,6 +1178,53 @@ struct MagiC_APP
     UINT32_BE  ap_stkchk;       // magic value for stack overflow check
     UINT8   ap_stack[0];        // stack
 } __attribute__((packed));
+
+
+#if 1
+/// DMDs, FDs and DDs are stored in MagiC in "internal memory blocks".
+/// Unfortunately, we currently cannot make use of the full size of these
+/// structures in the hostXFS, because the Atari side of the XFS (MACXFS.S)
+/// does not provide pointers to the host side and instead only deals with
+/// the MacOS specific structure members.
+struct IMB
+{
+    UINT32      pLink;      // 68k pointer to next IMB
+    uint8_t     bUsed;      // flag
+    uint8_t     bSwitch;    // unused?
+    union HostXFS
+    {
+        // FD = File Descriptor
+        struct
+        {
+            UINT32 fd_dmd;      // 0x00: 68k pointer to DMD
+            UINT16 fd_refcnt;   // 0x04: refernce counter for closing, or -1
+            UINT16 fd_mode;     // 0x06: open modus (0,1,2) and flags
+            UINT32 fd_dev;      // 0x08: 68k pointer to MAGX_DEVDRVR
+            uint8_t data[94 - 12];
+        } fd;
+
+        // DD = Directory Descriptor
+        struct
+        {
+            UINT32 dd_dmd;      // 68k pointer
+            UINT16 dd_refcnt;
+            uint8_t data[94 - 6];
+        } dd;
+
+        // DMD = Drive Media Descriptor
+        struct
+        {
+            UINT32 d_xfs;       // 0x00: 68k pointer to file system driver
+            UINT16 d_drive;     // 0x04: drive number 0..31
+            UINT32 d_root;      // 0x06: 68k pointer to DD of root directory
+            uint8_t data[94 - 10];
+        } dmd;
+
+        uint8_t     data[94];   // depending
+    };
+};
+#endif
+
 
 #pragma GCC diagnostic pop
 

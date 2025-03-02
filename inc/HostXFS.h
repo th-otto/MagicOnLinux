@@ -91,11 +91,9 @@ class CHostXFS
     uint32_t m_AtariMemSize;
     typedef void PD;
 
-	struct MX_DHD
-	{
-		UINT32	dhd_dmd;            // struct _mx_dmd *dhd_dmd;
-	} __attribute__((packed));
 
+    #if 0
+	/// file driver function table, here unused
 	struct MX_DEV
 	{
 		INT32   dev_close;
@@ -109,10 +107,12 @@ class CHostXFS
 		INT32   dev_getline;
 		INT32   dev_putc;
 	} __attribute__((packed));
+    #endif
 
+	/// non XFS specific part of a Directory Descriptor
     struct MX_DD
     {
-        UINT32  dd_dmd;                // struct _mx_dmd *dd_dmd;
+        UINT32  dd_dmd;             // struct _mx_dmd *dd_dmd;
         UINT16  dd_refcnt;
     } __attribute__((packed));
 
@@ -120,30 +120,32 @@ class CHostXFS
     struct MX_DTA
     {
         char    dta_res[20];        // reserved
-        char    dta_drive;          // officially reserved, but in fact the drive A..Z
-        char    dta_attribute;      // file attribute
+        uint8_t dta_drive;          // officially reserved, but in fact the drive A..Z
+        uint8_t dta_attribute;      // file attribute
         UINT16  dta_time;           // file modification time (big endian)
         UINT16  dta_date;           // file modification date (big endian)
         UINT32  dta_len;            // file length (big endian)
         char    dta_name[14];       // file name, maximum 8+3 plus "." plus NUL
     } __attribute__((packed));
 
+	/// non XFS specific part of a Drive Media Descriptor
     struct MX_DMD
     {
-        UINT32        d_xfs;                // struct _mx_xfs *d_xfs;
-        UINT16      d_drive;
-        UINT32        d_root;                // MX_DD     *d_root;
-        UINT16      biosdev;
-        UINT32      driver;
-        UINT32      devcode;
+        UINT32  d_xfs;              // struct _mx_xfs *d_xfs;
+        UINT16  d_drive;
+        UINT32  d_root;             // MX_DD *d_root;
+        UINT16  biosdev;
+        UINT32  driver;
+        UINT32  devcode;
     } __attribute__((packed));
 
+	/// non XFS specific part of a File Descriptor
     struct MX_FD
     {
-        UINT32        fd_dmd;                // struct _mx_dmd *fd_dmd;
-        UINT16      fd_refcnt;
-        UINT16      fd_mode;
-        UINT32        fd_dev;                // MX_DEV    *fd_dev;
+        UINT32  fd_dmd;                // struct _mx_dmd *fd_dmd
+        UINT16  fd_refcnt;
+        UINT16  fd_mode;
+        UINT32  fd_dev;                // MX_DEV *fd_dev
     } __attribute__((packed));
 
     /* Open- Modus von Dateien (Mag!X- intern)                                 */
@@ -161,46 +163,64 @@ class CHostXFS
 
     struct _MAC_DTA
     {
-         char      sname[11];        /* Suchname */
-         char      sattr;            /* Suchattribut */
-         INT32      dirID;            /* Verzeichnis */
-         INT16    vRefNum;        /* Mac-Volume */
-         UINT16      index;        /* Index innerhalb des Verzeichnis */
+         char     sname[11];    // name to search for
+         uint8_t  sattr;        // search attribute
+         INT32    dirID;        // directory
+         INT16    vRefNum;      // MacOS volume
+         UINT16   index;        // Index inside that directory
     } __attribute__((packed));
 
+
+    /// File Descriptor for the Host XFS.
+    /// Theoretically this could be expanded, because the Atari side of the XFS (MACXFS.S)
+    /// usuall provides pointers to the host side, but unfortunately xfs_open() instead must
+    /// return the refnum. This is a design flaw.
     struct MAC_FD
     {
-         MX_FD    fd;            /* allgemeiner Teil (big endian) */
-         short    refnum;        /* Mac-Teil: Handle (host native endian) */
-         UINT16    mod_time_dirty;    /* Mac-Teil: Fdatime war aufgerufen (host native endian) */
-         UINT16    mod_time[2];    /* Mac-Teil: Zeit fuer Fdatime (DOS-Codes) (host native endian) */
+         MX_FD    fd;               // common part, big endian
+         uint16_t refnum;           // host part: handle (host native endian)
+         uint16_t mod_time_dirty;   // host part: Fdatime() had been called (host native endian)
+         uint16_t mod_time[2];      // host part: timecode for Fdatime() (DOS-Codes) (host native endian)
     } __attribute__((packed));
+
+	/// non XFS specific part of a Directory Handle Descriptor
+	struct MX_DHD
+	{
+		UINT32	dhd_dmd;            // struct _mx_dmd *dhd_dmd;
+	} __attribute__((packed));
 
     struct MAC_DIRHANDLE
     {
-         MX_DHD    dhd;            /* allgemeiner Teil */
-         INT32    dirID;            /* Verzeichniskennung (host native endian) */
-         short    vRefNum;        // Mac-Volume (host native endian)
-         UINT16    index;        /* Position des Lesezeigers (host native endian) */
-         UINT16    tosflag;        /* TOS-Modus, d.h. 8+3 und ohne Inode (host native endian) */
+         MX_DHD    dhd;             // common part, big endian
+         int32_t   dirID;           // directory id (host native endian)
+         uint16_t  vRefNum;         // MacOS volume (host native endian)
+         uint16_t  index;           // read position (host native endian)
+         uint16_t  tosflag;         // TOS mode, i.e. 8+3 and without inode (host native endian)
     } __attribute__((packed));
 
+    /// DTA buffer for xfs_sfirst() and xfs_snext()
     union MAC_DTA
     {
-         MX_DTA    mxdta;
+         MX_DTA    mxdta;           // common part, big endian
          _MAC_DTA  macdta;
     } __attribute__((packed));
 
     struct MX_SYMLINK
     {
-      UINT16    len;            /* Symlink-Laenge inklusive EOS, gerade */
-      char        data[256];
+        UINT16    len;              // symlink length, including EOS, even
+        char      data[256];
     } __attribute__((packed));
 
+    /// HostXFS specific part of the Directory Descriptor.
+    /// Unfortunately this cannot easily be expanded, because the Atari side of the XFS (MACXFS.S)
+    /// does not provide a DD pointer to xfs_drv_open() on the host side and instead only deals with
+    /// the MacOS specific structure members. They are copied from the stack to the newly
+    /// created internal memory block. Or in other words: The Atari side of the XFS relies on
+    /// exactly this structure. This is a design flaw.
     struct MXFSDD
     {
-        long dirID;
-        short vRefNum;
+        int32_t dirID;
+        uint16_t vRefNum;
     } __attribute__((packed));
 
     //bool GetXFSRootDir (short drv, short *vRefNum, long *dirID);

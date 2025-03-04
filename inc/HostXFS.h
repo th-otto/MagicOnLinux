@@ -259,11 +259,11 @@ class CHostXFS
     // statische Funktionen
 
     static char toUpper(char c);
-    static void AtariFnameToMacFname(const unsigned char *src, unsigned char *dst);
-    static void MacFnameToAtariFname(const unsigned char *src, unsigned char *dst);
-    static int fname_is_invalid( char *name);
+    static void atariFnameToHostFname(const unsigned char *src, unsigned char *dst);
+    static void hostFnameToAtariFname(const unsigned char *src, unsigned char *dst);
+    static int fname_is_invalid(const char *name);
     static INT32 cnverr(int err);
-    static bool filename_match(char *muster, char *fname);
+    static bool filename_match(const char *pattern, const char *fname);
     static bool conv_path_elem(const char *path, char *name);
     static bool nameto_8_3 (const unsigned char *macname,
                 unsigned char *dosname,
@@ -271,59 +271,59 @@ class CHostXFS
 
     // XFS-Aufrufe
 
-    INT32 xfs_sync(UINT16 drv);
-    void xfs_pterm (PD *pd);
-    INT32 xfs_drv_open (UINT16 drv, MXFSDD *dd, INT32 flg_ask_diskchange);
-    INT32 xfs_drv_close(UINT16 drv, UINT16 mode);
-    INT32 xfs_path2DD(UINT16 mode, UINT16 drv, MXFSDD *rel_dd, char *pathname,
+    INT32 xfs_sync(uint16_t drv);
+    void xfs_pterm(PD *pd);
+    INT32 xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange);
+    INT32 xfs_drv_close(uint16_t drv, uint16_t mode);
+    INT32 xfs_path2DD(uint16_t mode, uint16_t drv, MXFSDD *rel_dd, char *pathname,
                   char **restpfad, MXFSDD *symlink_dd, char **symlink,
                    MXFSDD *dd,
-                   UINT16 *dir_drive );
-    INT32 xfs_sfirst(UINT16 drv, MXFSDD *dd, char *name, MAC_DTA *dta, UINT16 attrib);
-    INT32 xfs_snext(UINT16 drv, MAC_DTA *dta);
-    INT32 xfs_fopen(char *name, UINT16 drv, MXFSDD *dd,
-                UINT16 omode, UINT16 attrib);
-    INT32 xfs_fdelete(UINT16 drv, MXFSDD *dd, char *name);
-    INT32 xfs_link(UINT16 drv, char *nam1, char *nam2,
-                   MXFSDD *dd1, MXFSDD *dd2, UINT16 mode, UINT16 dst_drv);
-    INT32 xfs_xattr(UINT16 drv, MXFSDD *dd, char *name,
-                    XATTR *xattr, UINT16 mode);
-    INT32 xfs_attrib(UINT16 drv, MXFSDD *dd, char *name, UINT16 rwflag, UINT16 attr);
-    INT32 xfs_fchown(UINT16 drv, MXFSDD *dd, char *name, UINT16 uid, UINT16 gid);
-    INT32 xfs_fchmod(UINT16 drv, MXFSDD *dd, char *name, UINT16 fmode);
-    INT32 xfs_dcreate(UINT16 drv, MXFSDD *dd, char *name);
-    INT32 xfs_ddelete(UINT16 drv, MXFSDD *dd);
-    INT32 xfs_DD2name(UINT16 drv, MXFSDD *dd, char *buf, UINT16 bufsiz);
-    INT32 xfs_dopendir(MAC_DIRHANDLE *dirh, UINT16 drv, MXFSDD *dd, UINT16 tosflag);
-    INT32 xfs_dreaddir(MAC_DIRHANDLE *dirh, UINT16 drv,
-            UINT16 size, char *buf, XATTR *xattr, INT32 *xr);
-    INT32 xfs_drewinddir(MAC_DIRHANDLE *dirh, UINT16 drv);
-    INT32 xfs_dclosedir(MAC_DIRHANDLE *dirh, UINT16 drv);
-    INT32 xfs_dpathconf(UINT16 drv, MXFSDD *dd, UINT16 which);
-    INT32 xfs_dfree(UINT16 drv, INT32 dirID, UINT32 data[4]);
-    INT32 xfs_wlabel(UINT16 drv, MXFSDD *dd, char *name);
-    INT32 xfs_rlabel(UINT16 drv, MXFSDD *dd, char *name, UINT16 bufsiz);
-    INT32 xfs_readlink(UINT16 drv, MXFSDD *dd, char *name,
-                    char *buf, UINT16 bufsiz);
-    INT32 xfs_dcntl(UINT16 drv, MXFSDD *dd, char *name, UINT16 cmd, void *pArg, unsigned char *AdrOffset68k);
+                   UINT16 *dir_drive);
+    INT32 xfs_sfirst(uint16_t drv, MXFSDD *dd, char *name, MAC_DTA *dta, uint16_t attrib);
+    INT32 xfs_snext(uint16_t drv, MAC_DTA *dta);
+    INT32 xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
+                uint16_t omode, uint16_t attrib);
+    INT32 xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name);
+    INT32 xfs_link(uint16_t drv, char *nam1, char *nam2,
+                   MXFSDD *dd1, MXFSDD *dd2, uint16_t mode, uint16_t dst_drv);
+    INT32 xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
+                    XATTR *xattr, uint16_t mode);
+    INT32 xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag, uint16_t attr);
+    INT32 xfs_fchown(uint16_t drv, MXFSDD *dd, char *name, uint16_t uid, uint16_t gid);
+    INT32 xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode);
+    INT32 xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name);
+    INT32 xfs_ddelete(uint16_t drv, MXFSDD *dd);
+    INT32 xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz);
+    INT32 xfs_dopendir(MAC_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd, uint16_t tosflag);
+    INT32 xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,
+            uint16_t size, char *buf, XATTR *xattr, INT32 *xr);
+    INT32 xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv);
+    INT32 xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv);
+    INT32 xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which);
+    INT32 xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4]);
+    INT32 xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name);
+    INT32 xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz);
+    INT32 xfs_readlink(uint16_t drv, MXFSDD *dd, char *name,
+                    char *buf, uint16_t bufsiz);
+    INT32 xfs_dcntl(uint16_t drv, MXFSDD *dd, char *name, uint16_t cmd, void *pArg, unsigned char *AdrOffset68k);
 
     // Gerätetreiber
 
-    INT32 dev_close( MAC_FD *f );
-    INT32 dev_read( MAC_FD *f, INT32 count, char *buf );
-    INT32 dev_write( MAC_FD *f, INT32 count, char *buf );
-    INT32 dev_stat( MAC_FD *f, void *unsel, UINT16 rwflag, INT32 apcode );
-    INT32 dev_seek( MAC_FD *f, INT32 pos, UINT16 mode );
-    INT32 dev_datime( MAC_FD *f, UINT16 d[2], UINT16 rwflag );
-    INT32 dev_ioctl( MAC_FD *f, UINT16 cmd, void *buf );
-    INT32 dev_getc( MAC_FD *f, UINT16 mode );
-    INT32 dev_getline( MAC_FD *f, char *buf, INT32 size, UINT16 mode );
-    INT32 dev_putc( MAC_FD *f, UINT16 mode, INT32 val );
+    INT32 dev_close(MAC_FD *f);
+    INT32 dev_read(MAC_FD *f, INT32 count, char *buf);
+    INT32 dev_write(MAC_FD *f, INT32 count, char *buf);
+    INT32 dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode);
+    INT32 dev_seek(MAC_FD *f, INT32 pos, uint16_t mode);
+    INT32 dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag);
+    INT32 dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf);
+    INT32 dev_getc( MAC_FD *f, uint16_t mode);
+    INT32 dev_getline( MAC_FD *f, char *buf, INT32 size, uint16_t mode);
+    INT32 dev_putc(MAC_FD *f, uint16_t mode, INT32 val);
 
     // Hilfsfunktionen
 
-    INT32 _snext(UINT16 drv, MAC_DTA *dta);
-    INT32 xfs_symlink(UINT16 drv, MXFSDD *dd, char *name, char *to);
+    INT32 _snext(uint16_t drv, MAC_DTA *dta);
+    INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to);
 
     void setDrivebits (uint32_t newbits, uint8_t *AdrOffset68k);
 };

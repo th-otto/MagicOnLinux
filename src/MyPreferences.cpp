@@ -72,7 +72,6 @@ CMyPreferences::CMyPreferences()
 {
 	int i;
 
-	m_AtariMemSize = ATARIMEMSIZEDEFAULT;
 	for	(i = 0; i < NDRIVES; i++)
 	{
 		m_drvPath[i] = NULL;
@@ -86,7 +85,7 @@ CMyPreferences::CMyPreferences()
 	*/
 
 	// defaults
-	m_AtariMemSize = 4 * 1024 * 1024;
+	m_AtariMemSize = ATARIMEMSIZEDEFAULT;
 	m_Monitor = 0;
 	m_bShowMacMenu = true;
 	m_bShowMacMouse = true;

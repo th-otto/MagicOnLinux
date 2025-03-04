@@ -35,8 +35,9 @@
 #include "config.h"
 // System-Header
 #include <endian.h>
-//#include <StdLib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <assert.h>
 // Programm-Header
 #include "Debug.h"
@@ -64,12 +65,11 @@ extern void _DumpAtariMem(const char *filename);
 
 
 
-/*****************************************************************
+/** **********************************************************************************************
 *
-*  Constructor
+* @brief Constructor
 *
-******************************************************************/
-
+ ************************************************************************************************/
 CHostXFS::CHostXFS()
 {
     xfs_drvbits = 0;
@@ -81,7 +81,8 @@ CHostXFS::CHostXFS()
         drv_longnames[i] = false;
     }
 
-    // Mac-Wurzelverzeichnis machen
+    // M: host root
+
     drv_type['M'-'A'] = eHostRoot;
     drv_valid['M'-'A'] = true;
     drv_longnames['M'-'A'] = true;
@@ -89,22 +90,35 @@ CHostXFS::CHostXFS()
     drv_dirID['M'-'A'] = 0;
     drv_host_path['M'-'A'] = "/";
 
+    // C: root FS
+
+    drv_type['C'-'A'] = eHostDir;
+    drv_valid['C'-'A'] = true;
+    drv_longnames['C'-'A'] = false;
+    drv_rvsDirOrder['C'-'A'] = false;   // ?
+    drv_dirID['C'-'A'] = 0;             // ?
+    drv_host_path['C'-'A'] = CGlobals::s_atariRootfsPath;
+
     DebugInfo("CHostXFS::CHostXFS() -- Drive %c: %s dir order, %s names", 'A' + ('M'-'A'), drv_rvsDirOrder['M'-'A'] ? "reverse" : "normal", drv_longnames['M'-'A'] ? "long" : "8+3");
 }
 
 
-/*****************************************************************
+/** **********************************************************************************************
 *
-*  Destructor
+* @brief Destructor
 *
-******************************************************************/
-
+ ************************************************************************************************/
 CHostXFS::~CHostXFS()
 {
 }
 
 
 #ifdef DEBUG_VERBOSE
+/** **********************************************************************************************
+*
+* @brief Debug helper
+*
+ ************************************************************************************************/
 static void __dump(const unsigned char *p, int len)
 {
 //    char buf[256];
@@ -126,52 +140,74 @@ static void __dump(const unsigned char *p, int len)
 #endif
 
 
-/*****************************************************************
+/** **********************************************************************************************
 *
-*  define 68k address range
+* @brief Define 68k address range, including video memory and kernel
 *
-******************************************************************/
-
+* @param[in]   AtariMemSize     Atari memory size in bytes
+*
+ ************************************************************************************************/
 void CHostXFS::set68kAdressRange(uint32_t AtariMemSize)
 {
     m_AtariMemSize = AtariMemSize;
 }
 
 
-/*****************************************************************
+/** **********************************************************************************************
 *
-*  (static) Change lowercase to uppercase
+* @brief [static] Convert Atari lowercase character to uppercase
 *
-******************************************************************/
-
+* @param[in]   c     Atari lowercase character
+*
+* @return Atari uppercase character, if convertible, otherwise c
+*
+ ************************************************************************************************/
 char CHostXFS::toUpper(char c)
 {
     /* äöüçé(a°)(ae)(oe)à(ij)(n˜)(a˜)(o/)(o˜) */
-    static char lowers[] = {'\x84','\x94','\x81','\x87','\x82','\x86','\x91','\xb4','\x85','\xc0','\xa4','\xb0','\xb3','\xb1',0};
-    static char uppers[] = {'\x8e','\x99','\x9a','\x80','\x90','\x8f','\x92','\xb5','\xb6','\xc1','\xa5','\xb7','\xb2','\xb8',0};
-    char *found;
+    static const char lowers[] = {'\x84','\x94','\x81','\x87','\x82','\x86','\x91','\xb4','\x85','\xc0','\xa4','\xb0','\xb3','\xb1',0};
+    static const char uppers[] = {'\x8e','\x99','\x9a','\x80','\x90','\x8f','\x92','\xb5','\xb6','\xc1','\xa5','\xb7','\xb2','\xb8',0};
 
     if (c >= 'a' && c <= 'z')
+    {
         return((char) (c & '\x5f'));
-    if ((unsigned char) c >= 128 &&((found = strchr(lowers, c)) != NULL))
-        return(uppers[found - lowers]);
+    }
+
+    const char *found;
+    if (((unsigned char) c >= 128) && ((found = strchr(lowers, c)) != nullptr))
+    {
+        return uppers[found - lowers];
+    }
+
     return(c);
 }
 
 
-/*****************************************************************
+/** **********************************************************************************************
 *
-*  (static) convert Atari filename to host filename and vice versa
+* @brief [static] Convert Atari filename to host filename
 *
-******************************************************************/
-
-void CHostXFS::AtariFnameToMacFname(const unsigned char *src, unsigned char *dst)
+* @param[in]   src     Atari filename
+* @param[out]  dst     host filename
+*
+ ************************************************************************************************/
+void CHostXFS::atariFnameToHostFname(const unsigned char *src, unsigned char *dst)
 {
     while (*src)
         *dst++ = CTextConversion::Atari2MacFilename(*src++);
     *dst = EOS;
 }
-void CHostXFS::MacFnameToAtariFname(const unsigned char *src, unsigned char *dst)
+
+
+/** **********************************************************************************************
+*
+* @brief [static] Convert host filename to Atari filename
+*
+* @param[in]   src     host filename
+* @param[out]  dst     Atari filename
+*
+ ************************************************************************************************/
+void CHostXFS::hostFnameToAtariFname(const unsigned char *src, unsigned char *dst)
 {
     while (*src)
         *dst++ = CTextConversion::Mac2AtariFilename(*src++);
@@ -186,11 +222,11 @@ void CHostXFS::MacFnameToAtariFname(const unsigned char *src, unsigned char *dst
 *
 ******************************************************************/
 
-int CHostXFS::fname_is_invalid( char *name)
+int CHostXFS::fname_is_invalid(const char *name)
 {
     while ((*name) == '.')        // führende Punkte weglassen
         name++;
-    return(!(*name));            // Name besteht nur aus Punkten
+    return !(*name);            // Name besteht nur aus Punkten
 }
 
 
@@ -240,8 +276,7 @@ INT32 CHostXFS::cnverr(int err)
     }
     #endif
 
-    (void) err;
-    return ERROR;
+    return (err == 0) ? E_OK : ERROR;
 }
 
 
@@ -281,40 +316,40 @@ INT32 CHostXFS::cnverr(int err)
 *
 ***************************************************************************/
 
-bool CHostXFS::filename_match(char *muster, char *fname)
+bool CHostXFS::filename_match(const char *pattern, const char *fname)
 {
     if (fname[0] == '\xe5')     /* Suche nach geloeschter Datei */
     {
-        return((muster[0] == '?') || (muster[0] == fname[0]));
+        return((pattern[0] == '?') || (pattern[0] == fname[0]));
     }
 
     /* vergleiche 11 Zeichen */
 
     for (int i = 10; i >= 0; i--)
     {
-        char c1 = *muster++;
+        char c1 = *pattern++;
         char c2 = *fname++;
         if (c1 != '?')
         {
             if (toUpper(c1) != toUpper(c2))
-                return(false);
+                return false;
         }
     }
 
     /* vergleiche Attribut */
 
-    char c1 = *muster;
+    char c1 = *pattern;
     char c2 = *fname;
 
 //    if (c1 == F_ARCHIVE)
 //        return(c1 & c2);
     c2 &= F_SUBDIR + F_SYSTEM + F_HIDDEN + F_VOLUME;
     if (!c2)
-        return(true);
+        return true;
     if ((c2 & F_SUBDIR) && !(c1 & F_SUBDIR))
-        return(false);
+        return false;
     if ((c2 & F_VOLUME) && !(c1 & F_VOLUME))
-        return(false);
+        return false;
     if (c2 & (F_HIDDEN | F_SYSTEM))
     {
         c2 &= (F_HIDDEN | F_SYSTEM);
@@ -325,22 +360,24 @@ bool CHostXFS::filename_match(char *muster, char *fname)
 }
 
 
-/*********************************************************************
+/** **********************************************************************************************
 *
-* (statisch)
-*  Das in <pathname> stehende, erste Pfadelement (vor '\' oder EOS)
-*  wird ins interne Format gewandelt und nach <name> kopiert
+* @brief [static] Convert first Atari path element to internal 8+3 format in Atari DTA
 *
-* 7.9.95:  Funktion liefert TRUE zurück, wenn das Pfadelement gekürzt
-*  wurde.
+* @param[in]   path     Atari path
+* @param[out]  name     internal 8+3 representation, for Fsfirst() and Fsnext()
 *
-**********************************************************************/
-
+* @return true: the path element was truncated
+*
+* The first path element (before '\' or EOS) is converted to the 8+3 format that is internally
+* stored inside the DTA.
+*
+ ************************************************************************************************/
 bool CHostXFS::conv_path_elem(const char *path, char *name)
 {
     bool truncated = false;
 
-    /* max. 8 Zeichen fuer Dateinamen kopieren */
+    // copy a maximum of eight characters for filename
 
     int i;
     for (i = 0; (i < 8) && (*path) &&
@@ -349,7 +386,7 @@ bool CHostXFS::conv_path_elem(const char *path, char *name)
         *name++ = toUpper(*path++);
     }
 
-    /* Zeichen fuer das Auffuellen ermitteln */
+    // determine the fill character, that will be used to fill the complete eight characters
 
     if (i == 8)
     {
@@ -366,16 +403,16 @@ bool CHostXFS::conv_path_elem(const char *path, char *name)
     if (*path == '.')
         path++;
 
-    /* Rest bis 8 Zeichen auffuellen */
+    // fill up the remaining name up to eight characters
 
-    for    (;i < 8; i++)
+    for (;i < 8; i++)
     {
         *name++ = c;
     }
 
-    /* max. 3 Zeichen fuer Typ kopieren */
+    // copy a maximum of three characters for the filename extension
 
-    for    (i = 0; (i < 3) && (*path) &&
+    for (i = 0; (i < 3) && (*path) &&
          (*path != '\\') && (*path != '*') && (*path != '.') && (*path != ' '); i++)
     {
         *name++ = toUpper(*path++);
@@ -384,18 +421,18 @@ bool CHostXFS::conv_path_elem(const char *path, char *name)
     if ((*path) && (*path != '\\') && (*path != '*'))
         truncated = true;
 
-    /* Zeichen fuer das Auffuellen ermitteln */
+    // determine the fill character
 
     c = (*path == '*') ? '?' : ' ';
 
-    /* Rest bis 3 Zeichen auffuellen */
+    // fill up the remaining extension up to three characters
 
-    for    (;i < 3; i++)
+    for (;i < 3; i++)
     {
         *name++ = c;
     }
 
-    return(truncated);
+    return truncated;
 }
 
 
@@ -413,7 +450,7 @@ bool CHostXFS::conv_path_elem(const char *path, char *name)
 *
 *************************************************************/
 
-bool CHostXFS::nameto_8_3 (const unsigned char *macname,
+bool CHostXFS::nameto_8_3(const unsigned char *macname,
                 unsigned char *dosname,
                 bool flg_longnames, bool toAtari)
 {
@@ -487,7 +524,7 @@ bool CHostXFS::nameto_8_3 (const unsigned char *macname,
     if (*macname)
         truncated = true;
 
-    return(truncated);
+    return truncated;
 }
 
 
@@ -500,7 +537,7 @@ bool CHostXFS::nameto_8_3 (const unsigned char *macname,
  * @return 0 = OK   < 0 = error  > 0 in progress
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_sync(UINT16 drv)
+INT32 CHostXFS::xfs_sync(uint16_t drv)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
 
@@ -545,7 +582,7 @@ void CHostXFS::xfs_pterm(PD *pd)
  * @note Due to a bug in Calamus (Atari program), drive M: must never return an error code.
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_drv_open(UINT16 drv, MXFSDD *dd, INT32 flg_ask_diskchange)
+INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
 
@@ -559,12 +596,42 @@ INT32 CHostXFS::xfs_drv_open(UINT16 drv, MXFSDD *dd, INT32 flg_ask_diskchange)
     (void) dd;
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
-    if (drv_host_path[drv] == nullptr)
+
+    const char *pathname = drv_host_path[drv];
+    if (pathname == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
+
+    // obtain handle for root directory
+
+    union
+    {
+        struct file_handle fh;
+        uint8_t dummy[MAX_HANDLE_SZ];
+    } ffh;
+
+    ffh.fh.handle_bytes = MAX_HANDLE_SZ;
+    int mount_id;
+	DebugInfo("%s() : open directory \"%s\"", __func__, pathname);
+    int ret = name_to_handle_at(
+                    -1,     // unused, we provide a path instead
+                     pathname,
+                     &ffh.fh,
+                     &mount_id, // ?
+                     AT_HANDLE_FID);
+
+    if (ret < 0)
+    {
+        ret = errno;
+        perror("name_to_handle_at() -> ");
+    }
+
+
+    fprintf(stderr, "TERMINATING, not implemented yet.\n\n");
+    exit(1);
 
     // TODO: implement
     return EINVFN;
@@ -579,7 +646,7 @@ INT32 CHostXFS::xfs_drv_open(UINT16 drv, MXFSDD *dd, INT32 flg_ask_diskchange)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_drv_close(UINT16 drv, UINT16 mode)
+INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
 {
 	DebugInfo("%s(drv = %u, mode = %u)", __func__, drv, mode);
 
@@ -665,8 +732,8 @@ INT32 CHostXFS::xfs_drv_close(UINT16 drv, UINT16 mode)
 
 INT32 CHostXFS::xfs_path2DD
 (
-    UINT16 mode,
-    UINT16 drv, MXFSDD *rel_dd, char *pathname,
+    uint16_t mode,
+    uint16_t drv, MXFSDD *rel_dd, char *pathname,
     char **remain_path, MXFSDD *symlink_dd, char **symlink,
     MXFSDD *dd,
     UINT16 *dir_drive
@@ -712,7 +779,7 @@ INT32 CHostXFS::xfs_path2DD
 *
 *************************************************************/
 
-INT32 CHostXFS::_snext(UINT16 drv, MAC_DTA *dta)
+INT32 CHostXFS::_snext(uint16_t drv, MAC_DTA *dta)
 {
     (void) dta;
 
@@ -739,8 +806,8 @@ INT32 CHostXFS::_snext(UINT16 drv, MAC_DTA *dta)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_sfirst(UINT16 drv, MXFSDD *dd, char *name,
-                    MAC_DTA *dta, UINT16 attrib)
+INT32 CHostXFS::xfs_sfirst(uint16_t drv, MXFSDD *dd, char *name,
+                    MAC_DTA *dta, uint16_t attrib)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -769,7 +836,7 @@ INT32 CHostXFS::xfs_sfirst(UINT16 drv, MXFSDD *dd, char *name,
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_snext(UINT16 drv, MAC_DTA *dta)
+INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dta;
@@ -807,8 +874,8 @@ INT32 CHostXFS::xfs_snext(UINT16 drv, MAC_DTA *dta)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_fopen(char *name, UINT16 drv, MXFSDD *dd,
-            UINT16 omode, UINT16 attrib)
+INT32 CHostXFS::xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
+            uint16_t omode, uint16_t attrib)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) name;
@@ -839,7 +906,7 @@ INT32 CHostXFS::xfs_fopen(char *name, UINT16 drv, MXFSDD *dd,
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_fdelete(UINT16 drv, MXFSDD *dd, char *name)
+INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -875,8 +942,8 @@ INT32 CHostXFS::xfs_fdelete(UINT16 drv, MXFSDD *dd, char *name)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_link(UINT16 drv, char *nam1, char *nam2,
-               MXFSDD *dd1, MXFSDD *dd2, UINT16 mode, UINT16 dst_drv)
+INT32 CHostXFS::xfs_link(uint16_t drv, char *nam1, char *nam2,
+               MXFSDD *dd1, MXFSDD *dd2, uint16_t mode, uint16_t dst_drv)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) nam1;
@@ -908,8 +975,8 @@ INT32 CHostXFS::xfs_link(UINT16 drv, char *nam1, char *nam2,
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_xattr(UINT16 drv, MXFSDD *dd, char *name,
-                XATTR *xattr, UINT16 mode)
+INT32 CHostXFS::xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
+                XATTR *xattr, uint16_t mode)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -945,7 +1012,7 @@ INT32 CHostXFS::xfs_xattr(UINT16 drv, MXFSDD *dd, char *name,
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_attrib(UINT16 drv, MXFSDD *dd, char *name, UINT16 rwflag, UINT16 attr)
+INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag, uint16_t attr)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -973,8 +1040,8 @@ INT32 CHostXFS::xfs_attrib(UINT16 drv, MXFSDD *dd, char *name, UINT16 rwflag, UI
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_fchown(UINT16 drv, MXFSDD *dd, char *name,
-                    UINT16 uid, UINT16 gid)
+INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, char *name,
+                    uint16_t uid, uint16_t gid)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -993,7 +1060,7 @@ INT32 CHostXFS::xfs_fchown(UINT16 drv, MXFSDD *dd, char *name,
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_fchmod(UINT16 drv, MXFSDD *dd, char *name, UINT16 fmode)
+INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -1020,7 +1087,7 @@ INT32 CHostXFS::xfs_fchmod(UINT16 drv, MXFSDD *dd, char *name, UINT16 fmode)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_dcreate(UINT16 drv, MXFSDD *dd, char *name)
+INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -1049,7 +1116,7 @@ INT32 CHostXFS::xfs_dcreate(UINT16 drv, MXFSDD *dd, char *name)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_ddelete(UINT16 drv, MXFSDD *dd)
+INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -1074,7 +1141,7 @@ INT32 CHostXFS::xfs_ddelete(UINT16 drv, MXFSDD *dd)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_DD2name(UINT16 drv, MXFSDD *dd, char *buf, UINT16 bufsiz)
+INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -1104,8 +1171,8 @@ INT32 CHostXFS::xfs_DD2name(UINT16 drv, MXFSDD *dd, char *buf, UINT16 bufsiz)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_dopendir(MAC_DIRHANDLE *dirh, UINT16 drv, MXFSDD *dd,
-                UINT16 tosflag)
+INT32 CHostXFS::xfs_dopendir(MAC_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd,
+                uint16_t tosflag)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dirh;
@@ -1133,8 +1200,8 @@ INT32 CHostXFS::xfs_dopendir(MAC_DIRHANDLE *dirh, UINT16 drv, MXFSDD *dd,
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, UINT16 drv,
-        UINT16 size, char *buf, XATTR *xattr, INT32 *xr)
+INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,
+        uint16_t size, char *buf, XATTR *xattr, INT32 *xr)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dirh;
@@ -1163,7 +1230,7 @@ INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, UINT16 drv,
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, UINT16 drv)
+INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
 
@@ -1182,7 +1249,7 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, UINT16 drv)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, UINT16 drv)
+INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
 
@@ -1229,7 +1296,7 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, UINT16 drv)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_dpathconf(UINT16 drv, MXFSDD *dd, UINT16 which)
+INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
 
@@ -1265,7 +1332,7 @@ INT32 CHostXFS::xfs_dpathconf(UINT16 drv, MXFSDD *dd, UINT16 which)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_dfree(UINT16 drv, INT32 dirID, UINT32 data[4])
+INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dirID;
@@ -1297,7 +1364,7 @@ INT32 CHostXFS::xfs_dfree(UINT16 drv, INT32 dirID, UINT32 data[4])
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_wlabel(UINT16 drv, MXFSDD *dd, char *name)
+INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -1316,7 +1383,7 @@ INT32 CHostXFS::xfs_wlabel(UINT16 drv, MXFSDD *dd, char *name)
     return(EINVFN);
 }
 
-INT32 CHostXFS::xfs_rlabel(UINT16 drv, MXFSDD *dd, char *name, UINT16 bufsiz)
+INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -1346,7 +1413,7 @@ INT32 CHostXFS::xfs_rlabel(UINT16 drv, MXFSDD *dd, char *name, UINT16 bufsiz)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_symlink(UINT16 drv, MXFSDD *dd, char *name, char *to)
+INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -1373,8 +1440,8 @@ INT32 CHostXFS::xfs_symlink(UINT16 drv, MXFSDD *dd, char *name, char *to)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_readlink(UINT16 drv, MXFSDD *dd, char *name,
-                char *buf, UINT16 bufsiz)
+INT32 CHostXFS::xfs_readlink(uint16_t drv, MXFSDD *dd, char *name,
+                char *buf, uint16_t bufsiz)
 {
 	DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
@@ -1407,10 +1474,10 @@ INT32 CHostXFS::xfs_readlink(UINT16 drv, MXFSDD *dd, char *name,
 
 INT32 CHostXFS::xfs_dcntl
 (
-    UINT16 drv,
+    uint16_t drv,
     MXFSDD *dd,
     char *name,
-    UINT16 cmd,
+    uint16_t cmd,
     void *pArg,
     uint8_t *addrOffset68kXFS
 )
@@ -1538,7 +1605,7 @@ INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, char *buf)
 }
 
 
-INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, UINT16 rwflag, INT32 apcode)
+INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
 {
     (void) f;
     (void) unsel;
@@ -1550,7 +1617,7 @@ INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, UINT16 rwflag, INT32 apcode)
 }
 
 
-INT32 CHostXFS::dev_seek(MAC_FD *f, INT32 pos, UINT16 mode)
+INT32 CHostXFS::dev_seek(MAC_FD *f, INT32 pos, uint16_t mode)
 {
     (void) f;
     (void) pos;
@@ -1561,7 +1628,7 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, INT32 pos, UINT16 mode)
 }
 
 
-INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], UINT16 rwflag)
+INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 {
     (void) f;
     (void) d;
@@ -1572,7 +1639,7 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], UINT16 rwflag)
 }
 
 
-INT32 CHostXFS::dev_ioctl(MAC_FD *f, UINT16 cmd, void *buf)
+INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
 {
     (void) f;
     (void) cmd;
@@ -1581,7 +1648,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, UINT16 cmd, void *buf)
     return EINVFN;
 }
 
-INT32 CHostXFS::dev_getc(MAC_FD *f, UINT16 mode)
+INT32 CHostXFS::dev_getc(MAC_FD *f, uint16_t mode)
 {
     (void) mode;
     unsigned char c;
@@ -1596,7 +1663,7 @@ INT32 CHostXFS::dev_getc(MAC_FD *f, UINT16 mode)
 }
 
 
-INT32 CHostXFS::dev_getline( MAC_FD *f, char *buf, INT32 size, UINT16 mode )
+INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
 {
     (void) mode;
     char c;
@@ -1620,7 +1687,7 @@ INT32 CHostXFS::dev_getline( MAC_FD *f, char *buf, INT32 size, UINT16 mode )
 }
 
 
-INT32 CHostXFS::dev_putc( MAC_FD *f, UINT16 mode, INT32 val )
+INT32 CHostXFS::dev_putc(MAC_FD *f, uint16_t mode, INT32 val)
 {
     (void) mode;
     char c;

@@ -299,7 +299,7 @@ void CMagiC::OS_WaitForEvent(uint32_t *event, uint32_t *flags)
 
 /** **********************************************************************************************
 *
-* @brief Load and relocate an Atari executable file
+* @brief Load and relocate an Atari executable file, here the MagiC kernel
 *
 * @param[in]   path           host path of Atari exe file
 * @param[in]   stackSize      space needed after BSS segment

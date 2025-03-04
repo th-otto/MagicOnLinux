@@ -104,7 +104,10 @@ static inline void MyAlert(const char *a, const char *b)
  	fprintf(stderr, "%s/%s\n", a, b);
 }
 
+//
 // global variables
+//
+
 extern std::atomic_bool gbAtariVideoBufChanged;
 extern uint8_t *addrOpcodeROM;
 extern uint32_t addr68kVideo;			// start of 68k video memory (68k address)
@@ -118,6 +121,7 @@ extern uint8_t *hostVideoAddr;			// start of host video memory (host address)
 
 void sendBusError(uint32_t addr, const char *AccessMode);
 void getActAtariPrg(const char **pName, uint32_t *pact_pd);
+
 
 // helper
 int64_t getFileSize(const char *path);

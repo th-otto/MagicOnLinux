@@ -45,6 +45,7 @@
 #include "HostXFS.h"
 #include "Atari.h"
 #include "TextConversion.h"
+#include "HostHandles.h"
 
 #if defined(_DEBUG)
 //#define DEBUG_VERBOSE
@@ -98,6 +99,8 @@ CHostXFS::CHostXFS()
     drv_rvsDirOrder['C'-'A'] = false;   // ?
     drv_dirID['C'-'A'] = 0;             // ?
     drv_host_path['C'-'A'] = CGlobals::s_atariRootfsPath;
+
+    HostHandles::init();
 
     DebugInfo("CHostXFS::CHostXFS() -- Drive %c: %s dir order, %s names", 'A' + ('M'-'A'), drv_rvsDirOrder['M'-'A'] ? "reverse" : "normal", drv_longnames['M'-'A'] ? "long" : "8+3");
 }
@@ -629,12 +632,19 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
         perror("name_to_handle_at() -> ");
     }
 
+    DebugInfo("%s() : handle_bytes = %u", __func__, ffh.fh.handle_bytes);
 
-    fprintf(stderr, "TERMINATING, not implemented yet.\n\n");
-    exit(1);
+    unsigned real_size = sizeof(struct file_handle) + ffh.fh.handle_bytes;
+    HostHandle_t hhdl = HostHandles::alloc(real_size);
+    assert(hhdl != HOST_HANDLE_INVALID);      // TODO: error handling
 
-    // TODO: implement
-    return EINVFN;
+    void *hdata = HostHandles::getData(hhdl);
+    memcpy(hdata, &ffh.fh, real_size);
+
+    dd->dirID = hhdl;
+    dd->vRefNum = 42;       // TODO: this is a dummy
+
+    return E_OK;
 }
 
 

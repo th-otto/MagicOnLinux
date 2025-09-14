@@ -22,6 +22,7 @@
 *
 */
 
+#include <errno.h>
 #include "config.h"
 // System-Header
 // Programm-Header
@@ -198,4 +199,29 @@ unsigned char CTextConversion::Atari2MacText(unsigned char c)
 unsigned char CTextConversion::Mac2AtariText(unsigned char c)
 {
 	return(s_tabMac2AtariText[c]);
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief [static] Convert host error code to Atari error code
+ *
+ * @param[in]  error   host error code
+ *
+ * @return Atari error code, ERROR if not convertible or unknown
+ *
+ ************************************************************************************************/
+int CTextConversion::Host2AtariError(int error)
+{
+	switch(error)
+	{
+		case EROFS:
+		case EPERM:
+		case EACCES: return EACCDN;
+		case EBADF: return EIHNDL;
+		case ENOENT: return EFILNF;	// could also be EPTHNF
+		case ENOTDIR: return EPTHNF;
+	}
+
+	return(ERROR);
 }

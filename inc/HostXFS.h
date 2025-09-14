@@ -49,7 +49,7 @@ class CHostXFS
     enum HostXFSDrvType
     {
         eNoHostXFS,     //< drive is NOT a host directory
-        eHostRoot,      //< drive is the host root directory
+        eHostRoot,      //< drive is the host root directory, used for M:
         eHostDir        //< drive is a host directory
     };
 
@@ -275,10 +275,13 @@ class CHostXFS
     void xfs_pterm(PD *pd);
     INT32 xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange);
     INT32 xfs_drv_close(uint16_t drv, uint16_t mode);
-    INT32 xfs_path2DD(uint16_t mode, uint16_t drv, MXFSDD *rel_dd, char *pathname,
-                  char **restpfad, MXFSDD *symlink_dd, char **symlink,
-                   MXFSDD *dd,
-                   UINT16 *dir_drive);
+    INT32 xfs_path2DD
+    (
+        uint16_t mode, uint16_t drv,
+        const MXFSDD *rel_dd, const char *pathname,
+        const char **remain_path, MXFSDD *symlink_dd, char **symlink,
+        MXFSDD *dd,
+        UINT16 *dir_drive);
     INT32 xfs_sfirst(uint16_t drv, MXFSDD *dd, char *name, MAC_DTA *dta, uint16_t attrib);
     INT32 xfs_snext(uint16_t drv, MAC_DTA *dta);
     INT32 xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,

@@ -2807,7 +2807,9 @@ void m68k_op_ror_8_s(void)
 	uint res = ROR_8(src, shift);
 
 	if(orig_shift != 0)
+	{
 		USE_CYCLES(orig_shift<<CYC_SHIFT);
+	}
 
 	*r_dst = MASK_OUT_BELOW_8(*r_dst) | res;
 
@@ -2826,7 +2828,9 @@ void m68k_op_ror_16_s(void)
 	uint res = ROR_16(src, shift);
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	*r_dst = MASK_OUT_BELOW_16(*r_dst) | res;
 
@@ -2845,7 +2849,9 @@ void m68k_op_ror_32_s(void)
 	uint res = ROR_32(src, shift);
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	*r_dst = res;
 
@@ -3051,7 +3057,9 @@ void m68k_op_rol_8_s(void)
 	uint res = ROL_8(src, shift);
 
 	if(orig_shift != 0)
+	{
 		USE_CYCLES(orig_shift<<CYC_SHIFT);
+	}
 
 	*r_dst = MASK_OUT_BELOW_8(*r_dst) | res;
 
@@ -3070,7 +3078,9 @@ void m68k_op_rol_16_s(void)
 	uint res = ROL_16(src, shift);
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	*r_dst = MASK_OUT_BELOW_16(*r_dst) | res;
 
@@ -3089,7 +3099,9 @@ void m68k_op_rol_32_s(void)
 	uint res = ROL_32(src, shift);
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	*r_dst = res;
 
@@ -3311,7 +3323,9 @@ void m68k_op_roxr_8_s(void)
 	uint res = ROR_9(src | (XFLAG_AS_1() << 8), shift);
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	FLAG_C = FLAG_X = res;
 	res = MASK_OUT_ABOVE_8(res);
@@ -3332,7 +3346,9 @@ void m68k_op_roxr_16_s(void)
 	uint res = ROR_17(src | (XFLAG_AS_1() << 16), shift);
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	FLAG_C = FLAG_X = res >> 8;
 	res = MASK_OUT_ABOVE_16(res);
@@ -3377,7 +3393,9 @@ void m68k_op_roxr_32_s(void)
 	uint new_x_flag = src & (1 << (shift - 1));
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	*r_dst = res;
 
@@ -3492,7 +3510,9 @@ void m68k_op_roxr_32_r(void)
 	uint new_x_flag = src & (1 << (shift - 1));
 
 	if(orig_shift != 0)
+	{
 		USE_CYCLES(orig_shift<<CYC_SHIFT);
+	}
 
 	if(shift != 0)
 	{
@@ -3637,7 +3657,9 @@ void m68k_op_roxl_8_s(void)
 	uint res = ROL_9(src | (XFLAG_AS_1() << 8), shift);
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	FLAG_C = FLAG_X = res;
 	res = MASK_OUT_ABOVE_8(res);
@@ -3658,7 +3680,9 @@ void m68k_op_roxl_16_s(void)
 	uint res = ROL_17(src | (XFLAG_AS_1() << 16), shift);
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	FLAG_C = FLAG_X = res >> 8;
 	res = MASK_OUT_ABOVE_16(res);
@@ -3703,7 +3727,9 @@ void m68k_op_roxl_32_s(void)
 	uint new_x_flag = src & (1 << (32 - shift));
 
 	if(shift != 0)
+	{
 		USE_CYCLES(shift<<CYC_SHIFT);
+	}
 
 	*r_dst = res;
 
@@ -3819,7 +3845,9 @@ void m68k_op_roxl_32_r(void)
 	uint new_x_flag = src & (1 << (32 - shift));
 
 	if(orig_shift != 0)
+	{
 		USE_CYCLES(orig_shift<<CYC_SHIFT);
+	}
 
 	if(shift != 0)
 	{

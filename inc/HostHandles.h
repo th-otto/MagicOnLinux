@@ -40,5 +40,5 @@ class HostHandles
 
   private:
     static uint8_t *memblock;
-	static uint8_t *memblock_free;
+	  static uint8_t *memblock_free;
 };

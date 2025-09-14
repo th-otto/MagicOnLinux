@@ -35,8 +35,9 @@
 static int GuiMyAlert(const char *msg_text, const char *info_txt, int nButtons)
 {
 	fprintf(stderr, "Alert (%d buttons):\n", nButtons);
-	fprintf(stderr, "    %d\n", msg_text);
-	fprintf(stderr, "    %d\n", info_txt);
+	fprintf(stderr, "  MSG  %s\n", msg_text);
+	fprintf(stderr, "  INFO %s\n", info_txt);
+	return 0;
 }
 
 // TODO: make a GUI from this

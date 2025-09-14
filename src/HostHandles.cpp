@@ -65,7 +65,7 @@ uint32_t HostHandles::alloc(unsigned size)
 
 	// search for free block
 	uint8_t *pfree = memblock_free;
-	for (unsigned i = 0; i < HOST_HANDLE_NUM; i++)
+	for (unsigned i = 0; i < HOST_HANDLE_NUM; i++, pfree++)
 	{
 		if (*pfree == 0)
 		{

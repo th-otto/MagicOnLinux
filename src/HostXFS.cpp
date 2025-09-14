@@ -188,16 +188,27 @@ char CHostXFS::toUpper(char c)
 
 /** **********************************************************************************************
 *
-* @brief [static] Convert Atari filename to host filename
+* @brief [static] Convert Atari filename to host filename, including path separator
 *
 * @param[in]   src     Atari filename
 * @param[out]  dst     host filename
 *
+* @note: Maximum output path length is 1024 bytes, including end-of-string.
+*
  ************************************************************************************************/
 void CHostXFS::atariFnameToHostFname(const unsigned char *src, unsigned char *dst)
 {
-    while (*src)
-        *dst++ = CTextConversion::Atari2MacFilename(*src++);
+    unsigned char *buf_start = dst;
+    while (*src && (dst < buf_start + 1022))    // TODO: add overflow handling
+    {
+        if (*src == '\\')
+        {
+            src++;
+            *dst++ = '/';
+        }
+        else
+            *dst++ = CTextConversion::Atari2MacFilename(*src++);
+    }
     *dst = EOS;
 }
 
@@ -212,8 +223,11 @@ void CHostXFS::atariFnameToHostFname(const unsigned char *src, unsigned char *ds
  ************************************************************************************************/
 void CHostXFS::hostFnameToAtariFname(const unsigned char *src, unsigned char *dst)
 {
-    while (*src)
+    unsigned char *buf_start = dst;
+    while (*src && (dst < buf_start + 1022))    // TODO: add overflow handling
+    {
         *dst++ = CTextConversion::Mac2AtariFilename(*src++);
+    }
     *dst = EOS;
 }
 
@@ -576,7 +590,7 @@ void CHostXFS::xfs_pterm(PD *pd)
  *
  * @brief Atari callback: Open a drive, i.e. return a descriptor for it, if valid
  *
- * @param[in]  drv		            Atari drive number 0..25
+ * @param[in]  drv		            Atari drive number 0..25 for A: .. Z:
  * @param[out] dd		            directory descriptor of the drive's root directory
  * @param[in]  flg_ask_diskchange	only ask if disk has been changed
  *
@@ -587,7 +601,7 @@ void CHostXFS::xfs_pterm(PD *pd)
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+	DebugInfo("%s(drv = %u (%c:))", __func__, drv, 'A' + drv);
 
 	if (flg_ask_diskchange)
 	{
@@ -610,6 +624,9 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
 
     // obtain handle for root directory
 
+	DebugInfo("%s() : open directory \"%s\"", __func__, pathname);
+#if 0
+
     union
     {
         struct file_handle fh;
@@ -618,7 +635,6 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
 
     ffh.fh.handle_bytes = MAX_HANDLE_SZ;
     int mount_id;
-	DebugInfo("%s() : open directory \"%s\"", __func__, pathname);
     int ret = name_to_handle_at(
                     -1,     // unused, we provide a path instead
                      pathname,
@@ -640,38 +656,64 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
 
     void *hdata = HostHandles::getData(hhdl);
     memcpy(hdata, &ffh.fh, real_size);
+#else
+    int root_fd = openat(/*ignored, when path is absolute*/-1, pathname, O_PATH);
+    if (root_fd < 0)
+    {
+        perror("openat() -> ");
+        return CTextConversion::Host2AtariError(errno);
+    }
+    HostHandle_t hhdl = HostHandles::alloc(sizeof(root_fd));
+    assert(hhdl != HOST_HANDLE_INVALID);      // TODO: error handling
+    void *hdata = HostHandles::getData(hhdl);
+    memcpy(hdata, &root_fd, sizeof(root_fd));
+#endif
+
+    // TODO: remember mount_id for later
+    // TODO: or replace with openat() ?
+    // TODO: or use open() for root and openat() for others.
 
     dd->dirID = hhdl;
-    dd->vRefNum = 42;       // TODO: this is a dummy
+    dd->vRefNum = drv;
+	DebugInfo("%s() -> dirID %u", __func__, hhdl);
 
     return E_OK;
 }
 
 
-/*************************************************************
-*
-* "Schließt" ein Laufwerk.
-* mode =    0: Laufwerk schliessen oder EACCDN liefern
-*        1: Laufwerk schliessen, immer E_OK liefern.
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Make an Atari drive invalid ("close")
+ *
+ * @param[in]  drv      Atari drive number 0..25
+ * @param[in]  mode     0: normal operation / 1: always return E_OK
+ *
+ * @return 0 for OK or negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
 {
 	DebugInfo("%s(drv = %u, mode = %u)", __func__, drv, mode);
 
-    (void) mode;
-    if (drv_changed[drv])
+    // drive M: or host root may not be closed
+    if ((drv == 'M'-'A') || (drv_type[drv] == eHostRoot))
     {
-        return(E_CHNG);
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return(EDRIVE);
+        return((mode) ? E_OK : EACCDN);
     }
 
-    // TODO: implement
-    return EINVFN;
+    if (drv_changed[drv])
+    {
+        return((mode) ? E_OK : E_CHNG);
+    }
+
+    if (drv_host_path[drv] == nullptr)
+    {
+        return((mode) ? E_OK : EDRIVE);
+    }
+
+    // "close" drive
+    drv_host_path[drv] = nullptr;
+    return E_OK;
 }
 
 
@@ -743,21 +785,15 @@ INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
 INT32 CHostXFS::xfs_path2DD
 (
     uint16_t mode,
-    uint16_t drv, MXFSDD *rel_dd, char *pathname,
-    char **remain_path, MXFSDD *symlink_dd, char **symlink,
+    uint16_t drv, const MXFSDD *rel_dd, const char *pathname,
+    const char **remain_path, MXFSDD *symlink_dd, char **symlink,
     MXFSDD *dd,
     UINT16 *dir_drive
 )
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
-    (void) mode;
-    (void) rel_dd;
-    (void) pathname;
-    (void) remain_path;
-    (void) symlink_dd;
-    (void) symlink;
-    (void) dd;
-    (void) dir_drive;
+	DebugInfo("%s(drv = %u (%c:), dirID = %d, vRefNum = %d, name = %s)",
+         __func__, drv, 'A' + drv, rel_dd->dirID, rel_dd->vRefNum, pathname);
+    char pathbuf[1024];
 
     if (drv_changed[drv])
     {
@@ -768,8 +804,52 @@ INT32 CHostXFS::xfs_path2DD
         return(EDRIVE);
     }
 
-    // TODO: implement
-    return EINVFN;
+    char *p;
+    atariFnameToHostFname((const uint8_t *) pathname, (unsigned char *) pathbuf);
+    if (mode == 0)
+    {
+        // The path refers to a file. Remove filename from path.
+        p = strrchr(pathbuf, '/');
+        if (p == nullptr)
+        {
+            return EPTHNF;
+        }
+        *p++ = 0;
+    }
+    else
+    {
+        p = pathbuf + strlen(pathbuf);
+    }
+
+    HostHandle_t hhdl_rel = rel_dd->dirID;
+    assert(hhdl_rel != HOST_HANDLE_INVALID);      // TODO: error handling
+    void *hdata_rel = HostHandles::getData(hhdl_rel);
+    int rel_fd;
+    memcpy(&rel_fd, hdata_rel, sizeof(rel_fd));     // TODO: introduce union
+    assert(rel_fd > 0);
+
+    int dir_fd = openat(rel_fd, pathbuf, O_PATH);
+    if (dir_fd < 0)
+    {
+        perror("openat() -> ");
+        return CTextConversion::Host2AtariError(errno);
+    }
+    HostHandle_t hhdl = HostHandles::alloc(sizeof(dir_fd));
+    assert(hhdl != HOST_HANDLE_INVALID);      // TODO: error handling
+    void *hdata = HostHandles::getData(hhdl);
+    memcpy(hdata, &dir_fd, sizeof(dir_fd));
+
+    dd->dirID = hhdl;
+    dd->vRefNum = rel_dd->vRefNum;
+
+    int len = p - pathbuf;  // length of consumed path
+    *remain_path = pathname + len;
+    *dir_drive = dd->vRefNum;   // ??
+
+    (void) symlink_dd;
+    (void) symlink;
+
+    return E_OK;
 }
 
 
@@ -1805,13 +1885,13 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT16 drv;
                 UINT32 rel_dd;    // MXFSDD *
                 UINT32 pathname;        // char *
-                UINT32 restpfad;        // char **
+                UINT32 remain_path;        // char **
                 UINT32 symlink_dd;    // MXFSDD *
                 UINT32 symlink;        // char **
                 UINT32 dd;        // MXFSDD *
                 UINT32 dir_drive;
             } __attribute__((packed));
-            char *restpath;
+            const char *remain_path;
             char *symlink;
 
             path2DDparm *ppath2DDparm = (path2DDparm *) params;
@@ -1823,7 +1903,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                     be16toh(ppath2DDparm->drv),
                     (MXFSDD *) (AdrOffset68k + be32toh(ppath2DDparm->rel_dd)),
                     (char *) (AdrOffset68k + be32toh(ppath2DDparm->pathname)),
-                    &restpath,
+                    &remain_path,
                     (MXFSDD *) (AdrOffset68k + be32toh(ppath2DDparm->symlink_dd)),
                     &symlink,
                     (MXFSDD *) (AdrOffset68k + be32toh(ppath2DDparm->dd)),
@@ -1831,15 +1911,15 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                     );
 
             // calculate Atari address from host address
-            uint32_t emuAddr = restpath - (char *) AdrOffset68k;
+            uint32_t emuAddr = remain_path - (char *) AdrOffset68k;
             // store to result
-            setAtariBE32(AdrOffset68k + be32toh(ppath2DDparm->restpfad), emuAddr);
+            setAtariBE32(AdrOffset68k + be32toh(ppath2DDparm->remain_path), emuAddr);
             emuAddr = symlink - (char *) AdrOffset68k;
             setAtariBE32(AdrOffset68k + be32toh(ppath2DDparm->symlink), emuAddr);
 #ifdef DEBUG_VERBOSE
             __dump((const unsigned char *) ppath2DDparm, sizeof(*ppath2DDparm));
             if (doserr >= 0)
-                DebugInfo(" restpath = „%s“", restpath);
+                DebugInfo(" restpath = „%s“", remain_path);
 #endif
             break;
         }

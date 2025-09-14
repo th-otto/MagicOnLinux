@@ -18,9 +18,11 @@
 
 /*
 *
-* Zeichensatz-Umsetzung fŸr MagicMacX
+* Zeichensatz-Umsetzung fï¿½r MagicMacX
 *
 */
+
+#include "Atari.h"
 
 class CTextConversion
 {
@@ -33,6 +35,8 @@ class CTextConversion
 	static void Mac2AtariFilename(unsigned char *s);
 	static unsigned char Mac2AtariFilename(unsigned char c);
 	static unsigned char Mac2AtariText(unsigned char c);
+	static int Host2AtariError(int error);
+
 
    private:
 	// Funktionen

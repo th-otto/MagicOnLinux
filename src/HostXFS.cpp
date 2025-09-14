@@ -786,7 +786,7 @@ INT32 CHostXFS::xfs_path2DD
 (
     uint16_t mode,
     uint16_t drv, const MXFSDD *rel_dd, const char *pathname,
-    const char **remain_path, MXFSDD *symlink_dd, char **symlink,
+    const char **remain_path, MXFSDD *symlink_dd, const char **symlink,
     MXFSDD *dd,
     UINT16 *dir_drive
 )
@@ -846,9 +846,12 @@ INT32 CHostXFS::xfs_path2DD
     *remain_path = pathname + len;
     *dir_drive = dd->vRefNum;   // ??
 
-    (void) symlink_dd;
-    (void) symlink;
+    // dummy, no symlink handling
+    *symlink = pathname + strlen(pathname);
+    symlink_dd->dirID = -1;
+    symlink_dd->vRefNum = dd->vRefNum;
 
+	DebugInfo("%s() -> dirID %u", __func__, hhdl);
     return E_OK;
 }
 
@@ -1892,7 +1895,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 dir_drive;
             } __attribute__((packed));
             const char *remain_path;
-            char *symlink;
+            const char *symlink;
 
             path2DDparm *ppath2DDparm = (path2DDparm *) params;
 #ifdef DEBUG_VERBOSE

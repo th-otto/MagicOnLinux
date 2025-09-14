@@ -279,7 +279,7 @@ class CHostXFS
     (
         uint16_t mode, uint16_t drv,
         const MXFSDD *rel_dd, const char *pathname,
-        const char **remain_path, MXFSDD *symlink_dd, char **symlink,
+        const char **remain_path, MXFSDD *symlink_dd, const char **symlink,
         MXFSDD *dd,
         UINT16 *dir_drive);
     INT32 xfs_sfirst(uint16_t drv, MXFSDD *dd, char *name, MAC_DTA *dta, uint16_t attrib);

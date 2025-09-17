@@ -219,8 +219,8 @@ class CHostXFS
     /// exactly this structure. This is a design flaw.
     struct MXFSDD
     {
-        int32_t dirID;
-        uint16_t vRefNum;
+        int32_t dirID;          // host endian format
+        uint16_t vRefNum;       // host endian format
     } __attribute__((packed));
 
     //bool GetXFSRootDir (short drv, short *vRefNum, long *dirID);

@@ -610,7 +610,6 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
 
 	drv_changed[drv] = false;		// Diskchange reset
 
-    (void) dd;
     if (drv_changed[drv])
     {
         return E_CHNG;
@@ -673,8 +672,8 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
     // TODO: or replace with openat() ?
     // TODO: or use open() for root and openat() for others.
 
-    dd->dirID = hhdl;
-    dd->vRefNum = drv;
+    dd->dirID = hhdl;           // host endian format
+    dd->vRefNum = drv;          // host endian
 	DebugInfo("%s() -> dirID %u", __func__, hhdl);
 
     return E_OK;
@@ -780,6 +779,10 @@ INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
 *                 der Pfad etwa auf U:\A, kann der Kernel auf U:\
 *                 zurückgehen.
 *
+* Rückgabewert *dir_drive ist die Laufwerknummer, die ist
+* normalerweise drv, weil wir im Pfad das Laufwerk nicht
+* wechseln.
+*
 *************************************************************/
 
 INT32 CHostXFS::xfs_path2DD
@@ -821,7 +824,7 @@ INT32 CHostXFS::xfs_path2DD
         p = pathbuf + strlen(pathbuf);
     }
 
-    HostHandle_t hhdl_rel = rel_dd->dirID;
+    HostHandle_t hhdl_rel = rel_dd->dirID;  // host endian
     assert(hhdl_rel != HOST_HANDLE_INVALID);      // TODO: error handling
     void *hdata_rel = HostHandles::getData(hhdl_rel);
     int rel_fd;
@@ -844,12 +847,20 @@ INT32 CHostXFS::xfs_path2DD
 
     int len = p - pathbuf;  // length of consumed path
     *remain_path = pathname + len;
-    *dir_drive = dd->vRefNum;   // ??
+    *dir_drive = htobe16(drv);  // big endian
 
     // dummy, no symlink handling
     *symlink = pathname + strlen(pathname);
     symlink_dd->dirID = -1;
     symlink_dd->vRefNum = dd->vRefNum;
+
+    /*
+    DebugWarning("Atari interrupts disabled for debugging. Remove this later!");
+    extern bool CMagiC__sNoAtariInterrupts;
+    CMagiC__sNoAtariInterrupts = true;      // TODO: remove!!
+    extern volatile unsigned char sExitImmediately;
+    sExitImmediately = 0;
+    */
 
 	DebugInfo("%s() -> dirID %u", __func__, hhdl);
     return E_OK;
@@ -2381,7 +2392,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
 #ifdef DEBUG_VERBOSE
     DebugInfo("CHostXFS::XFSFunctions => %d (= 0x%08x)", (int) doserr, (int) doserr);
 #endif
-    return(doserr);
+    return doserr;
 }
 
 

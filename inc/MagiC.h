@@ -40,6 +40,10 @@
 #define KEYBOARDBUFLEN	32
 #define N_ATARI_FILES		8
 
+#ifndef NDEBUG
+extern bool CMagiC__sNoAtariInterrupts;	// for debugging
+#endif
+
 class CMagiC
 {
    public:

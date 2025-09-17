@@ -46,6 +46,11 @@ CMagiCSerial *pTheSerial;
 CMagiCPrint *pThePrint;
 
 
+#ifndef NDEBUG
+bool CMagiC__sNoAtariInterrupts = false;	// for debugging
+#endif
+
+
 void sendBusError(uint32_t addr, const char *AccessMode)
 {
 	pTheMagiC->SendBusError(addr, AccessMode);
@@ -1576,6 +1581,12 @@ int CMagiC::SendKeyboard(uint32_t message, bool KeyUp)
 	unsigned char val;
 
 
+#ifndef NDEBUG
+	if (CMagiC__sNoAtariInterrupts)
+	{
+		return 0;
+	}
+#endif
 #ifdef _DEBUG_NO_ATARI_KB_INTERRUPTS
 	return 0;
 #endif
@@ -1663,6 +1674,12 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool KeyUp)
 	unsigned char val;
 
 
+#ifndef NDEBUG
+	if (CMagiC__sNoAtariInterrupts)
+	{
+		return 0;
+	}
+#endif
 #ifdef _DEBUG_NO_ATARI_KB_INTERRUPTS
 	return 0;
 #endif
@@ -1745,6 +1762,12 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
 	int nKeys;
 
 
+#ifndef NDEBUG
+	if (CMagiC__sNoAtariInterrupts)
+	{
+		return 0;
+	}
+#endif
 #ifdef _DEBUG_NO_ATARI_KB_INTERRUPTS
 	return 0;
 #endif
@@ -1837,6 +1860,12 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
 
 int CMagiC::SendMousePosition(int x, int y)
 {
+#ifndef NDEBUG
+	if (CMagiC__sNoAtariInterrupts)
+	{
+		return 0;
+	}
+#endif
 #ifdef _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
 	return 0;
 #endif
@@ -1888,6 +1917,12 @@ int CMagiC::SendMousePosition(int x, int y)
 
 int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
 {
+#ifndef NDEBUG
+	if (CMagiC__sNoAtariInterrupts)
+	{
+		return 0;
+	}
+#endif
 #ifdef _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
 	return 0;
 #endif
@@ -1973,6 +2008,12 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
 
 int CMagiC::SendHz200( void )
 {
+#ifndef NDEBUG
+	if (CMagiC__sNoAtariInterrupts)
+	{
+		return 0;
+	}
+#endif
 #ifdef _DEBUG_NO_ATARI_HZ200_INTERRUPTS
 	return 0;
 #endif
@@ -2031,6 +2072,13 @@ int CMagiC::SendHz200( void )
 
 int CMagiC::SendVBL( void )
 {
+#ifndef NDEBUG
+	if (CMagiC__sNoAtariInterrupts)
+	{
+		return 0;
+	}
+#endif
+
 #ifdef _DEBUG_NO_ATARI_VBL_INTERRUPTS
 	return 0;
 #endif

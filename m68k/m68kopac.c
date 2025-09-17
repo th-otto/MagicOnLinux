@@ -4101,6 +4101,7 @@ void m68k_op_bne_8(void)
 }
 
 
+// beq.b offs
 void m68k_op_beq_8(void)
 {
 	if(COND_EQ())
@@ -11070,6 +11071,7 @@ void m68k_op_cmp_16_pd(void)
 }
 
 
+ // cmp.w o16(ax),dy
 void m68k_op_cmp_16_di(void)
 {
 	uint src = OPER_AY_DI_16();

@@ -4374,6 +4374,7 @@ void m68k_op_lea_32_ai(void)
 }
 
 
+// lea (ax),ay
 void m68k_op_lea_32_di(void)
 {
 	AX = EA_AY_DI_32();
@@ -6862,6 +6863,7 @@ void m68k_op_move_16_d_ai(void)
 }
 
 
+// move.w (ax)+,dy
 void m68k_op_move_16_d_pi(void)
 {
 	uint res = OPER_AY_PI_16();
@@ -8206,6 +8208,7 @@ void m68k_op_move_32_d_ai(void)
 }
 
 
+// move.l (ax)+,dy
 void m68k_op_move_32_d_pi(void)
 {
 	uint res = OPER_AY_PI_32();
@@ -9592,12 +9595,14 @@ void m68k_op_movea_32_a(void)
 }
 
 
+//  move.l (ax),ay
 void m68k_op_movea_32_ai(void)
 {
 	AX = OPER_AY_AI_32();
 }
 
 
+// move.l (ax)+,ay
 void m68k_op_movea_32_pi(void)
 {
 	AX = OPER_AY_PI_32();

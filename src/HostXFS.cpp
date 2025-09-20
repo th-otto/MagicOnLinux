@@ -39,6 +39,9 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
+#include <dirent.h>
+#include <unistd.h>
+#include <sys/stat.h>
 // Programm-Header
 #include "Debug.h"
 #include "Globals.h"
@@ -196,9 +199,9 @@ char CHostXFS::toUpper(char c)
 * @note: Maximum output path length is 1024 bytes, including end-of-string.
 *
  ************************************************************************************************/
-void CHostXFS::atariFnameToHostFname(const unsigned char *src, unsigned char *dst)
+void CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst)
 {
-    unsigned char *buf_start = dst;
+    char *buf_start = dst;
     while (*src && (dst < buf_start + 1022))    // TODO: add overflow handling
     {
         if (*src == '\\')
@@ -218,17 +221,21 @@ void CHostXFS::atariFnameToHostFname(const unsigned char *src, unsigned char *ds
 * @brief [static] Convert host filename to Atari filename
 *
 * @param[in]   src     host filename
-* @param[out]  dst     Atari filename
+* @param[out]  dst     Atari filename (max 256 bytes including zero)
 *
  ************************************************************************************************/
-void CHostXFS::hostFnameToAtariFname(const unsigned char *src, unsigned char *dst)
+void CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst)
 {
     unsigned char *buf_start = dst;
-    while (*src && (dst < buf_start + 1022))    // TODO: add overflow handling
+    while (*src && (dst < buf_start + 255))
     {
         *dst++ = CTextConversion::Mac2AtariFilename(*src++);
     }
     *dst = EOS;
+    if (*src)
+    {
+        DebugError("file name length overflow: %s", buf_start);
+    }
 }
 
 
@@ -390,7 +397,7 @@ bool CHostXFS::filename_match(const char *pattern, const char *fname)
 * stored inside the DTA.
 *
  ************************************************************************************************/
-bool CHostXFS::conv_path_elem(const char *path, char *name)
+bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name)
 {
     bool truncated = false;
 
@@ -467,7 +474,7 @@ bool CHostXFS::conv_path_elem(const char *path, char *name)
 *
 *************************************************************/
 
-bool CHostXFS::nameto_8_3(const unsigned char *macname,
+bool CHostXFS::nameto_8_3(const char *host_fname,
                 unsigned char *dosname,
                 bool flg_longnames, bool toAtari)
 {
@@ -476,59 +483,59 @@ bool CHostXFS::nameto_8_3(const unsigned char *macname,
 
     /* max. 8 Zeichen fuer Dateinamen kopieren */
     int i = 0;
-    while ((i < 8) && (*macname) && (*macname != '.'))
+    while ((i < 8) && (*host_fname) && (*host_fname != '.'))
     {
-        if ((*macname == ' ') || (*macname == '\\'))
+        if ((*host_fname == ' ') || (*host_fname == '\\'))
         {
-            macname++;
+            host_fname++;
             continue;
         }
         if (toAtari)
         {
             if (flg_longnames)
-                *dosname++ = CTextConversion::Mac2AtariFilename(*macname++);
-            else    *dosname++ = (unsigned char) toUpper((char) CTextConversion::Mac2AtariFilename(*macname++));
+                *dosname++ = CTextConversion::Mac2AtariFilename(*host_fname++);
+            else    *dosname++ = (unsigned char) toUpper((char) CTextConversion::Mac2AtariFilename(*host_fname++));
         }
         else
         {
             if (flg_longnames)
-                *dosname++ = *macname++;
-            else    *dosname++ = (unsigned char) toUpper((char) (*macname++));
+                *dosname++ = *host_fname++;
+            else    *dosname++ = (unsigned char) toUpper((char) (*host_fname++));
         }
         i++;
     }
 
-    while ((*macname) && (*macname != '.'))
+    while ((*host_fname) && (*host_fname != '.'))
     {
-        macname++;        // Rest vor dem '.' ueberlesen
+        host_fname++;        // Rest vor dem '.' ueberlesen
         truncated = true;
     }
-    if (*macname == '.')
-        macname++;        // '.' ueberlesen
+    if (*host_fname == '.')
+        host_fname++;        // '.' ueberlesen
     *dosname++ = '.';            // '.' in DOS-Dateinamen einbauen
 
     /* max. 3 Zeichen fuer Typ kopieren */
     i = 0;
-    while ((i < 3) && (*macname) && (*macname != '.'))
+    while ((i < 3) && (*host_fname) && (*host_fname != '.'))
     {
-        if ((*macname == ' ') || (*macname == '\\'))
+        if ((*host_fname == ' ') || (*host_fname == '\\'))
         {
-            macname++;
+            host_fname++;
             continue;
         }
         if (toAtari)
         {
             if (flg_longnames)
-                *dosname++ = CTextConversion::Mac2AtariFilename(*macname++);
+                *dosname++ = CTextConversion::Mac2AtariFilename(*host_fname++);
             else
-                *dosname++ = (unsigned char) toUpper((char) CTextConversion::Mac2AtariFilename(*macname++));
+                *dosname++ = (unsigned char) toUpper((char) CTextConversion::Mac2AtariFilename(*host_fname++));
         }
         else
         {
             if (flg_longnames)
-                *dosname++ = *macname++;
+                *dosname++ = *host_fname++;
             else
-                *dosname++ = (unsigned char) toUpper((char) (*macname++));
+                *dosname++ = (unsigned char) toUpper((char) (*host_fname++));
         }
         i++;
     }
@@ -538,7 +545,7 @@ bool CHostXFS::nameto_8_3(const unsigned char *macname,
     else
         *dosname = EOS;
 
-    if (*macname)
+    if (*host_fname)
         truncated = true;
 
     return truncated;
@@ -549,14 +556,14 @@ bool CHostXFS::nameto_8_3(const unsigned char *macname,
  *
  * @brief Atari callback: Synchronise a drive, i.e. write back caches
  *
- * @param[in] drv		Atari drive number 0..25
+ * @param[in] drv        Atari drive number 0..25
  *
  * @return 0 = OK   < 0 = error  > 0 in progress
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_sync(uint16_t drv)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
 
     if (drv_changed[drv])
     {
@@ -576,12 +583,12 @@ INT32 CHostXFS::xfs_sync(uint16_t drv)
  *
  * @brief Atari callback: Tells the host that an Atari process has terminated
  *
- * @param[in] pd		Atari process descriptor
+ * @param[in] pd        Atari process descriptor
  *
  ************************************************************************************************/
 void CHostXFS::xfs_pterm(PD *pd)
 {
-	DebugInfo("%s()", __func__);
+    DebugInfo("%s()", __func__);
     (void) pd;
 }
 
@@ -590,9 +597,9 @@ void CHostXFS::xfs_pterm(PD *pd)
  *
  * @brief Atari callback: Open a drive, i.e. return a descriptor for it, if valid
  *
- * @param[in]  drv		            Atari drive number 0..25 for A: .. Z:
- * @param[out] dd		            directory descriptor of the drive's root directory
- * @param[in]  flg_ask_diskchange	only ask if disk has been changed
+ * @param[in]  drv                    Atari drive number 0..25 for A: .. Z:
+ * @param[out] dd                    directory descriptor of the drive's root directory
+ * @param[in]  flg_ask_diskchange    only ask if disk has been changed
  *
  * @return 0 for OK or negative error code
  *
@@ -601,14 +608,14 @@ void CHostXFS::xfs_pterm(PD *pd)
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange)
 {
-	DebugInfo("%s(drv = %u (%c:))", __func__, drv, 'A' + drv);
+    DebugInfo("%s(drv = %u (%c:))", __func__, drv, 'A' + drv);
 
-	if (flg_ask_diskchange)
-	{
-		return (drv_changed[drv]) ? E_CHNG : E_OK;
-	}
+    if (flg_ask_diskchange)
+    {
+        return (drv_changed[drv]) ? E_CHNG : E_OK;
+    }
 
-	drv_changed[drv] = false;		// Diskchange reset
+    drv_changed[drv] = false;        // Diskchange reset
 
     if (drv_changed[drv])
     {
@@ -623,7 +630,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
 
     // obtain handle for root directory
 
-	DebugInfo("%s() : open directory \"%s\"", __func__, pathname);
+    DebugInfo("%s() : open directory \"%s\"", __func__, pathname);
 #if 0
 
     union
@@ -663,9 +670,12 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
         return CTextConversion::Host2AtariError(errno);
     }
     HostHandle_t hhdl = HostHandles::alloc(sizeof(root_fd));
-    assert(hhdl != HOST_HANDLE_INVALID);      // TODO: error handling
-    void *hdata = HostHandles::getData(hhdl);
-    memcpy(hdata, &root_fd, sizeof(root_fd));
+    if (hhdl == HOST_HANDLE_INVALID)
+    {
+        DebugError("No host handles left");
+        return ENHNDL;
+    }
+    HostHandles::putInt(hhdl, root_fd);
 #endif
 
     // TODO: remember mount_id for later
@@ -674,7 +684,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
 
     dd->dirID = hhdl;           // host endian format
     dd->vRefNum = drv;          // host endian
-	DebugInfo("%s() -> dirID %u", __func__, hhdl);
+    DebugInfo("%s() -> dirID %u", __func__, hhdl);
 
     return E_OK;
 }
@@ -692,7 +702,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
 {
-	DebugInfo("%s(drv = %u, mode = %u)", __func__, drv, mode);
+    DebugInfo("%s(drv = %u, mode = %u)", __func__, drv, mode);
 
     // drive M: or host root may not be closed
     if ((drv == 'M'-'A') || (drv_type[drv] == eHostRoot))
@@ -716,75 +726,37 @@ INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
 }
 
 
-/*************************************************************
-*
-* Rechnet einen Atari-Pfad um in einen Mac-Verzeichnis-Deskriptor.
-* Das Laufwerk ist bereits vom MagiX-Kernel bearbeitet worden,
-* d.h. der Pfad ist z.B.
-*
-*    "subdir1\magx_acc.zip".
-*
-* Die Datei liegt tatsächlich in
-*    "AWS 95:magix:MAGIX_A:subdir1:magx_acc.zip"
-*
-* Dabei ist
-*    "AWS 95:magix:MAGIX_A"
-* Das Mac-Äquivalent zu "A:\"
-*
-* <reldir> ist bereits die DirID des Mac-Verzeichnisses.
-* mode    = 0: <name> ist Datei
-*        = 1: <name> ist selbst Verzeichnis
-*
-*    Ausgabeparameter:
-*
-*     1. Fall: Es ist ein Fehler aufgetreten
-*
-*         Gib den Fehlercode als Funktionswert zurueck
-*
-*     2. Fall: Ein Verzeichnis (DirID) konnte ermittelt werden
-*
-*         Gib die DirID als Funktionswert zurueck.
-*
-*         Gib in <restpfad> den Zeiger auf den restlichen Pfad ohne
-*            beginnenden '\' bzw. '/'
-*
-*     3. Fall: Das XFS ist bei der Pfadauswertung auf einen symbolischen
-*             Link gestoßen
-*
-*         Gib als Funktionswert den internen Mag!X- Fehlercode ELINK
-*
-*         Gib in <restpfad> den Zeiger auf den restlichen Pfad ohne
-*            beginnenden '\' bzw. '/'
-*
-*         Gib in <symlink_dir> dir DirID des Pfades, in dem der symbolische
-*                 Link liegt.
-*
-*         Gib in <symlink> den Zeiger auf den Link selbst. Ein Link beginnt
-*                 mit einem Wort (16 Bit) fuer die Laenge des Pfads,
-*                 gefolgt vom Pfad selbst.
-*
-*                 Achtung: Die Länge muß INKLUSIVE abschließendes
-*                                Nullbyte und außerdem gerade sein. Der Link
-*                                muß auf einer geraden Speicheradresse
-*                                liegen.
-*
-*                 Der Puffer für den Link kann statisch oder auch
-*                 fluechtig sein, da der Kernel die Daten sofort
-*                 umkopiert, ohne daß zwischendurch ein Kontextwechsel
-*                 stattfinden kann.
-*
-*                 Wird <symlink> == NULL übergeben, wird dem Kernel
-*                 signalisiert, daß der Parent des
-*                 Wurzelverzeichnisses angewählt wurde. Befindet sich
-*                 der Pfad etwa auf U:\A, kann der Kernel auf U:\
-*                 zurückgehen.
-*
-* Rückgabewert *dir_drive ist die Laufwerknummer, die ist
-* normalerweise drv, weil wir im Pfad das Laufwerk nicht
-* wechseln.
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Open Atari path or partial path, up to symbolic link or filename
+ *
+ * @param[in]  mode         0: pathname is a file, 1: pathname is a directory
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  rel_dd       parent directory, search from here
+ * @param[in]  pathname     Atari path
+ * @param[out] remain_path  remaining path after evaluation, i.e. filename if mode=1, or after symlink
+ * @param[out] symlink_dd   directory of the first symbolic link in the path
+ * @param[out] symlink      link destination as Pascal string, on even address, 16-bit for length
+ * @param[out] dd           if success, this structure describes the opened directory
+ * @param[out] dir_drive    normally drv (Attention: convert to big-endian!)
+ *
+ * @note <symlink> and <symlink_dd> are only evaluated in case the function returns ELINK.
+ *       <remain_path> then shall point to the remaining path after the symbolic link.
+ * @note The symbolic link handling was designed for classic MacOS. The link contains a string
+ *       describing the link destination. This string returned in <symlink> must be located on an
+ *       even address, zero-terminated and is preceded with 16-bit length (including trailing zero).
+ *       The length is stored in  big-endian mode. The storage <symlink> points to
+ *       will be immmediately copied by the MagiC kernel.
+ * @note Return NULL for symlink if the parent of the root directory was selected. This allows
+ *       the MagiC kernel to go from U:\A back to U:\.
+ *       TODO: test and implement, if missing
+ * @note <remain_path> is returned without leading path separator "\"
+ * @note <dir_drive> might be different from drv in case the drive is changed during
+ *       path evaluation.
+ *
+ * @return 0 for OK, ELINK for symbolic link or negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_path2DD
 (
     uint16_t mode,
@@ -794,7 +766,7 @@ INT32 CHostXFS::xfs_path2DD
     UINT16 *dir_drive
 )
 {
-	DebugInfo("%s(drv = %u (%c:), dirID = %d, vRefNum = %d, name = %s)",
+    DebugInfo("%s(drv = %u (%c:), dirID = %d, vRefNum = %d, name = %s)",
          __func__, drv, 'A' + drv, rel_dd->dirID, rel_dd->vRefNum, pathname);
     char pathbuf[1024];
 
@@ -808,7 +780,7 @@ INT32 CHostXFS::xfs_path2DD
     }
 
     char *p;
-    atariFnameToHostFname((const uint8_t *) pathname, (unsigned char *) pathbuf);
+    atariFnameToHostFname((const uint8_t *) pathname, pathbuf);
     if (mode == 0)
     {
         // The path refers to a file. Remove filename from path.
@@ -825,22 +797,26 @@ INT32 CHostXFS::xfs_path2DD
     }
 
     HostHandle_t hhdl_rel = rel_dd->dirID;  // host endian
-    assert(hhdl_rel != HOST_HANDLE_INVALID);      // TODO: error handling
-    void *hdata_rel = HostHandles::getData(hhdl_rel);
-    int rel_fd;
-    memcpy(&rel_fd, hdata_rel, sizeof(rel_fd));     // TODO: introduce union
-    assert(rel_fd > 0);
+    int rel_fd = HostHandles::getInt(hhdl_rel);
+    if (rel_fd == -1)
+    {
+        return EINTRN;
+    }
 
-    int dir_fd = openat(rel_fd, pathbuf, O_PATH);
+    // Note that O_DIRECTORY is essential, otherwise fdopendir() will refuse
+    int dir_fd = openat(rel_fd, pathbuf, O_DIRECTORY | O_RDONLY);
     if (dir_fd < 0)
     {
         perror("openat() -> ");
         return CTextConversion::Host2AtariError(errno);
     }
     HostHandle_t hhdl = HostHandles::alloc(sizeof(dir_fd));
-    assert(hhdl != HOST_HANDLE_INVALID);      // TODO: error handling
-    void *hdata = HostHandles::getData(hhdl);
-    memcpy(hdata, &dir_fd, sizeof(dir_fd));
+    if (hhdl == HOST_HANDLE_INVALID)
+    {
+        DebugError("No host handles left");
+        return ENHNDL;
+    }
+    HostHandles::putInt(hhdl, dir_fd);
 
     dd->dirID = hhdl;
     dd->vRefNum = rel_dd->vRefNum;
@@ -862,7 +838,7 @@ INT32 CHostXFS::xfs_path2DD
     sExitImmediately = 0;
     */
 
-	DebugInfo("%s() -> dirID %u", __func__, hhdl);
+    DebugInfo("%s() -> dirID %u", __func__, hhdl);
     return E_OK;
 }
 
@@ -901,23 +877,39 @@ INT32 CHostXFS::_snext(uint16_t drv, MAC_DTA *dta)
 }
 
 
-/*************************************************************
-*
-* Durchsucht ein Verzeichnis und merkt den Suchstatus
-* für Fsnext.
-* Der Mac benutzt für F_SUBDIR und F_RDONLY dieselben Bits
-* wie der Atari.
-*
-*************************************************************/
-
-INT32 CHostXFS::xfs_sfirst(uint16_t drv, MXFSDD *dd, char *name,
-                    MAC_DTA *dta, uint16_t attrib)
+/** **********************************************************************************************
+ *
+ * @brief Scan a directory and remember search position for following Fsnext
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory, search here
+ * @param[in]  name         Search pattern in 8+3 name scheme
+ * @param[out] dta          file found and internal data for Fsnext
+ * @param[out] attrib       search attributes
+ *
+ * @return 0 for OK, ELINK for symbolic link or negative error code
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_sfirst
+(
+    uint16_t drv,
+    const MXFSDD *dd,
+    const char *name,
+    MAC_DTA *dta,
+    uint16_t attrib
+)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
-    (void) dd;
-    (void) name;
-    (void) dta;
-    (void) attrib;
+   	unsigned char atariname[256];   // long filename in Atari charset
+	unsigned char dosname[14];      // internal, 8+3
+
+    DebugInfo("%s(drv = %u)", __func__, drv);
+
+	dta->mxdta.dta_drive = (char) drv;
+	pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname);	// search pattern -> DTA
+	dta->mxdta.dta_name[0] = 0;		            // nothing found yet
+	dta->macdta.sattr = (char) attrib;			// search attribute
+	dta->macdta.dirID = dd->dirID;
+	dta->macdta.vRefNum = dd->vRefNum;
 
     if (drv_changed[drv])
     {
@@ -928,8 +920,104 @@ INT32 CHostXFS::xfs_sfirst(uint16_t drv, MXFSDD *dd, char *name,
         return(EDRIVE);
     }
 
+    int dir_fd = HostHandles::getInt(dd->dirID);
+    if (dir_fd == -1)
+    {
+        return EINTRN;
+    }
+
+    DIR *dir = fdopendir(dir_fd);
+    if (dir == nullptr)
+    {
+        perror("fdopendir() -> ");
+        return CTextConversion::Host2AtariError(errno);
+    }
+
+    for (;;)
+    {
+        struct dirent *entry = readdir(dir);
+        if (entry == nullptr)
+        {
+            break;  // end of directory
+        }
+        printf("%d %s\n", entry->d_type, entry->d_name);
+        hostFnameToAtariFname(entry->d_name, atariname);    // convert character set..
+        if (pathElemToDTA8p3(atariname, dosname))  // .. and to 8+3
+        {
+            continue;   // filename too long
+        }
+
+        // TODO: handle symbolic links here
+        if (entry->d_type == DT_REG)
+        {
+            dosname[11] = 0;    // regular file
+        }
+        else
+        if (entry->d_type == DT_DIR)
+        {
+            dosname[11] = F_SUBDIR;
+        }
+        else
+        {
+            DebugWarning("unhandled file type %d", entry->d_type);
+            continue;   // unhandled file type
+        }
+
+        if (filename_match(dta->macdta.sname, (char *) dosname))
+        {
+            int fd = openat(dir_fd, entry->d_name, O_RDONLY);
+            if (fd < 0)
+            {
+                perror("openat() -> ");
+                continue;
+            }
+            struct stat statbuf;
+            int ret = fstat(fd, &statbuf);
+            close(fd);
+            if (ret < 0)
+            {
+                perror("fstat() -> ");
+                continue;
+            }
+            printf("size = %lu\n", statbuf.st_size);
+
+            //
+            // fill DTA
+            //
+
+            if (dosname[11] == F_SUBDIR)
+            {
+                dta->mxdta.dta_len = 0;
+            }
+            else
+            if (statbuf.st_size > 0xffffffff)
+            {
+                DebugWarning("file size > 4 GB, shown as zero length");
+                dta->mxdta.dta_len = 0;
+            }
+            else
+            {
+                dta->mxdta.dta_len = htobe32((uint32_t) statbuf.st_size);
+            }
+
+            dta->mxdta.dta_attribute = (char) dosname[11];
+            nameto_8_3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, false, true);
+            // TODO: evaluate statbuf.st_mtime
+            dta->mxdta.dta_time = htobe16(42);  // TODO
+            dta->mxdta.dta_date = htobe16(42);  // TODO
+            return E_OK;
+        }
+    }
+
+	dta->macdta.sname[0] = EOS;     // invalidate DTA
+    closedir(dir);
+	return ENMFIL;
+
     // TODO: implement
-    return EINVFN;
+    // use readdir to get files
+    // get telldir to get the current position and store it
+    // use seekdir for snext?
+    // or read the entire directory?
 }
 
 
@@ -942,7 +1030,7 @@ INT32 CHostXFS::xfs_sfirst(uint16_t drv, MXFSDD *dd, char *name,
 
 INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dta;
 
     if (drv_changed[drv])
@@ -981,7 +1069,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 INT32 CHostXFS::xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
             uint16_t omode, uint16_t attrib)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) name;
     (void) dd;
     (void) omode;
@@ -1012,7 +1100,7 @@ INT32 CHostXFS::xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
 
 INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
 
@@ -1049,7 +1137,7 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name)
 INT32 CHostXFS::xfs_link(uint16_t drv, char *nam1, char *nam2,
                MXFSDD *dd1, MXFSDD *dd2, uint16_t mode, uint16_t dst_drv)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) nam1;
     (void) nam2;
     (void) dd1;
@@ -1082,7 +1170,7 @@ INT32 CHostXFS::xfs_link(uint16_t drv, char *nam1, char *nam2,
 INT32 CHostXFS::xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
                 XATTR *xattr, uint16_t mode)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) xattr;
@@ -1118,7 +1206,7 @@ INT32 CHostXFS::xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
 
 INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag, uint16_t attr)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) rwflag;
@@ -1147,7 +1235,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag
 INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, char *name,
                     uint16_t uid, uint16_t gid)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) uid;
@@ -1166,7 +1254,7 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, char *name,
 
 INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) fmode;
@@ -1193,7 +1281,7 @@ INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode)
 
 INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
 
@@ -1222,7 +1310,7 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
 
 INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
 
     if (drv_changed[drv])
@@ -1247,7 +1335,7 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 
 INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) buf;
     (void) bufsiz;
@@ -1278,7 +1366,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
 INT32 CHostXFS::xfs_dopendir(MAC_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd,
                 uint16_t tosflag)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dirh;
     (void) drv;
     (void) dd;
@@ -1307,7 +1395,7 @@ INT32 CHostXFS::xfs_dopendir(MAC_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd,
 INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,
         uint16_t size, char *buf, XATTR *xattr, INT32 *xr)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dirh;
     (void) size;
     (void) buf;
@@ -1336,7 +1424,7 @@ INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,
 
 INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
 
     if (drv_rvsDirOrder[drv])
     {
@@ -1355,7 +1443,7 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
 
 INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
 
     (void) drv;
     dirh -> dirID = -1L;
@@ -1402,7 +1490,7 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 
 INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
 
     (void) dd;
     switch(which)
@@ -1438,7 +1526,7 @@ INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
 
 INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dirID;
     (void) data;
 
@@ -1470,7 +1558,7 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 
 INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
 
@@ -1489,7 +1577,7 @@ INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
 
 INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) bufsiz;
@@ -1519,7 +1607,7 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
 
 INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) to;
@@ -1547,7 +1635,7 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to)
 INT32 CHostXFS::xfs_readlink(uint16_t drv, MXFSDD *dd, char *name,
                 char *buf, uint16_t bufsiz)
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) buf;
@@ -1586,7 +1674,7 @@ INT32 CHostXFS::xfs_dcntl
     uint8_t *addrOffset68kXFS
 )
 {
-	DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) cmd;
@@ -1819,7 +1907,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
     INT32 doserr;
     unsigned char *params = AdrOffset68k + param;
 
-	DebugInfo("%s(param = %u)", __func__, param);
+    DebugInfo("%s(param = %u)", __func__, param);
 
     fncode = getAtariBE16(params);
 #ifdef DEBUG_VERBOSE
@@ -2411,7 +2499,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
     UINT32 ifd;
 
 
-	DebugInfo("%s(param = %u)", __func__, param);
+    DebugInfo("%s(param = %u)", __func__, param);
 
     // first 2 bytes: function code
     uint16_t fncode = getAtariBE16(params + 0);

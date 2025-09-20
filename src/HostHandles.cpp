@@ -45,12 +45,12 @@ uint8_t *HostHandles::memblock_free = nullptr;
  ************************************************************************************************/
 void HostHandles::init(void)
 {
-    assert(memblock == nullptr);		// not yet initialised
+    assert(memblock == nullptr);        // not yet initialised
 
-	// allocate blocks
+    // allocate blocks
     memblock = (uint8_t *) malloc(HOST_HANDLE_NUM * HOST_HANDLE_SIZE);
-	// allocate free-flags
-	memblock_free = (uint8_t *) calloc(HOST_HANDLE_NUM, 1);
+    // allocate free-flags
+    memblock_free = (uint8_t *) calloc(HOST_HANDLE_NUM, 1);
 }
 
 
@@ -63,31 +63,72 @@ uint32_t HostHandles::alloc(unsigned size)
 {
     assert(size <= HOST_HANDLE_SIZE);
 
-	// search for free block
-	uint8_t *pfree = memblock_free;
-	for (unsigned i = 0; i < HOST_HANDLE_NUM; i++, pfree++)
-	{
-		if (*pfree == 0)
-		{
-			*pfree = 1;
-			return i;
-		}
-	}
+    // search for free block
+    uint8_t *pfree = memblock_free;
+    for (unsigned i = 0; i < HOST_HANDLE_NUM; i++, pfree++)
+    {
+        if (*pfree == 0)
+        {
+            *pfree = 1;
+            return i;
+        }
+    }
 
-	return HOST_HANDLE_INVALID;
+    return HOST_HANDLE_INVALID;
 }
 
 
 /** **********************************************************************************************
-*
-* @brief Get data from handle
-*
+ *
+ * @brief Get raw data from handle
+ *
+ * @param[in]  hhdl    32-bit value passed from MagiC kernel
+ *
+ * @return nullptr in case of an error
+ *
  ************************************************************************************************/
 void *HostHandles::getData(HostHandle_t hhdl)
 {
-    assert(hhdl < HOST_HANDLE_NUM);
-    assert(memblock_free[hhdl] == 1);
+    if ((hhdl >= HOST_HANDLE_NUM) || (memblock_free[hhdl] == 0))
+    {
+        DebugError("Invalid host handle %d", hhdl);
+        return nullptr;
+    }
     return memblock + hhdl * HOST_HANDLE_SIZE;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get integer value from handle
+ *
+ * @param[in]  hhdl    32-bit value passed from or to MagiC kernel
+ *
+ * @return -1 in case of an error, otherwise the read value
+ *
+ ************************************************************************************************/
+int HostHandles::getInt(HostHandle_t hhdl)
+{
+    int *p = (int *) getData(hhdl);
+    return (p == nullptr) ? -1 : *p;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Put integer value to handle
+ *
+ * @param[in]  hhdl    32-bit value passed from or to MagiC kernel
+ * @param[in]  v       value to store
+ *
+ ************************************************************************************************/
+void HostHandles::putInt(HostHandle_t hhdl, int v)
+{
+    int *p = (int *) getData(hhdl);
+    if (p != nullptr)
+    {
+        *p = v;
+    }
 }
 
 
@@ -95,7 +136,7 @@ void *HostHandles::getData(HostHandle_t hhdl)
 *
 * @brief free handle
 *
- ************************************************************************************************/
+*************************************************************************************************/
 void HostHandles::free(HostHandle_t hhdl)
 {
     assert(hhdl < HOST_HANDLE_NUM);

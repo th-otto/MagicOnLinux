@@ -225,3 +225,42 @@ int CTextConversion::Host2AtariError(int error)
 
 	return(ERROR);
 }
+
+
+#if 0
+/*****************************************************************
+*
+*  (statisch) konvertiert Mac-Datumsangaben in DOS- Angaben
+*
+******************************************************************/
+
+void hostDateToDosDate( unsigned long macdate, UINT16 *time, UINT16 *date)
+{
+	DateTimeRec dt;
+
+	SecondsToDate(macdate, &dt);
+	if (time)
+		*time = (UINT16) ((dt.second >> 1) + (dt.minute << 5) + (dt.hour << 11));
+	if (date)
+		*date = (UINT16) ((dt.day) + (dt.month  << 5) + ((dt.year - 1980) << 9));
+}
+
+
+/*****************************************************************
+*
+*  (statisch) konvertiert DOS-Datumsangaben in Mac-Angaben
+*
+******************************************************************/
+
+void dosDateToHostDate(UINT16 time, UINT16 date, unsigned long *macdate)
+{
+	DateTimeRec dt;
+	dt.second	= (short) ((time & 0x1f) << 1);
+	dt.minute	= (short) ((time >> 5 ) & 0x3f);
+	dt.hour	= (short) ((time >> 11) & 0x1f);
+	dt.day	= (short) (date & 0x1f);
+	dt.month	= (short) ((date >> 5 ) & 0x0f);
+	dt.year	= (short) (((date >> 9 ) & 0x7f) + 1980);
+	DateToSeconds(&dt, macdate);
+}
+#endif

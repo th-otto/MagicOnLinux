@@ -24,9 +24,9 @@
 
 #include <stdint.h>
 
-#define HOST_HANDLE_NUM		1024			// number of memory blocks
-#define HOST_HANDLE_INVALID	0xffffffff
-#define HOST_HANDLE_SIZE 	64				// size of one memory block
+#define HOST_HANDLE_NUM     1024            // number of memory blocks
+#define HOST_HANDLE_INVALID 0xffffffff
+#define HOST_HANDLE_SIZE    64                // size of one memory block
 
 typedef uint32_t HostHandle_t;
 
@@ -36,9 +36,11 @@ class HostHandles
     static void init();
     static uint32_t alloc(unsigned size);
     static void *getData(HostHandle_t hhdl);
+    static int getInt(HostHandle_t hhdl);
+    static void putInt(HostHandle_t hhdl, int v);
     static void free(HostHandle_t hhdl);
 
   private:
     static uint8_t *memblock;
-	  static uint8_t *memblock_free;
+      static uint8_t *memblock_free;
 };

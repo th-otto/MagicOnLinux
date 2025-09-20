@@ -259,13 +259,13 @@ class CHostXFS
     // statische Funktionen
 
     static char toUpper(char c);
-    static void atariFnameToHostFname(const unsigned char *src, unsigned char *dst);
-    static void hostFnameToAtariFname(const unsigned char *src, unsigned char *dst);
+    static void atariFnameToHostFname(const unsigned char *src, char *dst);
+    static void hostFnameToAtariFname(const char *src, unsigned char *dst);
     static int fname_is_invalid(const char *name);
     static INT32 cnverr(int err);
     static bool filename_match(const char *pattern, const char *fname);
-    static bool conv_path_elem(const char *path, char *name);
-    static bool nameto_8_3 (const unsigned char *macname,
+    static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name);
+    static bool nameto_8_3 (const char *host_fname,
                 unsigned char *dosname,
                 bool flg_longnames, bool toAtari);
 
@@ -282,7 +282,7 @@ class CHostXFS
         const char **remain_path, MXFSDD *symlink_dd, const char **symlink,
         MXFSDD *dd,
         UINT16 *dir_drive);
-    INT32 xfs_sfirst(uint16_t drv, MXFSDD *dd, char *name, MAC_DTA *dta, uint16_t attrib);
+    INT32 xfs_sfirst(uint16_t drv, const MXFSDD *dd, const char *name, MAC_DTA *dta, uint16_t attrib);
     INT32 xfs_snext(uint16_t drv, MAC_DTA *dta);
     INT32 xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
                 uint16_t omode, uint16_t attrib);

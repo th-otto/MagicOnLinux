@@ -899,17 +899,17 @@ INT32 CHostXFS::xfs_sfirst
     uint16_t attrib
 )
 {
-   	unsigned char atariname[256];   // long filename in Atari charset
-	unsigned char dosname[14];      // internal, 8+3
+    unsigned char atariname[256];   // long filename in Atari charset
+    unsigned char dosname[14];      // internal, 8+3
 
     DebugInfo("%s(drv = %u)", __func__, drv);
 
-	dta->mxdta.dta_drive = (char) drv;
-	pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname);	// search pattern -> DTA
-	dta->mxdta.dta_name[0] = 0;		            // nothing found yet
-	dta->macdta.sattr = (char) attrib;			// search attribute
-	dta->macdta.dirID = dd->dirID;
-	dta->macdta.vRefNum = dd->vRefNum;
+    dta->mxdta.dta_drive = (char) drv;
+    pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname);    // search pattern -> DTA
+    dta->mxdta.dta_name[0] = 0;                    // nothing found yet
+    dta->macdta.sattr = (char) attrib;            // search attribute
+    dta->macdta.dirID = dd->dirID;
+    dta->macdta.vRefNum = dd->vRefNum;
 
     if (drv_changed[drv])
     {
@@ -1002,16 +1002,19 @@ INT32 CHostXFS::xfs_sfirst
 
             dta->mxdta.dta_attribute = (char) dosname[11];
             nameto_8_3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, false, true);
+            const struct timespec *mtime = &statbuf.st_mtim;
+            uint16_t time, date;
+            CTextConversion::hostDateToDosDate(mtime->tv_sec, &time, &date);
             // TODO: evaluate statbuf.st_mtime
-            dta->mxdta.dta_time = htobe16(42);  // TODO
-            dta->mxdta.dta_date = htobe16(42);  // TODO
+            dta->mxdta.dta_time = htobe16(time);
+            dta->mxdta.dta_date = htobe16(date);
             return E_OK;
         }
     }
 
-	dta->macdta.sname[0] = EOS;     // invalidate DTA
+    dta->macdta.sname[0] = EOS;     // invalidate DTA
     closedir(dir);
-	return ENMFIL;
+    return ENMFIL;
 
     // TODO: implement
     // use readdir to get files

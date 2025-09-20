@@ -36,7 +36,8 @@ class CTextConversion
 	static unsigned char Mac2AtariFilename(unsigned char c);
 	static unsigned char Mac2AtariText(unsigned char c);
 	static int Host2AtariError(int error);
-
+	static void hostDateToDosDate(time_t host_time, uint16_t *time, uint16_t *date);
+	static void dosDateToHostDate(uint16_t time, uint16_t date, time_t *host_time);
 
    private:
 	// Funktionen

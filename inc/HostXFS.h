@@ -93,23 +93,23 @@ class CHostXFS
 
 
     #if 0
-	/// file driver function table, here unused
-	struct MX_DEV
-	{
-		INT32   dev_close;
-		INT32   dev_read;
-		INT32   dev_write;
-		INT32   dev_stat;
-		INT32   dev_seek;
-		INT32   dev_datime;
-		INT32   dev_ioctl;
-		INT32   dev_getc;
-		INT32   dev_getline;
-		INT32   dev_putc;
-	} __attribute__((packed));
+    /// file driver function table, here unused
+    struct MX_DEV
+    {
+        INT32   dev_close;
+        INT32   dev_read;
+        INT32   dev_write;
+        INT32   dev_stat;
+        INT32   dev_seek;
+        INT32   dev_datime;
+        INT32   dev_ioctl;
+        INT32   dev_getc;
+        INT32   dev_getline;
+        INT32   dev_putc;
+    } __attribute__((packed));
     #endif
 
-	/// non XFS specific part of a Directory Descriptor
+    /// non XFS specific part of a Directory Descriptor
     struct MX_DD
     {
         UINT32  dd_dmd;             // struct _mx_dmd *dd_dmd;
@@ -128,7 +128,7 @@ class CHostXFS
         char    dta_name[14];       // file name, maximum 8+3 plus "." plus NUL
     } __attribute__((packed));
 
-	/// non XFS specific part of a Drive Media Descriptor
+    /// non XFS specific part of a Drive Media Descriptor
     struct MX_DMD
     {
         UINT32  d_xfs;              // struct _mx_xfs *d_xfs;
@@ -139,7 +139,7 @@ class CHostXFS
         UINT32  devcode;
     } __attribute__((packed));
 
-	/// non XFS specific part of a File Descriptor
+    /// non XFS specific part of a File Descriptor
     struct MX_FD
     {
         UINT32  fd_dmd;                // struct _mx_dmd *fd_dmd
@@ -165,9 +165,9 @@ class CHostXFS
     {
          char     sname[11];    // name to search for
          uint8_t  sattr;        // search attribute
-         INT32    dirID;        // directory
-         INT16    vRefNum;      // MacOS volume
-         UINT16   index;        // Index inside that directory
+         int32_t  dirID;        // directory (host-endian)
+         int16_t  vRefNum;      // MacOS volume (host-endian)
+         int16_t  index;        // Index inside that directory (host-endian)
     } __attribute__((packed));
 
 
@@ -183,11 +183,11 @@ class CHostXFS
          uint16_t mod_time[2];      // host part: timecode for Fdatime() (DOS-Codes) (host native endian)
     } __attribute__((packed));
 
-	/// non XFS specific part of a Directory Handle Descriptor
-	struct MX_DHD
-	{
-		UINT32	dhd_dmd;            // struct _mx_dmd *dhd_dmd;
-	} __attribute__((packed));
+    /// non XFS specific part of a Directory Handle Descriptor
+    struct MX_DHD
+    {
+        UINT32    dhd_dmd;            // struct _mx_dmd *dhd_dmd;
+    } __attribute__((packed));
 
     struct MAC_DIRHANDLE
     {
@@ -325,7 +325,7 @@ class CHostXFS
 
     // Hilfsfunktionen
 
-    INT32 _snext(uint16_t drv, MAC_DTA *dta);
+    int _snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta);
     INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to);
 
     void setDrivebits (uint32_t newbits, uint8_t *AdrOffset68k);

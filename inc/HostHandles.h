@@ -35,6 +35,7 @@ class HostHandles
   public:
     static void init();
     static uint32_t alloc(unsigned size);
+    static uint32_t allocInt(int v);
     static void *getData(HostHandle_t hhdl);
     static int getInt(HostHandle_t hhdl);
     static void putInt(HostHandle_t hhdl, int v);

@@ -74,7 +74,24 @@ uint32_t HostHandles::alloc(unsigned size)
         }
     }
 
+    DebugError("No host handles left");
     return HOST_HANDLE_INVALID;
+}
+
+
+/** **********************************************************************************************
+*
+* @brief Allocate
+*
+ ************************************************************************************************/
+uint32_t HostHandles::allocInt(int v)
+{
+    HostHandle_t hhdl = alloc(sizeof(v));
+    if (hhdl != HOST_HANDLE_INVALID)
+    {
+        HostHandles::putInt(hhdl, v);
+    }
+    return hhdl;
 }
 
 

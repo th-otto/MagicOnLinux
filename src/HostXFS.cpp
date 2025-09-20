@@ -843,37 +843,94 @@ INT32 CHostXFS::xfs_path2DD
 }
 
 
-
-/*************************************************************
-*
-* Wird von xfs_sfirst und xfs_snext verwendet
-* Unabhaengig von drv_longnames[drv] werden die Dateien
-* immer in Gross-Schrift und 8+3 konvertiert.
-* MiNT konvertiert je nach Pdomain() in Gross-Schrift oder nicht.
-*
-* 6.9.95:
-* Lange Dateinamen werden nicht gefunden.
-*
-* 19.11.95:
-* Aliase werden dereferenziert.
-*
-*************************************************************/
-
-INT32 CHostXFS::_snext(uint16_t drv, MAC_DTA *dta)
+/** **********************************************************************************************
+ *
+ * @brief Check if a host directory entry matches Fsfirst/next search pattern
+ *
+ * @param[in]  dir_fd       directory
+ * @param[in]  entry        directory entry
+ * @param[out] dta          file found and internal data for Fsnext
+ *
+ * @return 0: found, 1: mismatch, <0: error
+ *
+ ************************************************************************************************/
+int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
 {
-    (void) dta;
+    unsigned char atariname[256];   // long filename in Atari charset
+    unsigned char dosname[14];      // internal, 8+3
 
-    if (drv_changed[drv])
+    printf("%d %s\n", entry->d_type, entry->d_name);
+    hostFnameToAtariFname(entry->d_name, atariname);    // convert character set..
+    if (pathElemToDTA8p3(atariname, dosname))  // .. and to 8+3
     {
-        return(E_CHNG);
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return(EDRIVE);
+        return -1;   // filename too long
     }
 
-    // TODO: implement
-    return EINVFN;
+    // TODO: handle symbolic links here
+    if (entry->d_type == DT_REG)
+    {
+        dosname[11] = 0;    // regular file
+    }
+    else
+    if (entry->d_type == DT_DIR)
+    {
+        dosname[11] = F_SUBDIR;
+    }
+    else
+    {
+        DebugWarning("unhandled file type %d", entry->d_type);
+        return -2;   // unhandled file type
+    }
+
+    if (!filename_match(dta->macdta.sname, (char *) dosname))
+    {
+        return 1;
+    }
+
+    int fd = openat(dir_fd, entry->d_name, O_RDONLY);
+    if (fd < 0)
+    {
+        perror("openat() -> ");
+        return -3;
+    }
+    struct stat statbuf;
+    int ret = fstat(fd, &statbuf);
+    close(fd);
+    if (ret < 0)
+    {
+        perror("fstat() -> ");
+        return -4;
+    }
+    printf("size = %lu\n", statbuf.st_size);
+
+    //
+    // fill DTA
+    //
+
+    if (dosname[11] == F_SUBDIR)
+    {
+        dta->mxdta.dta_len = 0;
+    }
+    else
+    if (statbuf.st_size > 0xffffffff)
+    {
+        DebugWarning("file size > 4 GB, shown as zero length");
+        dta->mxdta.dta_len = 0;
+    }
+    else
+    {
+        dta->mxdta.dta_len = htobe32((uint32_t) statbuf.st_size);
+    }
+
+    dta->mxdta.dta_attribute = (char) dosname[11];
+    nameto_8_3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, false, true);
+    const struct timespec *mtime = &statbuf.st_mtim;
+    uint16_t time, date;
+    CTextConversion::hostDateToDosDate(mtime->tv_sec, &time, &date);
+    dta->mxdta.dta_time = htobe16(time);
+    dta->mxdta.dta_date = htobe16(date);
+
+    return 0;
 }
 
 
@@ -899,9 +956,6 @@ INT32 CHostXFS::xfs_sfirst
     uint16_t attrib
 )
 {
-    unsigned char atariname[256];   // long filename in Atari charset
-    unsigned char dosname[14];      // internal, 8+3
-
     DebugInfo("%s(drv = %u)", __func__, drv);
 
     dta->mxdta.dta_drive = (char) drv;
@@ -940,81 +994,23 @@ INT32 CHostXFS::xfs_sfirst
         {
             break;  // end of directory
         }
-        printf("%d %s\n", entry->d_type, entry->d_name);
-        hostFnameToAtariFname(entry->d_name, atariname);    // convert character set..
-        if (pathElemToDTA8p3(atariname, dosname))  // .. and to 8+3
-        {
-            continue;   // filename too long
-        }
 
-        // TODO: handle symbolic links here
-        if (entry->d_type == DT_REG)
+        int match = _snext(dir_fd, entry, dta);
+        if (match == 0)
         {
-            dosname[11] = 0;    // regular file
-        }
-        else
-        if (entry->d_type == DT_DIR)
-        {
-            dosname[11] = F_SUBDIR;
-        }
-        else
-        {
-            DebugWarning("unhandled file type %d", entry->d_type);
-            continue;   // unhandled file type
-        }
-
-        if (filename_match(dta->macdta.sname, (char *) dosname))
-        {
-            int fd = openat(dir_fd, entry->d_name, O_RDONLY);
-            if (fd < 0)
-            {
-                perror("openat() -> ");
-                continue;
-            }
-            struct stat statbuf;
-            int ret = fstat(fd, &statbuf);
-            close(fd);
-            if (ret < 0)
-            {
-                perror("fstat() -> ");
-                continue;
-            }
-            printf("size = %lu\n", statbuf.st_size);
-
-            //
-            // fill DTA
-            //
-
-            if (dosname[11] == F_SUBDIR)
-            {
-                dta->mxdta.dta_len = 0;
-            }
-            else
-            if (statbuf.st_size > 0xffffffff)
-            {
-                DebugWarning("file size > 4 GB, shown as zero length");
-                dta->mxdta.dta_len = 0;
-            }
-            else
-            {
-                dta->mxdta.dta_len = htobe32((uint32_t) statbuf.st_size);
-            }
-
-            dta->mxdta.dta_attribute = (char) dosname[11];
-            nameto_8_3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, false, true);
-            const struct timespec *mtime = &statbuf.st_mtim;
-            uint16_t time, date;
-            CTextConversion::hostDateToDosDate(mtime->tv_sec, &time, &date);
-            // TODO: evaluate statbuf.st_mtime
-            dta->mxdta.dta_time = htobe16(time);
-            dta->mxdta.dta_date = htobe16(date);
+            long pos = telldir(dir);
+            printf("directory read position %ld\n", pos);
             return E_OK;
         }
     }
 
     dta->macdta.sname[0] = EOS;     // invalidate DTA
+    dta->macdta.dirID = -1;
+    dta->macdta.vRefNum = -1;
+    dta->macdta.index = -1;
+
     closedir(dir);
-    return ENMFIL;
+    return EFILNF; // snext: ENMFIL;
 
     // TODO: implement
     // use readdir to get files
@@ -1069,14 +1065,31 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 *
 *************************************************************/
 
-INT32 CHostXFS::xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
-            uint16_t omode, uint16_t attrib)
+/** **********************************************************************************************
+ *
+ * @brief Open a file
+ *
+ * @param[in]  name         filename, can be long or 8+3
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory, search here
+ * @param[in]  omode        bit mask, see OM_RPERM and _ATARI_O_... bits
+ * @param[out] attrib       attribute of new file in case O_CREAT bit is set
+ *
+ * @return file handle or negative error code
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_fopen
+(
+    char *name,
+    uint16_t drv,
+    MXFSDD *dd,
+    uint16_t omode,
+    uint16_t attrib
+)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
-    (void) name;
+    DebugInfo("%s(name = %s, drv = %u, omode = %d, attrib = %d)", __func__, name, drv, omode, attrib);
+	unsigned char dosname[20];
     (void) dd;
-    (void) omode;
-    (void) attrib;
 
     if (drv_changed[drv])
     {
@@ -1087,8 +1100,72 @@ INT32 CHostXFS::xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
         return(EDRIVE);
     }
 
-    // TODO: implement
-    return EINVFN;
+    if (!drv_longnames[drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name, dosname, false, false);
+        name = (char *) dosname;
+    }
+
+    int dir_fd = HostHandles::getInt(dd->dirID);
+    if (dir_fd == -1)
+    {
+        return EINTRN;
+    }
+
+    int host_omode = -1;
+
+
+    // TODO: allow writing
+    if (omode & OM_RPERM)
+    {
+        host_omode = O_RDONLY;
+    }
+    if (omode & OM_WPERM)
+    {
+        // TODO: support later
+        host_omode = (host_omode == O_RDONLY) ? O_RDWR : O_WRONLY;
+        return EACCDN;
+    }
+    if (omode & _ATARI_O_APPEND)
+    {
+        // TODO: support later
+        return EACCDN;
+    }
+    if (omode & _ATARI_O_CREAT)
+    {
+        // TODO: support later
+        return EACCDN;
+    }
+    if (omode & _ATARI_O_TRUNC)
+    {
+        // TODO: support later
+        return EACCDN;
+    }
+
+    /*
+    so far ignore these
+    #define _ATARI_O_COMPAT    0
+    #define _ATARI_O_DENYRW    0x10
+    #define _ATARI_O_DENYW     0x20
+    #define _ATARI_O_DENYR     0x30
+    #define _ATARI_O_DENYNONE  0x40
+    #define _ATARI_O_EXCL      0x800
+   */
+
+    int fd = openat(dir_fd, name, host_omode);
+    if (fd < 0)
+    {
+        perror("openat() -> ");
+        return -3;
+    }
+
+    HostHandle_t hhdl = HostHandles::allocInt(fd);
+    if (hhdl == HOST_HANDLE_INVALID)
+    {
+        return ENHNDL;
+    }
+    return hhdl;
 }
 
 
@@ -1704,6 +1781,7 @@ INT32 CHostXFS::xfs_dcntl
 
 INT32 CHostXFS::dev_close(MAC_FD *f)
 {
+    DebugInfo("%s(fd = %0x)", __func__, f);
     (void) f;
 
     // TODO: implement
@@ -1780,6 +1858,7 @@ static INT32 CHostXFS::dev_pread( MAC_FD *f, ParamBlockRec *pb )
 
 INT32 CHostXFS::dev_read(MAC_FD *f, INT32 count, char *buf)
 {
+    DebugInfo("%s(fd = %0x, count = %d)", __func__, f, count);
     (void) f;
     (void) count;
     (void) buf;
@@ -1791,6 +1870,7 @@ INT32 CHostXFS::dev_read(MAC_FD *f, INT32 count, char *buf)
 
 INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, char *buf)
 {
+    DebugInfo("%s(fd = %0x, count = %d)", __func__, f, count);
     (void) f;
     (void) count;
     (void) buf;
@@ -1802,6 +1882,7 @@ INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, char *buf)
 
 INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
 {
+    DebugInfo("%s(fd = %0x, rwflag = %d)", __func__, f, rwflag);
     (void) f;
     (void) unsel;
     (void) rwflag;
@@ -1814,6 +1895,7 @@ INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
 
 INT32 CHostXFS::dev_seek(MAC_FD *f, INT32 pos, uint16_t mode)
 {
+    DebugInfo("%s(fd = %0x, pos = %d)", __func__, f, pos);
     (void) f;
     (void) pos;
     (void) mode;
@@ -1825,6 +1907,7 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, INT32 pos, uint16_t mode)
 
 INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 {
+    DebugInfo("%s(fd = %0x, rwflag = %d)", __func__, f, rwflag);
     (void) f;
     (void) d;
     (void) rwflag;
@@ -1836,6 +1919,7 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 
 INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
 {
+    DebugInfo("%s(fd = %0x, cmd = %d)", __func__, f, cmd);
     (void) f;
     (void) cmd;
     (void) buf;
@@ -1845,6 +1929,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
 
 INT32 CHostXFS::dev_getc(MAC_FD *f, uint16_t mode)
 {
+    DebugInfo("%s(fd = %0x, mode = %d)", __func__, f, mode);
     (void) mode;
     unsigned char c;
     INT32 ret;
@@ -1860,6 +1945,7 @@ INT32 CHostXFS::dev_getc(MAC_FD *f, uint16_t mode)
 
 INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
 {
+    DebugInfo("%s(fd = %0x, size = %d)", __func__, f, size);
     (void) mode;
     char c;
     INT32 gelesen,ret;
@@ -1884,6 +1970,7 @@ INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
 
 INT32 CHostXFS::dev_putc(MAC_FD *f, uint16_t mode, INT32 val)
 {
+    DebugInfo("%s(fd = %0x, mode = %d)", __func__, f, mode);
     (void) mode;
     char c;
 

@@ -29,12 +29,12 @@
 // Programm-Header
 #include "Globals.h"
 #include "Debug.h"
-#include "TextConversion.h"
+#include "conversion.h"
 
 // statische Attribute:
 
 // data 'HEXA' (131, "Text ATARI->Mac")
-unsigned const char CTextConversion::s_tabAtari2MacText[256] =
+unsigned const char CConversion::s_tabAtari2MacText[256] =
 {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, /* .........��..... */
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, /* ................ */
@@ -55,7 +55,7 @@ unsigned const char CTextConversion::s_tabAtari2MacText[256] =
 };
 
 // data 'HEXA' (130, "Text Mac->ATARI")
-unsigned const char CTextConversion::s_tabMac2AtariText[256] =
+unsigned const char CConversion::s_tabMac2AtariText[256] =
 {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, /* .........��..... */
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, /* ................ */
@@ -76,7 +76,7 @@ unsigned const char CTextConversion::s_tabMac2AtariText[256] =
 };
 
 // data 'HEXA' (129, "Filename ATARI->Mac")
-unsigned const char CTextConversion::s_tabAtari2MacFilename[256] =
+unsigned const char CConversion::s_tabAtari2MacFilename[256] =
 {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, /* .........��..... */
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, /* ................ */
@@ -97,7 +97,7 @@ unsigned const char CTextConversion::s_tabAtari2MacFilename[256] =
 };
 
 //data 'HEXA' (128, "Filename Mac->ATARI")
-unsigned const char CTextConversion::s_tabMac2AtariFilename[256] =
+unsigned const char CConversion::s_tabMac2AtariFilename[256] =
 {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, /* .........��..... */
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, /* ................ */
@@ -125,7 +125,7 @@ unsigned const char CTextConversion::s_tabMac2AtariFilename[256] =
 *
 **********************************************************************/
 
-int CTextConversion::Init(void)
+int CConversion::Init(void)
 {
     return(0);
 }
@@ -137,7 +137,7 @@ int CTextConversion::Init(void)
 *
 **********************************************************************/
 /*
-void CTextConversion::Atari2MacFilename(unsigned char *s)
+void CConversion::Atari2MacFilename(unsigned char *s)
 {
     short i = *s++;        // L�nge
     while(i)
@@ -149,7 +149,7 @@ void CTextConversion::Atari2MacFilename(unsigned char *s)
 }
 */
 
-unsigned char CTextConversion::Atari2MacFilename(unsigned char c)
+unsigned char CConversion::Atari2MacFilename(unsigned char c)
 {
     return(s_tabAtari2MacFilename[c]);
 }
@@ -161,7 +161,7 @@ unsigned char CTextConversion::Atari2MacFilename(unsigned char c)
 *
 **********************************************************************/
 /*
-void CTextConversion::Mac2AtariFilename(unsigned char *s)
+void CConversion::Mac2AtariFilename(unsigned char *s)
 {
     short i = *s++;
     while(i)
@@ -173,7 +173,7 @@ void CTextConversion::Mac2AtariFilename(unsigned char *s)
 }
 */
 
-unsigned char CTextConversion::Mac2AtariFilename(unsigned char c)
+unsigned char CConversion::Mac2AtariFilename(unsigned char c)
 {
     return(s_tabMac2AtariFilename[c]);
 }
@@ -185,7 +185,7 @@ unsigned char CTextConversion::Mac2AtariFilename(unsigned char c)
 *
 **********************************************************************/
 
-unsigned char CTextConversion::Atari2MacText(unsigned char c)
+unsigned char CConversion::Atari2MacText(unsigned char c)
 {
     return(s_tabAtari2MacText[c]);
 }
@@ -197,7 +197,7 @@ unsigned char CTextConversion::Atari2MacText(unsigned char c)
 *
 **********************************************************************/
 
-unsigned char CTextConversion::Mac2AtariText(unsigned char c)
+unsigned char CConversion::Mac2AtariText(unsigned char c)
 {
     return(s_tabMac2AtariText[c]);
 }
@@ -212,7 +212,7 @@ unsigned char CTextConversion::Mac2AtariText(unsigned char c)
  * @return Atari error code, ERROR if not convertible or unknown
  *
  ************************************************************************************************/
-int CTextConversion::Host2AtariError(int error)
+int CConversion::Host2AtariError(int error)
 {
     switch(error)
     {
@@ -222,6 +222,7 @@ int CTextConversion::Host2AtariError(int error)
         case EBADF: return EIHNDL;
         case ENOENT: return EFILNF;    // could also be EPTHNF
         case ENOTDIR: return EPTHNF;
+        case EINVAL: return EINVFN;
     }
 
     return(ERROR);
@@ -237,7 +238,7 @@ int CTextConversion::Host2AtariError(int error)
  * @param[out] date        Atari date (host-endian format)
  *
  ************************************************************************************************/
-void CTextConversion::hostDateToDosDate(time_t host_time, uint16_t *time, uint16_t *date)
+void CConversion::hostDateToDosDate(time_t host_time, uint16_t *time, uint16_t *date)
 {
     struct tm dt;
     localtime_r(&host_time, &dt);
@@ -262,7 +263,7 @@ void CTextConversion::hostDateToDosDate(time_t host_time, uint16_t *time, uint16
  * @param[out] host_time   host time
  *
  ************************************************************************************************/
-void CTextConversion::dosDateToHostDate(uint16_t time, uint16_t date, time_t *host_time)
+void CConversion::dosDateToHostDate(uint16_t time, uint16_t date, time_t *host_time)
 {
     struct tm dt;
     dt.tm_sec   = ((time & 0x1f) << 1);

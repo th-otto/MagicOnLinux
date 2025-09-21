@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1990-2018 Andreas Kromke, andreas.kromke@gmail.com
+ * Copyright (C) 1990-2025 Andreas Kromke, andreas.kromke@gmail.com
  *
  * This program is free software; you can redistribute it or
  * modify it under the terms of the GNU General Public License
@@ -29,6 +29,10 @@
 #define HOST_HANDLE_SIZE    64                // size of one memory block
 
 typedef uint32_t HostHandle_t;
+
+#if (HOST_HANDLE_NUM > 32768)
+#error "For historical reasons, open file handles must fit to 16 bits"
+#endif
 
 class HostHandles
 {

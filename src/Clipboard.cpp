@@ -32,7 +32,7 @@
 // Programm-Header
 #include "Globals.h"
 #include "Debug.h"
-#include "TextConversion.h"
+#include "conversion.h"
 #include "Clipboard.h"
 
 #define CHSET_ATARI_delta						0x7F

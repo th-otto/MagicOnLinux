@@ -47,7 +47,7 @@
 #include "Globals.h"
 #include "HostXFS.h"
 #include "Atari.h"
-#include "TextConversion.h"
+#include "conversion.h"
 #include "HostHandles.h"
 
 #if defined(_DEBUG)
@@ -210,7 +210,7 @@ void CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst)
             *dst++ = '/';
         }
         else
-            *dst++ = CTextConversion::Atari2MacFilename(*src++);
+            *dst++ = CConversion::Atari2MacFilename(*src++);
     }
     *dst = EOS;
 }
@@ -229,7 +229,7 @@ void CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst)
     unsigned char *buf_start = dst;
     while (*src && (dst < buf_start + 255))
     {
-        *dst++ = CTextConversion::Mac2AtariFilename(*src++);
+        *dst++ = CConversion::Mac2AtariFilename(*src++);
     }
     *dst = EOS;
     if (*src)
@@ -493,8 +493,8 @@ bool CHostXFS::nameto_8_3(const char *host_fname,
         if (toAtari)
         {
             if (flg_longnames)
-                *dosname++ = CTextConversion::Mac2AtariFilename(*host_fname++);
-            else    *dosname++ = (unsigned char) toUpper((char) CTextConversion::Mac2AtariFilename(*host_fname++));
+                *dosname++ = CConversion::Mac2AtariFilename(*host_fname++);
+            else    *dosname++ = (unsigned char) toUpper((char) CConversion::Mac2AtariFilename(*host_fname++));
         }
         else
         {
@@ -526,9 +526,9 @@ bool CHostXFS::nameto_8_3(const char *host_fname,
         if (toAtari)
         {
             if (flg_longnames)
-                *dosname++ = CTextConversion::Mac2AtariFilename(*host_fname++);
+                *dosname++ = CConversion::Mac2AtariFilename(*host_fname++);
             else
-                *dosname++ = (unsigned char) toUpper((char) CTextConversion::Mac2AtariFilename(*host_fname++));
+                *dosname++ = (unsigned char) toUpper((char) CConversion::Mac2AtariFilename(*host_fname++));
         }
         else
         {
@@ -667,7 +667,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
     if (root_fd < 0)
     {
         perror("openat() -> ");
-        return CTextConversion::Host2AtariError(errno);
+        return CConversion::Host2AtariError(errno);
     }
     HostHandle_t hhdl = HostHandles::alloc(sizeof(root_fd));
     if (hhdl == HOST_HANDLE_INVALID)
@@ -808,7 +808,7 @@ INT32 CHostXFS::xfs_path2DD
     if (dir_fd < 0)
     {
         perror("openat() -> ");
-        return CTextConversion::Host2AtariError(errno);
+        return CConversion::Host2AtariError(errno);
     }
     HostHandle_t hhdl = HostHandles::alloc(sizeof(dir_fd));
     if (hhdl == HOST_HANDLE_INVALID)
@@ -926,7 +926,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     nameto_8_3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, false, true);
     const struct timespec *mtime = &statbuf.st_mtim;
     uint16_t time, date;
-    CTextConversion::hostDateToDosDate(mtime->tv_sec, &time, &date);
+    CConversion::hostDateToDosDate(mtime->tv_sec, &time, &date);
     dta->mxdta.dta_time = htobe16(time);
     dta->mxdta.dta_date = htobe16(date);
 
@@ -984,7 +984,7 @@ INT32 CHostXFS::xfs_sfirst
     if (dir == nullptr)
     {
         perror("fdopendir() -> ");
-        return CTextConversion::Host2AtariError(errno);
+        return CConversion::Host2AtariError(errno);
     }
 
     for (;;)
@@ -1075,7 +1075,12 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
  * @param[in]  omode        bit mask, see OM_RPERM and _ATARI_O_... bits
  * @param[out] attrib       attribute of new file in case O_CREAT bit is set
  *
- * @return file handle or negative error code
+ * @return 16-bit file handle or 32-bit negative error code
+ *
+ * @note For historical reasons the file handle must fit to 16-bits, because the structure
+ *       MAC_FD designed for MagiCMac only reserves space for a classic MacOS refNum.
+ * @note The Atari part of the HostXFS, in particular MACXFS.S, gets the return value of
+ *       this function as big-endian and stores it to the MAC_FD.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_fopen
@@ -1165,6 +1170,9 @@ INT32 CHostXFS::xfs_fopen
     {
         return ENHNDL;
     }
+
+    assert (hhdl <= 0xfffff);
+    DebugInfo("%s() -> %d", __func__, hhdl);
     return hhdl;
 }
 
@@ -1779,14 +1787,61 @@ INT32 CHostXFS::xfs_dcntl
 /******************* Dateitreiber ****************************/
 /*************************************************************/
 
+
+/// Helper to get the host file handle
+#define GET_hhdl_AND_fd \
+    uint32_t hhdl = be16toh(f->refnum); \
+    int fd = HostHandles::getInt(hhdl); \
+    if (fd < 0) \
+    { \
+        DebugError("invalid file handle"); \
+        return EIHNDL; \
+    }
+
+
+/** **********************************************************************************************
+ *
+ * @brief decrement reference counter and close an open file, if zero
+ *
+ * @param[in] f      file descriptor
+ *
+ * @return E_OK or negative error code
+ *
+ * @note Decrementing the reference counter was extracted from the MagiC kernel for
+ *       historical reasons. MagicMac used to flush the file whenever it was closed.
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::dev_close(MAC_FD *f)
 {
     DebugInfo("%s(fd = %0x)", __func__, f);
-    (void) f;
 
-    // TODO: implement
-    return EINVFN;
+    // decrement reference counter
+	uint16_t refcnt = be16toh(f->fd.fd_refcnt);
+	if (refcnt <= 0)
+    {
+        DebugError("invalid file refcnt");
+		return EINTRN;
+    }
+    refcnt--;
+    f->fd.fd_refcnt = htobe16(refcnt);
+
+    if (refcnt == 0)
+    {
+        GET_hhdl_AND_fd
+        HostHandles::free(hhdl);
+        f->refnum = -1;     // just to be sure
+
+        int res = close(fd);
+        if (res < 0)
+        {
+            perror("close() -> ");
+            return CConversion::Host2AtariError(errno);
+        }
+    }
+
+    return E_OK;
 }
+
 
 /*
 *
@@ -1856,15 +1911,38 @@ static INT32 CHostXFS::dev_pread( MAC_FD *f, ParamBlockRec *pb )
 }
 */
 
-INT32 CHostXFS::dev_read(MAC_FD *f, INT32 count, char *buf)
+
+/** **********************************************************************************************
+ *
+ * @brief read from an open file
+ *
+ * @param[in] f      file descriptor
+ * @param[in] count  number of bytes to read
+ * @param[in] buf    destination buffer
+ *
+ * @return bytes read or negative error code
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
 {
     DebugInfo("%s(fd = %0x, count = %d)", __func__, f, count);
-    (void) f;
-    (void) count;
-    (void) buf;
 
-    // TODO: implement
-    return EINVFN;
+    GET_hhdl_AND_fd
+
+    ssize_t bytes = read(fd, buf, count);
+    if (bytes < 0)
+    {
+        perror("read() -> ");
+        return CConversion::Host2AtariError(errno);
+    }
+
+    if (bytes > 0x7fffffff)
+    {
+        DebugError("file too large");
+        return ATARIERR_ERANGE;
+    }
+
+    return (int32_t) bytes;
 }
 
 
@@ -1893,15 +1971,45 @@ INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
 }
 
 
-INT32 CHostXFS::dev_seek(MAC_FD *f, INT32 pos, uint16_t mode)
+/** **********************************************************************************************
+ *
+ * @brief Set read and write position of an open file
+ *
+ * @param[in] f     file descriptor
+ * @param[in] pos   position
+ * @param[in] mode  seek mode (0=SET/1=CUR/2=END)
+ *
+ * @return absolute file position or negative error code
+ *
+ * @note The seek mode is the same in Atari and Unix.
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
 {
     DebugInfo("%s(fd = %0x, pos = %d)", __func__, f, pos);
-    (void) f;
-    (void) pos;
-    (void) mode;
 
-    // TODO: implement
-    return EINVFN;
+    GET_hhdl_AND_fd
+
+    if (mode > 3)
+    {
+        DebugError("invalid seek mode");
+        return EINVFN;
+    }
+
+    off_t offs = lseek(fd, pos, mode);
+    if (offs < 0)
+    {
+        perror("lseek() -> ");
+        return CConversion::Host2AtariError(errno);
+    }
+
+    if (offs > 0x7fffffff)
+    {
+        DebugError("file too large");
+        return ATARIERR_ERANGE;
+    }
+
+    return (int32_t) offs;
 }
 
 

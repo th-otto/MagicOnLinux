@@ -174,13 +174,13 @@ class CHostXFS
     /// File Descriptor for the Host XFS.
     /// Theoretically this could be expanded, because the Atari side of the XFS (MACXFS.S)
     /// usuall provides pointers to the host side, but unfortunately xfs_open() instead must
-    /// return the refnum. This is a design flaw.
+    /// return the refnum, which is stored as big-endian. This is a design flaw.
     struct MAC_FD
     {
-         MX_FD    fd;               // common part, big endian
-         uint16_t refnum;           // host part: handle (host native endian)
-         uint16_t mod_time_dirty;   // host part: Fdatime() had been called (host native endian)
-         uint16_t mod_time[2];      // host part: timecode for Fdatime() (DOS-Codes) (host native endian)
+         MX_FD     fd;              // common part, big endian
+         UINT16_BE refnum;          // host part: handle (big-endian)
+         uint16_t  mod_time_dirty;  // host part: Fdatime() had been called (host native endian)
+         uint16_t  mod_time[2];     // host part: timecode for Fdatime() (DOS-Codes) (host native endian)
     } __attribute__((packed));
 
     /// non XFS specific part of a Directory Handle Descriptor

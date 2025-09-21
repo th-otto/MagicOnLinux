@@ -24,7 +24,7 @@
 
 #include "Atari.h"
 
-class CTextConversion
+class CConversion
 {
    public:
 	// Initialisierung

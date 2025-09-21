@@ -1057,9 +1057,9 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
         return(EDRIVE);
     }
 
-	if (!dta->macdta.sname[0])
+    if (!dta->macdta.sname[0])
     {
-		return ENMFIL;
+        return ENMFIL;
     }
 
     HostHandle_t hhdl = dta->macdta.dirID;
@@ -1140,7 +1140,7 @@ INT32 CHostXFS::xfs_fopen
 )
 {
     DebugInfo("%s(name = %s, drv = %u, omode = %d, attrib = %d)", __func__, name, drv, omode, attrib);
-	unsigned char dosname[20];
+    unsigned char dosname[20];
 
     if (drv_changed[drv])
     {
@@ -1914,11 +1914,11 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
     DebugInfo("%s(fd = 0x%0x)", __func__, f);
 
     // decrement reference counter
-	uint16_t refcnt = be16toh(f->fd.fd_refcnt);
-	if (refcnt <= 0)
+    uint16_t refcnt = be16toh(f->fd.fd_refcnt);
+    if (refcnt <= 0)
     {
         DebugError("invalid file refcnt");
-		return EINTRN;
+        return EINTRN;
     }
     refcnt--;
     f->fd.fd_refcnt = htobe16(refcnt);
@@ -2014,9 +2014,9 @@ static INT32 CHostXFS::dev_pread( MAC_FD *f, ParamBlockRec *pb )
  *
  * @brief read from an open file
  *
- * @param[in] f      file descriptor
- * @param[in] count  number of bytes to read
- * @param[in] buf    destination buffer
+ * @param[in]  f      file descriptor
+ * @param[in]  count  number of bytes to read
+ * @param[out] buf    destination buffer
  *
  * @return bytes read or negative error code
  *
@@ -2123,13 +2123,135 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Various operations on open files
+ *
+ * @param[in]  f     file descriptor
+ * @param[in]  cmd   sub-command
+ * @param[out] buf   depending on command
+ *
+ * @return absolute file position or negative error code
+ *
+ * @note The seek mode is the same in Atari and Unix.
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
 {
     DebugInfo("%s(fd = 0x%0x, cmd = %d)", __func__, f, cmd);
-    (void) f;
-    (void) cmd;
-    (void) buf;
-    // TODO: implement
+
+    GET_hhdl_AND_fd
+
+    switch(cmd)
+    {
+        case FSTAT:
+        {
+            if (buf == nullptr)
+            {
+                return EINVFN;
+            }
+            struct stat stat;
+            int res = fstat(fd, &stat);
+            if (res < 0)
+            {
+                DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+            }
+            XATTR *pxattr = (XATTR *) buf;
+            uint16_t ast_mode = stat.st_mode & 0777;    // copy rwx bits
+            uint16_t attr = 0;
+            switch(stat.st_mode & S_IFMT)
+            {
+                case S_IFBLK:  ast_mode |= 0; break;              // block device
+                case S_IFCHR:  ast_mode |= _ATARI_S_IFCHR; break; // character device
+                case S_IFDIR:  ast_mode |= _ATARI_S_IFDIR;
+                                attr |= F_SUBDIR; break;           // directory
+                case S_IFIFO:  ast_mode |= _ATARI_S_IFIFO; break; // FIFO/pipe
+                case S_IFLNK:  ast_mode |= _ATARI_S_IFLNK; break; // symlink
+                case S_IFREG:  ast_mode |= _ATARI_S_IFREG; break; // regular file
+                case S_IFSOCK: ast_mode |= 0; break;              // socket
+                default:       ast_mode |= 0; break;              // unknown
+            }
+            if (!(stat.st_mode & __S_IWRITE))
+            {
+                attr |= F_RDONLY;
+            }
+            pxattr->mode = htobe16(ast_mode);
+            pxattr->index = htobe32(0);   // not (yet) supported;
+            pxattr->dev = htobe16(0);   // not (yet) supported
+            pxattr->reserved1 = htobe16(0);   // not (yet) supported
+            pxattr->nlink = htobe16(0);   // not (yet) supported
+            pxattr->uid = htobe16(0);   // not (yet) supported
+            pxattr->gid = htobe16(0);   // not (yet) supported
+            if (stat.st_size > 0xffffffff)
+            {
+                DebugWarning("file size > 4 GB, shown as zero length");
+                pxattr->size = 0;
+            }
+            else
+            {
+                pxattr->size = htobe32((uint32_t) stat.st_size);
+            }
+            pxattr->blksize = htobe32(stat.st_blksize);  // TODO: check overflow
+            pxattr->nblocks = htobe32(stat.st_blocks);  // TODO: check overflow
+
+            uint16_t time, date;
+            CConversion::hostDateToDosDate(stat.st_mtim.tv_sec, &time, &date);
+            pxattr->mtime = htobe16(time);
+            pxattr->mdate = htobe16(date);
+            CConversion::hostDateToDosDate(stat.st_atim.tv_sec, &time, &date);
+            pxattr->atime = htobe16(time);
+            pxattr->adate = htobe16(date);
+            CConversion::hostDateToDosDate(stat.st_ctim.tv_sec, &time, &date);
+            pxattr->ctime = htobe16(time);
+            pxattr->cdate = htobe16(date);
+
+            pxattr->attr = htobe16(attr);
+            pxattr->reserved2 = 0;
+            pxattr->reserved3[0] = 0;
+            pxattr->reserved3[1] = 0;
+            pxattr->reserved3[2] = 0;
+            return E_OK;
+            break;
+        }
+
+        case FTRUNCATE:
+        {
+            uint32_t newsize = be32toh(*((int32_t *) buf));
+            DebugError("FTRUNCATE to size %d not yet supported", newsize);
+            break;
+        }
+
+        case FMACOPENRES:
+            // not supported
+            break;
+
+        case FMACGETTYCR:
+            // not supported
+            break;
+
+        case FMACSETTYCR:
+            // not supported
+            break;
+
+        case FMACMAGICEX:
+        {
+            MMEXRec *mmex = (MMEXRec *) buf;
+            switch (mmex->funcNo)
+            {
+                case MMEX_INFO:
+                    mmex->longVal = 1;
+                    //  mmex->destPtr = MM_VersionPtr;
+                    mmex->destPtr = 0;
+                    return E_OK;
+
+                case MMEX_GETFREFNUM:
+                    // Mac-Datei-Handle liefern
+                    mmex->longVal = (long) f->refnum;
+                    return E_OK;
+            }
+        }
+    }
+
     return EINVFN;
 }
 

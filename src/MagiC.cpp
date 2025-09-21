@@ -701,7 +701,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 	m_FgBufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
 	m_Video68ksize = m_FgBufferLineLenInBytes * numVideoLines;
 	// get Atari memory
-	m_RAM68k = (unsigned char *) malloc(m_RAM68ksize);
+	m_RAM68k = (unsigned char *) malloc(m_RAM68ksize + m_Video68ksize);
 	if	(!m_RAM68k)
 	{
 /*
@@ -726,8 +726,9 @@ Assign more memory to the application using the Finder dialogue "Information"!
 
 	// 68k Speicherbegrenzungen ausrechnen
 	addr68kVideo = m_RAM68ksize;
-	DebugInfo("68k video memory starts at 68k address 0x%08x and uses %u bytes.", addr68kVideo, m_Video68ksize);
+	DebugInfo("68k video memory starts at 68k address 0x%08x and uses %u (0x%08x) bytes.", addr68kVideo, m_Video68ksize, m_Video68ksize);
 	addr68kVideoEnd = addr68kVideo + m_Video68ksize;
+	DebugInfo("68k video memory and general memory end is 0x%08x", addr68kVideoEnd);
 	// real (host) address of video memory
 	m_pFgBuffer = m_RAM68k + Globals.s_Preferences.m_AtariMemSize;
 
@@ -948,15 +949,14 @@ Reinstall the application.
 }
 
 
-/**********************************************************************
-*
-* Initialisiere zweiten Atari-Bildschirmspeicher als Hintergrundpuffer.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Initialise second (?) Atari screen buffer as background buffer
+ *
+ ************************************************************************************************/
 void CMagiC::UpdateAtariDoubleBuffer(void)
 {
-	DebugInfo("CMagiC::UpdateAtariDoubleBuffer() --- HostVideoAddr =0x%08x", m_pFgBuffer);
+	DebugInfo("CMagiC::UpdateAtariDoubleBuffer() --- HostVideoAddr = %p", m_pFgBuffer);
 	hostVideoAddr = m_pFgBuffer;
 
 /*

@@ -901,7 +901,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
         perror("fstat() -> ");
         return -4;
     }
-    printf("size = %lu\n", statbuf.st_size);
+    printf(" file size = %lu\n", statbuf.st_size);
 
     //
     // fill DTA
@@ -962,8 +962,6 @@ INT32 CHostXFS::xfs_sfirst
     pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname);    // search pattern -> DTA
     dta->mxdta.dta_name[0] = 0;                    // nothing found yet
     dta->macdta.sattr = (char) attrib;            // search attribute
-    dta->macdta.dirID = dd->dirID;
-    dta->macdta.vRefNum = dd->vRefNum;
 
     if (drv_changed[drv])
     {
@@ -974,6 +972,7 @@ INT32 CHostXFS::xfs_sfirst
         return(EDRIVE);
     }
 
+    HostHandle_t hhdl = dd->dirID;
     int dir_fd = HostHandles::getInt(dd->dirID);
     if (dir_fd == -1)
     {
@@ -1000,6 +999,11 @@ INT32 CHostXFS::xfs_sfirst
         {
             long pos = telldir(dir);
             printf("directory read position %ld\n", pos);
+
+            dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(hhdl, dir);
+            dta->macdta.dirID = hhdl;
+            dta->macdta.index = 0;  // unused
+
             return E_OK;
         }
     }
@@ -1010,6 +1014,8 @@ INT32 CHostXFS::xfs_sfirst
     dta->macdta.index = -1;
 
     closedir(dir);
+    close(dir_fd);
+    HostHandles::free(hhdl);
     return EFILNF; // snext: ENMFIL;
 
     // TODO: implement
@@ -1041,29 +1047,59 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
         return(EDRIVE);
     }
 
-    // TODO: implement
-    return EINVFN;
+	if (!dta->macdta.sname[0])
+    {
+		return ENMFIL;
+    }
+
+    HostHandle_t hhdl = dta->macdta.dirID;
+    int dir_fd = HostHandles::getInt(dta->macdta.dirID);
+    if (dir_fd == -1)
+    {
+        return EINTRN;
+    }
+
+    HostHandle_t hhdl2;
+    DIR *dir;
+    uint16_t snextHdl = (uint16_t) dta->macdta.vRefNum;
+    if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
+    {
+        return EINTRN;
+    }
+    if (hhdl != hhdl2)
+    {
+        DebugError("dir_fd mismatch");
+        return EINTRN;
+    }
+
+    for (;;)
+    {
+        struct dirent *entry = readdir(dir);
+        if (entry == nullptr)
+        {
+            break;  // end of directory
+        }
+
+        int match = _snext(dir_fd, entry, dta);
+        if (match == 0)
+        {
+            long pos = telldir(dir);
+            printf("directory read position %ld\n", pos);
+            return E_OK;
+        }
+    }
+
+    dta->macdta.sname[0] = EOS;     // invalidate DTA
+    dta->macdta.dirID = -1;
+    dta->macdta.vRefNum = -1;
+    dta->macdta.index = -1;
+
+    closedir(dir);
+    HostHandles::snextClose(snextHdl);  // also closes dir_fd and frees hhdl
+
+    return ENMFIL;
 }
 
-
-/*************************************************************
-*
-* Öffnet eine Datei.
-* Liefert Fehlercode oder RefNum (eine Art Handle).
-*
-* fd.mod_time_dirty wird dabei automatisch vom Kernel
-* auf FALSE gesetzt.
-*
-* Aliase werden dereferenziert.
-*
-* Attention: There is a design flaw in the API. The vRefNum
-* shall be stored in the host's native endian mode, but
-* it will be automatically converted, because it is the
-* function return value in D0. As a workaround the
-* return value is here converted to big endian, so it
-* will be re-converted to little-endian on a little-endian-CPU.
-*
-*************************************************************/
 
 /** **********************************************************************************************
  *
@@ -1081,6 +1117,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
  *       MAC_FD designed for MagiCMac only reserves space for a classic MacOS refNum.
  * @note The Atari part of the HostXFS, in particular MACXFS.S, gets the return value of
  *       this function as big-endian and stores it to the MAC_FD.
+ * @note The Atari part of the file system driver sets fd.mod_time_dirty to FALSE.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_fopen
@@ -1813,7 +1850,7 @@ INT32 CHostXFS::xfs_dcntl
  ************************************************************************************************/
 INT32 CHostXFS::dev_close(MAC_FD *f)
 {
-    DebugInfo("%s(fd = %0x)", __func__, f);
+    DebugInfo("%s(fd = 0x%0x)", __func__, f);
 
     // decrement reference counter
 	uint16_t refcnt = be16toh(f->fd.fd_refcnt);
@@ -1925,7 +1962,7 @@ static INT32 CHostXFS::dev_pread( MAC_FD *f, ParamBlockRec *pb )
  ************************************************************************************************/
 INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
 {
-    DebugInfo("%s(fd = %0x, count = %d)", __func__, f, count);
+    DebugInfo("%s(fd = 0x%0x, count = %d)", __func__, f, count);
 
     GET_hhdl_AND_fd
 
@@ -1948,7 +1985,7 @@ INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
 
 INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, char *buf)
 {
-    DebugInfo("%s(fd = %0x, count = %d)", __func__, f, count);
+    DebugInfo("%s(fd = 0x%0x, count = %d)", __func__, f, count);
     (void) f;
     (void) count;
     (void) buf;
@@ -1960,7 +1997,7 @@ INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, char *buf)
 
 INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
 {
-    DebugInfo("%s(fd = %0x, rwflag = %d)", __func__, f, rwflag);
+    DebugInfo("%s(fd = 0x%0x, rwflag = %d)", __func__, f, rwflag);
     (void) f;
     (void) unsel;
     (void) rwflag;
@@ -1986,7 +2023,7 @@ INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
  ************************************************************************************************/
 INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
 {
-    DebugInfo("%s(fd = %0x, pos = %d)", __func__, f, pos);
+    DebugInfo("%s(fd = 0x%0x, pos = %d)", __func__, f, pos);
 
     GET_hhdl_AND_fd
 
@@ -2015,7 +2052,7 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
 
 INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 {
-    DebugInfo("%s(fd = %0x, rwflag = %d)", __func__, f, rwflag);
+    DebugInfo("%s(fd = 0x%0x, rwflag = %d)", __func__, f, rwflag);
     (void) f;
     (void) d;
     (void) rwflag;
@@ -2027,7 +2064,7 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 
 INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
 {
-    DebugInfo("%s(fd = %0x, cmd = %d)", __func__, f, cmd);
+    DebugInfo("%s(fd = 0x%0x, cmd = %d)", __func__, f, cmd);
     (void) f;
     (void) cmd;
     (void) buf;
@@ -2037,7 +2074,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
 
 INT32 CHostXFS::dev_getc(MAC_FD *f, uint16_t mode)
 {
-    DebugInfo("%s(fd = %0x, mode = %d)", __func__, f, mode);
+    DebugInfo("%s(fd = 0x%0x, mode = %d)", __func__, f, mode);
     (void) mode;
     unsigned char c;
     INT32 ret;
@@ -2053,7 +2090,7 @@ INT32 CHostXFS::dev_getc(MAC_FD *f, uint16_t mode)
 
 INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
 {
-    DebugInfo("%s(fd = %0x, size = %d)", __func__, f, size);
+    DebugInfo("%s(fd = 0x%0x, size = %d)", __func__, f, size);
     (void) mode;
     char c;
     INT32 gelesen,ret;
@@ -2078,7 +2115,7 @@ INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
 
 INT32 CHostXFS::dev_putc(MAC_FD *f, uint16_t mode, INT32 val)
 {
-    DebugInfo("%s(fd = %0x, mode = %d)", __func__, f, mode);
+    DebugInfo("%s(fd = 0x%0x, mode = %d)", __func__, f, mode);
     (void) mode;
     char c;
 

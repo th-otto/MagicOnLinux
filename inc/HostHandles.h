@@ -44,8 +44,11 @@ class HostHandles
     static int getInt(HostHandle_t hhdl);
     static void putInt(HostHandle_t hhdl, int v);
     static void free(HostHandle_t hhdl);
+    static uint16_t snextSet(HostHandle_t hhdl, DIR *dir);
+    static int snextGet(uint16_t snextHdl, HostHandle_t *hhdl, DIR **dir);
+    static void snextClose(uint16_t snextHdl);
 
   private:
     static uint8_t *memblock;
-      static uint8_t *memblock_free;
+    static uint8_t *memblock_free;
 };

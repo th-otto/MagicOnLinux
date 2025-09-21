@@ -26,7 +26,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
+#include <dirent.h>
 #include <endian.h>
 #include <assert.h>
 // program headers
@@ -34,8 +36,94 @@
 #include "HostHandles.h"
 
 
+// maximum allowed number of parallel Ffirst/next runs
+#define SNEXT_N     64
+
+
 uint8_t *HostHandles::memblock = nullptr;
 uint8_t *HostHandles::memblock_free = nullptr;
+
+// Fsfirst/Fsnext LRU management
+
+
+struct SnextEntry
+{
+    time_t lru;         // filled with time()
+    HostHandle_t hhdl;  // stores dir_fd
+    DIR *dir;
+};
+
+static SnextEntry snextTab[SNEXT_N];
+
+
+uint16_t HostHandles::snextSet(HostHandle_t hhdl, DIR *dir)
+{
+    uint16_t snextHdl = 0xffff;
+    time_t oldest_time;
+
+    for (uint16_t i = 0; i < SNEXT_N; i++)
+    {
+        if (snextTab[i].lru == 0)
+        {
+            snextHdl = i;
+            break;  // free entry found
+        }
+        if ((snextHdl == 0xffff) || (snextTab[i].lru < oldest_time))
+        {
+            snextHdl = i;
+            oldest_time = snextTab[i].lru;
+        }
+    }
+
+    SnextEntry *entry = &snextTab[snextHdl];
+    if (entry->lru != 0)
+    {
+        // overwrite oldest entry -> close old file directory handle
+        snextClose(snextHdl);
+    }
+    entry->hhdl = hhdl;
+    entry->dir = dir;
+    entry->lru = time(NULL);
+    return snextHdl;
+}
+int HostHandles::snextGet(uint16_t snextHdl, HostHandle_t *hhdl, DIR **dir)
+{
+    if (snextHdl < SNEXT_N)
+    {
+        // handle is valid -> update
+        SnextEntry *entry = &snextTab[snextHdl];
+        if (entry->lru != 0)
+        {
+            *hhdl = entry->hhdl;
+            *dir = entry->dir;
+            entry->lru = time(NULL);
+            return 0;
+        }
+    }
+
+    DebugError("Invalid snext handle %d", snextHdl);
+    return -1;  // error
+}
+void HostHandles::snextClose(uint16_t snextHdl)
+{
+    if (snextHdl < SNEXT_N)
+    {
+        SnextEntry *entry = &snextTab[snextHdl];
+        HostHandle_t hhdl = entry->hhdl;
+        int dir_fd = getInt(hhdl);
+        if (dir_fd == -1)
+        {
+            DebugError("Invalid directory file descriptor");
+        }
+        else
+        {
+            DebugInfo("Closing directory file descriptor %d", dir_fd);
+            close(dir_fd);
+        }
+        free(entry->hhdl);
+        entry->lru = 0;
+    }
+}
 
 
 /** **********************************************************************************************

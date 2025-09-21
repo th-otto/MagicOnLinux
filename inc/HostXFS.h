@@ -201,8 +201,8 @@ class CHostXFS
     /// DTA buffer for xfs_sfirst() and xfs_snext()
     union MAC_DTA
     {
-         MX_DTA    mxdta;           // common part, big endian
-         _MAC_DTA  macdta;
+         MX_DTA    mxdta;           // public part, big endian
+         _MAC_DTA  macdta;          // private part
     } __attribute__((packed));
 
     struct MX_SYMLINK

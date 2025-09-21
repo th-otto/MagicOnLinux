@@ -229,7 +229,13 @@ void CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst)
     unsigned char *buf_start = dst;
     while (*src && (dst < buf_start + 255))
     {
-        *dst++ = CConversion::Mac2AtariFilename(*src++);
+        if (*src == '/')
+        {
+            src++;
+            *dst++ = '\\';
+        }
+        else
+            *dst++ = CConversion::Mac2AtariFilename(*src++);
     }
     *dst = EOS;
     if (*src)
@@ -666,7 +672,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
     int root_fd = openat(/*ignored, when path is absolute*/-1, pathname, O_PATH);
     if (root_fd < 0)
     {
-        perror("openat() -> ");
+        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
     HostHandle_t hhdl = HostHandles::alloc(sizeof(root_fd));
@@ -807,7 +813,7 @@ INT32 CHostXFS::xfs_path2DD
     int dir_fd = openat(rel_fd, pathbuf, O_DIRECTORY | O_RDONLY);
     if (dir_fd < 0)
     {
-        perror("openat() -> ");
+        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
     HostHandle_t hhdl = HostHandles::alloc(sizeof(dir_fd));
@@ -837,6 +843,10 @@ INT32 CHostXFS::xfs_path2DD
     extern volatile unsigned char sExitImmediately;
     sExitImmediately = 0;
     */
+
+    // TODO: How and when will thís handle ever be closed?
+    //       Maybe we should reuse the same handle for the
+    //       same directory?
 
     DebugInfo("%s() -> dirID %u", __func__, hhdl);
     return E_OK;
@@ -890,7 +900,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     int fd = openat(dir_fd, entry->d_name, O_RDONLY);
     if (fd < 0)
     {
-        perror("openat() -> ");
+        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
         return -3;
     }
     struct stat statbuf;
@@ -1131,7 +1141,6 @@ INT32 CHostXFS::xfs_fopen
 {
     DebugInfo("%s(name = %s, drv = %u, omode = %d, attrib = %d)", __func__, name, drv, omode, attrib);
 	unsigned char dosname[20];
-    (void) dd;
 
     if (drv_changed[drv])
     {
@@ -1198,7 +1207,7 @@ INT32 CHostXFS::xfs_fopen
     int fd = openat(dir_fd, name, host_omode);
     if (fd < 0)
     {
-        perror("openat() -> ");
+        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
         return -3;
     }
 
@@ -1452,30 +1461,82 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 }
 
 
-/*************************************************************
-*
-* Fuer Dgetpath
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Get directory path, provides functionality for Dgetpath()
+ *
+ * @param[in] drv       Atari drive number 0..31
+ * @param[in] DD        Atari directory descriptor
+ * @param[in] buf       buffer for directory name
+ * @param[in] bufsiz    buffer size
+ *
+ * @return E_OK or negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
-    (void) dd;
-    (void) buf;
-    (void) bufsiz;
+    DebugInfo("%s(drv = %u, dd->dirID = %u)", __func__, drv, dd->dirID);
 
     if (drv_changed[drv])
     {
         return(E_CHNG);
+    }
+    if (bufsiz < 64)
+    {
+        return EPTHOV;
     }
     if (drv_host_path[drv] == nullptr)
     {
         return(EDRIVE);
     }
 
-    // TODO: implement
-    return EINVFN;
+    int dir_fd = HostHandles::getInt(dd->dirID);
+    DebugInfo("%s() : dir_fd = %d", __func__, dir_fd);
+    if (dir_fd == -1)
+    {
+        return EINTRN;
+    }
+
+    // get host path from directory file descriptor
+
+    char pathname[32];
+    sprintf(pathname, "/proc/self/fd/%u", dir_fd);
+    char pathbuf[1024];
+    ssize_t size = readlink(pathname, pathbuf, 1024);
+    if (size < 0)
+    {
+        DebugWarning("%s() : readlink() -> %s", __func__, strerror(errno));
+        return EINTRN;
+    }
+
+    char *p = buf;
+    *p++ = 'A' + drv;
+    *p++ = ':';
+    *p++ = '\\';
+    bufsiz -= 3;
+    const char *atari_root = drv_host_path[drv];
+    int rootlen = strlen(atari_root);
+    int pathlen = strlen(pathbuf);
+    // root must be prefix of our path
+    if ((pathlen < rootlen) || strncmp(atari_root, pathbuf, rootlen))
+    {
+        DebugError("%s() : cannot convert host path %s to Atari", __func__, pathbuf);
+        return EINTRN;
+    }
+    const char *atari_path = pathbuf + rootlen;
+    if (atari_path[0] == '/')
+    {
+        atari_path++;
+    }
+    if (strlen(atari_path) + 1 > bufsiz)
+    {
+        DebugWarning("%s() : buffer too small", __func__);
+        return EPTHOV;
+    }
+    hostFnameToAtariFname(atari_path, (unsigned char *) p);
+    DebugInfo("%s() -> %s", __func__, buf);
+
+    return E_OK;
 }
 
 

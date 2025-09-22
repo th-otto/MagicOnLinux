@@ -1208,7 +1208,7 @@ struct IMB
         {
             UINT32 dd_dmd;      // 68k pointer
             UINT16 dd_refcnt;
-            uint8_t data[94 - 6];
+            uint8_t data[94 - 6];   // private part, i.e. MXFSDD (6 bytes)
         } dd;
 
         // DMD = Drive Media Descriptor

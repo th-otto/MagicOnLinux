@@ -601,15 +601,18 @@ void CHostXFS::xfs_pterm(PD *pd)
 
 /** **********************************************************************************************
  *
- * @brief Atari callback: Open a drive, i.e. return a descriptor for it, if valid
+ * @brief Atari callback: Open a drive, i.e. fill in a descriptor for it, if valid
  *
- * @param[in]  drv                    Atari drive number 0..25 for A: .. Z:
+ * @param[in]  drv                   Atari drive number 0..25 for A: .. Z:
  * @param[out] dd                    directory descriptor of the drive's root directory
  * @param[in]  flg_ask_diskchange    only ask if disk has been changed
  *
  * @return 0 for OK or negative error code
  *
  * @note Due to a bug in Calamus (Atari program), drive M: must never return an error code.
+ * @note Due to a design flaw, dd points to a 6-byte memory block located on the 68k stack.
+ *       MACXFS.S copies these six bytes later to a newly allocated DD block that would have space for
+ *       94 bytes, ie. another 88 bytes.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange)
@@ -759,6 +762,9 @@ INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
  * @note <remain_path> is returned without leading path separator "\"
  * @note <dir_drive> might be different from drv in case the drive is changed during
  *       path evaluation.
+ * @note Due to a design flaw, dd points to a 6-byte memory block located on the 68k stack.
+ *       MACXFS.S copies these six bytes later to a newly allocated DD block that would have space for
+ *       94 bytes, ie. another 88 bytes.
  *
  * @return 0 for OK, ELINK for symbolic link or negative error code
  *

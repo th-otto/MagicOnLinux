@@ -1181,11 +1181,16 @@ struct MagiC_APP
 
 
 #if 1
-/// DMDs, FDs and DDs are stored in MagiC in "internal memory blocks".
+/// DMDs, FDs and DDs are stored in MagiC in "internal memory blocks",
+/// each of size 100 bytes, including header. Thus we have 94 bytes of payload.
 /// Unfortunately, we currently cannot make use of the full size of these
 /// structures in the hostXFS, because the Atari side of the XFS (MACXFS.S)
 /// does not provide pointers to the host side and instead only deals with
 /// the MacOS specific structure members.
+/// Note that the MagiC internal DOS file system stores 8+3 filenames
+/// in its FD or DD and uses an additional IMB in case of a long filename.
+/// The DOS XFS also links DDs and FDs to parents, children, siblings, clones etc.
+/// See STRUCTS.INC of MagiC kernel, structure "fd".
 struct IMB
 {
     UINT32      pLink;      // 68k pointer to next IMB
@@ -1197,7 +1202,7 @@ struct IMB
         struct
         {
             UINT32 fd_dmd;      // 0x00: 68k pointer to DMD
-            UINT16 fd_refcnt;   // 0x04: refernce counter for closing, or -1
+            UINT16 fd_refcnt;   // 0x04: reference counter for closing, or -1
             UINT16 fd_mode;     // 0x06: open modus (0,1,2) and flags
             UINT32 fd_dev;      // 0x08: 68k pointer to MAGX_DEVDRVR
             uint8_t data[94 - 12];

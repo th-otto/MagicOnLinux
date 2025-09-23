@@ -614,6 +614,12 @@ void CHostXFS::xfs_pterm(PD *pd)
  *       MACXFS.S copies these six bytes later to a newly allocated DD block that would have space for
  *       94 bytes, ie. another 88 bytes.
  *
+ * @note Unfortunately, the XFS function mxfs_freeDD() in MACXFS.S just frees the internal
+ *       memory block (IMB) instead of calling the host before. This is a severe design
+ *       flaw in MAC_XFS and has historical reasons, because classic MacOS could address
+ *       each file or folder in the system with a combination of a 16-bit volume reference
+ *       number and a 32-bit file number, kind of inode.
+ *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange)
 {
@@ -762,11 +768,17 @@ INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
  * @note <remain_path> is returned without leading path separator "\"
  * @note <dir_drive> might be different from drv in case the drive is changed during
  *       path evaluation.
+ *
+ * @return 0 for OK, ELINK for symbolic link or negative error code
+ *
  * @note Due to a design flaw, dd points to a 6-byte memory block located on the 68k stack.
  *       MACXFS.S copies these six bytes later to a newly allocated DD block that would have space for
  *       94 bytes, ie. another 88 bytes.
- *
- * @return 0 for OK, ELINK for symbolic link or negative error code
+ * @note Unfortunately, the XFS function mxfs_freeDD() in MACXFS.S just frees the internal
+ *       memory block (IMB) instead of calling the host before. This is a severe design
+ *       flaw in MAC_XFS and has historical reasons, because classic MacOS could address
+ *       each file or folder in the system with a combination of a 16-bit volume reference
+ *       number and a 32-bit file number, kind of inode.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_path2DD

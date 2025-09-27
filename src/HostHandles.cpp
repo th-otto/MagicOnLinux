@@ -154,14 +154,15 @@ uint8_t *HostHandles::memblock_free = nullptr;
 struct SnextEntry
 {
     time_t lru;         // filled with time()
-    HostHandle_t hhdl;  // stores dir_fd
+    HostHandle_t hhdl;  // stores dir_fd (currently unused)
+    int dup_fd;         // stores fd that is generated from dir_fd (currently unused)
     DIR *dir;
 };
 
 static SnextEntry snextTab[SNEXT_N];
 
 
-uint16_t HostHandles::snextSet(HostHandle_t hhdl, DIR *dir)
+uint16_t HostHandles::snextSet(DIR *dir, HostHandle_t hhdl, int dup_fd)
 {
     uint16_t snextHdl = 0xffff;
     time_t oldest_time;
@@ -186,8 +187,9 @@ uint16_t HostHandles::snextSet(HostHandle_t hhdl, DIR *dir)
         // overwrite oldest entry -> close old file directory handle
         snextClose(snextHdl);
     }
-    entry->hhdl = hhdl;
     entry->dir = dir;
+    entry->hhdl = hhdl;
+    entry->dup_fd = dup_fd;
     entry->lru = time(NULL);
     return snextHdl;
 }
@@ -214,6 +216,8 @@ void HostHandles::snextClose(uint16_t snextHdl)
     if (snextHdl < SNEXT_N)
     {
         SnextEntry *entry = &snextTab[snextHdl];
+        closedir(entry->dir);
+        // entry->dup
         /*
         HostHandle_t hhdl = entry->hhdl;
         HostFD *hostFD = getHostFD(hhdl);

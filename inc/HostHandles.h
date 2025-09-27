@@ -73,7 +73,7 @@ class HostHandles
     static void putInt(HostHandle_t hhdl, int v);
     static void free(HostHandle_t hhdl);
     #endif
-    static uint16_t snextSet(HostHandle_t hhdl, DIR *dir);
+    static uint16_t snextSet(DIR *dir, HostHandle_t hhdl, int dup_fd);
     static int snextGet(uint16_t snextHdl, HostHandle_t *hhdl, DIR **dir);
     static void snextClose(uint16_t snextHdl);
 

@@ -236,6 +236,7 @@ void CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst)
         else
             *dst++ = CConversion::Mac2AtariFilename(*src++);
     }
+
     *dst = EOS;
     if (*src)
     {
@@ -709,10 +710,11 @@ INT32 CHostXFS::hostpath2HostFD
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange)
 {
-    DebugInfo("%s(drv = %u (%c:))", __func__, drv, 'A' + drv);
+    DebugInfo("%s(drv = %u (%c:), flg = %d)", __func__, drv, 'A' + drv, flg_ask_diskchange);
 
     if (flg_ask_diskchange)
     {
+        DebugInfo("%s() -> %d", __func__, (drv_changed[drv]) ? E_CHNG : E_OK);
         return (drv_changed[drv]) ? E_CHNG : E_OK;
     }
 
@@ -720,12 +722,14 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
 
     if (drv_changed[drv])
     {
+        DebugInfo("%s() -> E_CHNG", __func__);
         return E_CHNG;
     }
 
     const char *pathname = drv_host_path[drv];
     if (pathname == nullptr)
     {
+        DebugInfo("%s() -> EDRIVE", __func__);
         return EDRIVE;
     }
 
@@ -1085,10 +1089,12 @@ INT32 CHostXFS::xfs_sfirst
         DebugWarning("%s() : lseek() -> %s", __func__, strerror(errno));
     }
     DebugInfo("%s() - open directory from host fd %d", __func__, dir_fd);
-    DIR *dir = fdopendir(dir_fd);
+    int dup_dir_fd = dup(dir_fd);
+    DIR *dir = fdopendir(dup_dir_fd);
     if (dir == nullptr)
     {
         DebugWarning("%s() : fdopendir() -> %s", __func__, strerror(errno));
+        close(dup_dir_fd);
         return CConversion::Host2AtariError(errno);
     }
 
@@ -1111,7 +1117,7 @@ INT32 CHostXFS::xfs_sfirst
             long pos = telldir(dir);
             DebugInfo("%s() : directory read position %ld", __func__, pos);
 
-            dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(hhdl, dir);
+            dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(dir, hhdl, dup_dir_fd);
             dta->macdta.dirID = hhdl;
             dta->macdta.index = 0;  // unused
 
@@ -1125,9 +1131,7 @@ INT32 CHostXFS::xfs_sfirst
     dta->macdta.vRefNum = -1;
     dta->macdta.index = -1;
 
-printf("FIX THIS\n");
-    // do NOT close hostFD here, because we still need it
-    closedir(dir);  // TODO: this also closes the host fd, what we do not want.
+    closedir(dir);  // also closes dup_dir_fd
 
     DebugInfo("%s() -> EFILNF", __func__);
     return EFILNF;
@@ -1221,9 +1225,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
     dta->macdta.vRefNum = -1;
     dta->macdta.index = -1;
 
-printf("FIX THIS\n");
-    closedir(dir);  // TODO: this also closes the host fd, what we do not want.
-    HostHandles::snextClose(snextHdl);  // also closes dir_fd and frees hhdl
+    HostHandles::snextClose(snextHdl);  // also does closedir()
 
     DebugInfo("%s() -> ENMFIL", __func__);
 
@@ -1437,22 +1439,82 @@ INT32 CHostXFS::xfs_link(uint16_t drv, char *nam1, char *nam2,
 }
 
 
-/*************************************************************
-*
-* Fuer Fxattr
-*
-* MODE == 0: Folge Symlinks
-*
-*************************************************************/
+void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
+{
+    uint16_t ast_mode = pstat->st_mode & 0777;    // copy rwx bits
+    uint16_t attr = 0;
+    switch(pstat->st_mode & S_IFMT)
+    {
+        case S_IFBLK:  ast_mode |= 0; break;              // block device
+        case S_IFCHR:  ast_mode |= _ATARI_S_IFCHR; break; // character device
+        case S_IFDIR:  ast_mode |= _ATARI_S_IFDIR;
+                        attr |= F_SUBDIR; break;           // directory
+        case S_IFIFO:  ast_mode |= _ATARI_S_IFIFO; break; // FIFO/pipe
+        case S_IFLNK:  ast_mode |= _ATARI_S_IFLNK; break; // symlink
+        case S_IFREG:  ast_mode |= _ATARI_S_IFREG; break; // regular file
+        case S_IFSOCK: ast_mode |= 0; break;              // socket
+        default:       ast_mode |= 0; break;              // unknown
+    }
+    if (!(pstat->st_mode & __S_IWRITE))
+    {
+        attr |= F_RDONLY;
+    }
+    pxattr->mode = htobe16(ast_mode);
+    pxattr->index = htobe32(0);   // not (yet) supported;
+    pxattr->dev = htobe16(0);   // not (yet) supported
+    pxattr->reserved1 = htobe16(0);   // not (yet) supported
+    pxattr->nlink = htobe16(0);   // not (yet) supported
+    pxattr->uid = htobe16(0);   // not (yet) supported
+    pxattr->gid = htobe16(0);   // not (yet) supported
+    if (pstat->st_size > 0xffffffff)
+    {
+        DebugWarning("file size > 4 GB, shown as zero length");
+        pxattr->size = 0;
+    }
+    else
+    {
+        pxattr->size = htobe32((uint32_t) pstat->st_size);
+    }
+    pxattr->blksize = htobe32(pstat->st_blksize);  // TODO: check overflow
+    pxattr->nblocks = htobe32(pstat->st_blocks);  // TODO: check overflow
 
+    uint16_t time, date;
+    CConversion::hostDateToDosDate(pstat->st_mtim.tv_sec, &time, &date);
+    pxattr->mtime = htobe16(time);
+    pxattr->mdate = htobe16(date);
+    CConversion::hostDateToDosDate(pstat->st_atim.tv_sec, &time, &date);
+    pxattr->atime = htobe16(time);
+    pxattr->adate = htobe16(date);
+    CConversion::hostDateToDosDate(pstat->st_ctim.tv_sec, &time, &date);
+    pxattr->ctime = htobe16(time);
+    pxattr->cdate = htobe16(date);
+
+    pxattr->attr = htobe16(attr);
+    pxattr->reserved2 = 0;
+    pxattr->reserved3[0] = 0;
+    pxattr->reserved3[1] = 0;
+    pxattr->reserved3[2] = 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief For Fxattr() - get information about a file without opening it
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory, search here
+ * @param[in]  name         filename, can be long or 8+3
+ * @param[out] xattr        structure to be filled by caller
+ * @param[in]  mode         0: follow symlinks, otherwise do not follow
+ *
+ * @return EW_OK or 32-bit negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
                 XATTR *xattr, uint16_t mode)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
-    (void) dd;
-    (void) name;
-    (void) xattr;
-    (void) mode;
+    DebugInfo("%s(name = \"%s\", drv = %u, mode = %d)", __func__, name, drv, mode);
+    unsigned char dosname[20];
 
     if (drv_changed[drv])
     {
@@ -1463,8 +1525,38 @@ INT32 CHostXFS::xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
         return EDRIVE;
     }
 
-    // TODO: implement
-    return EINVFN;
+    if (!drv_longnames[drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name, dosname, false, false);
+        name = (char *) dosname;
+    }
+
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd = hostFD->fd;
+    DebugInfo("%s() - get information about file in directory with host fd %d", __func__, dir_fd);
+    if (dir_fd == -1)
+    {
+        return EINTRN;
+    }
+
+    struct stat statbuf;
+    int res = fstatat(dir_fd, name, &statbuf, AT_EMPTY_PATH);
+    if (res < 0)
+    {
+        DebugWarning("%s() : fstatat() -> %s", __func__, strerror(errno));
+        memset(xattr, 0, sizeof(*xattr));
+        return CConversion::Host2AtariError(errno);
+    }
+    statbuf2xattr(xattr, &statbuf);
+
+    DebugInfo("%s() -> E_OK", __func__);
+    return E_OK;
 }
 
 
@@ -1621,6 +1713,8 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
 {
     DebugInfo("%s(drv = %u, dd->dirID = %u)", __func__, drv, dd->dirID);
 
+    buf[0] = '\0';      // in case of error...
+
     if (drv_changed[drv])
     {
         return E_CHNG;
@@ -1653,18 +1747,14 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     char pathname[32];
     sprintf(pathname, "/proc/self/fd/%u", dir_fd);
     char pathbuf[1024];
-    ssize_t size = readlink(pathname, pathbuf, 1024);
+    ssize_t size = readlink(pathname, pathbuf, 1023);
     if (size < 0)
     {
         DebugWarning("%s() : readlink() -> %s", __func__, strerror(errno));
         return EINTRN;
     }
+    pathbuf[size] = '\0';   // necessary
 
-    char *p = buf;
-    *p++ = 'A' + drv;
-    *p++ = ':';
-    *p++ = '\\';
-    bufsiz -= 3;
     const char *atari_root = drv_host_path[drv];
     int rootlen = strlen(atari_root);
     int pathlen = strlen(pathbuf);
@@ -1684,8 +1774,16 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
         DebugWarning("%s() : buffer too small", __func__);
         return EPTHOV;
     }
+
+    char *p = buf;
+    /* it seems that we may not precede the drive here
+    *p++ = 'A' + drv;
+    *p++ = ':';
+    *p++ = '\\';
+    bufsiz -= 3;
+    */
     hostFnameToAtariFname(atari_path, (unsigned char *) p);
-    DebugInfo("%s() -> %s", __func__, buf);
+    DebugInfo("%s() -> \"%s\"", __func__, buf);
 
     return E_OK;
 }
@@ -1875,8 +1973,15 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
         return EDRIVE;
     }
 
-    // TODO: implement
-    return EINVFN;
+    // TODO: this is dummy so far
+    // 2G free, in particular 4 M blocks à 512 bytes
+    data[0] = htobe32((2 * 1024) * 2 * 1024);   // # free blocks
+    data[1] = htobe32((2 * 1024) * 2 * 1024);   // # total blocks
+    data[2] = htobe32(512); // sector size in bytes
+    data[3] = htobe32(1);   // sectors per cluster
+
+    DebugInfo("%s() -> E_OK", __func__);
+    return(E_OK);
 }
 
 
@@ -1915,8 +2020,7 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
 {
     DebugInfo("%s(drv = %u)", __func__, drv);
     (void) dd;
-    (void) name;
-    (void) bufsiz;
+
 
     if (drv_changed[drv])
     {
@@ -1927,8 +2031,15 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
         return EDRIVE;
     }
 
-    // TODO: implement
-    return EINVFN;
+    if (bufsiz < 12)
+    {
+        return ATARIERR_ERANGE;
+    }
+
+    sprintf(name, "HOSTXFS.%u", drv);
+    DebugInfo("%s() -> \"%s\"", __func__, name);
+
+    return E_OK;
 }
 
 
@@ -2304,59 +2415,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
                 DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
             }
             XATTR *pxattr = (XATTR *) buf;
-            uint16_t ast_mode = stat.st_mode & 0777;    // copy rwx bits
-            uint16_t attr = 0;
-            switch(stat.st_mode & S_IFMT)
-            {
-                case S_IFBLK:  ast_mode |= 0; break;              // block device
-                case S_IFCHR:  ast_mode |= _ATARI_S_IFCHR; break; // character device
-                case S_IFDIR:  ast_mode |= _ATARI_S_IFDIR;
-                                attr |= F_SUBDIR; break;           // directory
-                case S_IFIFO:  ast_mode |= _ATARI_S_IFIFO; break; // FIFO/pipe
-                case S_IFLNK:  ast_mode |= _ATARI_S_IFLNK; break; // symlink
-                case S_IFREG:  ast_mode |= _ATARI_S_IFREG; break; // regular file
-                case S_IFSOCK: ast_mode |= 0; break;              // socket
-                default:       ast_mode |= 0; break;              // unknown
-            }
-            if (!(stat.st_mode & __S_IWRITE))
-            {
-                attr |= F_RDONLY;
-            }
-            pxattr->mode = htobe16(ast_mode);
-            pxattr->index = htobe32(0);   // not (yet) supported;
-            pxattr->dev = htobe16(0);   // not (yet) supported
-            pxattr->reserved1 = htobe16(0);   // not (yet) supported
-            pxattr->nlink = htobe16(0);   // not (yet) supported
-            pxattr->uid = htobe16(0);   // not (yet) supported
-            pxattr->gid = htobe16(0);   // not (yet) supported
-            if (stat.st_size > 0xffffffff)
-            {
-                DebugWarning("file size > 4 GB, shown as zero length");
-                pxattr->size = 0;
-            }
-            else
-            {
-                pxattr->size = htobe32((uint32_t) stat.st_size);
-            }
-            pxattr->blksize = htobe32(stat.st_blksize);  // TODO: check overflow
-            pxattr->nblocks = htobe32(stat.st_blocks);  // TODO: check overflow
-
-            uint16_t time, date;
-            CConversion::hostDateToDosDate(stat.st_mtim.tv_sec, &time, &date);
-            pxattr->mtime = htobe16(time);
-            pxattr->mdate = htobe16(date);
-            CConversion::hostDateToDosDate(stat.st_atim.tv_sec, &time, &date);
-            pxattr->atime = htobe16(time);
-            pxattr->adate = htobe16(date);
-            CConversion::hostDateToDosDate(stat.st_ctim.tv_sec, &time, &date);
-            pxattr->ctime = htobe16(time);
-            pxattr->cdate = htobe16(date);
-
-            pxattr->attr = htobe16(attr);
-            pxattr->reserved2 = 0;
-            pxattr->reserved3[0] = 0;
-            pxattr->reserved3[1] = 0;
-            pxattr->reserved3[2] = 0;
+            statbuf2xattr(pxattr, &stat);
             return E_OK;
             break;
         }

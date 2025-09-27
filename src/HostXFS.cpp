@@ -270,9 +270,9 @@ INT32 CHostXFS::cnverr(int err)
     #if 0
     switch(err)
     {
-          case noErr:         return(E_OK);       /* 0      no error  */
-          case nsvErr:        return(EDRIVE);     /* -35    no such volume */
-          case fnfErr:        return(EFILNF);     /* -43    file not found */
+          case noErr:         return E_OK;       /* 0      no error  */
+          case nsvErr:        return EDRIVE;     /* -35    no such volume */
+          case fnfErr:        return EFILNF;     /* -43    file not found */
           case dirNFErr:      return(EPTHNF);     // -120   directory not found
           case ioErr:         return(EREADF);     /* -36    IO Error */
           case gfpErr:                            /* -52    get file pos error */
@@ -572,11 +572,11 @@ INT32 CHostXFS::xfs_sync(uint16_t drv)
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -603,45 +603,65 @@ void CHostXFS::xfs_pterm(PD *pd)
  * @brief Helper function to open a host path, relative or absolute
  *
  * @param[in]  reldir       relative directory or nullptr
+ * @param[in]  rel_hhdl     hhdl for relative directory
  * @param[in]  path         host path
  * @param[in]  flags        O_PATH for root, otherwise O_DIRECTORY | O_RDONLY
- * @param[out] hddl         handle to be passed to Atari
+ * @param[out] hhdl         handle to be passed to Atari
  *
  * @return Atari error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::hostpath2HostFD(HostFD *reldir, const char *path, int flags, HostHandle_t *hhdl)
+INT32 CHostXFS::hostpath2HostFD
+(
+    HostFD *reldir,
+    uint16_t rel_hhdl,
+    const char *path,
+    int flags,
+    HostHandle_t *hhdl
+)
 {
     HostFD *hostFD = getFreeHostFD();   // note that this is not allocated, yet
     if (hostFD == nullptr)
     {
-        DebugError("No host FDs left");
+        DebugError("%s() : No host FDs left", __func__);
         *hhdl = HOST_HANDLE_INVALID;
         return ENHNDL;
     }
 
     int rel_fd = (reldir != nullptr) ? reldir->fd : -1;
-    hostFD->fd = openat(rel_fd, path, flags);
-    if (hostFD->fd < 0)
+    if ((rel_fd >= 0) && (path[0] == '\0'))
     {
-        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
-        *hhdl = HOST_HANDLE_INVALID;
-        return CConversion::Host2AtariError(errno);
+        // the relative directory itself is addressed with an empty path
+        reldir->ref_cnt++;  // TODO: correct?
+        *hhdl = rel_hhdl;
+        DebugInfo("%s() : host fd = %d (reused)", __func__, rel_fd);
+    }
+    else
+    {
+        hostFD->fd = openat(rel_fd, path, flags);
+        if (hostFD->fd < 0)
+        {
+            DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
+            *hhdl = HOST_HANDLE_INVALID;
+            return CConversion::Host2AtariError(errno);
+        }
+
+        struct stat statbuf;
+        int ret = fstat(hostFD->fd, &statbuf);
+        if (ret < 0)
+        {
+            close(hostFD->fd);
+            DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+            *hhdl = HOST_HANDLE_INVALID;
+            return CConversion::Host2AtariError(errno);
+        }
+        hostFD->dev = statbuf.st_dev;
+        hostFD->ino = statbuf.st_ino;
+
+        DebugInfo("%s() : host fd = %d", __func__, hostFD->fd);
+        *hhdl = allocHostFD(hostFD);
     }
 
-    struct stat statbuf;
-    int ret = fstat(hostFD->fd, &statbuf);
-    if (ret < 0)
-    {
-        close(hostFD->fd);
-        DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
-        *hhdl = HOST_HANDLE_INVALID;
-        return CConversion::Host2AtariError(errno);
-    }
-    hostFD->dev = statbuf.st_dev;
-    hostFD->ino = statbuf.st_ino;
-
-    *hhdl = allocHostFD(hostFD);
     return E_OK;
 }
 
@@ -703,7 +723,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
     DebugInfo("%s() : open directory \"%s\"", __func__, pathname);
 
     HostHandle_t hhdl;
-    INT32 atari_ret = hostpath2HostFD(nullptr, pathname, O_PATH, &hhdl);
+    INT32 atari_ret = hostpath2HostFD(nullptr, -1, pathname, O_PATH, &hhdl);
 
     dd->dirID = hhdl;           // host endian format
     dd->vRefNum = drv;          // host endian
@@ -798,30 +818,38 @@ INT32 CHostXFS::xfs_path2DD
     UINT16 *dir_drive
 )
 {
-    DebugInfo("%s(drv = %u (%c:), dirID = %d, vRefNum = %d, name = %s)",
-         __func__, drv, 'A' + drv, rel_dd->dirID, rel_dd->vRefNum, pathname);
+    DebugInfo("%s(drv = %u (%c:), mode = %d, dirID = %d, vRefNum = %d, name = \"%s\")",
+         __func__, drv, 'A' + drv, mode, rel_dd->dirID, rel_dd->vRefNum, pathname);
     char pathbuf[1024];
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        DebugWarning("%s() -> E_CHNG", __func__);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        DebugWarning("%s() -> EDRIVE", __func__);
+        return EDRIVE;
     }
 
     char *p;
     atariFnameToHostFname((const uint8_t *) pathname, pathbuf);
+    DebugInfo("%s() - host path is \"%s\"", __func__, pathbuf);
     if (mode == 0)
     {
         // The path refers to a file. Remove filename from path.
         p = strrchr(pathbuf, '/');
-        if (p == nullptr)
+        if (p != nullptr)
         {
-            return EPTHNF;
+            *p++ = 0;
         }
-        *p++ = 0;
+        else
+        {
+            p = pathbuf;    // the file is directly located inside the given directory
+            *p = '\0';
+        }
+        DebugInfo("%s() - remaining host path with filename removed is \"%s\"", __func__, pathbuf);
     }
     else
     {
@@ -832,12 +860,13 @@ INT32 CHostXFS::xfs_path2DD
     HostFD *rel_hostFD = getHostFD(hhdl_rel);
     if (rel_hostFD == nullptr)
     {
+        DebugWarning("%s() -> EINTRN", __func__);
         return EINTRN;
     }
 
     // O_PATH or O_DIRECTORY | O_RDONLY?
     HostHandle_t hhdl;
-    INT32 atari_ret = hostpath2HostFD(rel_hostFD, pathbuf, /*O_PATH?*/ O_DIRECTORY | O_RDONLY, &hhdl);
+    INT32 atari_ret = hostpath2HostFD(rel_hostFD, hhdl_rel, pathbuf, /*O_PATH?*/ O_DIRECTORY | O_RDONLY, &hhdl);
 
     /*
     // Note that O_DIRECTORY is essential, otherwise fdopendir() will refuse
@@ -901,7 +930,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     unsigned char atariname[256];   // long filename in Atari charset
     unsigned char dosname[14];      // internal, 8+3
 
-    printf("%d %s\n", entry->d_type, entry->d_name);
+    DebugInfo("%s() - %d \"%s\"", __func__, entry->d_type, entry->d_name);
     hostFnameToAtariFname(entry->d_name, atariname);    // convert character set..
     if (pathElemToDTA8p3(atariname, dosname))  // .. and to 8+3
     {
@@ -940,10 +969,10 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     close(fd);
     if (ret < 0)
     {
-        perror("fstat() -> ");
+        DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
         return -4;
     }
-    printf(" file size = %lu\n", statbuf.st_size);
+    // DebugInfo("%s() - file size = %lu\n", __func__, statbuf.st_size);
 
     //
     // fill DTA
@@ -998,7 +1027,7 @@ INT32 CHostXFS::xfs_sfirst
     uint16_t attrib
 )
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u, name = \"%s\")", __func__, drv, name);
 
     dta->mxdta.dta_drive = (char) drv;
     pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname);    // search pattern -> DTA
@@ -1007,33 +1036,53 @@ INT32 CHostXFS::xfs_sfirst
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        DebugWarning("%s() -> E_CHNG", __func__);
+        return E_CHNG ;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        DebugWarning("%s() -> EDRIVE", __func__);
+        return EDRIVE;
     }
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
     {
+        DebugWarning("%s() -> EINTRN", __func__);
         return EINTRN;
     }
 
+    // Get host fd for the directory.
+    // Note that an fdopendir(), followed by readdir(), advances the file
+    // read pointer while walking through the directory entries. Thus,
+    // we must rewind it here, because there might have been
+    // Fsfirst/Fsnext operations here before.
+
     int dir_fd = hostFD->fd;
+    off_t lret = lseek(dir_fd, 0, SEEK_SET);
+    if (lret < 0)
+    {
+        DebugWarning("%s() : lseek() -> %s", __func__, strerror(errno));
+    }
+    DebugInfo("%s() - open directory from host fd %d", __func__, dir_fd);
     DIR *dir = fdopendir(dir_fd);
     if (dir == nullptr)
     {
-        perror("fdopendir() -> ");
+        DebugWarning("%s() : fdopendir() -> %s", __func__, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
 
     for (;;)
     {
+        errno = 0;  // strange, but following advice in man page
         struct dirent *entry = readdir(dir);
         if (entry == nullptr)
         {
+            if (errno != 0)
+            {
+                DebugWarning("%s() : readdir() -> %s", __func__, strerror(errno));
+            }
             break;  // end of directory
         }
 
@@ -1041,12 +1090,13 @@ INT32 CHostXFS::xfs_sfirst
         if (match == 0)
         {
             long pos = telldir(dir);
-            printf("directory read position %ld\n", pos);
+            DebugInfo("%s() : directory read position %ld", __func__, pos);
 
             dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(hhdl, dir);
             dta->macdta.dirID = hhdl;
             dta->macdta.index = 0;  // unused
 
+            DebugInfo("%s() -> E_OK", __func__);
             return E_OK;
         }
     }
@@ -1056,16 +1106,11 @@ INT32 CHostXFS::xfs_sfirst
     dta->macdta.vRefNum = -1;
     dta->macdta.index = -1;
 
+    // do NOT close hostFD here, because we still need it
     closedir(dir);
-    close(dir_fd);
-    freeHostFD(hostFD);
-    return EFILNF; // snext: ENMFIL;
 
-    // TODO: implement
-    // use readdir to get files
-    // get telldir to get the current position and store it
-    // use seekdir for snext?
-    // or read the entire directory?
+    DebugInfo("%s() -> EFILNF", __func__);
+    return EFILNF;
 }
 
 
@@ -1083,15 +1128,18 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        DebugWarning("%s() -> E_CHNG", __func__);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        DebugWarning("%s() -> EDRIVE", __func__);
+        return EDRIVE;
     }
 
     if (!dta->macdta.sname[0])
     {
+        DebugWarning("%s() -> ENMFIL", __func__);
         return ENMFIL;
     }
 
@@ -1099,12 +1147,15 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
     {
+        DebugWarning("%s() -> EINTRN", __func__);
         return EINTRN;
     }
 
     int dir_fd = hostFD->fd;
+    DebugInfo("%s() - using host fd %d", __func__, dir_fd);
     if (dir_fd == -1)
     {
+        DebugWarning("%s() -> EINTRN", __func__);
         return EINTRN;
     }
 
@@ -1113,19 +1164,25 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
     uint16_t snextHdl = (uint16_t) dta->macdta.vRefNum;
     if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
     {
+        DebugWarning("%s() -> EINTRN", __func__);
         return EINTRN;
     }
     if (hhdl != hhdl2)
     {
-        DebugError("dir_fd mismatch");
+        DebugError("%s() - dir_fd mismatch", __func__);
         return EINTRN;
     }
 
     for (;;)
     {
+        errno = 0;  // strange, but following advice in man page
         struct dirent *entry = readdir(dir);
         if (entry == nullptr)
         {
+            if (errno != 0)
+            {
+                DebugWarning("%s() : readdir() -> %s", __func__, strerror(errno));
+            }
             break;  // end of directory
         }
 
@@ -1133,7 +1190,8 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
         if (match == 0)
         {
             long pos = telldir(dir);
-            printf("directory read position %ld\n", pos);
+            DebugInfo("%s() : directory read position %ld", __func__, pos);
+            DebugInfo("%s() -> E_OK", __func__);
             return E_OK;
         }
     }
@@ -1145,6 +1203,8 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 
     closedir(dir);
     HostHandles::snextClose(snextHdl);  // also closes dir_fd and frees hhdl
+
+    DebugInfo("%s() -> ENMFIL", __func__);
 
     return ENMFIL;
 }
@@ -1178,16 +1238,16 @@ INT32 CHostXFS::xfs_fopen
     uint16_t attrib
 )
 {
-    DebugInfo("%s(name = %s, drv = %u, omode = %d, attrib = %d)", __func__, name, drv, omode, attrib);
+    DebugInfo("%s(name = \"%s\", drv = %u, omode = %d, attrib = %d)", __func__, name, drv, omode, attrib);
     unsigned char dosname[20];
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     if (!drv_longnames[drv])
@@ -1204,6 +1264,7 @@ INT32 CHostXFS::xfs_fopen
         return EINTRN;
     }
     int dir_fd = hostFD->fd;
+    DebugInfo("%s() - open file in directory with host fd %d", __func__, dir_fd);
     if (dir_fd == -1)
     {
         return EINTRN;
@@ -1255,12 +1316,16 @@ INT32 CHostXFS::xfs_fopen
         return ENHNDL;
     }
 
+    // TODO: this is a hack. It creates an endless loop
+    //off_t lret = lseek(dir_fd, 0, SEEK_SET);
+
     file_hostFD->fd = openat(dir_fd, name, host_omode);
     if (file_hostFD->fd < 0)
     {
         DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
+    DebugInfo("%s() - host fd %d", __func__, file_hostFD->fd);
 
     struct stat statbuf;
     int ret = fstat(file_hostFD->fd, &statbuf);
@@ -1298,11 +1363,11 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name)
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1339,11 +1404,11 @@ INT32 CHostXFS::xfs_link(uint16_t drv, char *nam1, char *nam2,
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1370,11 +1435,11 @@ INT32 CHostXFS::xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1406,11 +1471,11 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1434,7 +1499,7 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, char *name,
     (void) gid;
 
     // TODO: implement
-    return(EINVFN);
+    return EINVFN;
 }
 
 
@@ -1453,11 +1518,11 @@ INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode)
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1479,11 +1544,11 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1507,11 +1572,11 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1537,7 +1602,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (bufsiz < 64)
     {
@@ -1545,7 +1610,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     HostHandle_t hhdl = dd->dirID;
@@ -1655,11 +1720,11 @@ INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1682,7 +1747,7 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
         return(xfs_dopendir(dirh, drv, (MXFSDD*) (&dirh->dirID), dirh->tosflag));
     }
     dirh -> index = 1;
-    return(E_OK);
+    return E_OK;
 }
 
 
@@ -1698,7 +1763,7 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 
     (void) drv;
     dirh -> dirID = -1L;
-    return(E_OK);
+    return E_OK;
 }
 
 
@@ -1746,21 +1811,20 @@ INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
     (void) dd;
     switch(which)
     {
-        case    DP_MAXREQ:    return(DP_XATTRFIELDS);
-        case    DP_IOPEN:    return(100);    // ???
-        case    DP_MAXLINKS:    return(1);
-        case    DP_PATHMAX:    return(128);
-        case    DP_NAMEMAX:    return((drv_longnames[drv]) ? 31 : 12);
-        case    DP_ATOMIC:    return(512);    // ???
-        case    DP_TRUNC:    return((drv_longnames[drv]) ? DP_AUTOTRUNC : DP_DOSTRUNC);
-        case    DP_CASE:        return((drv_longnames[drv]) ? DP_CASEINSENS : DP_CASECONV);
-        case    DP_MODEATTR:    return(F_RDONLY+F_SUBDIR+F_ARCHIVE+F_HIDDEN
-                            +DP_FT_DIR+DP_FT_REG+DP_FT_LNK);
-        case    DP_XATTRFIELDS:return(DP_INDEX+DP_DEV+DP_NLINK+DP_BLKSIZE
-                            +DP_SIZE+DP_NBLOCKS
-                            +DP_CTIME+DP_MTIME);
+        case    DP_MAXREQ:      return DP_XATTRFIELDS ;
+        case    DP_IOPEN:       return 100;    // ???
+        case    DP_MAXLINKS:    return 1;
+        case    DP_PATHMAX:     return 128;
+        case    DP_NAMEMAX:     return (drv_longnames[drv]) ? 31 : 12;
+        case    DP_ATOMIC:      return 512;    // ???
+        case    DP_TRUNC:       return (drv_longnames[drv]) ? DP_AUTOTRUNC : DP_DOSTRUNC;
+        case    DP_CASE:        return (drv_longnames[drv]) ? DP_CASEINSENS : DP_CASECONV;
+        case    DP_MODEATTR:    return F_RDONLY + F_SUBDIR + F_ARCHIVE + F_HIDDEN +
+                                       DP_FT_DIR + DP_FT_REG + DP_FT_LNK;
+        case    DP_XATTRFIELDS: return DP_INDEX + DP_DEV + DP_NLINK + DP_BLKSIZE +
+                                       DP_SIZE + DP_NBLOCKS + DP_CTIME + DP_MTIME;
     }
-    return(EINVFN);
+    return EINVFN;
 }
 
 
@@ -1783,11 +1847,11 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1815,15 +1879,15 @@ INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
-    return(EINVFN);
+    return EINVFN;
 }
 
 INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz)
@@ -1835,11 +1899,11 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1865,11 +1929,11 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to)
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1894,11 +1958,11 @@ INT32 CHostXFS::xfs_readlink(uint16_t drv, MXFSDD *dd, char *name,
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
     // TODO: implement
@@ -1934,14 +1998,14 @@ INT32 CHostXFS::xfs_dcntl
 
     if (drv_changed[drv])
     {
-        return(E_CHNG);
+        return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        return(EDRIVE);
+        return EDRIVE;
     }
 
-    return(EINVFN);
+    return EINVFN;
 }
 
 
@@ -1996,15 +2060,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
     if (refcnt == 0)
     {
         GET_hhdl_AND_fd
-        freeHostFD(hostFD);
-        f->refnum = -1;     // just to be sure
-
-        int res = close(fd);
-        if (res < 0)
-        {
-            perror("close() -> ");
-            return CConversion::Host2AtariError(errno);
-        }
+        freeHostFD(hostFD);     // also closes hostFD->fd
     }
 
     return E_OK;
@@ -2100,7 +2156,7 @@ INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
     ssize_t bytes = read(fd, buf, count);
     if (bytes < 0)
     {
-        perror("read() -> ");
+        DebugWarning("%s() : read() -> %s", __func__, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
 
@@ -2167,7 +2223,7 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
     off_t offs = lseek(fd, pos, mode);
     if (offs < 0)
     {
-        perror("lseek() -> ");
+        DebugWarning("%s() : lseek() -> %s", __func__, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
 
@@ -2334,10 +2390,10 @@ INT32 CHostXFS::dev_getc(MAC_FD *f, uint16_t mode)
 
     ret = dev_read(f, 1L, (char *) &c);
     if (ret < 0L)
-        return(ret);            // Fehler
+        return ret;            // Fehler
     if (!ret)
         return(0x0000ff1a);        // EOF
-    return(c & 0x000000ff);
+    return c & 0x000000ff;
 }
 
 
@@ -2346,23 +2402,24 @@ INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
     DebugInfo("%s(fd = 0x%0x, size = %d)", __func__, f, size);
     (void) mode;
     char c;
-    INT32 gelesen,ret;
+    INT32 processed, ret;
 
-    for    (gelesen = 0L; gelesen < size;)
-        {
+    for (processed = 0L; processed < size;)
+    {
         ret = dev_read(f, 1L, (char *) &c);
         if (ret < 0L)
-            return(ret);            // Fehler
+            return ret;            // Fehler
         if (ret == 0L)
             break;            // EOF
         if (c == 0x0d)
             continue;
         if (c == 0x0a)
             break;
-        gelesen++;
+        processed++;
         *buf++ = c;
-        }
-    return(gelesen);
+    }
+
+    return processed;
 }
 
 
@@ -2373,7 +2430,7 @@ INT32 CHostXFS::dev_putc(MAC_FD *f, uint16_t mode, INT32 val)
     char c;
 
     c = (char) val;
-    return(dev_write(f, 1L, (char *) &c));
+    return dev_write(f, 1L, (char *) & c);
 }
 
 
@@ -2707,7 +2764,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             if (be32toh((UINT32) (pdcreateparm->name)) >= m_AtariMemSize)
             {
                 DebugError("CHostXFS::xfs_dcreate() - invalid name ptr");
-                return(ERROR);
+                return ERROR;
             }
 
             doserr = xfs_dcreate(
@@ -3171,7 +3228,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 #ifdef DEBUG_VERBOSE
     DebugInfo("CHostXFS::XFSDevFunctions => %d", (int) doserr);
 #endif
-    return(doserr);
+    return doserr;
 }
 
 
@@ -3307,7 +3364,7 @@ INT32 CHostXFS::Drv2DevCode(UINT32 params, uint8_t *AdrOffset68k)
     if (drv <= 1)
     {
         // floppy disk A: & B:
-        return((INT32) 0x00010000 | (drv + 1));    // liefert 1 bzw. 2
+        return (INT32) 0x00010000 | (drv + 1);    // liefert 1 bzw. 2
     }
 
     const char *vol = drv_host_path[drv];
@@ -3315,14 +3372,14 @@ INT32 CHostXFS::Drv2DevCode(UINT32 params, uint8_t *AdrOffset68k)
     {
         // maybe an AHDI-Drive? Not supported yet.
         return 0;
-        // return((INT32) (0x00020000 | drv));
+        // return (INT32) (0x00020000 | drv);
     }
     else
     {
         // The drive is a host directory.
         // Ejecting host volumes is not supported yet.
         return 0;
-        // return((INT32) (0x00010000 | (UINT16) drvNum));
+        // return (INT32) (0x00010000 | (UINT16) drvNum);
     }
 }
 
@@ -3361,5 +3418,5 @@ INT32 CHostXFS::RawDrvr(UINT32 param, uint8_t *AdrOffset68k)
         ret = EINVFN;
         break;
     }
-    return(ret);
+    return ret;
 }

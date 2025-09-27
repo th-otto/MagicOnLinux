@@ -33,7 +33,7 @@
 
 EmulationRunner::EmulationRunner(void)
 {
-	printf("%s()\n", __func__);
+    DebugInfo("%s()", __func__);
     m_bQuitLoop = false;
     //drawContext = NULL;
 	m_EmulatorThread = nullptr;
@@ -58,7 +58,7 @@ EmulationRunner::EmulationRunner(void)
 
 EmulationRunner::~EmulationRunner(void)
 {
-	printf("%s()\n", __func__);
+    DebugInfo("%s()", __func__);
 }
 
 
@@ -72,7 +72,7 @@ EmulationRunner::~EmulationRunner(void)
 
 void EmulationRunner::Init(void)
 {
-	printf("%s()\n", __func__);
+    DebugInfo("%s()", __func__);
     int ret;
 
 	m_counter = 0;
@@ -107,7 +107,7 @@ void EmulationRunner::Config
 {
 	(void) atariLanguage;
 
-	printf("%s()\n", __func__);
+    DebugInfo("%s()", __func__);
 
 	// memory size is passed as Megabytes (2 ^ 20)
 	if (atariMemorySize < 1)
@@ -151,11 +151,11 @@ void EmulationRunner::Config
 	else
 		Globals.s_Preferences.m_atariScreenColourMode = atariScreenMode16M;
 
-	printf("%s(): atariScreenColourMode (%u)\n", __func__, atariScreenColourMode);
+    DebugInfo("%s() - atariScreenColourMode (%u)", __func__, atariScreenColourMode);
 
 	m_atariScreenStretchX = atariScreenStretchX;
 	m_atariScreenStretchY = atariScreenStretchY;
-	printf("%s(): atariHideHostMouse(%u) -- ignored, because unreliable in SDL\n", __func__, atariHideHostMouse);
+	DebugInfo("%s() - atariHideHostMouse(%u) -- ignored, because unreliable in SDL\n", __func__, atariHideHostMouse);
 //	m_atariHideHostMouse  = atariHideHostMouse;
 
 	if ((atariPrintCommand) && strlen(atariPrintCommand) < 255)
@@ -164,7 +164,7 @@ void EmulationRunner::Config
 	}
 	else
 	{
-		printf("%s(): atariPrintCommand string empty or too long, ignored\n", __func__);
+		DebugInfo("%s(): atariPrintCommand string empty or too long, ignored\n", __func__);
 	}
 
 	if ((atariSerialDevice) && strlen(atariSerialDevice) < 255)
@@ -173,7 +173,7 @@ void EmulationRunner::Config
 	}
 	else
 	{
-		printf("%s(): atariSerialDevice string empty or too long, ignored\n", __func__);
+		DebugInfo("%s(): atariSerialDevice string empty or too long, ignored\n", __func__);
 	}
 
 	if ((atariKernelPath != nullptr) && strlen(atariKernelPath) < 1024)
@@ -182,7 +182,7 @@ void EmulationRunner::Config
 	}
 	else
 	{
-		printf("%s(): atariKernelPath string empty or too long, ignored\n", __func__);
+		DebugInfo("%s(): atariKernelPath string empty or too long, ignored\n", __func__);
 	}
 
 	if ((atariRootfsPath != nullptr) && strlen(atariRootfsPath) < 1024)
@@ -191,7 +191,7 @@ void EmulationRunner::Config
 	}
 	else
 	{
-		printf("%s(): s_atariRootfsPath string empty or too long, ignored\n", __func__);
+		DebugInfo("%s(): s_atariRootfsPath string empty or too long, ignored\n", __func__);
 	}
 }
 
@@ -204,7 +204,7 @@ void EmulationRunner::Config
 
 void EmulationRunner::ChangeAtariDrive(unsigned drvnr, const char *path)
 {
-	printf("%s()\n", __func__);
+	DebugInfo("%s()\n", __func__);
 	if (drvnr < NDRIVES)
 	{
 		Globals.s_Preferences.setDrvPath(drvnr, path);
@@ -224,7 +224,7 @@ void EmulationRunner::ChangeAtariDrive(unsigned drvnr, const char *path)
 
 int EmulationRunner::StartEmulatorThread(void)
 {
-	printf("%s()\n", __func__);
+	DebugInfo("%s()\n", __func__);
 	if (!m_EmulatorThread)
 	{
 		// Send user event to event loop
@@ -252,7 +252,7 @@ int EmulationRunner::StartEmulatorThread(void)
 
 int EmulationRunner::OpenWindow(void)
 {
-	printf("%s()\n", __func__);
+	DebugInfo("%s()\n", __func__);
 	if (!m_sdl_window)
 	{
 		// Send user event to event loop
@@ -803,7 +803,7 @@ void EmulationRunner::_OpenWindow(void)
 	m_sdl_renderer = SDL_CreateRenderer(m_sdl_window, -1, SDL_RENDERER_ACCELERATED);
 	if (!m_sdl_renderer)
 	{
-		fprintf(stderr, "ERR: SDL %s\n", SDL_GetError());
+        DebugError("%s() : SDL %s", __func__, SDL_GetError());
 	}
 	assert(m_sdl_renderer);
 
@@ -828,7 +828,7 @@ void EmulationRunner::_OpenWindow(void)
 	ret = SDL_FillRect(m_sdl_surface, &r, 0x88888888);
 	if (ret == -1)
 	{
-		fprintf(stderr, "ERR: SDL %s\n", SDL_GetError());
+        DebugError("%s() : SDL %s", __func__, SDL_GetError());
 		//exit(-1);
 	}
 	UpdateTextureFromRect(m_sdl_texture, m_sdl_surface, &r);
@@ -964,7 +964,7 @@ void EmulationRunner::EventLoop(void)
 {
 	uint8_t *clipboardData;
 
-	printf("%s()\n", __func__);
+    DebugInfo("%s()", __func__);
     SDL_Event event;
 
 	// Do not catch keyboard events, leave them for dialogue windows
@@ -1108,7 +1108,7 @@ void EmulationRunner::EventLoop(void)
 
     }   // End while
 
-	printf("%s() =>\n", __func__);
+	DebugInfo("%s() =>", __func__);
 }
 
 
@@ -1210,7 +1210,7 @@ void EmulationRunner::EmulatorWindowUpdate(void)
 
 int EmulationRunner::EmulatorThread()
 {
-	printf("%s()\n", __func__);
+	DebugInfo("%s()", __func__);
 	int err;
 
 	DebugInit(NULL /* stderr */);
@@ -1239,6 +1239,6 @@ int EmulationRunner::EmulatorThread()
 
 	m_Emulator.StartExec();
 
-	printf("%s() =>\n", __func__);
+	DebugInfo("%s() =>", __func__);
 	return 0;
 }

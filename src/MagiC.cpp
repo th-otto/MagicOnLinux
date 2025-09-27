@@ -2108,7 +2108,7 @@ int CMagiC::SendVBL( void )
 
 uint32_t CMagiC::AtariInit(uint32_t params, uint8_t *addrOffset68k)
 {
-	printf("ATARI: First initialisation phase done.\n");
+    DebugInfo("%s() - ATARI: First initialisation phase done.", __func__);
     (void) params;
     (void) addrOffset68k;
 	return 0;
@@ -2123,7 +2123,7 @@ uint32_t CMagiC::AtariInit(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k)
 {
-	printf("ATARI: BIOS initialisation done.\n");
+    DebugInfo("%s() - ATARI: BIOS initialisation done.", __func__);
     (void) params;
     (void) addrOffset68k;
 	return 0;
@@ -2138,7 +2138,7 @@ uint32_t CMagiC::AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
 {
-	printf("ATARI: VDI initialisation done.\n");
+    DebugInfo("%s() - ATARI: VDI initialisation done.", __func__);
 //    (void) params;
 //    (void) addrOffset68k;
 	Point PtAtariMousePos;

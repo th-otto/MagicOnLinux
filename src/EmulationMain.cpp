@@ -73,13 +73,13 @@ int EmulationOpenWindow()
 
 void EmulationRun(void)
 {
-	printf("%s()\n", __func__);
+    DebugInfo("%s()", __func__);
 	if (s_EmulationIsInit && !s_EmulationIsRunning)
 	{
 		theEmulation.StartEmulatorThread();
 		s_EmulationIsRunning = 1;
 	}
-	printf("%s() =>\n", __func__);
+    DebugInfo("%s() =>", __func__);
 }
 
 void EmulationRunSdl(void)
@@ -134,11 +134,11 @@ void EmulationConfig
 /*
 extern "C" int my_main(void)
 {
-	printf("%s()\n", __func__);
+    DebugInfo("%s()", __func__);
 
 	theEmulation.EventLoop();
 
-	printf("%s() =>\n", __func__);
+    DebugInfo("%s() =>", __func__);
     return 0;
 }
 */

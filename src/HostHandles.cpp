@@ -92,6 +92,11 @@ void freeHostFD(HostFD *fd)
 {
     assert(fd->ref_cnt > 0);
     fd->ref_cnt--;
+    if (fd->ref_cnt == 0)
+    {
+        close(fd->fd);
+        fd->fd = -1;    // to be sure..
+    }
 }
 
 
@@ -172,6 +177,7 @@ void HostHandles::snextClose(uint16_t snextHdl)
     if (snextHdl < SNEXT_N)
     {
         SnextEntry *entry = &snextTab[snextHdl];
+        /*
         HostHandle_t hhdl = entry->hhdl;
         HostFD *hostFD = getHostFD(hhdl);
         if (hostFD == nullptr)
@@ -189,6 +195,7 @@ void HostHandles::snextClose(uint16_t snextHdl)
             close(dir_fd);
         }
         freeHostFD(hostFD);
+        */
         entry->lru = 0;
     }
 }

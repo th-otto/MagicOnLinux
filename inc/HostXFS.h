@@ -326,7 +326,7 @@ class CHostXFS
 
     // Hilfsfunktionen
 
-    INT32 hostpath2HostFD(HostFD *reldir, const char *path, int flags, HostHandle_t *hhdl);
+    INT32 hostpath2HostFD(HostFD *reldir, uint16_t rel_hhdl, const char *path, int flags, HostHandle_t *hhdl);
     int _snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta);
     INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to);
 

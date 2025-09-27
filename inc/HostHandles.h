@@ -45,9 +45,10 @@ struct HostFD
 #pragma GCC diagnostic pop
 
 HostFD *getFreeHostFD();
-uint16_t allocHostFD(HostFD *fd);
+uint16_t allocHostFD(HostFD **pfd);
 void freeHostFD(HostFD *fd);
 HostFD *getHostFD(uint16_t hhdl);
+HostFD *findHostFD(__dev_t dev, __ino_t ino, uint16_t *hhdl);
 
 
 #define HOST_HANDLE_NUM     1024            // number of memory blocks

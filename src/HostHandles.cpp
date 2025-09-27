@@ -56,8 +56,9 @@ HostFD *getFreeHostFD()
     }
     return nullptr;
 }
-uint16_t allocHostFD(HostFD *fd)
+uint16_t allocHostFD(HostFD **pfd)
 {
+    HostFD *fd = *pfd;
     assert(fd->ref_cnt == 0);
     uint16_t handle = 0xffff;
     HostFD *p = fdTab;
@@ -74,8 +75,23 @@ uint16_t allocHostFD(HostFD *fd)
             if ((p->dev == fd->dev) &&
                 (p->ino == fd->ino))
                {
+                    // FWFR it seems to happen, that we get the same file descriptor
+                    // for the same directory. Thus we may not close it here,
+                    // we just use the existing HostFD.
+                    if (p->fd == fd->fd)
+                    {
+                        // new and old host fd are the same?!?
+                        DebugInfo("%s() - FWFR got host fd %d twice", __func__, fd->fd);
+                    }
+                    else
+                    {
+                        // close new host fd, as we can use the old one
+                        DebugInfo("%s() - close new host fd %d", __func__, fd->fd);
+                        close(fd->fd);  // do not use it
+                    }
                     handle = n;     // this one has already been opened, reuse it
                     fd = p;
+                    *pfd = fd;
                     break;
                }
         }
@@ -84,6 +100,27 @@ uint16_t allocHostFD(HostFD *fd)
     fd->ref_cnt++;
     return handle;
 }
+HostFD *findHostFD(__dev_t dev, __ino_t ino, uint16_t *hhdl)
+{
+    HostFD *p = fdTab;
+    for (unsigned n = 0; n < HOST_HANDLE_NUM; n++, p++)
+    {
+        if (p->ref_cnt != 0)
+        {
+            // check if this descriptor references the same file or directory
+            if ((p->dev == dev) &&
+                (p->ino == ino))
+               {
+                    p->ref_cnt++;
+                    *hhdl = n;
+                    return p;
+               }
+        }
+    }
+
+    return nullptr;
+}
+
 HostFD *getHostFD(uint16_t hhdl)
 {
     return (hhdl < HOST_HANDLE_NUM) ? &fdTab[hhdl] : nullptr;

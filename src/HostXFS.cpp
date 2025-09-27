@@ -629,6 +629,7 @@ INT32 CHostXFS::hostpath2HostFD
     }
 
     int rel_fd = (reldir != nullptr) ? reldir->fd : -1;
+    DebugInfo("%s() : rel host fd = %d, path = \"%s\"", __func__, rel_fd, path);
     if ((rel_fd >= 0) && (path[0] == '\0'))
     {
         // the relative directory itself is addressed with an empty path
@@ -638,6 +639,24 @@ INT32 CHostXFS::hostpath2HostFD
     }
     else
     {
+        struct stat statbuf;
+        int res = fstatat(rel_fd, path, &statbuf, AT_EMPTY_PATH);
+        if (res < 0)
+        {
+            DebugWarning("%s() : fstatat() -> %s", __func__, strerror(errno));
+            *hhdl = HOST_HANDLE_INVALID;
+            return CConversion::Host2AtariError(errno);
+        }
+        DebugInfo("%s() : dev=%d, ino=%d)", __func__, statbuf.st_dev, statbuf.st_ino);
+        uint16_t nhhdl;
+        HostFD *hostFD_exist = findHostFD(statbuf.st_dev, statbuf.st_ino, &nhhdl);
+        if (hostFD_exist != nullptr)
+        {
+             DebugInfo("%s() : already opened host fd = %d", __func__, hostFD_exist->fd);
+            *hhdl = nhhdl;
+            return E_OK;
+        }
+
         hostFD->fd = openat(rel_fd, path, flags);
         if (hostFD->fd < 0)
         {
@@ -646,7 +665,6 @@ INT32 CHostXFS::hostpath2HostFD
             return CConversion::Host2AtariError(errno);
         }
 
-        struct stat statbuf;
         int ret = fstat(hostFD->fd, &statbuf);
         if (ret < 0)
         {
@@ -655,11 +673,12 @@ INT32 CHostXFS::hostpath2HostFD
             *hhdl = HOST_HANDLE_INVALID;
             return CConversion::Host2AtariError(errno);
         }
+        DebugInfo("%s() : dev=%d, ino=%d)", __func__, statbuf.st_dev, statbuf.st_ino);
         hostFD->dev = statbuf.st_dev;
         hostFD->ino = statbuf.st_ino;
 
+        *hhdl = allocHostFD(&hostFD);
         DebugInfo("%s() : host fd = %d", __func__, hostFD->fd);
-        *hhdl = allocHostFD(hostFD);
     }
 
     return E_OK;
@@ -723,7 +742,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
     DebugInfo("%s() : open directory \"%s\"", __func__, pathname);
 
     HostHandle_t hhdl;
-    INT32 atari_ret = hostpath2HostFD(nullptr, -1, pathname, O_PATH, &hhdl);
+    INT32 atari_ret = hostpath2HostFD(nullptr, -1, pathname, /* O_PATH*/ O_DIRECTORY | O_RDONLY, &hhdl);
 
     dd->dirID = hhdl;           // host endian format
     dd->vRefNum = drv;          // host endian
@@ -1106,8 +1125,9 @@ INT32 CHostXFS::xfs_sfirst
     dta->macdta.vRefNum = -1;
     dta->macdta.index = -1;
 
+printf("FIX THIS\n");
     // do NOT close hostFD here, because we still need it
-    closedir(dir);
+    closedir(dir);  // TODO: this also closes the host fd, what we do not want.
 
     DebugInfo("%s() -> EFILNF", __func__);
     return EFILNF;
@@ -1201,7 +1221,8 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
     dta->macdta.vRefNum = -1;
     dta->macdta.index = -1;
 
-    closedir(dir);
+printf("FIX THIS\n");
+    closedir(dir);  // TODO: this also closes the host fd, what we do not want.
     HostHandles::snextClose(snextHdl);  // also closes dir_fd and frees hhdl
 
     DebugInfo("%s() -> ENMFIL", __func__);
@@ -1338,7 +1359,7 @@ INT32 CHostXFS::xfs_fopen
     file_hostFD->dev = statbuf.st_dev;
     file_hostFD->ino = statbuf.st_ino;
 
-    hhdl = allocHostFD(file_hostFD);
+    hhdl = allocHostFD(&file_hostFD);
 
     assert (hhdl <= 0xfffff);
     DebugInfo("%s() -> %d", __func__, hhdl);

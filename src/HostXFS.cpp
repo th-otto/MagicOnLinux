@@ -48,7 +48,6 @@
 #include "HostXFS.h"
 #include "Atari.h"
 #include "conversion.h"
-#include "HostHandles.h"
 
 #if defined(_DEBUG)
 //#define DEBUG_VERBOSE
@@ -601,6 +600,54 @@ void CHostXFS::xfs_pterm(PD *pd)
 
 /** **********************************************************************************************
  *
+ * @brief Helper function to open a host path, relative or absolute
+ *
+ * @param[in]  reldir       relative directory or nullptr
+ * @param[in]  path         host path
+ * @param[in]  flags        O_PATH for root, otherwise O_DIRECTORY | O_RDONLY
+ * @param[out] hddl         handle to be passed to Atari
+ *
+ * @return Atari error code
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::hostpath2HostFD(HostFD *reldir, const char *path, int flags, HostHandle_t *hhdl)
+{
+    HostFD *hostFD = getFreeHostFD();   // note that this is not allocated, yet
+    if (hostFD == nullptr)
+    {
+        DebugError("No host FDs left");
+        *hhdl = HOST_HANDLE_INVALID;
+        return ENHNDL;
+    }
+
+    int rel_fd = (reldir != nullptr) ? reldir->fd : -1;
+    hostFD->fd = openat(rel_fd, path, flags);
+    if (hostFD->fd < 0)
+    {
+        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
+        *hhdl = HOST_HANDLE_INVALID;
+        return CConversion::Host2AtariError(errno);
+    }
+
+    struct stat statbuf;
+    int ret = fstat(hostFD->fd, &statbuf);
+    if (ret < 0)
+    {
+        close(hostFD->fd);
+        DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+        *hhdl = HOST_HANDLE_INVALID;
+        return CConversion::Host2AtariError(errno);
+    }
+    hostFD->dev = statbuf.st_dev;
+    hostFD->ino = statbuf.st_ino;
+
+    *hhdl = allocHostFD(hostFD);
+    return E_OK;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Atari callback: Open a drive, i.e. fill in a descriptor for it, if valid
  *
  * @param[in]  drv                   Atari drive number 0..25 for A: .. Z:
@@ -643,65 +690,26 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
         return EDRIVE;
     }
 
-    // obtain handle for root directory
+    // Obtain handle for root directory
+    // Note that the combination
+    //  name_to_handle_at() .. open_by_handle_at()
+    // does not work at all for user applications and just leads to
+    // "operation not permitted".
+    // The call
+    //  name_to_handle_at(-1, path, &fd->fh,  &fd->mount_id, AT_HANDLE_FID)
+    // could only be used to retrieve a unique file handle to later
+    // identify the file, otherwise the "fh" will be useless.
 
     DebugInfo("%s() : open directory \"%s\"", __func__, pathname);
-#if 0
 
-    union
-    {
-        struct file_handle fh;
-        uint8_t dummy[MAX_HANDLE_SZ];
-    } ffh;
-
-    ffh.fh.handle_bytes = MAX_HANDLE_SZ;
-    int mount_id;
-    int ret = name_to_handle_at(
-                    -1,     // unused, we provide a path instead
-                     pathname,
-                     &ffh.fh,
-                     &mount_id, // ?
-                     AT_HANDLE_FID);
-
-    if (ret < 0)
-    {
-        ret = errno;
-        perror("name_to_handle_at() -> ");
-    }
-
-    DebugInfo("%s() : handle_bytes = %u", __func__, ffh.fh.handle_bytes);
-
-    unsigned real_size = sizeof(struct file_handle) + ffh.fh.handle_bytes;
-    HostHandle_t hhdl = HostHandles::alloc(real_size);
-    assert(hhdl != HOST_HANDLE_INVALID);      // TODO: error handling
-
-    void *hdata = HostHandles::getData(hhdl);
-    memcpy(hdata, &ffh.fh, real_size);
-#else
-    int root_fd = openat(/*ignored, when path is absolute*/-1, pathname, O_PATH);
-    if (root_fd < 0)
-    {
-        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
-        return CConversion::Host2AtariError(errno);
-    }
-    HostHandle_t hhdl = HostHandles::alloc(sizeof(root_fd));
-    if (hhdl == HOST_HANDLE_INVALID)
-    {
-        DebugError("No host handles left");
-        return ENHNDL;
-    }
-    HostHandles::putInt(hhdl, root_fd);
-#endif
-
-    // TODO: remember mount_id for later
-    // TODO: or replace with openat() ?
-    // TODO: or use open() for root and openat() for others.
+    HostHandle_t hhdl;
+    INT32 atari_ret = hostpath2HostFD(nullptr, pathname, O_PATH, &hhdl);
 
     dd->dirID = hhdl;           // host endian format
     dd->vRefNum = drv;          // host endian
     DebugInfo("%s() -> dirID %u", __func__, hhdl);
 
-    return E_OK;
+    return atari_ret;
 }
 
 
@@ -821,12 +829,17 @@ INT32 CHostXFS::xfs_path2DD
     }
 
     HostHandle_t hhdl_rel = rel_dd->dirID;  // host endian
-    int rel_fd = HostHandles::getInt(hhdl_rel);
-    if (rel_fd == -1)
+    HostFD *rel_hostFD = getHostFD(hhdl_rel);
+    if (rel_hostFD == nullptr)
     {
         return EINTRN;
     }
 
+    // O_PATH or O_DIRECTORY | O_RDONLY?
+    HostHandle_t hhdl;
+    INT32 atari_ret = hostpath2HostFD(rel_hostFD, pathbuf, /*O_PATH?*/ O_DIRECTORY | O_RDONLY, &hhdl);
+
+    /*
     // Note that O_DIRECTORY is essential, otherwise fdopendir() will refuse
     int dir_fd = openat(rel_fd, pathbuf, O_DIRECTORY | O_RDONLY);
     if (dir_fd < 0)
@@ -841,6 +854,7 @@ INT32 CHostXFS::xfs_path2DD
         return ENHNDL;
     }
     HostHandles::putInt(hhdl, dir_fd);
+    */
 
     dd->dirID = hhdl;
     dd->vRefNum = rel_dd->vRefNum;
@@ -867,7 +881,7 @@ INT32 CHostXFS::xfs_path2DD
     //       same directory?
 
     DebugInfo("%s() -> dirID %u", __func__, hhdl);
-    return E_OK;
+    return atari_ret;
 }
 
 
@@ -1001,12 +1015,13 @@ INT32 CHostXFS::xfs_sfirst
     }
 
     HostHandle_t hhdl = dd->dirID;
-    int dir_fd = HostHandles::getInt(dd->dirID);
-    if (dir_fd == -1)
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
     {
         return EINTRN;
     }
 
+    int dir_fd = hostFD->fd;
     DIR *dir = fdopendir(dir_fd);
     if (dir == nullptr)
     {
@@ -1043,7 +1058,7 @@ INT32 CHostXFS::xfs_sfirst
 
     closedir(dir);
     close(dir_fd);
-    HostHandles::free(hhdl);
+    freeHostFD(hostFD);
     return EFILNF; // snext: ENMFIL;
 
     // TODO: implement
@@ -1081,7 +1096,13 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
     }
 
     HostHandle_t hhdl = dta->macdta.dirID;
-    int dir_fd = HostHandles::getInt(dta->macdta.dirID);
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+
+    int dir_fd = hostFD->fd;
     if (dir_fd == -1)
     {
         return EINTRN;
@@ -1176,7 +1197,13 @@ INT32 CHostXFS::xfs_fopen
         name = (char *) dosname;
     }
 
-    int dir_fd = HostHandles::getInt(dd->dirID);
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd = hostFD->fd;
     if (dir_fd == -1)
     {
         return EINTRN;
@@ -1222,18 +1249,31 @@ INT32 CHostXFS::xfs_fopen
     #define _ATARI_O_EXCL      0x800
    */
 
-    int fd = openat(dir_fd, name, host_omode);
-    if (fd < 0)
-    {
-        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
-        return -3;
-    }
-
-    HostHandle_t hhdl = HostHandles::allocInt(fd);
-    if (hhdl == HOST_HANDLE_INVALID)
+    HostFD *file_hostFD = getFreeHostFD();
+    if (file_hostFD == nullptr)
     {
         return ENHNDL;
     }
+
+    file_hostFD->fd = openat(dir_fd, name, host_omode);
+    if (file_hostFD->fd < 0)
+    {
+        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+
+    struct stat statbuf;
+    int ret = fstat(file_hostFD->fd, &statbuf);
+    if (ret < 0)
+    {
+        close(file_hostFD->fd);
+        DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+    file_hostFD->dev = statbuf.st_dev;
+    file_hostFD->ino = statbuf.st_ino;
+
+    hhdl = allocHostFD(file_hostFD);
 
     assert (hhdl <= 0xfffff);
     DebugInfo("%s() -> %d", __func__, hhdl);
@@ -1508,7 +1548,14 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
         return(EDRIVE);
     }
 
-    int dir_fd = HostHandles::getInt(dd->dirID);
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+
+    int dir_fd = hostFD->fd;
     DebugInfo("%s() : dir_fd = %d", __func__, dir_fd);
     if (dir_fd == -1)
     {
@@ -1907,7 +1954,12 @@ INT32 CHostXFS::xfs_dcntl
 /// Helper to get the host file handle
 #define GET_hhdl_AND_fd \
     uint32_t hhdl = be16toh(f->refnum); \
-    int fd = HostHandles::getInt(hhdl); \
+    HostFD *hostFD = getHostFD(hhdl); \
+    if (hostFD == nullptr) \
+    { \
+        return EINTRN; \
+    } \
+    int fd = hostFD->fd; \
     if (fd < 0) \
     { \
         DebugError("invalid file handle"); \
@@ -1944,7 +1996,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
     if (refcnt == 0)
     {
         GET_hhdl_AND_fd
-        HostHandles::free(hhdl);
+        freeHostFD(hostFD);
         f->refnum = -1;     // just to be sure
 
         int res = close(fd);

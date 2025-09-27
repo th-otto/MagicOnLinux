@@ -23,6 +23,32 @@
 */
 
 #include <stdint.h>
+#include <dirent.h>
+
+#define HOST_FH_SIZE MAX_HANDLE_SZ   // 128 bytes, while in fact 8 bytes are enough
+
+
+#pragma GCC diagnostic push
+//#pragma GCC diagnostic ignored "-Wzero-length-array"
+#pragma GCC diagnostic ignored "-Wpedantic"
+/// Host File Descriptor
+/// Describes a file or a directory, without opening it.
+struct HostFD
+{
+    int ref_cnt;     // 0 = unused
+    __dev_t dev;     // Device, retrieved from struct stat
+    __ino_t ino;     // File serial number (inode), retrieved from struct stat
+    int fd;          // open file handle
+    // Maybe better store the host path here?
+    // Maybe also store Atari drive here?
+};
+#pragma GCC diagnostic pop
+
+HostFD *getFreeHostFD();
+uint16_t allocHostFD(HostFD *fd);
+void freeHostFD(HostFD *fd);
+HostFD *getHostFD(uint16_t hhdl);
+
 
 #define HOST_HANDLE_NUM     1024            // number of memory blocks
 #define HOST_HANDLE_INVALID 0xffffffff
@@ -38,12 +64,14 @@ class HostHandles
 {
   public:
     static void init();
+    #if 0
     static uint32_t alloc(unsigned size);
     static uint32_t allocInt(int v);
     static void *getData(HostHandle_t hhdl);
     static int getInt(HostHandle_t hhdl);
     static void putInt(HostHandle_t hhdl, int v);
     static void free(HostHandle_t hhdl);
+    #endif
     static uint16_t snextSet(HostHandle_t hhdl, DIR *dir);
     static int snextGet(uint16_t snextHdl, HostHandle_t *hhdl, DIR **dir);
     static void snextClose(uint16_t snextHdl);

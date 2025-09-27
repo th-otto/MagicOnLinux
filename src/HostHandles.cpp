@@ -31,10 +31,73 @@
 #include <dirent.h>
 #include <endian.h>
 #include <assert.h>
+#include <fcntl.h>
 // program headers
 #include "Debug.h"
 #include "HostHandles.h"
 
+
+
+/*
+ * DD / FD handling
+ */
+
+
+static HostFD fdTab[HOST_HANDLE_NUM];
+HostFD *getFreeHostFD()
+{
+    HostFD *p = fdTab;
+    for (unsigned n = 0; n < HOST_HANDLE_NUM; n++, p++)
+    {
+        if (p->ref_cnt == 0)
+        {
+            return p;
+        }
+    }
+    return nullptr;
+}
+uint16_t allocHostFD(HostFD *fd)
+{
+    assert(fd->ref_cnt == 0);
+    uint16_t handle = 0xffff;
+    HostFD *p = fdTab;
+    for (unsigned n = 0; n < HOST_HANDLE_NUM; n++, p++)
+    {
+        if (p == fd)
+        {
+            handle = n;
+        }
+        else
+        if (p->ref_cnt != 0)
+        {
+            // check if this descriptor references the same file or directory
+            if ((p->dev == fd->dev) &&
+                (p->ino == fd->ino))
+               {
+                    handle = n;     // this one has already been opened, reuse it
+                    fd = p;
+                    break;
+               }
+        }
+    }
+
+    fd->ref_cnt++;
+    return handle;
+}
+HostFD *getHostFD(uint16_t hhdl)
+{
+    return (hhdl < HOST_HANDLE_NUM) ? &fdTab[hhdl] : nullptr;
+}
+void freeHostFD(HostFD *fd)
+{
+    assert(fd->ref_cnt > 0);
+    fd->ref_cnt--;
+}
+
+
+/*
+ * Fsfirst / Fsnext handling
+ */
 
 // maximum allowed number of parallel Ffirst/next runs
 #define SNEXT_N     64
@@ -110,7 +173,12 @@ void HostHandles::snextClose(uint16_t snextHdl)
     {
         SnextEntry *entry = &snextTab[snextHdl];
         HostHandle_t hhdl = entry->hhdl;
-        int dir_fd = getInt(hhdl);
+        HostFD *hostFD = getHostFD(hhdl);
+        if (hostFD == nullptr)
+        {
+            return;
+        }
+        int dir_fd = hostFD->fd;
         if (dir_fd == -1)
         {
             DebugError("Invalid directory file descriptor");
@@ -120,7 +188,7 @@ void HostHandles::snextClose(uint16_t snextHdl)
             DebugInfo("Closing directory file descriptor %d", dir_fd);
             close(dir_fd);
         }
-        free(entry->hhdl);
+        freeHostFD(hostFD);
         entry->lru = 0;
     }
 }
@@ -142,6 +210,7 @@ void HostHandles::init(void)
 }
 
 
+#if 0
 /** **********************************************************************************************
 *
 * @brief Allocate
@@ -248,3 +317,4 @@ void HostHandles::free(HostHandle_t hhdl)
     assert(memblock_free[hhdl] == 1);
     memblock_free[hhdl] = 0;
 }
+#endif

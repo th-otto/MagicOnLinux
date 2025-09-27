@@ -32,6 +32,7 @@
 // Programm-Header
 #include "osd_cpu.h"
 #include "Atari.h"
+#include "HostHandles.h"
 #include "MAC_XFS.H"
 // Definitionen
 #define NDRVS  32
@@ -325,6 +326,7 @@ class CHostXFS
 
     // Hilfsfunktionen
 
+    INT32 hostpath2HostFD(HostFD *reldir, const char *path, int flags, HostHandle_t *hhdl);
     int _snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta);
     INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to);
 

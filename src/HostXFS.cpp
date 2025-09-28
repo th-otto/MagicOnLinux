@@ -310,43 +310,42 @@ INT32 CHostXFS::cnverr(int err)
 }
 
 
-/*********************************************************************
+/** **********************************************************************************************
 *
-* (statisch)
-* Vergleicht ein 12- stelliges Dateimuster mit einem Dateinamen.
-* Die Stelle 11 ist das Datei- Attribut(-muster).
-* Rueckgabe : 1 = MATCH, sonst 0
+* @brief [static] Check if an 8+3 filename matches an 8+3 search pattern (each 12 bytes)
 *
-* Regeln zum Vergleich der Attribute:
-*    1) ReadOnly und Archive werden bei dem Vergleich NIEMALS
-*       beruecksichtigt.
-*    2) Ist das Suchattribut 8, werden genau alle Dateien mit gesetztem
-*       Volume- Bit gefunden (auch versteckte usw.).
-*    3) Ist das Suchattribut nicht 8, werden normale Dateien IMMER
-*       gefunden.
-*    4) Ist das Suchattribut nicht 8, werden Ordner nur bei gesetztem
-*       Bit 4 gefunden.
-*    5) Ist das Suchattribut nicht 8, werden Volumes nur bei gesetztem
-*       Bit 3 gefunden.
-*    6) Ist das Suchattribut nicht 8, werden versteckte oder System-
-*       dateien (auch Ordner oder Volumes) NUR gefunden, wenn das
-*       entsprechende Bit im Suchattribut gesetzt ist.
+* @param[in]   pattern  internal 8+3 representation of search pattern, for Fsfirst() and Fsnext()
+* @param[out]  fname    internal 8+3 representation of filename
 *
-* Beispiele (die Bits ReadOnly und Archive sind ohne Belang):
-*    8    alle Dateien mit gesetztem Bit 3 (Volumes)
-*    0    nur normale Dateien
-*    2    normale und versteckte Dateien
-*    6    normale, versteckte und System- Dateien
-*  $10    normale Dateien, normale Ordner
-*  $12    normale und versteckte Dateien und Ordner
-*  $16    normale und versteckte und System- Dateien und -Ordner
-*   $a    normale und versteckte Dateien und Volumes
-*   $e    normale, versteckte und System- Dateien und -Volumes
-*  $1e    alles
+* @return match result
 *
-***************************************************************************/
-
-bool CHostXFS::filename_match(const char *pattern, const char *fname)
+* @note Byte 11 is the search attribute, respectively the file attribute. '?' is a wildcard.
+*
+* @note Attribute comparison rules:
+*    1) ReadOnly and Archive are always ignored.
+*    2) If the search attribute is 8, exactly those files with Volume flag match,
+*       also hidden ones.
+*    3) If search attribute is different from 8, regular files always match.
+*    4) If search attribute is different from 8, directories are only found if bit 4 is set.
+*    5) If search attribute is different from 8, volume names are only found if bit 3 is set.
+*    6) If search attribute is different from 8, hiden and system files, including
+*       directories and volume names, are only match, if the respective bit in the search
+*       attribute is set.
+*
+*  @note match examples (bits RadOnly and Archive are ignored):
+*    8    all files with bit 3 set (volumes)
+*    0    only regular files
+*    2    regular and hidden files
+*    6    regular, hidden and system files
+*  $10    regular files and regular subdirectories
+*  $12    regular and hidden files and subdirectories
+*  $16    regular and hidden and system files and directories
+*   $a    regular and hidden files and volume names
+*   $e    regular and hidden and system files and volume names
+*  $1e    everything
+*
+ ************************************************************************************************/
+bool CHostXFS::filename8p3_match(const char *pattern, const char *fname)
 {
     if (fname[0] == '\xe5')     /* Suche nach geloeschter Datei */
     {
@@ -466,28 +465,32 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name)
 }
 
 
-/*************************************************************
-*
-* (statisch)
-* Wandelt Mac-Dateinamen nach 8.3-Namen fuer GEMDOS.
-* Wenn <flg_longnames> == TRUE ist, wird nicht nach Gross-Schrift
-* konvertiert, das Format ist aber in jedem Fall 8+3.
-* Zeichen ' ' (Leerstelle) und '\' (Backslash) werden weggelassen.
-*
-* Neu (6.9.95): Rückgabe TRUE, wenn der Dateiname gekürzt
-* werden mußte. Fsfirst/next sowie D(x)readdir können dann
-* die entsprechende Datei ignorieren.
-*
-*************************************************************/
-
-bool CHostXFS::nameto_8_3(const char *host_fname,
-                unsigned char *dosname,
-                bool flg_longnames, bool toAtari)
+/** **********************************************************************************************
+ *
+ * @brief Converts host filename to 8+3 for GEMDOS
+ *
+ * @param[in]  host_fname       host filename
+ * @param[out] dosname          8+3 GEMDOS filename
+ * @param[in]  flg_longnames    true: convert to 8+3 uppercase, false: convert to 8+3
+ * @param[in]  to_atari_charset true: convert host charset (UTF-8) to Atari charset
+ *
+ * @return true: filename was shortened
+ *
+ * @note Characters ' ' and '\' are skipped
+ *
+ ************************************************************************************************/
+bool CHostXFS::nameto_8_3
+(
+    const char *host_fname,
+    unsigned char *dosname,
+    bool flg_longnames,
+    bool to_atari_charset
+)
 {
     bool truncated = false;
 
 
-    /* max. 8 Zeichen fuer Dateinamen kopieren */
+    // convert up to 8 chars for filename
     int i = 0;
     while ((i < 8) && (*host_fname) && (*host_fname != '.'))
     {
@@ -496,17 +499,27 @@ bool CHostXFS::nameto_8_3(const char *host_fname,
             host_fname++;
             continue;
         }
-        if (toAtari)
+        if (to_atari_charset)
         {
             if (flg_longnames)
+            {
                 *dosname++ = CConversion::Mac2AtariFilename(*host_fname++);
-            else    *dosname++ = (unsigned char) toUpper((char) CConversion::Mac2AtariFilename(*host_fname++));
+            }
+            else
+            {
+                *dosname++ = (unsigned char) toUpper((char) CConversion::Mac2AtariFilename(*host_fname++));
+            }
         }
         else
         {
             if (flg_longnames)
+            {
                 *dosname++ = *host_fname++;
-            else    *dosname++ = (unsigned char) toUpper((char) (*host_fname++));
+            }
+            else
+            {
+                *dosname++ = (unsigned char) toUpper((char) (*host_fname++));
+            }
         }
         i++;
     }
@@ -520,7 +533,7 @@ bool CHostXFS::nameto_8_3(const char *host_fname,
         host_fname++;        // '.' ueberlesen
     *dosname++ = '.';            // '.' in DOS-Dateinamen einbauen
 
-    /* max. 3 Zeichen fuer Typ kopieren */
+    // convert up to 3 chars for filename extension
     i = 0;
     while ((i < 3) && (*host_fname) && (*host_fname != '.'))
     {
@@ -529,7 +542,7 @@ bool CHostXFS::nameto_8_3(const char *host_fname,
             host_fname++;
             continue;
         }
-        if (toAtari)
+        if (to_atari_charset)
         {
             if (flg_longnames)
                 *dosname++ = CConversion::Mac2AtariFilename(*host_fname++);
@@ -547,7 +560,7 @@ bool CHostXFS::nameto_8_3(const char *host_fname,
     }
 
     if (dosname[-1] == '.')        // trailing '.'
-        dosname[-1] = EOS;        //   entfernen
+        dosname[-1] = EOS;        //   remove
     else
         *dosname = EOS;
 
@@ -569,7 +582,7 @@ bool CHostXFS::nameto_8_3(const char *host_fname,
  ************************************************************************************************/
 INT32 CHostXFS::xfs_sync(uint16_t drv)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
 
     if (drv_changed[drv])
     {
@@ -976,7 +989,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
         return -2;   // unhandled file type
     }
 
-    if (!filename_match(dta->macdta.sname, (char *) dosname))
+    if (!filename8p3_match(dta->macdta.sname, (char *) dosname))
     {
         return 1;
     }
@@ -1138,13 +1151,16 @@ INT32 CHostXFS::xfs_sfirst
 }
 
 
-/*************************************************************
-*
-* Durchsucht ein Verzeichnis weiter und merkt den Suchstatus
-* fuer Fsnext.
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Fsnext() : scan a directory for the next matching entry
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[out] dta          file found and internal data for Fsnext
+ *
+ * @return 0 for OK, ELINK for symbolic link or negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 {
     DebugInfo("%s(drv = %u)", __func__, drv);
@@ -1380,7 +1396,7 @@ INT32 CHostXFS::xfs_fopen
 
 INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
 
@@ -1417,7 +1433,7 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name)
 INT32 CHostXFS::xfs_link(uint16_t drv, char *nam1, char *nam2,
                MXFSDD *dd1, MXFSDD *dd2, uint16_t mode, uint16_t dst_drv)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) nam1;
     (void) nam2;
     (void) dd1;
@@ -1439,6 +1455,14 @@ INT32 CHostXFS::xfs_link(uint16_t drv, char *nam1, char *nam2,
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Helper for xfs_xattr() and dev_ioctl(FSTAT)
+ *
+ * @param[in]  pstat        host stat data
+ * @param[out] pxattr       structure to be filled
+ *
+ ************************************************************************************************/
 void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
 {
     uint16_t ast_mode = pstat->st_mode & 0777;    // copy rwx bits
@@ -1504,14 +1528,20 @@ void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
  * @param[in]  drv          Atari drive number 0..25
  * @param[in]  dd           directory, search here
  * @param[in]  name         filename, can be long or 8+3
- * @param[out] xattr        structure to be filled by caller
+ * @param[out] xattr        structure to be filled
  * @param[in]  mode         0: follow symlinks, otherwise do not follow
  *
  * @return EW_OK or 32-bit negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
-                XATTR *xattr, uint16_t mode)
+INT32 CHostXFS::xfs_xattr
+(
+    uint16_t drv,
+    MXFSDD *dd,
+    char *name,
+    XATTR *xattr,
+    uint16_t mode
+)
 {
     DebugInfo("%s(name = \"%s\", drv = %u, mode = %d)", __func__, name, drv, mode);
     unsigned char dosname[20];
@@ -1576,7 +1606,7 @@ INT32 CHostXFS::xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
 
 INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag, uint16_t attr)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) rwflag;
@@ -1605,7 +1635,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag
 INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, char *name,
                     uint16_t uid, uint16_t gid)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) uid;
@@ -1624,7 +1654,7 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, char *name,
 
 INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) fmode;
@@ -1651,7 +1681,7 @@ INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode)
 
 INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
 
@@ -1680,7 +1710,7 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
 
 INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
 
     if (drv_changed[drv])
@@ -1702,7 +1732,7 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
  * @brief Get directory path, provides functionality for Dgetpath()
  *
  * @param[in] drv       Atari drive number 0..31
- * @param[in] DD        Atari directory descriptor
+ * @param[in] dd        Atari directory descriptor
  * @param[in] buf       buffer for directory name
  * @param[in] bufsiz    buffer size
  *
@@ -1789,54 +1819,29 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
 }
 
 
-/*************************************************************
-*
-* Fuer Dopendir.
-*
-* Aliase brauchen hier nicht dereferenziert zu werden, weil
-* dies bereits bei path2DD haette passieren muessen.
-*
-*************************************************************/
-
-INT32 CHostXFS::xfs_dopendir(MAC_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd,
-                uint16_t tosflag)
+/** **********************************************************************************************
+ *
+ * @brief For Dopendir(), open a directory for reading, with long name support
+ *
+ * @param[out] dirh      directory handle, to be used by Dreaddir() etc.
+ * @param[in]  drv       Atari drive number 0..31
+ * @param[in]  dd        Atari directory descriptor
+ * @param[in]  tosflag   0: long names, >0: filenames in 8+3
+ *
+ * @return E_OK or negative error code
+ *
+ * @note Symbolic links already have been resolved in path2DD (hopefully...)
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_dopendir
+(
+    MAC_DIRHANDLE *dirh,
+    uint16_t drv,
+    MXFSDD *dd,
+    uint16_t tosflag
+)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
-    (void) dirh;
-    (void) drv;
-    (void) dd;
-    (void) tosflag;
-
-    // TODO: implement
-    return EINVFN;
-}
-
-
-/*************************************************************
-*
-* Fuer D(x)readdir.
-* dirh        Verzeichnis-Deskriptor
-* size        Groesse des Puffers fuer Namen + ggf. Inode
-* buf        Puffer fuer Namen + ggf. Inode
-* xattr    Ist != NULL, wenn Dxreaddir ausgefuehrt wird.
-* xr        Fehlercode von Fxattr.
-*
-* 6.9.95:
-* Ist das TOS-Flag im <dirh> gesetzt, werden lange Dateinamen
-* nicht gefunden.
-*
-*************************************************************/
-
-INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,
-        uint16_t size, char *buf, XATTR *xattr, INT32 *xr)
-{
-    DebugInfo("%s(drv = %u)", __func__, drv);
-    (void) dirh;
-    (void) size;
-    (void) buf;
-    (void) xattr;
-    (void) xr;
-
+    DebugInfo("%s(drv = %u, tosflag = %d)", __func__, drv, tosflag);
     if (drv_changed[drv])
     {
         return E_CHNG;
@@ -1846,43 +1851,341 @@ INT32 CHostXFS::xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,
         return EDRIVE;
     }
 
-    // TODO: implement
-    return EINVFN;
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+
+    int dir_fd = hostFD->fd;
+    off_t lret = lseek(dir_fd, 0, SEEK_SET);    // necessary if directory has been scanned before?
+    if (lret < 0)
+    {
+        DebugWarning("%s() : lseek() -> %s", __func__, strerror(errno));
+    }
+    DebugInfo("%s() - open directory from host fd %d", __func__, dir_fd);
+    int dup_dir_fd = dup(dir_fd);
+    DIR *dir = fdopendir(dup_dir_fd);
+    if (dir == nullptr)
+    {
+        DebugWarning("%s() : fdopendir() -> %s", __func__, strerror(errno));
+        close(dup_dir_fd);
+        return CConversion::Host2AtariError(errno);
+    }
+
+    dirh->dirID = hhdl; // unused
+    dirh->vRefNum = (int16_t) HostHandles::snextSet(dir, hhdl, dup_dir_fd);
+    dirh->index = 0;  // unused
+    dirh -> tosflag = tosflag;
+
+    DebugInfo("%s() -> E_OK", __func__);
+
+    return E_OK;
 }
 
 
-/*************************************************************
-*
-* Fuer Drewinddir
-*
-*************************************************************/
+/** **********************************************************************************************
+ *
+ * @brief For D(x)readdir(), read a directory, with long name support
+ *
+ * @param[in]  dirh      directory handle from Dopendir()
+ * @param[in]  drv       Atari drive number 0..31
+ * @param[in]  size      buffer size for name and, if requested, i-node
+ * @param[out] buf       buffer for name and, if requested, i-node
+ * @param[out] xattr     file information for Dxreaddir(), is nullptr for Dreaddir()
+ * @param[out] xr        error code from Fxattr()
+ *
+ * @return E_OK or negative error code
+ *
+ * @note If the drectory had been opened in 8+3 mode, long filenames are ignored.
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_dreaddir
+(
+    MAC_DIRHANDLE *dirh,
+    uint16_t drv,
+    uint16_t size,
+    char *buf,
+    XATTR *xattr,
+    INT32 *xr
+)
+{
+    DebugInfo("%s(drv = %u)", __func__, drv);
 
+
+    if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
+    {
+        DebugWarning("%s() -> EIHNDL", __func__);
+        return EIHNDL;
+    }
+
+    if ((dirh->tosflag) && (size < 13))
+    {
+        DebugWarning("%s() : name buffer is too small for 8+3, ignore all entries", __func__);
+        return ATARIERR_ERANGE;
+    }
+
+    if (drv_changed[drv])
+    {
+        DebugWarning("%s() -> E_CHNG", __func__);
+        return E_CHNG;
+    }
+
+    if (drv_host_path[drv] == nullptr)
+    {
+        DebugWarning("%s() -> EDRIVE", __func__);
+        return EDRIVE;
+    }
+
+    HostHandle_t hhdl = dirh->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        DebugWarning("%s() -> EINTRN", __func__);
+        return EINTRN;
+    }
+
+    int dir_fd = hostFD->fd;
+    DebugInfo("%s() - using host fd %d", __func__, dir_fd);
+    if (dir_fd == -1)
+    {
+        DebugWarning("%s() -> EINTRN", __func__);
+        return EINTRN;
+    }
+
+    HostHandle_t hhdl2;
+    DIR *dir;
+    uint16_t snextHdl = (uint16_t) dirh->vRefNum;
+    if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
+    {
+        DebugWarning("%s() -> EINTRN", __func__);
+        return EINTRN;
+    }
+    if (hhdl != hhdl2)
+    {
+        DebugError("%s() - dir_fd mismatch", __func__);
+        return EINTRN;
+    }
+
+    INT32 atari_err = E_OK;
+    INT32 atari_stat_err = E_OK;
+
+    for (;;)
+    {
+        errno = 0;  // strange, but following advice in man page
+        struct dirent *entry = readdir(dir);
+        if (entry == nullptr)
+        {
+            if (errno != 0)
+            {
+                DebugWarning("%s() : readdir() -> %s", __func__, strerror(errno));
+            }
+            atari_err = ENMFIL;
+            break;  // end of directory
+        }
+
+        if (dirh->tosflag)
+        {
+            if (nameto_8_3(entry->d_name, (unsigned char *) buf, false, true))
+            {
+                continue;   // filename was shortened, so it was too long for 8+3
+            }
+        }
+
+        if (xattr != nullptr)
+        {
+            int fd = openat(dir_fd, entry->d_name, O_RDONLY);
+            if (fd >= 0)
+            {
+                struct stat statbuf;
+                int ret = fstat(fd, &statbuf);
+                close(fd);
+                if (ret >= 0)
+                {
+                    statbuf2xattr(xattr, &statbuf);
+                }
+                else
+                {
+                    DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+                    atari_stat_err = CConversion::Host2AtariError(errno);
+                    break;
+                }
+            }
+            else
+            {
+                DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
+                atari_stat_err = CConversion::Host2AtariError(errno);
+            }
+        }
+
+        DebugInfo("%s() - found \"%s\"", __func__, entry->d_name);
+        // buf needs space for 4 bytes i-node plus filename plus NUl byte
+		if (size >= strlen(entry->d_name) + 5)
+        {
+            strncpy(buf, (char *) &entry->d_ino, 4);
+            buf += 4;
+            hostFnameToAtariFname(entry->d_name, (unsigned char *) buf);
+        }
+        else
+        {
+            atari_err = ATARIERR_ERANGE;
+        }
+
+        break;
+    }
+
+    if (xr != nullptr)
+    {
+        *xr = atari_stat_err;
+    }
+    return atari_err;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief For Drewinddir(), set read pointer back to the beginning of the directory
+ *
+ * @param[in]  dirh      directory handle from Dopendir()
+ * @param[in]  drv       Atari drive number 0..31
+ *
+ * @return E_OK or negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
     DebugInfo("%s(drv = %u)", __func__, drv);
 
-    if (drv_rvsDirOrder[drv])
+    if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
-        return(xfs_dopendir(dirh, drv, (MXFSDD*) (&dirh->dirID), dirh->tosflag));
+        DebugWarning("%s() -> EIHNDL", __func__);
+        return EIHNDL;
     }
-    dirh -> index = 1;
+
+    if (drv_changed[drv])
+    {
+        DebugWarning("%s() -> E_CHNG", __func__);
+        return E_CHNG;
+    }
+
+    if (drv_host_path[drv] == nullptr)
+    {
+        DebugWarning("%s() -> EDRIVE", __func__);
+        return EDRIVE;
+    }
+
+    HostHandle_t hhdl = dirh->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        DebugWarning("%s() -> EIHNDL", __func__);
+        return EIHNDL;
+    }
+
+    int dir_fd = hostFD->fd;
+    DebugInfo("%s() - using host fd %d", __func__, dir_fd);
+    if (dir_fd == -1)
+    {
+        DebugWarning("%s() -> EINTRN", __func__);
+        return EINTRN;
+    }
+
+    HostHandle_t hhdl2;
+    DIR *dir;
+    uint16_t snextHdl = (uint16_t) dirh->vRefNum;
+    if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
+    {
+        DebugWarning("%s() -> EINTRN", __func__);
+        dirh->vRefNum = -1;
+        return EINTRN;
+    }
+    if (hhdl != hhdl2)
+    {
+        DebugError("%s() - dir_fd mismatch", __func__);
+    }
+
+    rewinddir(dir);
+
+    DebugInfo("%s() -> E_OK", __func__);
+
     return E_OK;
 }
 
 
-/*************************************************************
-*
-* Fuer Dclosedir
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Dclosedir(), close the directory handle
+ *
+ * @param[in]  dirh      directory handle from Dopendir()
+ * @param[in]  drv       Atari drive number 0..31
+ *
+ * @return E_OK or negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
     DebugInfo("%s(drv = %u)", __func__, drv);
 
-    (void) drv;
-    dirh -> dirID = -1L;
-    return E_OK;
+    if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
+    {
+        DebugWarning("%s() -> EIHNDL", __func__);
+        return EIHNDL;
+    }
+
+    INT32 atari_err = E_OK;
+    if (drv_changed[drv])
+    {
+        DebugWarning("%s() -> E_CHNG", __func__);
+        atari_err = E_CHNG;
+    }
+    else
+    if (drv_host_path[drv] == nullptr)
+    {
+        DebugWarning("%s() -> EDRIVE", __func__);
+        atari_err = EDRIVE;
+    }
+
+    HostHandle_t hhdl = dirh->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        DebugWarning("%s() -> EINTRN", __func__);
+        atari_err = EIHNDL;
+    }
+    else
+    {
+        int dir_fd = hostFD->fd;
+        DebugInfo("%s() - using host fd %d", __func__, dir_fd);
+        if (dir_fd == -1)
+        {
+            DebugWarning("%s() -> EINTRN", __func__);
+            atari_err = EINTRN;
+        }
+    }
+
+    HostHandle_t hhdl2;
+    DIR *dir;
+    uint16_t snextHdl = (uint16_t) dirh->vRefNum;
+    if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
+    {
+        DebugWarning("%s() -> EINTRN", __func__);
+        dirh->vRefNum = -1;
+        return EINTRN;
+    }
+    if (hhdl != hhdl2)
+    {
+        DebugError("%s() - dir_fd mismatch", __func__);
+        atari_err = EINTRN;
+    }
+
+    HostHandles::snextClose(snextHdl);  // also does closedir()
+    dirh->dirID = -1;
+    dirh->vRefNum = -1;
+
+    DebugInfo("%s() -> %d", __func__, atari_err);
+
+    return atari_err;
 }
 
 
@@ -1925,7 +2228,7 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 
 INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
 
     (void) dd;
     switch(which)
@@ -1999,7 +2302,7 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 
 INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
 
@@ -2054,7 +2357,7 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
 
 INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) to;
@@ -2082,7 +2385,7 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to)
 INT32 CHostXFS::xfs_readlink(uint16_t drv, MXFSDD *dd, char *name,
                 char *buf, uint16_t bufsiz)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+   DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) buf;
@@ -2121,7 +2424,7 @@ INT32 CHostXFS::xfs_dcntl
     uint8_t *addrOffset68kXFS
 )
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
     (void) name;
     (void) cmd;
@@ -2304,7 +2607,7 @@ INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
 
 INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, char *buf)
 {
-    DebugInfo("%s(fd = 0x%0x, count = %d)", __func__, f, count);
+    DebugError("NOT IMPLEMENTED %s(fd = 0x%0x, count = %d)", __func__, f, count);
     (void) f;
     (void) count;
     (void) buf;
@@ -2316,7 +2619,7 @@ INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, char *buf)
 
 INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
 {
-    DebugInfo("%s(fd = 0x%0x, rwflag = %d)", __func__, f, rwflag);
+    DebugError("NOT IMPLEMENTED %s(fd = 0x%0x, rwflag = %d)", __func__, f, rwflag);
     (void) f;
     (void) unsel;
     (void) rwflag;
@@ -2371,7 +2674,7 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
 
 INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 {
-    DebugInfo("%s(fd = 0x%0x, rwflag = %d)", __func__, f, rwflag);
+    DebugError("NOT IMPLEMENTED %s(fd = 0x%0x, rwflag = %d)", __func__, f, rwflag);
     (void) f;
     (void) d;
     (void) rwflag;

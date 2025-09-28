@@ -37,6 +37,7 @@
 //#include "Dialogue68kExc.h"
 //#include "DialogueSysHalt.h"
 #include "missing.h"
+#include "conversion.h"
 
 
 static CMagiC *pTheMagiC = nullptr;
@@ -2663,9 +2664,9 @@ uint32_t CMagiC::AtariExit(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
 {
-    (void) params;
-    (void) addrOffset68k;
-	DebugInfo("CMagiC::AtariDebugOut(%s)", addrOffset68k + params);
+    const unsigned char *text = addrOffset68k + params;
+    //printf((char *) text);
+	DebugInfo("CMagiC::AtariDebugOut(%s)", textAtari2Host(addrOffset68k + params));
 	return 0;
 }
 

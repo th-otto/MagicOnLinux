@@ -66,6 +66,9 @@ unsigned trigger_ProcessFileLen = 0;
 extern void _DumpAtariMem(const char *filename);
 #endif
 
+// suppress Host XFS debug info
+#undef DebugInfo
+#define DebugInfo(...)
 
 
 /** **********************************************************************************************
@@ -657,7 +660,7 @@ INT32 CHostXFS::hostpath2HostFD
         int res = fstatat(rel_fd, path, &statbuf, AT_EMPTY_PATH);
         if (res < 0)
         {
-            DebugWarning("%s() : fstatat() -> %s", __func__, strerror(errno));
+            DebugWarning("%s() : fstatat(\"%s\") -> %s", __func__, path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
             return CConversion::Host2AtariError(errno);
         }
@@ -674,7 +677,7 @@ INT32 CHostXFS::hostpath2HostFD
         hostFD->fd = openat(rel_fd, path, flags);
         if (hostFD->fd < 0)
         {
-            DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
+            DebugWarning("%s() : openat(\"%s\") -> %s", __func__, path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
             return CConversion::Host2AtariError(errno);
         }
@@ -683,7 +686,7 @@ INT32 CHostXFS::hostpath2HostFD
         if (ret < 0)
         {
             close(hostFD->fd);
-            DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+            DebugWarning("%s() : fstat(\"%s\") -> %s", __func__, path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
             return CConversion::Host2AtariError(errno);
         }
@@ -997,7 +1000,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     int fd = openat(dir_fd, entry->d_name, O_RDONLY);
     if (fd < 0)
     {
-        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
+        DebugWarning("%s() : openat(\"%s\") -> %s", __func__, entry->d_name, strerror(errno));
         return -3;
     }
     struct stat statbuf;
@@ -1005,7 +1008,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     close(fd);
     if (ret < 0)
     {
-        DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+        DebugWarning("%s() : fstat(\"%s\") -> %s", __func__, entry->d_name, strerror(errno));
         return -4;
     }
     // DebugInfo("%s() - file size = %lu\n", __func__, statbuf.st_size);
@@ -1127,8 +1130,8 @@ INT32 CHostXFS::xfs_sfirst
         int match = _snext(dir_fd, entry, dta);
         if (match == 0)
         {
-            long pos = telldir(dir);
-            DebugInfo("%s() : directory read position %ld", __func__, pos);
+            //long pos = telldir(dir);
+            //DebugInfo("%s() : directory read position %ld", __func__, pos);
 
             dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(dir, hhdl, dup_dir_fd);
             dta->macdta.dirID = hhdl;
@@ -1229,8 +1232,8 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
         int match = _snext(dir_fd, entry, dta);
         if (match == 0)
         {
-            long pos = telldir(dir);
-            DebugInfo("%s() : directory read position %ld", __func__, pos);
+            //long pos = telldir(dir);
+            //DebugInfo("%s() : directory read position %ld", __func__, pos);
             DebugInfo("%s() -> E_OK", __func__);
             return E_OK;
         }
@@ -1331,6 +1334,7 @@ INT32 CHostXFS::xfs_fopen
     if (omode & _ATARI_O_CREAT)
     {
         // TODO: support later
+        (void) attrib;
         return EACCDN;
     }
     if (omode & _ATARI_O_TRUNC)
@@ -1361,7 +1365,7 @@ INT32 CHostXFS::xfs_fopen
     file_hostFD->fd = openat(dir_fd, name, host_omode);
     if (file_hostFD->fd < 0)
     {
-        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
+        DebugWarning("%s() : openat(\"%s\") -> %s", __func__, name, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
     DebugInfo("%s() - host fd %d", __func__, file_hostFD->fd);
@@ -1371,7 +1375,7 @@ INT32 CHostXFS::xfs_fopen
     if (ret < 0)
     {
         close(file_hostFD->fd);
-        DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+        DebugWarning("%s() : fstat(\"%s\") -> %s", __func__, name, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
     file_hostFD->dev = statbuf.st_dev;
@@ -1544,6 +1548,7 @@ INT32 CHostXFS::xfs_xattr
 )
 {
     DebugInfo("%s(name = \"%s\", drv = %u, mode = %d)", __func__, name, drv, mode);
+    (void) mode;    // support later, if symbolic links are available
     unsigned char dosname[20];
 
     if (drv_changed[drv])
@@ -2007,14 +2012,14 @@ INT32 CHostXFS::xfs_dreaddir
                 }
                 else
                 {
-                    DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+                    DebugWarning("%s() : fstat(\"%s\") -> %s", __func__, entry->d_name, strerror(errno));
                     atari_stat_err = CConversion::Host2AtariError(errno);
                     break;
                 }
             }
             else
             {
-                DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
+                DebugWarning("%s() : openat(\"%s\") -> %s", __func__, entry->d_name, strerror(errno));
                 atari_stat_err = CConversion::Host2AtariError(errno);
             }
         }
@@ -2189,78 +2194,81 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 }
 
 
-/*************************************************************
-*
-* Fuer Dpathconf
-*
-* mode = -1:   max. legal value for n in Dpathconf(n)
-*         0:   internal limit on the number of open files
-*         1:   max. number of links to a file
-*         2:   max. length of a full path name
-*         3:   max. length of an individual file name
-*         4:   number of bytes that can be written atomically
-*         5:   information about file name truncation
-*              0 = File names are never truncated; if the file name in
-*                  any system call affecting  this  directory  exceeds
-*                  the  maximum  length (returned by mode 3), then the
-*                  error value ERANGE is  returned  from  that  system
-*                  call.
-*
-*              1 = File names are automatically truncated to the maxi-
-*                  mum length.
-*
-*              2 = File names are truncated according  to  DOS  rules,
-*                  i.e. to a maximum 8 character base name and a maxi-
-*                  mum 3 character extension.
-*         6:   0 = case-sensitiv
-*              1 = nicht case-sensitiv, immer in Gross-Schrift
-*              2 = nicht case-sensitiv, aber unbeeinflusst
-*         7:   Information ueber unterstuetzte Attribute und Modi
-*         8:   information ueber gueltige Felder in XATTR
-*
-*      If any  of these items are unlimited, then 0x7fffffffL is
-*      returned.
-*
-* Aliase brauchen hier nicht dereferenziert zu werden, weil
-* dies bereits bei path2DD haette passieren muessen.
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Dpathconf(), get information about the path
+ *
+ * @param[in]  drv       Atari drive number 0..31
+ * @param[in]  dd        Atari directory descriptor
+ * @param[in]  which     sub-function code
+ *
+ * @return E_OK or negative error code
+ *
+ * @note which =
+ *        -1:   max. legal value for n in Dpathconf(n)
+ *         0:   internal limit on the number of open files
+ *         1:   max. number of links to a file
+ *         2:   max. length of a full path name
+ *         3:   max. length of an individual file name
+ *         4:   number of bytes that can be written atomically
+ *         5:   information about file name truncation
+ *              0 = File names are never truncated; if the file name in any system call affecting
+ *                  this directory exceeds the  maximum  length (returned by mode 3), then the
+ *                  error value ERANGE is  returned  from  that  system call.
+ *
+ *              1 = File names are automatically truncated to the maximum length.
+ *
+ *              2 = File names are truncated according  to  DOS  rules, i.e. to a
+ *                  maximum 8 character base name and a maximum 3 character extension.
+ *         6:   0 = case sensitive
+ *              1 = not case sensitive, always uppercase
+ *              2 = not case sensitive, uppercase and lowercase
+ *         7:   Information about supported attributes and modes
+ *         8:   information about valid fields in in XATTR
+ *
+ *      If any  of these items are unlimited, then 0x7fffffffL is
+ *      returned.
+ *
+ * @note Symbolic links already have been resolved in path2DD (hopefully...)
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
+    DebugInfo("%s(drv = %u, which = %u)", __func__, drv, which);
 
     (void) dd;
     switch(which)
     {
-        case    DP_MAXREQ:      return DP_XATTRFIELDS ;
-        case    DP_IOPEN:       return 100;    // ???
-        case    DP_MAXLINKS:    return 1;
-        case    DP_PATHMAX:     return 128;
-        case    DP_NAMEMAX:     return (drv_longnames[drv]) ? 31 : 12;
-        case    DP_ATOMIC:      return 512;    // ???
-        case    DP_TRUNC:       return (drv_longnames[drv]) ? DP_AUTOTRUNC : DP_DOSTRUNC;
-        case    DP_CASE:        return (drv_longnames[drv]) ? DP_CASEINSENS : DP_CASECONV;
-        case    DP_MODEATTR:    return F_RDONLY + F_SUBDIR + F_ARCHIVE + F_HIDDEN +
-                                       DP_FT_DIR + DP_FT_REG + DP_FT_LNK;
-        case    DP_XATTRFIELDS: return DP_INDEX + DP_DEV + DP_NLINK + DP_BLKSIZE +
-                                       DP_SIZE + DP_NBLOCKS + DP_CTIME + DP_MTIME;
+        case DP_MAXREQ:      return DP_XATTRFIELDS ;
+        case DP_IOPEN:       return 100;    // ???
+        case DP_MAXLINKS:    return 1;
+        case DP_PATHMAX:     return 128;
+        case DP_NAMEMAX:     return (drv_longnames[drv]) ? 31 : 12;
+        case DP_ATOMIC:      return 512;    // ???
+        case DP_TRUNC:       return (drv_longnames[drv]) ? DP_AUTOTRUNC : DP_DOSTRUNC;
+        case DP_CASE:        return (drv_longnames[drv]) ? DP_CASEINSENS : DP_CASECONV;
+        case DP_MODEATTR:    return F_RDONLY + F_SUBDIR + F_ARCHIVE + F_HIDDEN +
+                                    DP_FT_DIR + DP_FT_REG + DP_FT_LNK;
+        case DP_XATTRFIELDS: return DP_INDEX + DP_DEV + DP_NLINK + DP_BLKSIZE +
+                                    DP_SIZE + DP_NBLOCKS + DP_CTIME + DP_MTIME;
     }
     return EINVFN;
 }
 
 
-/*************************************************************
-*
-* Fuer Dfree
-*
-* data = free,total,secsiz,clsiz
-*
-* Aliase brauchen hier nicht dereferenziert zu werden, weil
-* dies bereits bei path2DD haette passieren muessen.
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Dfree(), get volume usage information
+ *
+ * @param[in]  drv       Atari drive number 0..31
+ * @param[in]  dirID     host directory id
+ * @param[out] data      free,total,secsiz,clsiz
+ *
+ * @return E_OK or negative error code
+ *
+ * @note Symbolic links already have been resolved in path2DD (hopefully...)
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 {
     DebugInfo("%s(drv = %u)", __func__, drv);

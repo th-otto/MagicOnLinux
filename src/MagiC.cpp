@@ -702,6 +702,8 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 	m_FgBufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
 	m_Video68ksize = m_FgBufferLineLenInBytes * numVideoLines;
 	// get Atari memory
+    // TODO: In fact we do not have to add m_Video68ksize here, because video memory
+    //       is allocated separately as SDL surface in EmulatorRunner.
 	m_RAM68k = (unsigned char *) malloc(m_RAM68ksize + m_Video68ksize);
 	if	(!m_RAM68k)
 	{
@@ -731,7 +733,7 @@ Assign more memory to the application using the Finder dialogue "Information"!
 	addr68kVideoEnd = addr68kVideo + m_Video68ksize;
 	DebugInfo("68k video memory and general memory end is 0x%08x", addr68kVideoEnd);
 	// real (host) address of video memory
-	m_pFgBuffer = m_RAM68k + Globals.s_Preferences.m_AtariMemSize;
+	//m_pFgBuffer = m_RAM68k + Globals.s_Preferences.m_AtariMemSize;    // unused
 
 	UpdateAtariDoubleBuffer();
 
@@ -954,11 +956,13 @@ Reinstall the application.
  *
  * @brief Initialise second (?) Atari screen buffer as background buffer
  *
+ * TODO: remove. What was that for?
+ *
  ************************************************************************************************/
 void CMagiC::UpdateAtariDoubleBuffer(void)
 {
-	DebugInfo("CMagiC::UpdateAtariDoubleBuffer() --- HostVideoAddr = %p", m_pFgBuffer);
-	hostVideoAddr = m_pFgBuffer;
+	//DebugInfo("CMagiC::UpdateAtariDoubleBuffer() --- HostVideoAddr = %p", m_pFgBuffer);
+	//hostVideoAddr = m_pFgBuffer;
 
 /*
 	if	(m_pBgBuffer)
@@ -2666,7 +2670,7 @@ uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
 {
     const unsigned char *text = addrOffset68k + params;
     //printf((char *) text);
-	DebugInfo("CMagiC::AtariDebugOut(%s)", textAtari2Host(addrOffset68k + params));
+	DebugInfo("CMagiC::AtariDebugOut(%s)", textAtari2Host(text));
 	return 0;
 }
 

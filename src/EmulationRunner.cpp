@@ -296,13 +296,18 @@ static void UpdateTextureFromRect(SDL_Texture *txtu, const SDL_Surface *srf, con
 }
 
 
-/*********************************************************************************************************
+/** **********************************************************************************************
  *
- * (private) Convert bitmap format from Atari native to host native
+ * @brief  Convert bitmap format from Atari native to host native
  *
- *********************************************************************************************************/
-
-static void ConvertSurface
+ * @param[in]  pSrc         source surface in Atari format, e.g. monochrome
+ * @param[in]  pDst         destination surface, RGB
+ * @param[in]  palette      colour palette, 4 or 16 or 256 entries for indirect colour mode
+ * @param[in]  bStretchX    horizontal stretching factor ?!?
+ * @param[in]  bStretchY    vertical stretching factor ?!?
+ *
+ ************************************************************************************************/
+static void ConvertAtari2HostSurface
 (
     const SDL_Surface *pSrc,
     SDL_Surface *pDst,
@@ -739,6 +744,7 @@ void EmulationRunner::_OpenWindow(void)
     m_hostScreenW = m_atariScreenW * (m_atariScreenStretchX ? 2 : 1);
     m_hostScreenH = m_atariScreenH * (m_atariScreenStretchY ? 2 : 1);
 
+    // This is the screen buffer for the emulated Atari
     m_sdl_atari_surface = SDL_CreateRGBSurface(
             0,    // no flags
             m_atariScreenW,
@@ -751,7 +757,9 @@ void EmulationRunner::_OpenWindow(void)
     assert(m_sdl_atari_surface);
     // hack to mark the surface as "interleaved plane"
     if (planeBytes == 2)
+    {
         m_sdl_atari_surface->userdata = (void *) 1;
+    }
     // we do not deal with the alpha channel, otherwise we always must make sure that each pixel is 0xff******
     SDL_SetSurfaceBlendMode(m_sdl_atari_surface, SDL_BLENDMODE_NONE);
 
@@ -846,9 +854,11 @@ void EmulationRunner::_OpenWindow(void)
 
     MXVDI_PIXMAP *pixmap = &m_EmulatorScreen.m_PixMap;
 
+    hostVideoAddr = (uint8_t *) m_sdl_atari_surface->pixels;    // TODO: correct?
+
     // The baseAddr is supposed to be m_sdl_atari_surface->pixels, but this does no longer work
     // with 64-bit host computer.
-    pixmap->baseAddr      = 0x8000000 ;                    // target address, filled in by emulator
+    pixmap->baseAddr      = 0x8000000;                    // target address, filled in by emulator
     pixmap->rowBytes      = m_sdl_atari_surface->pitch | 0x8000;    // 0x4000 and 0x8000 are flags
     pixmap->bounds_top    = 0;
     pixmap->bounds_left   = 0;
@@ -1168,13 +1178,20 @@ void EmulationRunner::HandleUserEvents(SDL_Event* event)
  * @brief SDL event loop: Special user event to update the emulation window
  *
  * @note Only called from HandleUserEvents()
+ * @note If the Atari graphics format differs from host format, i.e. is not 32-bit RGB,
+ *       we have m_sdl_atari_surface. The emulated Atari will then change this surface
+ *       directly, via writing data to surface->pixels,
+ *       and we convert m_sdl_atari_surface to m_sdl_surface. The m_sdl_surface is then
+ *       drawn to texture and this one will be drawn to screen.
+ *       If the Atari graphics format is the same as host, the emulated Atari directly
+ *       writes to m_sdl_surface.
  *
  ************************************************************************************************/
 void EmulationRunner::EmulatorWindowUpdate(void)
 {
     DebugInfo("%s()", __func__);
 
-    // also does stretching:
+    // also does stretching, if necessary:
     SDL_Rect rc = { 0, 0, (int) m_hostScreenW, (int) m_hostScreenH };        // dst
     SDL_Rect rc2 = { 0, 0, (int) m_atariScreenW, (int) m_atariScreenH };    // src
 
@@ -1183,7 +1200,10 @@ void EmulationRunner::EmulatorWindowUpdate(void)
         fprintf(stderr, "INF: Atari Screen dirty\n");
         if (m_sdl_atari_surface != m_sdl_surface)
         {
-            ConvertSurface(m_sdl_atari_surface, m_sdl_surface, m_EmulatorScreen.m_pColourTable, m_atariScreenStretchX, m_atariScreenStretchY);
+            // convert Atari graphics format to host graphics format RGB
+            ConvertAtari2HostSurface(m_sdl_atari_surface, m_sdl_surface,
+                                    m_EmulatorScreen.m_pColourTable,
+                                    /*ignored*/ m_atariScreenStretchX, m_atariScreenStretchY);
         }
 
         UpdateTextureFromRect(m_sdl_texture, m_sdl_surface, NULL);

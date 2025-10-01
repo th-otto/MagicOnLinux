@@ -83,7 +83,7 @@ class CMagiC
 
 	struct Atari68kData
 	{
-		MXVDI_PIXMAP m_PixMap;	// the Atari screen, baseAddr is virtual 68k addresse
+		MXVDI_PIXMAP m_PixMap;	// the Atari screen, baseAddr is virtual 68k address
 		MgMxCookieData m_CookieData;
 	} __attribute__((packed));
 
@@ -202,7 +202,7 @@ class CMagiC
 
 	// Bildschirmdaten
 	bool m_bScreenBufferChanged;
-	unsigned char *m_pFgBuffer;				// foreground buffer
+	//unsigned char *m_pFgBuffer;				// foreground buffer
 	unsigned long m_FgBufferLineLenInBytes;
 //	unsigned char *m_pBgBuffer;				// do we need a background buffer?
 //	unsigned long m_BgBufferLineLenInBytes;

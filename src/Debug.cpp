@@ -105,7 +105,7 @@ void CDebug::_DebugInfo(const char *format, ...)
 	va_list arglist;
 	va_start(arglist, format);
 
-	_DebugPrint( "DBG-INF ", format, arglist);
+	_DebugPrint("DBG-INF ", format, arglist);
 }
 
 void CDebug::_DebugWarning(const char *format, ...)
@@ -113,7 +113,7 @@ void CDebug::_DebugWarning(const char *format, ...)
 	va_list arglist;
 	va_start(arglist, format);
 
-	_DebugPrint( "DBG-WRN ", format, arglist);
+	_DebugPrint("DBG-WRN ", format, arglist);
 }
 
 void CDebug::_DebugError(const char *format, ...)
@@ -121,6 +121,6 @@ void CDebug::_DebugError(const char *format, ...)
 	va_list arglist;
 	va_start(arglist, format);
 
-	_DebugPrint( "DBG-ERR ", format, arglist);
+	_DebugPrint("DBG-ERR ", format, arglist);
 }
 #endif

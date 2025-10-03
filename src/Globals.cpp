@@ -127,14 +127,13 @@ void CGlobals::InitDirectories(void)
 *
 ******************************************************************/
 
-int CGlobals::Init(void)
+void CGlobals::Init(void)
 {
 	strcpy(s_atariKernelPath, "/home/and/Documents/Atari-rootfs/MagicMacX.OS");
 	strcpy(s_atariRootfsPath, "/home/and/Documents/Atari-rootfs");
 	strcpy(s_atariScrapFileUnixPath, s_atariRootfsPath);
 	strcat(s_atariScrapFileUnixPath, scrapFileName);
 	strcpy(s_atariTempFilesUnixPath, "/tmp");
-	return 0;
 }
 
 

@@ -56,8 +56,11 @@ class CDebug
 #else
 #define DebugInit CDebug::_DebugInit
 #define DebugInfo(...) CDebug::_DebugInfo(__VA_ARGS__)
+#define DebugInfo2(format, ...) CDebug::_DebugInfo("%s" format, __func__, ##__VA_ARGS__)
 #define DebugWarning(...) CDebug::_DebugWarning(__VA_ARGS__)
+#define DebugWarning2(format, ...) CDebug::_DebugWarning("%s" format, __func__, ##__VA_ARGS__)
 #define DebugError(...) CDebug::_DebugError(__VA_ARGS__)
+#define DebugError2(format, ...) CDebug::_DebugError("%s" format, __func__, ##__VA_ARGS__)
 #endif
 #else
 /*

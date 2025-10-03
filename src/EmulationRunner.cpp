@@ -25,15 +25,14 @@
 #include "EmulationRunner.h"
 
 
-/*********************************************************************************************************
-*
-* Constructor
-*
-*********************************************************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Constructor
+ *
+ ************************************************************************************************/
 EmulationRunner::EmulationRunner(void)
 {
-    DebugInfo("%s()", __func__);
+    DebugInfo2("%s()");
     m_bQuitLoop = false;
     //drawContext = NULL;
     m_EmulatorThread = nullptr;
@@ -50,26 +49,24 @@ EmulationRunner::EmulationRunner(void)
 }
 
 
-/*********************************************************************************************************
-*
-* Destructor
-*
-*********************************************************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Destructor
+ *
+ ************************************************************************************************/
 EmulationRunner::~EmulationRunner(void)
 {
-    DebugInfo("%s()", __func__);
+    DebugInfo2("()");
 }
 
 
-/*********************************************************************************************************
-*
-* Initialisation
-*
-* Does some default initialisations that are independent from the current setting/configuration.
-*
-*********************************************************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Initialisation
+ *
+ * Does some default initialisations that are independent from the current setting/configuration.
+ *
+ ************************************************************************************************/
 void EmulationRunner::Init(void)
 {
     DebugInfo("%s()", __func__);
@@ -83,12 +80,11 @@ void EmulationRunner::Init(void)
 }
 
 
-/*********************************************************************************************************
+/** **********************************************************************************************
  *
- * Configuration
+ * @brief Configure virtual Atari from preferences
  *
- *********************************************************************************************************/
-
+ ************************************************************************************************/
 void EmulationRunner::Config
 (
     const char *atariKernelPath,
@@ -107,9 +103,9 @@ void EmulationRunner::Config
 {
     (void) atariLanguage;
 
-    DebugInfo("%s()", __func__);
+    DebugInfo2("()");
 
-    // memory size is passed as Megabytes (2 ^ 20)
+    // memory size is passed as megabytes (2 ^ 20)
     if (atariMemorySize < 1)
         atariMemorySize = 1;
     else
@@ -151,12 +147,16 @@ void EmulationRunner::Config
     else
         Globals.s_Preferences.m_atariScreenColourMode = atariScreenMode16M;
 
-    DebugInfo("%s() - atariScreenColourMode (%u)", __func__, atariScreenColourMode);
+    DebugInfo2("() - atariScreenColourMode (%u)", atariScreenColourMode);
 
     m_atariScreenStretchX = atariScreenStretchX;
     m_atariScreenStretchY = atariScreenStretchY;
-    DebugInfo("%s() - atariHideHostMouse(%u) -- ignored, because unreliable in SDL\n", __func__, atariHideHostMouse);
-//    m_atariHideHostMouse  = atariHideHostMouse;
+
+    if (atariHideHostMouse)
+    {
+        DebugWarning2("() - atariHideHostMouse ignored, because unreliable in SDL", atariHideHostMouse);
+        //    m_atariHideHostMouse  = atariHideHostMouse;
+    }
 
     if ((atariPrintCommand) && strlen(atariPrintCommand) < 255)
     {
@@ -164,7 +164,7 @@ void EmulationRunner::Config
     }
     else
     {
-        DebugInfo("%s(): atariPrintCommand string empty or too long, ignored\n", __func__);
+        DebugWarning2("(): atariPrintCommand string empty or too long, ignored");
     }
 
     if ((atariSerialDevice) && strlen(atariSerialDevice) < 255)
@@ -173,7 +173,7 @@ void EmulationRunner::Config
     }
     else
     {
-        DebugInfo("%s(): atariSerialDevice string empty or too long, ignored\n", __func__);
+        DebugWarning2("(): atariSerialDevice string empty or too long, ignored");
     }
 
     if ((atariKernelPath != nullptr) && strlen(atariKernelPath) < 1024)
@@ -182,7 +182,7 @@ void EmulationRunner::Config
     }
     else
     {
-        DebugInfo("%s(): atariKernelPath string empty or too long, ignored\n", __func__);
+        DebugWarning2("(): atariKernelPath string empty or too long, ignored");
     }
 
     if ((atariRootfsPath != nullptr) && strlen(atariRootfsPath) < 1024)
@@ -191,20 +191,22 @@ void EmulationRunner::Config
     }
     else
     {
-        DebugInfo("%s(): s_atariRootfsPath string empty or too long, ignored\n", __func__);
+        DebugWarning2("(): s_atariRootfsPath string empty or too long, ignored");
     }
 }
 
 
-/*********************************************************************************************************
+/** **********************************************************************************************
  *
- * Define virtual Atari drive
+ * @brief Reconfigure virtual Atari drive during runtime
  *
- *********************************************************************************************************/
-
+ * @param[in]  drvnr    Atari drive number 0..25
+ * @param[in]  path     host path
+ *
+ ************************************************************************************************/
 void EmulationRunner::ChangeAtariDrive(unsigned drvnr, const char *path)
 {
-    DebugInfo("%s()\n", __func__);
+    DebugInfo2("()\n");
     if (drvnr < NDRIVES)
     {
         Globals.s_Preferences.setDrvPath(drvnr, path);
@@ -216,15 +218,21 @@ void EmulationRunner::ChangeAtariDrive(unsigned drvnr, const char *path)
 }
 
 
-/*********************************************************************************************************
+/** **********************************************************************************************
  *
- * Start the 68k emulation thread
+ * @brief Start the 68k emulation thread (asynchronous function)
  *
- *********************************************************************************************************/
-
+ * @return status code
+ * @retval 0  thread started
+ * @retval 1  thread was already started
+ *
+ * @note Send a RUN_EMULATOR SDL user event, and this event will cause a short-life thread to
+ *       be created, and this thread will start the CMagiC emulator thread.
+ *
+ ************************************************************************************************/
 int EmulationRunner::StartEmulatorThread(void)
 {
-    DebugInfo("%s()\n", __func__);
+    DebugInfo2("()");
     if (!m_EmulatorThread)
     {
         // Send user event to event loop
@@ -244,15 +252,21 @@ int EmulationRunner::StartEmulatorThread(void)
 }
 
 
-/*********************************************************************************************************
+/** **********************************************************************************************
  *
- * Open the Emulation window (asynchronous function)
+ * @brief Open the Emulation window (asynchronous function)
  *
- *********************************************************************************************************/
-
+ * @return status code
+ * @retval 0  window will be opened
+ * @retval 1  window is already open
+ *
+ * @note Send a OPEN_EMULATOR_WINDOW SDL user event, and this event will cause
+ *       the emulator window to be opened.
+ *
+ ************************************************************************************************/
 int EmulationRunner::OpenWindow(void)
 {
-    DebugInfo("%s()\n", __func__);
+    DebugInfo2("()\n");
     if (!m_sdl_window)
     {
         // Send user event to event loop
@@ -272,26 +286,29 @@ int EmulationRunner::OpenWindow(void)
 }
 
 
-/*********************************************************************************************************
+/** **********************************************************************************************
  *
- * (private) A rectangle in an SDL Surface has changed
+ * @brief Helper function to redraw an SDL texture from a rectangle of an SDL surface
  *
- *********************************************************************************************************/
-
+ * @param[in]  txtu         SDL texture
+ * @param[in]  srf          SDL surface
+ * @param[in]  rect         rectangle, might be nullptr to update whole texture
+ *
+ * @note The drawing process to the screen is done later, by SDL_RenderCopy().
+ *
+ ************************************************************************************************/
 static void UpdateTextureFromRect(SDL_Texture *txtu, const SDL_Surface *srf, const SDL_Rect *rect)
 {
-    int r;
-
     const uint8_t *pixels = (const uint8_t *) srf->pixels;
     if (rect)
     {
         pixels += rect->y * srf->pitch;
         pixels += rect->x * srf->format->BytesPerPixel;
     }
-    r = SDL_UpdateTexture(txtu, rect, pixels, srf->pitch);
+    int r = SDL_UpdateTexture(txtu, rect, pixels, srf->pitch);
     if (r == -1)
     {
-        fprintf(stderr, "ERR: SDL %s", SDL_GetError());
+        DebugError2("() - SDL error %s", SDL_GetError());
     }
 }
 
@@ -370,7 +387,9 @@ static void ConvertAtari2HostSurface
     // hack to detect interleaved plane format
     int bitsperpixel = pSrc->format->BitsPerPixel;
     if (pSrc->userdata == (void *) 1)
+    {
         bitsperpixel *= 10;
+    }
 
     switch(bitsperpixel)
     {
@@ -624,39 +643,41 @@ static void ConvertAtari2HostSurface
 }
 
 
-/*********************************************************************************************************
+/** **********************************************************************************************
  *
- * (private) Start the 68k emulation thread
+ * @brief Create 200 Hz SDL timer and start the 68k emulation thread
  *
- *********************************************************************************************************/
-
+ * @note The 68k emulator thread will be started indirectly, via a short-life helper thread.
+ *
+ ************************************************************************************************/
 void EmulationRunner::_StartEmulatorThread(void)
 {
     m_timer = SDL_AddTimer(5 /* 5 milliseconds, 200 Hz */, LoopTimer, this);
+    // create a short-life helper thread that will later start the CMagiC
+    // thread. TODO: Why?
     m_EmulatorThread = SDL_CreateThread(_EmulatorThread, "EmulatorThread", this);
 }
 
 
-/*********************************************************************************************************
-*
-* Create all necessary surfaces and textures and open the emulation window
-*
-* See VDI source file SETUP.C for actual usage of the structure members, e.g. planeBytes == 2
-* forces Atari compatibility format, i.e. interleaved plane. The corresponding drivers are called
-* "MFMxxIP.SYS". Otherwise planeBytes is not used by VDI and may have any value.
-*
-* The guest drivers in particular (halfword = 16 bit):
-*
-* MFM16M.SYS        24 bit true colour, 32 bits per pixel, direct colour
-* MFM256.SYS        256 colours, indexed, 8 bits per pixel
-* MFM16.SYS            16 colours, indexed, 4 bits per pixel (packed, i.e. 2 pixel per byte)
-* MFM16IP.SYS        16 colours, indexed, 4 bits per pixel (interleaved plane, i.e. 16 pixels per 4 halfwords)
-* MFM4.SYS            this driver is addressed, but does not exist, unfortunately.
-* MFM4IP.SYS        4 colours, indexed, 2 bits per pixel (interleaved plane, i.e. 16 pixels per 2 halfwords)
-* MFM2.SYS            2 colours, indexed, 1 bit per pixel (interleaved plane and packed pixel is here the same)
-*
-*********************************************************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Create all necessary surfaces and textures and open the emulation window
+ *
+ * @note See VDI source file "SETUP.C" for actual usage of the structure members, e.g.
+ *       planeBytes == 2 forces Atari compatibility format, i.e. interleaved plane.
+ *       The corresponding drivers are called "MFMxxIP.SYS". Otherwise planeBytes is not
+ *       used by VDI and may have any value.
+ * @note The guest drivers in particular (halfword = 16 bits):
+ *
+ *     MFM16M.SYS   24 bit true colour, 32 bits per pixel, direct colour
+ *     MFM256.SYS   256 colours, indexed, 8 bits per pixel
+ *     MFM16.SYS    16 colours, indexed, 4 bits per pixel (packed, i.e. 2 pixel per byte)
+ *     MFM16IP.SYS  16 colours, indexed, 4 bits per pixel (interleaved plane, i.e. 16 pixels per 4 halfwords)
+ *     MFM4.SYS     This driver is addressed, but does not exist, unfortunately.
+ *     MFM4IP.SYS   4 colours, indexed, 2 bits per pixel (interleaved plane, i.e. 16 pixels per 2 halfwords)
+ *     MFM2.SYS     2 colours, indexed, 1 bit per pixel (interleaved plane and packed pixel is here the same)
+ *
+ ************************************************************************************************/
 void EmulationRunner::_OpenWindow(void)
 {
     int ret;
@@ -674,36 +695,36 @@ void EmulationRunner::_OpenWindow(void)
     switch(Globals.s_Preferences.m_atariScreenColourMode)
     {
         case atariScreenMode2:
-            screenbitsperpixel = 1;        // monochrome
-            planeBytes = 0;                // do not force Atari compatibiliy (interleaved plane) mode
+            screenbitsperpixel = 1;     // monochrome
+            planeBytes = 0;             // do not force Atari compatibiliy (interleaved plane) mode
             cmpCount = 1;
             cmpSize = 1;
             break;
 
         case atariScreenMode4ip:
-            screenbitsperpixel = 2;        // 4 colours, indirect
-            planeBytes = 2;                // change to 0 to force packed pixel instead of interleaved plane
+            screenbitsperpixel = 2;     // 4 colours, indirect
+            planeBytes = 2;             // change to 0 to force packed pixel instead of interleaved plane
             cmpCount = 1;
             cmpSize = 2;
             break;
 
         case atariScreenMode16:
-            screenbitsperpixel = 4;        // 16 colours, indirect
-            planeBytes = 0;                // packed pixel
+            screenbitsperpixel = 4;     // 16 colours, indirect
+            planeBytes = 0;             // packed pixel
             cmpCount = 1;
             cmpSize = 4;
             break;
 
         case atariScreenMode16ip:
-            screenbitsperpixel = 4;        // 16 colours, indirect
-            planeBytes = 2;                // force interleaved plane
+            screenbitsperpixel = 4;     // 16 colours, indirect
+            planeBytes = 2;             // force interleaved plane
             cmpCount = 1;
             cmpSize = 4;
             break;
 
         case atariScreenMode256:
-            screenbitsperpixel = 8;        // 256 colours, indirect
-            planeBytes = 0;                // do not force Atari compatibiliy (interleaved plane) mode
+            screenbitsperpixel = 8;     // 256 colours, indirect
+            planeBytes = 0;             // do not force Atari compatibiliy (interleaved plane) mode
             cmpCount = 1;
             cmpSize = 8;
             break;
@@ -714,7 +735,7 @@ void EmulationRunner::_OpenWindow(void)
             gmask = 0x03E0;
             bmask = 0x001F;
             amask = 0x8000;
-            pixelType = 16;                            // RGBDirect, 0 would be indexed
+            pixelType = 16;             // RGBDirect, 0 would be indexed
             planeBytes = 0;
             break;
 
@@ -730,12 +751,14 @@ void EmulationRunner::_OpenWindow(void)
             bmask = 0x00ff0000;
             amask = 0xff000000;
 #endif
-            pixelType = 16;                            // RGBDirect, 0 would be indexed
+            pixelType = 16;             // RGBDirect, 0 would be indexed
             planeBytes = 0;
             break;
     }
 
-    sprintf(m_window_title, "Atari Emulation (%ux%ux%u%s)", m_atariScreenW, m_atariScreenH, screenbitsperpixel, (planeBytes == 2) ? "ip" : "");
+    sprintf(m_window_title, "Atari Emulation (%ux%ux%u%s)",
+                            m_atariScreenW, m_atariScreenH,
+                            screenbitsperpixel, (planeBytes == 2) ? "ip" : "");
     m_visible = false;
     m_initiallyVisible = false;
 
@@ -799,35 +822,36 @@ void EmulationRunner::_OpenWindow(void)
 
     m_sdl_window = SDL_CreateWindow(
                                     m_window_title,
-                                    100,
-                                    100,
+                                    100,    // x position, TODO: read from .ini file
+                                    100,    // y position, TODO: read from .ini file
                                     m_hostScreenW,
                                     m_hostScreenH,
                                     SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
     assert(m_sdl_window);
 
-    //SDL_ShowWindow(m_sdl_window);  geht nicht, Fenster geht immer.
-
     m_sdl_renderer = SDL_CreateRenderer(m_sdl_window, -1, SDL_RENDERER_ACCELERATED);
-    if (!m_sdl_renderer)
-    {
-        DebugError("%s() : SDL %s", __func__, SDL_GetError());
-    }
     assert(m_sdl_renderer);
+    if (m_sdl_renderer == nullptr)
+    {
+        DebugError2("() : SDL error %s", SDL_GetError());
+        return;     // fatal
+    }
 
+    // initially fill whole window with white colour
     (void) SDL_FillRect(m_sdl_surface, NULL, 0x00ffffff);
     m_sdl_texture = SDL_CreateTextureFromSurface(m_sdl_renderer, m_sdl_surface);    // seems not to work with non-native format?!?
     assert(m_sdl_texture);
+    if (m_sdl_texture == nullptr)
+    {
+        DebugError2("() : SDL error %s", SDL_GetError());
+        return;     // fatal
+    }
 
-    // Clear the entire screen to our selected color (white).
-    //    SDL_SetRenderDrawColor(m_sdl_renderer, 255, 255, 255, 255);
-    //    SDL_RenderClear(m_sdl_renderer);
-
-    // alles wei�, aber noch nicht rendern, weil Fenster unsichtbar.
-
-    // draw test
 #if 1
-    // This test code draws a grey square
+    /*
+    * Draw test:  draws a grey square
+    */
+
     SDL_Rect r = { 1, 1, 256, 256 };
     //SDL_Rect r = { 0, 0, screenw, screenh };
     // 0xff000000        black
@@ -842,7 +866,6 @@ void EmulationRunner::_OpenWindow(void)
     }
     UpdateTextureFromRect(m_sdl_texture, m_sdl_surface, &r);
 #endif
-//    UpdateTextureFromRect(m_sdl_texture, m_sdl_surface, NULL);
 
     /*
      * Stuff needed for the MagiC graphics kernel
@@ -850,15 +873,19 @@ void EmulationRunner::_OpenWindow(void)
 
     // create ancient style Pixmap structure to be passed to the Atari kernel, from m_sdl_surface
     assert(m_sdl_atari_surface->pitch < 0x4000);            // Pixmap limit and thus limit for Atari
-    assert((m_sdl_atari_surface->pitch & 3) == 0);        // pitch (alias rowBytes) must be dividable by 4
+    assert((m_sdl_atari_surface->pitch & 3) == 0);          // pitch (alias rowBytes) must be dividable by 4
 
     MXVDI_PIXMAP *pixmap = &m_EmulatorScreen.m_PixMap;
 
-    hostVideoAddr = (uint8_t *) m_sdl_atari_surface->pixels;    // TODO: correct?
+    // We use a global pointer directly used by the heart of the
+    // 68k emulator ("mem_access_68k.cpp"). Whenever the emulator detects an access
+    // to the guest's video memory, the real access, read or write, will be done
+    // via this pointer.
+    hostVideoAddr = (uint8_t *) m_sdl_atari_surface->pixels;
 
     // The baseAddr is supposed to be m_sdl_atari_surface->pixels, but this does no longer work
-    // with 64-bit host computer.
-    pixmap->baseAddr      = 0x8000000;                    // target address, filled in by emulator
+    // with 64-bit host computer. However, the baseAddr will be changed later anyway
+    pixmap->baseAddr      = 0x8000000;                    // dummy target address, later filled in by emulator
     pixmap->rowBytes      = m_sdl_atari_surface->pitch | 0x8000;    // 0x4000 and 0x8000 are flags
     pixmap->bounds_top    = 0;
     pixmap->bounds_left   = 0;
@@ -869,9 +896,9 @@ void EmulationRunner::_OpenWindow(void)
     pixmap->packSize      = 0;                            // unimportant?
     pixmap->pixelType     = pixelType;                    // 16 is RGBDirect, 0 would be indexed
     pixmap->pixelSize     = m_sdl_atari_surface->format->BitsPerPixel;
-    pixmap->cmpCount      = cmpCount;                    // components: 3 = red, green, blue, 1 = monochrome
-    pixmap->cmpSize       = cmpSize;                    // True colour: 8 bits per component
-    pixmap->planeBytes    = planeBytes;                    // offset to next plane
+    pixmap->cmpCount      = cmpCount;                     // components: 3 = red, green, blue, 1 = monochrome
+    pixmap->cmpSize       = cmpSize;                      // True colour: 8 bits per component
+    pixmap->planeBytes    = planeBytes;                   // offset to next plane
     pixmap->pmTable       = 0;
     pixmap->pmReserved    = 0;
 }
@@ -926,12 +953,11 @@ Uint32 EmulationRunner::LoopTimer(Uint32 interval, void *param)
 }
 
 
-/*********************************************************************************************************
+/** **********************************************************************************************
  *
- * Cleanup
+ * @brief Cleanup, removes SDL timer and quits SDL
  *
- *********************************************************************************************************/
-
+ ************************************************************************************************/
 void EmulationRunner::Cleanup(void)
 {
     (void) SDL_RemoveTimer(m_timer);
@@ -939,35 +965,38 @@ void EmulationRunner::Cleanup(void)
 }
 
 
-/*********************************************************************************************************
+/** **********************************************************************************************
  *
- * Debug helper
+ * @brief Debug helper to convert SDL event id to text
  *
- *********************************************************************************************************/
-
+ * @param[in]  id   SDL event id
+ *
+ * @return SDL event as text
+ *
+ ************************************************************************************************/
 const char *SDL_WindowEventID_to_str(SDL_WindowEventID id)
 {
     switch(id)
     {
         case SDL_WINDOWEVENT_NONE:            return "NONE";
-        case SDL_WINDOWEVENT_SHOWN:            return "SHOWN";
-        case SDL_WINDOWEVENT_HIDDEN:        return "HIDDEN";
-        case SDL_WINDOWEVENT_EXPOSED:        return "EXPOSED";
-        case SDL_WINDOWEVENT_MOVED:            return "MOVED";
-        case SDL_WINDOWEVENT_RESIZED:        return "RESIZED";
+        case SDL_WINDOWEVENT_SHOWN:           return "SHOWN";
+        case SDL_WINDOWEVENT_HIDDEN:          return "HIDDEN";
+        case SDL_WINDOWEVENT_EXPOSED:         return "EXPOSED";
+        case SDL_WINDOWEVENT_MOVED:           return "MOVED";
+        case SDL_WINDOWEVENT_RESIZED:         return "RESIZED";
         case SDL_WINDOWEVENT_SIZE_CHANGED:    return "SIZE_CHANGED";
-        case SDL_WINDOWEVENT_MINIMIZED:        return "MINIMIZED";
-        case SDL_WINDOWEVENT_MAXIMIZED:        return "MAXIMIZED";
+        case SDL_WINDOWEVENT_MINIMIZED:       return "MINIMIZED";
+        case SDL_WINDOWEVENT_MAXIMIZED:       return "MAXIMIZED";
         case SDL_WINDOWEVENT_RESTORED:        return "RESTORED";
-        case SDL_WINDOWEVENT_ENTER:            return "ENTER";
-        case SDL_WINDOWEVENT_LEAVE:            return "LEAVE";
+        case SDL_WINDOWEVENT_ENTER:           return "ENTER";
+        case SDL_WINDOWEVENT_LEAVE:           return "LEAVE";
         case SDL_WINDOWEVENT_FOCUS_GAINED:    return "FOCUS_GAINED";
-        case SDL_WINDOWEVENT_FOCUS_LOST:    return "FOCUS_LOST";
-        case SDL_WINDOWEVENT_CLOSE:            return "CLOSE";
-        case SDL_WINDOWEVENT_TAKE_FOCUS:    return "TAKE_FOCUS";
+        case SDL_WINDOWEVENT_FOCUS_LOST:      return "FOCUS_LOST";
+        case SDL_WINDOWEVENT_CLOSE:           return "CLOSE";
+        case SDL_WINDOWEVENT_TAKE_FOCUS:      return "TAKE_FOCUS";
         case SDL_WINDOWEVENT_HIT_TEST:        return "HIT_TEST";
-        case SDL_WINDOWEVENT_ICCPROF_CHANGED:        return "ICCPROF_CHANGED";
-        case SDL_WINDOWEVENT_DISPLAY_CHANGED:        return "DISPLAY_CHANGED";
+        case SDL_WINDOWEVENT_ICCPROF_CHANGED: return "ICCPROF_CHANGED";
+        case SDL_WINDOWEVENT_DISPLAY_CHANGED: return "DISPLAY_CHANGED";
     }
 
     return "UNKNOWN";
@@ -985,7 +1014,7 @@ void EmulationRunner::EventLoop(void)
 {
     uint8_t *clipboardData;
 
-    DebugInfo("%s()", __func__);
+    DebugInfo2("()");
     SDL_Event event;
 
     // Do not catch keyboard events, leave them for dialogue windows
@@ -998,7 +1027,7 @@ void EmulationRunner::EventLoop(void)
             case SDL_WINDOWEVENT:
                 {
                     const SDL_WindowEvent *ev = (SDL_WindowEvent *) &event;
-                    DebugInfo("%s() - SDL window event: evt=%u, wid=%u, ev=%s, data1=0x%08x, data2=0x%08x",__func__,
+                    DebugInfo2("() - SDL window event: evt=%u, wid=%u, ev=%s, data1=0x%08x, data2=0x%08x",
                             ev->type,
                             ev->windowID,
                             SDL_WindowEventID_to_str((SDL_WindowEventID) ev->event),
@@ -1073,7 +1102,7 @@ void EmulationRunner::EventLoop(void)
             case SDL_MOUSEMOTION:
                 {
                     const SDL_MouseMotionEvent *ev = (SDL_MouseMotionEvent *) &event;
-                    DebugInfo("%s() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", __func__, ev->x, ev->y, ev->xrel, ev->yrel);
+                    DebugInfo2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
                     int x = ev->x;
                     int y = ev->y;
                     if (m_atariScreenStretchX)
@@ -1088,7 +1117,7 @@ void EmulationRunner::EventLoop(void)
             case SDL_MOUSEBUTTONUP:
                 {
                     const SDL_MouseButtonEvent *ev = (SDL_MouseButtonEvent *) &event;
-                    DebugInfo("%s() - mouse button %s: x = %d, y = %d, button = %d", __func__,
+                    DebugInfo2("() - mouse button %s: x = %d, y = %d, button = %d",
                             ev->type == SDL_MOUSEBUTTONUP ? "up" : "down", ev->x, ev->y, ev->button);
                     int atariMouseButton = -1;
                     if (ev->button == 1)
@@ -1107,7 +1136,7 @@ void EmulationRunner::EventLoop(void)
             case SDL_MOUSEWHEEL:
                 {
                     const SDL_MouseWheelEvent *ev = (SDL_MouseWheelEvent *) &event;
-                     DebugInfo("%s() - mouse wheel: x = %d, y = %d", __func__, ev->x, ev->y);
+                    DebugInfo2("() - mouse wheel: x = %d, y = %d", ev->x, ev->y);
                 }
                 break;
 
@@ -1123,13 +1152,13 @@ void EmulationRunner::EventLoop(void)
                 break;
 
             default:
-                DebugWarning("%s() - unhandled SDL event %u", __func__, event.type);
+                DebugWarning2("() - unhandled SDL event %u", event.type);
                 break;
-        }   // End switch
+        }   // end switch
 
-    }   // End while
+    }   // end while
 
-    DebugInfo("%s() =>", __func__);
+    DebugInfo2("() =>");
 }
 
 
@@ -1147,21 +1176,21 @@ void EmulationRunner::HandleUserEvents(SDL_Event* event)
     switch (event->user.code)
     {
         case OPEN_EMULATOR_WINDOW:
-            if (!m_sdl_window)
+            if (m_sdl_window == nullptr)
             {
                 _OpenWindow();
             }
             break;
 
         case RUN_EMULATOR:
-            if (!m_EmulatorThread)
+            if (m_EmulatorThread == nullptr)
             {
                 _StartEmulatorThread();
             }
             break;
 
         case RUN_EMULATOR_WINDOW_UPDATE:
-            if (m_sdl_window)
+            if (m_sdl_window != nullptr)
             {
                 EmulatorWindowUpdate();
             }
@@ -1189,7 +1218,7 @@ void EmulationRunner::HandleUserEvents(SDL_Event* event)
  ************************************************************************************************/
 void EmulationRunner::EmulatorWindowUpdate(void)
 {
-    DebugInfo("%s()", __func__);
+    DebugInfo2("()");
 
     // also does stretching, if necessary:
     SDL_Rect rc = { 0, 0, (int) m_hostScreenW, (int) m_hostScreenH };        // dst
@@ -1206,13 +1235,13 @@ void EmulationRunner::EmulatorWindowUpdate(void)
                                     /*ignored*/ m_atariScreenStretchX, m_atariScreenStretchY);
         }
 
-        UpdateTextureFromRect(m_sdl_texture, m_sdl_surface, NULL);
+        UpdateTextureFromRect(m_sdl_texture, m_sdl_surface, nullptr);
 
         if (m_visible)
         {
             if (m_initiallyVisible)
             {
-                (void) SDL_RenderCopy(m_sdl_renderer, m_sdl_texture, NULL, NULL);
+                (void) SDL_RenderCopy(m_sdl_renderer, m_sdl_texture, nullptr, nullptr);
                 m_initiallyVisible = false;
             }
             else
@@ -1226,12 +1255,15 @@ void EmulationRunner::EmulatorWindowUpdate(void)
 }
 
 
-/*********************************************************************************************************
-*
-* thread starter helper
-*
-*********************************************************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Thread starter helper
+ *
+ * @param[in]  ptr      "this" pointer
+ *
+ * @return The return value is always zero
+ *
+ ************************************************************************************************/
 /* static */ int EmulationRunner::_EmulatorThread(void *ptr)
 {
     EmulationRunner *pThis = (EmulationRunner *) ptr;
@@ -1239,36 +1271,36 @@ void EmulationRunner::EmulatorWindowUpdate(void)
 }
 
 
-/*********************************************************************************************************
-*
-* start emulator. This thread automatically will die after having done so.
-*
-*********************************************************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Short-life thread to create and start emulator thread in CMagiC object
+ *
+ * @return The return value is always zero
+ *
+ * @note The SDL user event RUN_EMULATOR causes a short-life thread to be started. This
+ *       EmulatorThread() initialises the CMagiC object and starts the CMagiC thread.
+ *       Afterwards the EmulatorThread() automatically ends.
+ *
+ ************************************************************************************************/
 int EmulationRunner::EmulatorThread()
 {
-    DebugInfo("%s()", __func__);
+    DebugInfo2("()");
     int err;
 
     DebugInit(NULL /* stderr */);
-    err = CGlobals::Init();
-    if (err)
-    {
-        fprintf(stderr, "ERR: CGlobals::Init() => %d\n", err);
-        return 0;
-    }
+    CGlobals::Init();
 
     err = m_Emulator.Init(&m_EmulatorScreen, &m_EmulatorXcmd);
     if (err)
     {
-        fprintf(stderr, "ERR: m_Emulator.Init() => %d\n", err);
+        DebugError2("() => %d", err);
         return 0;
     }
 
     err = m_Emulator.CreateThread();
     if (err)
     {
-        fprintf(stderr, "ERR: m_Emulator.CreateThread() => %d\n", err);
+        DebugError2("() - m_Emulator.CreateThread() => %d", err);
         return 0;
     }
 
@@ -1276,6 +1308,6 @@ int EmulationRunner::EmulatorThread()
 
     m_Emulator.StartExec();
 
-    DebugInfo("%s() =>", __func__);
+    DebugInfo2("() =>");
     return 0;
 }

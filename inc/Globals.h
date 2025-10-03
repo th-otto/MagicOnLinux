@@ -177,7 +177,7 @@ class CGlobals
 				const char *hostpPath,
 				char *pBuf,
 				unsigned uBufLen);
-	static int Init(void);
+	static void Init(void);
 	static bool s_bRunning;
 
 	// leave Mac menu visible, no fullscreen

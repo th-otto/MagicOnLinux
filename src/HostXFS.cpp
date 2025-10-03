@@ -727,7 +727,7 @@ INT32 CHostXFS::hostpath2HostFD
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange)
 {
-    DebugInfo("%s(drv = %u (%c:), flg = %d)", __func__, drv, 'A' + drv, flg_ask_diskchange);
+    DebugInfo2("(drv = %u (%c:), flg = 0x%08x)", drv, 'A' + drv, flg_ask_diskchange);
 
     if (flg_ask_diskchange)
     {
@@ -1747,7 +1747,7 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
  ************************************************************************************************/
 INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz)
 {
-    DebugInfo("%s(drv = %u, dd->dirID = %u)", __func__, drv, dd->dirID);
+    DebugInfo2("(drv = %u, dd->dirID = %u)", drv, dd->dirID);
 
     buf[0] = '\0';      // in case of error...
 
@@ -1772,7 +1772,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     }
 
     int dir_fd = hostFD->fd;
-    DebugInfo("%s() : dir_fd = %d", __func__, dir_fd);
+    DebugInfo2("() : dir_fd = %d", dir_fd);
     if (dir_fd == -1)
     {
         return EINTRN;
@@ -1786,7 +1786,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     ssize_t size = readlink(pathname, pathbuf, 1023);
     if (size < 0)
     {
-        DebugWarning("%s() : readlink() -> %s", __func__, strerror(errno));
+        DebugWarning2("%s() : readlink() -> %s", strerror(errno));
         return EINTRN;
     }
     pathbuf[size] = '\0';   // necessary
@@ -1797,7 +1797,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     // root must be prefix of our path
     if ((pathlen < rootlen) || strncmp(atari_root, pathbuf, rootlen))
     {
-        DebugError("%s() : cannot convert host path %s to Atari", __func__, pathbuf);
+        DebugError2("() : cannot convert host path %s to Atari", pathbuf);
         return EINTRN;
     }
     const char *atari_path = pathbuf + rootlen;
@@ -1807,7 +1807,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     }
     if (strlen(atari_path) + 1 > bufsiz)
     {
-        DebugWarning("%s() : buffer too small", __func__);
+        DebugWarning2("() : buffer too small");
         return EPTHOV;
     }
 
@@ -1821,7 +1821,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     *p++ = '\\';
     bufsiz -= 1;
     hostFnameToAtariFname(atari_path, (unsigned char *) p);
-    DebugInfo("%s() -> \"%s\"", __func__, buf);
+    DebugInfo2("() -> \"%s\"", buf);
 
     return E_OK;
 }
@@ -1849,13 +1849,15 @@ INT32 CHostXFS::xfs_dopendir
     uint16_t tosflag
 )
 {
-    DebugInfo("%s(drv = %u, tosflag = %d)", __func__, drv, tosflag);
+    DebugInfo2("(drv = %u, tosflag = %d)", drv, tosflag);
     if (drv_changed[drv])
     {
+        DebugWarning2("() => E_CHNG");
         return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
+        DebugWarning2("() => EDRIVE");
         return EDRIVE;
     }
 
@@ -1863,6 +1865,7 @@ INT32 CHostXFS::xfs_dopendir
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
     {
+        DebugWarning2("() => EINTRN");
         return EINTRN;
     }
 
@@ -1870,14 +1873,14 @@ INT32 CHostXFS::xfs_dopendir
     off_t lret = lseek(dir_fd, 0, SEEK_SET);    // necessary if directory has been scanned before?
     if (lret < 0)
     {
-        DebugWarning("%s() : lseek() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : lseek() -> %s", strerror(errno));
     }
     DebugInfo("%s() - open directory from host fd %d", __func__, dir_fd);
     int dup_dir_fd = dup(dir_fd);
     DIR *dir = fdopendir(dup_dir_fd);
     if (dir == nullptr)
     {
-        DebugWarning("%s() : fdopendir() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : fdopendir() -> %s", strerror(errno));
         close(dup_dir_fd);
         return CConversion::Host2AtariError(errno);
     }
@@ -1887,7 +1890,7 @@ INT32 CHostXFS::xfs_dopendir
     dirh->index = 0;  // unused
     dirh -> tosflag = tosflag;
 
-    DebugInfo("%s() -> E_OK", __func__);
+    DebugInfo("() -> E_OK");
 
     return E_OK;
 }
@@ -1906,7 +1909,7 @@ INT32 CHostXFS::xfs_dopendir
  *
  * @return E_OK or negative error code
  *
- * @note If the drectory had been opened in 8+3 mode, long filenames are ignored.
+ * @note If the directory had been opened in 8+3 mode, long filenames are ignored.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_dreaddir
@@ -1919,30 +1922,30 @@ INT32 CHostXFS::xfs_dreaddir
     INT32 *xr
 )
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo2("(drv = %u, size = %u)", drv);
 
 
     if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
-        DebugWarning("%s() -> EIHNDL", __func__);
+        DebugWarning2("() -> EIHNDL");
         return EIHNDL;
     }
 
     if ((dirh->tosflag) && (size < 13))
     {
-        DebugWarning("%s() : name buffer is too small for 8+3, ignore all entries", __func__);
+        DebugWarning2("() : name buffer is too small for 8+3, ignore all entries");
         return ATARIERR_ERANGE;
     }
 
     if (drv_changed[drv])
     {
-        DebugWarning("%s() -> E_CHNG", __func__);
+        DebugWarning2("() -> E_CHNG");
         return E_CHNG;
     }
 
     if (drv_host_path[drv] == nullptr)
     {
-        DebugWarning("%s() -> EDRIVE", __func__);
+        DebugWarning2("() -> EDRIVE");
         return EDRIVE;
     }
 
@@ -1950,7 +1953,7 @@ INT32 CHostXFS::xfs_dreaddir
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         return EINTRN;
     }
 
@@ -1958,7 +1961,7 @@ INT32 CHostXFS::xfs_dreaddir
     DebugInfo("%s() - using host fd %d", __func__, dir_fd);
     if (dir_fd == -1)
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         return EINTRN;
     }
 
@@ -1967,12 +1970,12 @@ INT32 CHostXFS::xfs_dreaddir
     uint16_t snextHdl = (uint16_t) dirh->vRefNum;
     if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         return EINTRN;
     }
     if (hhdl != hhdl2)
     {
-        DebugError("%s() - dir_fd mismatch", __func__);
+        DebugError2("%s() - dir_fd mismatch");
         return EINTRN;
     }
 
@@ -1987,7 +1990,7 @@ INT32 CHostXFS::xfs_dreaddir
         {
             if (errno != 0)
             {
-                DebugWarning("%s() : readdir() -> %s", __func__, strerror(errno));
+                DebugWarning2("() : readdir() -> %s", strerror(errno));
             }
             atari_err = ENMFIL;
             break;  // end of directory
@@ -1997,6 +2000,7 @@ INT32 CHostXFS::xfs_dreaddir
         {
             if (nameto_8_3(entry->d_name, (unsigned char *) buf, false, true))
             {
+                DebugWarning2("() : filename \"%s\" does not fit to 8+3 scheme", entry->d_name);
                 continue;   // filename was shortened, so it was too long for 8+3
             }
         }
@@ -2015,19 +2019,19 @@ INT32 CHostXFS::xfs_dreaddir
                 }
                 else
                 {
-                    DebugWarning("%s() : fstat(\"%s\") -> %s", __func__, entry->d_name, strerror(errno));
+                    DebugWarning2("() : fstat(\"%s\") -> %s", entry->d_name, strerror(errno));
                     atari_stat_err = CConversion::Host2AtariError(errno);
                     break;
                 }
             }
             else
             {
-                DebugWarning("%s() : openat(\"%s\") -> %s", __func__, entry->d_name, strerror(errno));
+                DebugWarning2("() : openat(\"%s\") -> %s", entry->d_name, strerror(errno));
                 atari_stat_err = CConversion::Host2AtariError(errno);
             }
         }
 
-        DebugInfo("%s() - found \"%s\"", __func__, entry->d_name);
+        DebugInfo2("() - found \"%s\"", entry->d_name);
         // buf needs space for 4 bytes i-node plus filename plus NUL byte
 		if (size >= strlen(entry->d_name) + 5)
         {
@@ -2037,6 +2041,7 @@ INT32 CHostXFS::xfs_dreaddir
         }
         else
         {
+            DebugError2("() : buffer size %u too small => ERANGE", size);
             atari_err = ATARIERR_ERANGE;
         }
 
@@ -2216,12 +2221,12 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
  *         4:   number of bytes that can be written atomically
  *         5:   information about file name truncation
  *              0 = File names are never truncated; if the file name in any system call affecting
- *                  this directory exceeds the  maximum  length (returned by mode 3), then the
- *                  error value ERANGE is  returned  from  that  system call.
+ *                  this directory exceeds the maximum length (returned by mode 3), then the
+ *                  error value ERANGE is returned from that system call.
  *
  *              1 = File names are automatically truncated to the maximum length.
  *
- *              2 = File names are truncated according  to  DOS  rules, i.e. to a
+ *              2 = File names are truncated according to DOS rules, i.e. to a
  *                  maximum 8 character base name and a maximum 3 character extension.
  *         6:   0 = case sensitive
  *              1 = not case sensitive, always uppercase
@@ -2595,9 +2600,8 @@ static INT32 CHostXFS::dev_pread( MAC_FD *f, ParamBlockRec *pb )
  ************************************************************************************************/
 INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
 {
-    DebugInfo("%s(fd = 0x%0x, count = %d)", __func__, f, count);
-
     GET_hhdl_AND_fd
+    DebugInfo2("(fd = 0x%0x, count = %d) - host fd = %d", f, count, fd);
 
     ssize_t bytes = read(fd, buf, count);
     if (bytes < 0)
@@ -2612,6 +2616,7 @@ INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
         return ATARIERR_ERANGE;
     }
 
+    DebugInfo2("() => %d", (int32_t) bytes);
     return (int32_t) bytes;
 }
 
@@ -2656,29 +2661,29 @@ INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
  ************************************************************************************************/
 INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
 {
-    DebugInfo("%s(fd = 0x%0x, pos = %d)", __func__, f, pos);
-
     GET_hhdl_AND_fd
+    DebugInfo2("(fd = 0x%0x, pos = %d) - host fd = %d", f, pos, fd);
 
     if (mode > 3)
     {
-        DebugError("invalid seek mode");
+        DebugError2("() - invalid seek mode");
         return EINVFN;
     }
 
     off_t offs = lseek(fd, pos, mode);
     if (offs < 0)
     {
-        DebugWarning("%s() : lseek() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : lseek() -> %s", strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
 
     if (offs > 0x7fffffff)
     {
-        DebugError("file too large");
+        DebugError2("() - file too large");
         return ATARIERR_ERANGE;
     }
 
+    DebugInfo2("() => %d", (int32_t) offs);
     return (int32_t) offs;
 }
 

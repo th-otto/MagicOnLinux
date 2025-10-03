@@ -26,14 +26,14 @@
 // system headers
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
-//#include <OpenGL/gl.h>		// needed?
-//#include <OpenGL/glu.h>		// needed?
+//#include <OpenGL/gl.h>        // needed?
+//#include <OpenGL/glu.h>        // needed?
 // user headers
 #include "Debug.h"
 #include "Globals.h"
 #include "MagiC.h"
 #include "XCmd.h"
-#include "Clipboard.h"		// MagiC clipboad handling
+#include "Clipboard.h"        // MagiC clipboad handling
 #include "missing.h"
 
 class EmulationRunner
@@ -41,71 +41,71 @@ class EmulationRunner
     protected:
         SDL_TimerID m_timer;
         bool m_bQuitLoop;
-	unsigned m_200HzCnt;
+    unsigned m_200HzCnt;
 
     public:
         // Constructor and destructor
         EmulationRunner(void);
         ~EmulationRunner(void);
 
-		int StartEmulatorThread(void);
-		void EventLoop(void);
+        int StartEmulatorThread(void);
+        void EventLoop(void);
         void Init(void);
-		void Config(
-			const char *atariKernelPathUrl,
-			const char *atariRootfsPathUrl,
-			 unsigned atariMemorySize,
-			 unsigned atariScreenWidth,
-			 unsigned atariScreenHeight,
-			 unsigned atariScreenColourMode,
-			bool atariScreenStretchX,
-			bool atariScreenStretchY,
-			unsigned atariLanguage,
-			 bool atariHideHostMouse,
-			 const char *atariPrintCommand,
-			 const char *atariSerialDevice);
-		int OpenWindow(void);
-		void Cleanup(void);
-		void ChangeAtariDrive(unsigned drvnr, const char *path);
+        void Config(
+                const char *atariKernelPathUrl,
+                const char *atariRootfsPathUrl,
+                unsigned atariMemorySize,
+                unsigned atariScreenWidth,
+                unsigned atariScreenHeight,
+                unsigned atariScreenColourMode,
+                bool atariScreenStretchX,
+                bool atariScreenStretchY,
+                unsigned atariLanguage,
+                bool atariHideHostMouse,
+                const char *atariPrintCommand,
+                const char *atariSerialDevice);
+        int OpenWindow(void);
+        void Cleanup(void);
+        void ChangeAtariDrive(unsigned drvnr, const char *path);
 
-	private:
+    private:
         static Uint32 LoopTimer(Uint32 interval, void* param);
 
         void HandleUserEvents(SDL_Event* event);
-        
+
         // Game related functions
         void EmulatorWindowUpdate(void);
 
-		void _OpenWindow(void);
-		void _StartEmulatorThread(void);
+        void _OpenWindow(void);
+        void _StartEmulatorThread(void);
 
-	unsigned m_atariScreenW;
-	unsigned m_atariScreenH;
-	unsigned m_hostScreenW;
-	unsigned m_hostScreenH;
-	bool m_atariHideHostMouse;
-	bool m_atariScreenStretchX;
-	bool m_atariScreenStretchY;
-	unsigned screenbitsperpixel;
-	char m_window_title[256];
-	uint32_t m_counter;
-	bool m_visible;
-	bool m_initiallyVisible;
+    unsigned m_atariScreenW;
+    unsigned m_atariScreenH;
+    unsigned m_hostScreenW;
+    unsigned m_hostScreenH;
+    bool m_atariHideHostMouse;
+    bool m_atariScreenStretchX;
+    bool m_atariScreenStretchY;
+    unsigned screenbitsperpixel;
+    char m_window_title[256];
+    uint32_t m_counter;
+    bool m_visible;
+    bool m_initiallyVisible;
 
-	SDL_Surface *m_sdl_atari_surface;		// surface in Atari native pixel format or NULL
-	SDL_Surface *m_sdl_surface;				// surface in host native pixel format
-	SDL_Window  *m_sdl_window;
-	SDL_Renderer *m_sdl_renderer;
-	SDL_Texture *m_sdl_texture;
-	CMagiCScreen m_EmulatorScreen;
-	CXCmd m_EmulatorXcmd;
-	CMagiC m_Emulator;
-	SDL_Thread *m_EmulatorThread;
-	bool m_EmulatorRunning;
+    SDL_Surface *m_sdl_atari_surface;        // surface in Atari native pixel format or NULL
+    SDL_Surface *m_sdl_surface;                // surface in host native pixel format
+    SDL_Window  *m_sdl_window;
+    SDL_Renderer *m_sdl_renderer;
+    SDL_Texture *m_sdl_texture;
+    CMagiCScreen m_EmulatorScreen;
+    CXCmd m_EmulatorXcmd;
+    CMagiC m_Emulator;
+    SDL_Thread *m_EmulatorThread;
+    bool m_EmulatorRunning;
 
 private:
-	int EmulatorThread();
-	static int _EmulatorThread(void *ptr);
+    int EmulatorThread();
+    static int _EmulatorThread(void *ptr);
 };
 
 const int RUN_EMULATOR_WINDOW_UPDATE = 1;

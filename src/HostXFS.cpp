@@ -67,8 +67,8 @@ extern void _DumpAtariMem(const char *filename);
 #endif
 
 // suppress Host XFS debug info
-#undef DebugInfo
-#define DebugInfo(...)
+//#undef DebugInfo
+//#define DebugInfo(...)
 
 
 /** **********************************************************************************************
@@ -690,7 +690,8 @@ INT32 CHostXFS::hostpath2HostFD
             *hhdl = HOST_HANDLE_INVALID;
             return CConversion::Host2AtariError(errno);
         }
-        DebugInfo("%s() : dev=%d, ino=%d)", __func__, statbuf.st_dev, statbuf.st_ino);
+
+        //DebugInfo("%s() : dev=%d, ino=%d)", __func__, statbuf.st_dev, statbuf.st_ino);
         hostFD->dev = statbuf.st_dev;
         hostFD->ino = statbuf.st_ino;
 
@@ -1817,6 +1818,8 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     *p++ = '\\';
     bufsiz -= 3;
     */
+    *p++ = '\\';
+    bufsiz -= 1;
     hostFnameToAtariFname(atari_path, (unsigned char *) p);
     DebugInfo("%s() -> \"%s\"", __func__, buf);
 

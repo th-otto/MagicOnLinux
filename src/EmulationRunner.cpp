@@ -1146,6 +1146,9 @@ void EmulationRunner::EventLoop(void)
             case SDL_TEXTINPUT:
                 break;
 
+            case SDL_AUDIODEVICEADDED:
+                break;
+
             case SDL_QUIT:
                 m_Emulator.TerminateThread();
                 m_bQuitLoop = true;

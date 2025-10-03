@@ -2025,7 +2025,7 @@ INT32 CHostXFS::xfs_dreaddir
         }
 
         DebugInfo("%s() - found \"%s\"", __func__, entry->d_name);
-        // buf needs space for 4 bytes i-node plus filename plus NUl byte
+        // buf needs space for 4 bytes i-node plus filename plus NUL byte
 		if (size >= strlen(entry->d_name) + 5)
         {
             strncpy(buf, (char *) &entry->d_ino, 4);

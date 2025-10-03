@@ -1102,7 +1102,7 @@ void EmulationRunner::EventLoop(void)
             case SDL_MOUSEMOTION:
                 {
                     const SDL_MouseMotionEvent *ev = (SDL_MouseMotionEvent *) &event;
-                    DebugInfo2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
+                    // TOO OFTEN DebugInfo2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
                     int x = ev->x;
                     int y = ev->y;
                     if (m_atariScreenStretchX)
@@ -1218,7 +1218,7 @@ void EmulationRunner::HandleUserEvents(SDL_Event* event)
  ************************************************************************************************/
 void EmulationRunner::EmulatorWindowUpdate(void)
 {
-    DebugInfo2("()");
+    // too often DebugInfo2("()");
 
     // also does stretching, if necessary:
     SDL_Rect rc = { 0, 0, (int) m_hostScreenW, (int) m_hostScreenH };        // dst
@@ -1226,7 +1226,7 @@ void EmulationRunner::EmulatorWindowUpdate(void)
 
     if (atomic_exchange(&gbAtariVideoBufChanged, false))
     {
-        fprintf(stderr, "INF: Atari Screen dirty\n");
+        // too often DebugInfo2("() - Atari Screen dirty");
         if (m_sdl_atari_surface != m_sdl_surface)
         {
             // convert Atari graphics format to host graphics format RGB

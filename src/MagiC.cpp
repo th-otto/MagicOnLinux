@@ -3930,7 +3930,7 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
     } __attribute__((packed));
 
 
-    DebugInfo2("()");
+    // TOO OFTEN DebugInfo2("()");
     MmxDaemonParm *theMmxDaemonParm = (MmxDaemonParm *) (addrOffset68k + params);
 
     switch(be16toh(theMmxDaemonParm->cmd))

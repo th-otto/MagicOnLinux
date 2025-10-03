@@ -314,7 +314,7 @@ void CClipboard::Mac2Atari(const uint8_t *pData)
 #ifdef _DEBUG
 	char dbgoutbuf[128];
 	strlcpy(dbgoutbuf, (const char *) pData, sizeof(dbgoutbuf));
-	DebugInfo("CClipboard::Mac2Atari(%s)", dbgoutbuf);
+	DebugInfo("CClipboard::Mac2Atari(\"%s\")", dbgoutbuf);
 #endif
 
 	if	(pData == nullptr)

@@ -1154,6 +1154,11 @@ void EmulationRunner::EventLoop(void)
                 m_bQuitLoop = true;
                 break;
 
+            case SDL_CLIPBOARDUPDATE:
+                // The clipboard or primary selection changed
+                // TODO: support
+                break;
+
             default:
                 DebugWarning2("() - unhandled SDL event %u", event.type);
                 break;

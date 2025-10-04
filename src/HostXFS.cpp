@@ -1522,7 +1522,6 @@ void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
     pxattr->reserved2 = 0;
     pxattr->reserved3[0] = 0;
     pxattr->reserved3[1] = 0;
-    pxattr->reserved3[2] = 0;
 }
 
 
@@ -1548,7 +1547,7 @@ INT32 CHostXFS::xfs_xattr
     uint16_t mode
 )
 {
-    DebugInfo("%s(name = \"%s\", drv = %u, mode = %d)", __func__, name, drv, mode);
+    DebugInfo2("(name = \"%s\", drv = %u, mode = %d)", name, drv, mode);
     (void) mode;    // support later, if symbolic links are available
     unsigned char dosname[20];
 
@@ -2068,23 +2067,23 @@ INT32 CHostXFS::xfs_dreaddir
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo2("(drv = %u)", drv);
 
     if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
-        DebugWarning("%s() -> EIHNDL", __func__);
+        DebugWarning2("() -> EIHNDL");
         return EIHNDL;
     }
 
     if (drv_changed[drv])
     {
-        DebugWarning("%s() -> E_CHNG", __func__);
+        DebugWarning2("() -> E_CHNG");
         return E_CHNG;
     }
 
     if (drv_host_path[drv] == nullptr)
     {
-        DebugWarning("%s() -> EDRIVE", __func__);
+        DebugWarning2("() -> EDRIVE");
         return EDRIVE;
     }
 
@@ -2092,15 +2091,15 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
     {
-        DebugWarning("%s() -> EIHNDL", __func__);
+        DebugWarning2("() -> EIHNDL");
         return EIHNDL;
     }
 
     int dir_fd = hostFD->fd;
-    DebugInfo("%s() - using host fd %d", __func__, dir_fd);
+    DebugInfo2("() - using host fd %d", dir_fd);
     if (dir_fd == -1)
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         return EINTRN;
     }
 
@@ -2109,18 +2108,18 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
     uint16_t snextHdl = (uint16_t) dirh->vRefNum;
     if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("s() -> EINTRN");
         dirh->vRefNum = -1;
         return EINTRN;
     }
     if (hhdl != hhdl2)
     {
-        DebugError("%s() - dir_fd mismatch", __func__);
+        DebugError2("() - dir_fd mismatch");
     }
 
     rewinddir(dir);
 
-    DebugInfo("%s() -> E_OK", __func__);
+    DebugInfo2("() -> E_OK");
 
     return E_OK;
 }
@@ -2138,7 +2137,7 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
  ************************************************************************************************/
 INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo2("(drv = %u)", drv);
 
     if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
@@ -2242,7 +2241,7 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
  ************************************************************************************************/
 INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
 {
-    DebugInfo("%s(drv = %u, which = %u)", __func__, drv, which);
+    DebugInfo2("(drv = %u, which = %u)", drv, which);
 
     (void) dd;
     switch(which)
@@ -2279,7 +2278,7 @@ INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
  ************************************************************************************************/
 INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo2("(drv = %u)", drv);
     (void) dirID;
     (void) data;
 
@@ -2299,8 +2298,8 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
     data[2] = htobe32(512); // sector size in bytes
     data[3] = htobe32(1);   // sectors per cluster
 
-    DebugInfo("%s() -> E_OK", __func__);
-    return(E_OK);
+    DebugInfo2("() -> E_OK");
+    return E_OK;
 }
 
 
@@ -2335,11 +2334,23 @@ INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
     return EINVFN;
 }
 
+
+/** **********************************************************************************************
+ *
+ * @brief For Dreadlabel(), get volume name
+ *
+ * @param[in]  drv       Atari drive number 0..31
+ * @param[in]  dd        Atari directory descriptor, usually for "C:\"
+ * @param[out] name      buffer for name
+ * @param[in]  bufsiz    size of name buffer
+ *
+ * @return E_OK or negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo2("(drv = %u, bufsize = %u)", drv, bufsiz);
     (void) dd;
-
 
     if (drv_changed[drv])
     {
@@ -2356,7 +2367,7 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
     }
 
     sprintf(name, "HOSTXFS.%u", drv);
-    DebugInfo("%s() -> \"%s\"", __func__, name);
+    DebugInfo2("() -> \"%s\"", name);
 
     return E_OK;
 }

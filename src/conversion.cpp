@@ -372,8 +372,8 @@ void CConversion::dosDateToHostDate(uint16_t time, uint16_t date, time_t *host_t
     dt.tm_min   = ((time >> 5 ) & 0x3f);
     dt.tm_hour  = ((time >> 11) & 0x1f);
     dt.tm_mday  = (date & 0x1f);
-    dt.tm_mon   = ((date >> 5 ) & 0x0f);
-    dt.tm_year  = (((date >> 9 ) & 0x7f) + 1980);
+    dt.tm_mon   = ((date >> 5 ) & 0x0f) - 1;
+    dt.tm_year  = (((date >> 9 ) & 0x7f) + 80);
     dt.tm_wday  = 0;    // ignored by mktime()
     dt.tm_yday  = 0;    // ignored by mktime()
     dt.tm_isdst = -1;   // auto

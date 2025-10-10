@@ -692,7 +692,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     DebugInfo("68k PC is not checked for validity (makes the emulator a bit faster)");
 #endif
     //DebugInfo("Mac-Menü %s", (CGlobals::s_bShowMacMenu) ? "ein" : "aus");
-    DebugInfo("Autostart %s", (CGlobals::s_Preferences.m_bAutoStartMagiC) ? "ON" : "OFF");
+    DebugInfo("Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
 
     // Atari screen data
 
@@ -702,7 +702,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 
     (void) CMagiCKeyboard::Init();
 
-    m_RAM68ksize = Globals.s_Preferences.m_AtariMemSize;
+    m_RAM68ksize = Preferences::AtariMemSize;
     numVideoLines = m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top + 1;
     m_FgBufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
     m_Video68ksize = m_FgBufferLineLenInBytes * numVideoLines;
@@ -738,7 +738,7 @@ Assign more memory to the application using the Finder dialogue "Information"!
     addr68kVideoEnd = addr68kVideo + m_Video68ksize;
     DebugInfo("68k video memory and general memory end is 0x%08x", addr68kVideoEnd);
     // real (host) address of video memory
-    //m_pFgBuffer = m_RAM68k + Globals.s_Preferences.m_AtariMemSize;    // unused
+    //m_pFgBuffer = m_RAM68k + Preferences::AtariMemSize;    // unused
 
     UpdateAtariDoubleBuffer();
 
@@ -909,8 +909,8 @@ Reinstall the application.
                     'C'-'A',                            // drvnum
                     CHostXFS::eHostDir,                    // drvType
                     CGlobals::s_atariRootfsPath,                // path
-                    (Globals.s_Preferences.m_drvFlags['C'-'A'] & 2) ? false : true,    // lange Dateinamen
-                    (Globals.s_Preferences.m_drvFlags['C'-'A'] & 1) ? true : false,    // umgekehrte Verzeichnis-Reihenfolge (Problem bei OS X 10.2!)
+                    (Preferences::drvFlags['C'-'A'] & 2) ? false : true,    // lange Dateinamen
+                    (Preferences::drvFlags['C'-'A'] & 1) ? true : false,    // umgekehrte Verzeichnis-Reihenfolge (Problem bei OS X 10.2!)
                     m_RAM68k);
     setAtariBE16(m_RAM68k + _bootdev, 'C'-'A');    // Atari boot drive C:
 
@@ -1058,20 +1058,20 @@ void CMagiC::ChangeXFSDrive(short drvNr)
     {
         m_HostXFS.ChangeXFSDriveFlags(
                     drvNr,                // Laufwerknummer
-                    (Globals.s_Preferences.m_drvFlags[drvNr] & 2) ? false : true,    // lange Dateinamen
-                    (Globals.s_Preferences.m_drvFlags[drvNr] & 1) ? true : false    // umgekehrte Verzeichnis-Reihenfolge (Problem bei OS X 10.2!)
+                    (Preferences::drvFlags[drvNr] & 2) ? false : true,    // lange Dateinamen
+                    (Preferences::drvFlags[drvNr] & 1) ? true : false    // umgekehrte Verzeichnis-Reihenfolge (Problem bei OS X 10.2!)
                     );
     }
     else
     {
-        NewType = (Globals.s_Preferences.m_drvPath[drvNr] == NULL) ? CHostXFS::eNoHostXFS : CHostXFS::eHostDir;
+        NewType = (Preferences::drvPath[drvNr] == NULL) ? CHostXFS::eNoHostXFS : CHostXFS::eHostDir;
 
         m_HostXFS.SetXFSDrive(
                     drvNr,                // Laufwerknummer
                     NewType,            // Laufwerktyp: Mac-Verzeichnis oder nichts
-                    Globals.s_Preferences.m_drvPath[drvNr],
-                    (Globals.s_Preferences.m_drvFlags[drvNr] & 2) ? false : true,    // lange Dateinamen
-                    (Globals.s_Preferences.m_drvFlags[drvNr] & 1) ? true : false,    // umgekehrte Verzeichnis-Reihenfolge (Problem bei OS X 10.2!)
+                    Preferences::drvPath[drvNr],
+                    (Preferences::drvFlags[drvNr] & 2) ? false : true,    // lange Dateinamen
+                    (Preferences::drvFlags[drvNr] & 1) ? true : false,    // umgekehrte Verzeichnis-Reihenfolge (Problem bei OS X 10.2!)
                     m_RAM68k);
         }
 }
@@ -1603,9 +1603,9 @@ int CMagiC::SendKeyboard(uint32_t message, bool KeyUp)
     if (m_bEmulatorIsRunning)
     {
     //    CDebug::DebugInfo("CMagiC::SendKeyboard() --- message == %08x, KeyUp == %d", message, (int) KeyUp);
-        if (Globals.s_Preferences.m_KeyCodeForRightMouseButton)
+        if (Preferences::KeyCodeForRightMouseButton)
         {
-            if ((message >> 8) == Globals.s_Preferences.m_KeyCodeForRightMouseButton)
+            if ((message >> 8) == Preferences::KeyCodeForRightMouseButton)
             {
                 // Emulation der rechten Maustaste
                 return(SendMouseButton( 1, !KeyUp ));
@@ -1788,7 +1788,7 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
 
         // Emulation der rechten Maustaste mit der linken und gedrückter Cmd-Taste
     /*
-        if ((!Globals.s_Preferences.m_KeyCodeForRightMouseButton) &&
+        if ((!Preferences::KeyCodeForRightMouseButton) &&
              (m_CurrModifierKeys & cmdKey) != (modifiers & cmdKey))
         {
             // linken Mausknopf immer loslassen
@@ -1952,7 +1952,7 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
     #endif
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
 #if 0
-        if (!Globals.s_Preferences.m_KeyCodeForRightMouseButton)
+        if (!Preferences::KeyCodeForRightMouseButton)
         {
 
             // Emulation der rechten Maustaste mit der linken und gedrückter Cmd-Taste
@@ -2171,7 +2171,7 @@ uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
 #ifdef PATCH_VDI_PPC
     uint16_t *p_linea_BYTES_LIN = (uint16_t *) (m_LineAVars - 2);
 
-    if ((CGlobals::s_Preferences.m_bPPC_VDI_Patch) &&
+    if ((Preferences::bPPC_VDI_Patch) &&
          (CGlobals::s_PhysicalPixelSize == 32) &&
          (CGlobals::s_pixelSize == 32) &&
          (CGlobals::s_pixelSize2 == 32))
@@ -2834,9 +2834,9 @@ uint32_t CMagiC::OpenSerialBIOS(void)
         return((uint32_t) ERROR);
     }
 
-    if (-1 == (int) m_MagiCSerial.Open(CGlobals::s_Preferences.m_szAuxPath))
+    if (-1 == (int) m_MagiCSerial.Open(Preferences::szAuxPath))
     {
-        DebugInfo("CMagiC::OpenSerialBIOS() -- kann \"%s\" nicht öffnen.", CGlobals::s_Preferences.m_szAuxPath);
+        DebugInfo("CMagiC::OpenSerialBIOS() -- kann \"%s\" nicht öffnen.", Preferences::szAuxPath);
         return((uint32_t) ERROR);
     }
 
@@ -3381,9 +3381,9 @@ uint32_t CMagiC::AtariSerOpen(uint32_t params, uint8_t *addrOffset68k)
         return((uint32_t) EACCDN);
     }
 
-    if (-1 == (int) pTheMagiC->m_MagiCSerial.Open(CGlobals::s_Preferences.m_szAuxPath))
+    if (-1 == (int) pTheMagiC->m_MagiCSerial.Open(Preferences::szAuxPath))
     {
-        DebugInfo("CMagiC::AtariSerOpen() -- kann \"%s\" nicht öffnen.", CGlobals::s_Preferences.m_szAuxPath);
+        DebugInfo("CMagiC::AtariSerOpen() -- kann \"%s\" nicht öffnen.", Preferences::szAuxPath);
         return((uint32_t) ERROR);
     }
 

@@ -40,21 +40,6 @@ void EmulationRun(void);
 void EmulationRunSdl(void);
 int EmulationIsRunning(void);
 void EmulationExit(void);
-void EmulationConfig
-(
-	const char *atariKernelPathUrl,
-	const char *atariRootfsPathUrl,
-	unsigned atariMemorySize,
-	unsigned atariScreenWidth,
-	unsigned atariScreenHeight,
-	unsigned atariScreenColourMode,
-	bool atariScreenStretchX,
-	bool atariScreenStretchY,
-	unsigned atariLanguage,
-	bool atariHideHostMouse,
-	const char *atariPrintCommand,
-	const char *atariSerialDevice
-);
 void EmulationChangeAtariDrive(unsigned drvnr, const char *path);
 
 #if defined (__cplusplus)

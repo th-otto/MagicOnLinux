@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "preferences.h"
 #include "EmulationMain.h"
 
 int main(int argc, const char *argv[])
@@ -13,6 +14,7 @@ int main(int argc, const char *argv[])
     printf("32-bit mode\n");
 #endif
 
+    Preferences::Init();
     EmulationInit();
     EmulationOpenWindow();
     EmulationRun();

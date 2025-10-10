@@ -33,13 +33,13 @@ extern "C"
 #if 0
 extern "C"
 {
-	// dummy memory access functions
-	unsigned int  m68k_read_memory_8(unsigned int address){return 0;}
-	unsigned int  m68k_read_memory_16(unsigned int address){return 0;}
-	unsigned int  m68k_read_memory_32(unsigned int address){return 0;}
-	void m68k_write_memory_8(unsigned int address, unsigned int value){}
-	void m68k_write_memory_16(unsigned int address, unsigned int value){}
-	void m68k_write_memory_32(unsigned int address, unsigned int value){}
+    // dummy memory access functions
+    unsigned int  m68k_read_memory_8(unsigned int address){return 0;}
+    unsigned int  m68k_read_memory_16(unsigned int address){return 0;}
+    unsigned int  m68k_read_memory_32(unsigned int address){return 0;}
+    void m68k_write_memory_8(unsigned int address, unsigned int value){}
+    void m68k_write_memory_16(unsigned int address, unsigned int value){}
+    void m68k_write_memory_32(unsigned int address, unsigned int value){}
 }
 #endif
 
@@ -51,84 +51,61 @@ static EmulationRunner theEmulation;
 
 int EmulationIsRunning(void)
 {
-	return s_EmulationIsRunning;
+    return s_EmulationIsRunning;
 }
 
 int EmulationInit(void)
 {
-	if (!s_EmulationIsInit)
-	{
-		m68k_init();
-		theEmulation.Init();
-		s_EmulationIsInit = 1;
-	}
+    if (!s_EmulationIsInit)
+    {
+        m68k_init();
+        theEmulation.Init();
+        s_EmulationIsInit = 1;
+    }
 
-	return 0;
+    return 0;
 }
 
 int EmulationOpenWindow()
 {
-	return theEmulation.OpenWindow();
+    return theEmulation.OpenWindow();
 }
 
 void EmulationRun(void)
 {
     DebugInfo("%s()", __func__);
-	if (s_EmulationIsInit && !s_EmulationIsRunning)
-	{
-		theEmulation.StartEmulatorThread();
-		s_EmulationIsRunning = 1;
-	}
+    if (s_EmulationIsInit && !s_EmulationIsRunning)
+    {
+        theEmulation.StartEmulatorThread();
+        s_EmulationIsRunning = 1;
+    }
     DebugInfo("%s() =>", __func__);
 }
 
 void EmulationRunSdl(void)
 {
-	theEmulation.EventLoop();
+    theEmulation.EventLoop();
 }
 
 void EmulationExit(void)
 {
-	if (s_EmulationIsRunning)
-	{
-	}
+    if (s_EmulationIsRunning)
+    {
+    }
 
-	if (s_EmulationIsInit)
-	{
-		theEmulation.Cleanup();
-		s_EmulationIsRunning = 0;
-		s_EmulationIsInit = 0;
-	}
+    if (s_EmulationIsInit)
+    {
+        theEmulation.Cleanup();
+        s_EmulationIsRunning = 0;
+        s_EmulationIsInit = 0;
+    }
 }
 
 void EmulationChangeAtariDrive(unsigned drvnr, const char *path)
 {
-	theEmulation.ChangeAtariDrive(drvnr, path);
+    theEmulation.ChangeAtariDrive(drvnr, path);
 }
 
-void EmulationConfig
-(
-	const char *atariKernelPathUrl,
-	const char *atariRootfsPathUrl,
-	unsigned atariMemorySize,
-	unsigned atariScreenWidth,
-	unsigned atariScreenHeight,
-	unsigned atariScreenColourMode,
-	bool atariScreenStretchX,
-	bool atariScreenStretchY,
-	unsigned atariLanguage,
-	bool atariHideHostMouse,
-	const char *atariPrintCommand,
-	const char *atariSerialDevice
-)
-{
-	theEmulation.Config(atariKernelPathUrl, atariRootfsPathUrl,
-						atariMemorySize, atariScreenWidth, atariScreenHeight,
-						atariScreenColourMode,
-						atariScreenStretchX, atariScreenStretchY,
-						atariLanguage,
-						atariHideHostMouse, atariPrintCommand, atariSerialDevice);
-}
 
 
 /*
@@ -136,7 +113,7 @@ extern "C" int my_main(void)
 {
     DebugInfo("%s()", __func__);
 
-	theEmulation.EventLoop();
+    theEmulation.EventLoop();
 
     DebugInfo("%s() =>", __func__);
     return 0;

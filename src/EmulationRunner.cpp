@@ -41,10 +41,6 @@ EmulationRunner::EmulationRunner(void)
 
     // default values
 
-    m_atariScreenW = 1024;
-    m_atariScreenH = 768;
-    m_atariScreenStretchX = m_atariScreenStretchY = false;
-    m_atariHideHostMouse = false;
     screenbitsperpixel = 32;
 }
 
@@ -82,122 +78,6 @@ void EmulationRunner::Init(void)
 
 /** **********************************************************************************************
  *
- * @brief Configure virtual Atari from preferences
- *
- ************************************************************************************************/
-void EmulationRunner::Config
-(
-    const char *atariKernelPath,
-    const char *atariRootfsPath,
-    unsigned atariMemorySize,
-    unsigned atariScreenWidth,
-    unsigned atariScreenHeight,
-    unsigned atariScreenColourMode,
-    bool atariScreenStretchX,
-    bool atariScreenStretchY,
-    unsigned atariLanguage,
-    bool atariHideHostMouse,
-    const char *atariPrintCommand,
-    const char *atariSerialDevice
-)
-{
-    (void) atariLanguage;
-
-    DebugInfo2("()");
-
-    // memory size is passed as megabytes (2 ^ 20)
-    if (atariMemorySize < 1)
-        atariMemorySize = 1;
-    else
-    if (atariMemorySize > MAX_ATARIMEMSIZE >> 20)
-        atariMemorySize = MAX_ATARIMEMSIZE >> 20;
-    Globals.s_Preferences.m_AtariMemSize = atariMemorySize << 20;
-
-    if (atariScreenWidth < 320)
-        atariScreenWidth = 320;
-    else
-    if (atariScreenWidth > 4096)
-        atariScreenWidth = 4096;
-    m_atariScreenW = atariScreenWidth;
-
-    if (atariScreenHeight < 200)
-        atariScreenHeight = 200;
-    else
-    if (atariScreenHeight > 2048)
-        atariScreenHeight = 2048;
-    m_atariScreenH = atariScreenHeight;
-
-    if (atariScreenColourMode == 6)
-        Globals.s_Preferences.m_atariScreenColourMode = atariScreenMode2;
-    else
-    if (atariScreenColourMode == 5)
-        Globals.s_Preferences.m_atariScreenColourMode = atariScreenMode4ip;
-    else
-    if (atariScreenColourMode == 4)
-        Globals.s_Preferences.m_atariScreenColourMode = atariScreenMode16ip;
-    else
-    if (atariScreenColourMode == 3)
-        Globals.s_Preferences.m_atariScreenColourMode = atariScreenMode16;
-    else
-    if (atariScreenColourMode == 2)
-        Globals.s_Preferences.m_atariScreenColourMode = atariScreenMode256;
-    else
-    if (atariScreenColourMode == 1)
-        Globals.s_Preferences.m_atariScreenColourMode = atariScreenModeHC;
-    else
-        Globals.s_Preferences.m_atariScreenColourMode = atariScreenMode16M;
-
-    DebugInfo2("() - atariScreenColourMode (%u)", atariScreenColourMode);
-
-    m_atariScreenStretchX = atariScreenStretchX;
-    m_atariScreenStretchY = atariScreenStretchY;
-
-    if (atariHideHostMouse)
-    {
-        DebugWarning2("() - atariHideHostMouse ignored, because unreliable in SDL", atariHideHostMouse);
-        //    m_atariHideHostMouse  = atariHideHostMouse;
-    }
-
-    if ((atariPrintCommand) && strlen(atariPrintCommand) < 255)
-    {
-        strcpy(Globals.s_Preferences.m_szPrintingCommand, atariPrintCommand);
-    }
-    else
-    {
-        DebugWarning2("(): atariPrintCommand string empty or too long, ignored");
-    }
-
-    if ((atariSerialDevice) && strlen(atariSerialDevice) < 255)
-    {
-        strcpy(Globals.s_Preferences.m_szAuxPath, atariSerialDevice);
-    }
-    else
-    {
-        DebugWarning2("(): atariSerialDevice string empty or too long, ignored");
-    }
-
-    if ((atariKernelPath != nullptr) && strlen(atariKernelPath) < 1024)
-    {
-        strcpy(Globals.s_atariKernelPath, atariKernelPath);
-    }
-    else
-    {
-        DebugWarning2("(): atariKernelPath string empty or too long, ignored");
-    }
-
-    if ((atariRootfsPath != nullptr) && strlen(atariRootfsPath) < 1024)
-    {
-        strcpy(Globals.s_atariRootfsPath, atariRootfsPath);
-    }
-    else
-    {
-        DebugWarning2("(): s_atariRootfsPath string empty or too long, ignored");
-    }
-}
-
-
-/** **********************************************************************************************
- *
  * @brief Reconfigure virtual Atari drive during runtime
  *
  * @param[in]  drvnr    Atari drive number 0..25
@@ -209,7 +89,7 @@ void EmulationRunner::ChangeAtariDrive(unsigned drvnr, const char *path)
     DebugInfo2("()\n");
     if (drvnr < NDRIVES)
     {
-        Globals.s_Preferences.setDrvPath(drvnr, path);
+        Preferences::setDrvPath(drvnr, path);
         if (m_EmulatorRunning)
         {
             m_Emulator.ChangeXFSDrive(drvnr);
@@ -692,7 +572,7 @@ void EmulationRunner::_OpenWindow(void)
     short cmpCount = 3;
     short cmpSize = 8;
 
-    switch(Globals.s_Preferences.m_atariScreenColourMode)
+    switch(Preferences::atariScreenColourMode)
     {
         case atariScreenMode2:
             screenbitsperpixel = 1;     // monochrome
@@ -757,21 +637,21 @@ void EmulationRunner::_OpenWindow(void)
     }
 
     sprintf(m_window_title, "Atari Emulation (%ux%ux%u%s)",
-                            m_atariScreenW, m_atariScreenH,
+                            Preferences::AtariScreenWidth, Preferences::AtariScreenHeight,
                             screenbitsperpixel, (planeBytes == 2) ? "ip" : "");
     m_visible = false;
     m_initiallyVisible = false;
 
 
     // note that the SDL surface cannot distinguish between packed pixel and interleaved.
-    m_hostScreenW = m_atariScreenW * (m_atariScreenStretchX ? 2 : 1);
-    m_hostScreenH = m_atariScreenH * (m_atariScreenStretchY ? 2 : 1);
+    m_hostScreenW = Preferences::AtariScreenWidth  * (Preferences::AtariScreenStretchX ? 2 : 1);
+    m_hostScreenH = Preferences::AtariScreenHeight * (Preferences::AtariScreenStretchY ? 2 : 1);
 
     // This is the screen buffer for the emulated Atari
     m_sdl_atari_surface = SDL_CreateRGBSurface(
             0,    // no flags
-            m_atariScreenW,
-            m_atariScreenH,
+            Preferences::AtariScreenWidth,
+            Preferences::AtariScreenHeight,
             screenbitsperpixel,
             rmask,
             gmask,
@@ -1054,7 +934,7 @@ void EmulationRunner::EventLoop(void)
                             }
                             // Now catch keyboard events
                             //SDL_KeyboardActivate(1);    TODO: Hack was for macOS
-                            if (m_atariHideHostMouse)
+                            if (Preferences::bHideHostMouse)
                             {
                                 SDL_ShowCursor(SDL_DISABLE);
                             }
@@ -1071,7 +951,7 @@ void EmulationRunner::EventLoop(void)
                             }
                             // No longer catch keyboard events
                             //SDL_KeyboardActivate(0);   TODO: this was for macOS
-                            if (m_atariHideHostMouse)
+                            if (Preferences::bHideHostMouse)
                             {
                                 // show mouse pointer
                                 SDL_ShowCursor(SDL_ENABLE);
@@ -1105,10 +985,10 @@ void EmulationRunner::EventLoop(void)
                     // TOO OFTEN DebugInfo2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
                     int x = ev->x;
                     int y = ev->y;
-                    if (m_atariScreenStretchX)
-                        x /= 2;
-                    if (m_atariScreenStretchY)
-                        y /= 2;
+                    if (Preferences::AtariScreenStretchX > 1)
+                        x /= Preferences::AtariScreenStretchX;
+                    if (Preferences::AtariScreenStretchY > 1)
+                        y /= Preferences::AtariScreenStretchY;
                     m_Emulator.SendMousePosition(x, y);
                 }
                 break;
@@ -1230,7 +1110,7 @@ void EmulationRunner::EmulatorWindowUpdate(void)
 
     // also does stretching, if necessary:
     SDL_Rect rc = { 0, 0, (int) m_hostScreenW, (int) m_hostScreenH };        // dst
-    SDL_Rect rc2 = { 0, 0, (int) m_atariScreenW, (int) m_atariScreenH };    // src
+    SDL_Rect rc2 = { 0, 0, (int) Preferences::AtariScreenWidth, (int) Preferences::AtariScreenHeight };    // src
 
     if (atomic_exchange(&gbAtariVideoBufChanged, false))
     {
@@ -1240,7 +1120,8 @@ void EmulationRunner::EmulatorWindowUpdate(void)
             // convert Atari graphics format to host graphics format RGB
             ConvertAtari2HostSurface(m_sdl_atari_surface, m_sdl_surface,
                                     m_EmulatorScreen.m_pColourTable,
-                                    /*ignored*/ m_atariScreenStretchX, m_atariScreenStretchY);
+                                    /* TODO:ignored */ Preferences::AtariScreenStretchX,
+                                    /* TODO: igored */ Preferences::AtariScreenStretchY);
         }
 
         UpdateTextureFromRect(m_sdl_texture, m_sdl_surface, nullptr);

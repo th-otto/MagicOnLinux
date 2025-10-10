@@ -51,7 +51,6 @@ char CGlobals::s_atariRootfsPath[1024];
 char CGlobals::s_atariScrapFileUnixPath[1024];
 char CGlobals::s_atariTempFilesUnixPath[1024];
 
-CMyPreferences CGlobals::s_Preferences;
 bool CGlobals::s_XFSDrvWasChanged[NDRIVES];
 bool CGlobals::s_bShowMacMenu;
 bool CGlobals::s_bAtariScreenManualSize;

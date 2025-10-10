@@ -31,7 +31,7 @@
 #include <endian.h>
 #include <atomic>
 // Programm-Header
-#include "MyPreferences.h"
+#include "preferences.h"
 
 #if defined(USE_ASGARD_PPC_68K_EMU)
 // Asgard 68k emulator (PPC Assembler)
@@ -189,7 +189,6 @@ class CGlobals
 	static unsigned short s_AtariScreenWidth;
 	static unsigned short s_AtariScreenHeight;
 
-	static CMyPreferences s_Preferences;
 	static bool s_XFSDrvWasChanged[NDRIVES];
 
    private:

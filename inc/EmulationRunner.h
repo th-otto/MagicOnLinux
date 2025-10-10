@@ -41,7 +41,7 @@ class EmulationRunner
     protected:
         SDL_TimerID m_timer;
         bool m_bQuitLoop;
-    unsigned m_200HzCnt;
+        unsigned m_200HzCnt;
 
     public:
         // Constructor and destructor
@@ -51,19 +51,6 @@ class EmulationRunner
         int StartEmulatorThread(void);
         void EventLoop(void);
         void Init(void);
-        void Config(
-                const char *atariKernelPathUrl,
-                const char *atariRootfsPathUrl,
-                unsigned atariMemorySize,
-                unsigned atariScreenWidth,
-                unsigned atariScreenHeight,
-                unsigned atariScreenColourMode,
-                bool atariScreenStretchX,
-                bool atariScreenStretchY,
-                unsigned atariLanguage,
-                bool atariHideHostMouse,
-                const char *atariPrintCommand,
-                const char *atariSerialDevice);
         int OpenWindow(void);
         void Cleanup(void);
         void ChangeAtariDrive(unsigned drvnr, const char *path);
@@ -79,13 +66,8 @@ class EmulationRunner
         void _OpenWindow(void);
         void _StartEmulatorThread(void);
 
-    unsigned m_atariScreenW;
-    unsigned m_atariScreenH;
     unsigned m_hostScreenW;
     unsigned m_hostScreenH;
-    bool m_atariHideHostMouse;
-    bool m_atariScreenStretchX;
-    bool m_atariScreenStretchY;
     unsigned screenbitsperpixel;
     char m_window_title[256];
     uint32_t m_counter;

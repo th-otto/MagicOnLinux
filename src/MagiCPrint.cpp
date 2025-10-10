@@ -195,7 +195,7 @@ uint32_t CMagiCPrint::ClosePrinterFile(void)
 	// unseren Pfad ggf. in das Benutzerkommando einsetzen (%APPDIR%)
 
 	dst = command2;
-	src = CGlobals::s_Preferences.m_szPrintingCommand;
+	src = Preferences::szPrintingCommand;
 	do
 	{
 		if	(!strncmp(src, "%APPDIR%", 8))

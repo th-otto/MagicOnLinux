@@ -142,6 +142,16 @@ typedef uint32_t PTR32x4_HOST[4];   // might be used as 64 bit function pointer 
 #define  DP_CTIME      0x0400
 #define  DP_MTIME      0x0800
 
+/// 16-bit time format
+#define GEMDOS_TIME_SECOND 0x001f      //  0: 5 bits, 0..29, two-seconds resolution
+#define GEMDOS_TIME_MINUTE 0x07e0      //  5: 6 bits, 0..59
+#define GEMDOS_TIME_HOUR   0xf800      // 11: 5 bits, 0..23
+
+/// 16-bit date format
+#define GEMDOS_DATE_DAY    0x001f      //  0: 5 bits, 1..31, note that it's not 0..30
+#define GEMDOS_DATE_MONTH  0x01e0      //  5: 4 bits, 1..12, note that it's not 0..11
+#define GEMDOS_DATE_YEAR   0xfe00      //  9: 7 bits, 0..127 for 1980..2127
+
 /// data for D/Fcntl(FUTIME,...)
 struct mutimbuf
 {

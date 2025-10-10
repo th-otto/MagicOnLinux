@@ -326,8 +326,11 @@ int CConversion::Host2AtariError(int error)
  * @brief [static] Convert host time code to Atari time and date
  *
  * @param[in]  host_time   host time
- * @param[out] time        Atari time (host-endian format)
- * @param[out] date        Atari date (host-endian format)
+ * @param[out] time        Atari time (host-endian format), bits hhhhhmmmmmmsssss
+ * @param[out] date        Atari date (host-endian format), bits ddddd
+ *
+ * @note GEMDOS time has a two-seconds resolution.
+ * @note tm_sec is 0..60, not 59
  *
  ************************************************************************************************/
 void CConversion::hostDateToDosDate(time_t host_time, uint16_t *time, uint16_t *date)
@@ -337,11 +340,18 @@ void CConversion::hostDateToDosDate(time_t host_time, uint16_t *time, uint16_t *
 
     if (time != nullptr)
     {
-        *time = (uint16_t) ((dt.tm_sec >> 1) + (dt.tm_min << 5) + (dt.tm_hour << 11));
+        if (dt.tm_sec == 60)
+        {
+            dt.tm_sec--;
+        }
+        *time = (uint16_t) ((dt.tm_sec >> 1) | (dt.tm_min << 5) | (dt.tm_hour << 11));
     }
     if (date != nullptr)
     {
-        *date = (uint16_t) ((dt.tm_mday) + (dt.tm_mon  << 5) + ((dt.tm_year - 1980) << 9));
+        // day is 1..31
+        // month is 1..12 for GEMDOS, 0..11 for Linux
+        // year is starting at 1980 for GEMDOS, at 1900 for Linux
+        *date = (uint16_t) ((dt.tm_mday) | ((dt.tm_mon + 1)  << 5) | ((dt.tm_year - 80) << 9));
     }
 }
 

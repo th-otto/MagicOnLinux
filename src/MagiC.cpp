@@ -924,24 +924,11 @@ Reinstall the application.
 
     m_HostXFS.set68kAdressRange(m_RAM68ksize);
 
-    // Laufwerk C: machen
+    // Pass all XFS drives to the Atari
 
     setAtariBE32(m_RAM68k + _drvbits, 0);        // no Atari drives yet
-    m_HostXFS.SetXFSDrive(
-                    'C'-'A',                            // drvnum
-                    CHostXFS::eHostDir,                    // drvType
-                    Preferences::AtariRootfsPath,                // path
-                    (Preferences::drvFlags['C'-'A'] & 2) ? false : true,    // lange Dateinamen
-                    (Preferences::drvFlags['C'-'A'] & 1) ? true : false,    // umgekehrte Verzeichnis-Reihenfolge (Problem bei OS X 10.2!)
-                    m_RAM68k);
+    m_HostXFS.activateXfsDrives(m_RAM68k);
     setAtariBE16(m_RAM68k + _bootdev, 'C'-'A');    // Atari boot drive C:
-
-    // Additional drives, besides C:
-
-    for    (unsigned i = 0; i < NDRIVES; i++)
-    {
-        ChangeXFSDrive(i);
-    }
 
     //
     // initialise 68k emulator (Musashi)
@@ -1063,6 +1050,7 @@ void CMagiC::GetActAtariPrg(const char **pName, uint32_t *pact_pd)
 }
 
 
+#if 0
 /**********************************************************************
 *
 * Atari-Laufwerk hat sich geändert
@@ -1097,6 +1085,7 @@ void CMagiC::ChangeXFSDrive(short drvNr)
                     m_RAM68k);
         }
 }
+#endif
 
 
 /**********************************************************************

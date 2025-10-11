@@ -67,7 +67,7 @@ class CMagiC
     void SendBusError(uint32_t addr, const char *AccessMode);
     //void SendAtariFile(const char *pBuf); // remnant from MagicMac(X) and AtariX
     void SendShutdown(void);
-    void ChangeXFSDrive(short drvNr);
+    //void ChangeXFSDrive(short drvNr);
     static void GetActAtariPrg(const char **pName, uint32_t *pact_pd);
     bool m_bEmulatorIsRunning;
     bool m_bAtariWasRun;

@@ -79,35 +79,21 @@ extern void _DumpAtariMem(const char *filename);
 CHostXFS::CHostXFS()
 {
     xfs_drvbits = 0;
-    for (int i = 0; i < NDRVS; i++)
+    for (int i = 0; i < NDRIVES; i++)
     {
-        drv_host_path[i]= nullptr;    // invalid
-        drv_must_eject[i] = 0;
-        drv_changed[i] = 0;
-        drv_longnames[i] = false;
+        drv_host_path[i] = nullptr;    // invalid
     }
 
+/*
     // M: host root
 
     drv_type['M'-'A'] = eHostRoot;
     drv_valid['M'-'A'] = true;
     drv_longnames['M'-'A'] = true;
-    drv_rvsDirOrder['M'-'A'] = true;
     drv_dirID['M'-'A'] = 0;
     drv_host_path['M'-'A'] = "/";
-
-    // C: root FS
-
-    drv_type['C'-'A'] = eHostDir;
-    drv_valid['C'-'A'] = true;
-    drv_longnames['C'-'A'] = false;
-    drv_rvsDirOrder['C'-'A'] = false;   // ?
-    drv_dirID['C'-'A'] = 0;             // ?
-    drv_host_path['C'-'A'] = Preferences::AtariRootfsPath;
-
+*/
     HostHandles::init();
-
-    DebugInfo("CHostXFS::CHostXFS() -- Drive %c: %s dir order, %s names", 'A' + ('M'-'A'), drv_rvsDirOrder['M'-'A'] ? "reverse" : "normal", drv_longnames['M'-'A'] ? "long" : "8+3");
 }
 
 
@@ -3655,7 +3641,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 void CHostXFS::setDrivebits(uint32_t newbits, uint8_t *AdrOffset68k)
 {
     uint32_t val = getAtariBE32(AdrOffset68k + _drvbits);
-    newbits |= (1L << ('m'-'a'));   // virtual drive M: is always present
+    //newbits |= (1L << ('m'-'a'));   // virtual drive M: is always present
     val &= -1L - xfs_drvbits;       // clear old bits
     val |= newbits;                 // set new bits
     setAtariBE32(AdrOffset68k + _drvbits, val);
@@ -3665,95 +3651,39 @@ void CHostXFS::setDrivebits(uint32_t newbits, uint8_t *AdrOffset68k)
 
 /** **********************************************************************************************
  *
- * @brief Define an Atari drive as host directory
+ * @brief Tell Atari about all XFS drives
  *
- * @param[in] drv               drive number 0..31
- * @param[in] drvType           drive type
- * @param[in] path              host path
- * @param[in] longnames         false: support only 8+3 file names
- * @param[in] reverseDirOrder   TODO: discuss and remove if possible
  * @param[in] AdrOffset68k      Host address of 68k memory
  *
  ************************************************************************************************/
-void CHostXFS::SetXFSDrive
-(
-    uint16_t drv,
-    HostXFSDrvType drvType,
-    const char *path,
-    bool bLongNames,
-    bool bReverseDirOrder,
-    uint8_t *AdrOffset68k
-)
+void CHostXFS::activateXfsDrives(uint8_t *AdrOffset68k)
 {
-    DebugInfo("CHostXFS::%s(%c: has type %s)", __FUNCTION__, 'A' + drv, xfsDrvTypeToStr(drvType));
-
-    uint32_t newbits = xfs_drvbits;
-
-#ifdef SPECIALDRIVE_AB
-    if (drv >= 2)
+    xfs_drvbits = 0;
+    for (int i = 0; i < NDRIVES; i++)
     {
-#endif
-    if (drvType == eNoHostXFS)
-    {
-        // The drive no longer is managed by host, remove it.
-        newbits &= ~(1L << drv);
-    }
-    else
-    {
-        // The drive is a HostXFS drive
-        newbits |= 1L << drv;
-    }
+        const char *path = Preferences::drvPath[i];
+        unsigned flags = Preferences::drvFlags[i];
+        if (path != nullptr)
+        {
+            drv_type[i] = eHostDir;
+            drv_host_path[i] = path;
+            drv_longnames[i] = (flags & 2) == 0;
+            drv_readOnly[i] = (flags & 1);
+            xfs_drvbits |= (1 << i);
+        }
+        else
+        {
+            drv_host_path[i] = nullptr;    // invalid
+            drv_longnames[i] = false;
+            drv_readOnly[i] = false;
+        }
 
-#ifdef SPECIALDRIVE_AB
-    }
-#endif
-
-    drv_changed[drv] = true;
-    drv_host_path[drv] = path;      // TODO: clarify who maintains the string memory
-    drv_type[drv] = drvType;
-
-    if (drvType == eHostDir)
-    {
-        drv_valid[drv] = true;
-    }
-    else
-    {
-        drv_valid[drv] = false;
-        drv_host_path[drv] = nullptr;
+        drv_must_eject[i] = 0;
+        drv_changed[i] = 0;
+        drv_dirID[i] = 0;             // ?
     }
 
-    drv_longnames[drv] = bLongNames;
-    drv_rvsDirOrder[drv] = bReverseDirOrder;
-
-    DebugInfo("CHostXFS::SetXFSDrive() -- Drive %c: %s dir order, %s names", 'A' + drv, drv_rvsDirOrder[drv] ? "reverse" : "normal", drv_longnames[drv] ? "long" : "8+3");
-
-#ifdef SPECIALDRIVE_AB
-    if (drv>=2)
-#endif
-    setDrivebits(newbits, AdrOffset68k);
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Change host drive configuration
- *
- * @param[in] drv               drive number 0..31
- * @param[in] bLongNames        false: support only 8+3 file names
- * @param[in] bReverseDirOrder  TODO: discuss and remove if possible
- *
- ************************************************************************************************/
-void CHostXFS::ChangeXFSDriveFlags
-(
-    uint16_t drv,
-    bool bLongNames,
-    bool bReverseDirOrder
-)
-{
-    drv_longnames[drv] = bLongNames;
-    drv_rvsDirOrder[drv] = bReverseDirOrder;
-
-    DebugInfo("CHostXFS::ChangeXFSDriveFlags() -- Drive %c: %s dir order, %s names", 'A' + drv, drv_rvsDirOrder[drv] ? "reverse" : "normal", drv_longnames[drv] ? "long" : "8+3");
+    setDrivebits(xfs_drvbits, AdrOffset68k);
 }
 
 

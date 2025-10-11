@@ -75,17 +75,7 @@ class CHostXFS
     INT32 XFSDevFunctions(uint32_t params, uint8_t *AdrOffset68k);
     INT32 Drv2DevCode(uint32_t params, uint8_t *AdrOffset68k);
     INT32 RawDrvr(uint32_t params, uint8_t *AdrOffset68k);
-    void SetXFSDrive(
-            uint16_t drv,
-            HostXFSDrvType drvType,
-            const char *path,
-            bool bLongNames,
-            bool bReverseDirOrder,
-            uint8_t *AdrOffset68k);
-    void ChangeXFSDriveFlags(
-            uint16_t drv,
-            bool bLongNames,
-            bool bReverseDirOrder);
+    void activateXfsDrives(uint8_t *AdrOffset68k);
 
    private:
 
@@ -248,10 +238,8 @@ class CHostXFS
     FSRef xfs_path[NDRVS];        // nur auswerten, wenn drv_valid = true
 */
     const char *drv_host_path[NDRVS];     // nullptr, if not valid
-    bool drv_valid[NDRVS];            // zeigt an, ob alias g�ltig ist.
     long drv_dirID[NDRVS];
     bool drv_longnames[NDRVS];            // initialisiert auf 0en
-    bool drv_rvsDirOrder[NDRVS];
     bool drv_readOnly[NDRVS];
     HostXFSDrvType drv_type[NDRVS];
     /* Zur Rueckgabe an den MagiC-Kernel: */

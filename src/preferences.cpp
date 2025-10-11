@@ -22,11 +22,12 @@
 *
 */
 
-// System-Header
-#include <endian.h>
-// Programm-Header
+#include <stdio.h>
+#include <unistd.h>
+#include <pwd.h>
+#include <sys/stat.h>
 #include "preferences.h"
-#include "Globals.h"
+
 
 #define MAX_ATARIMEMSIZE	(2U*1024U*1024U*1024U)		// 2 Gigabytes
 
@@ -48,38 +49,25 @@
 #define SCREEN_FREQ            "ScreenRefreshFreq"
 #define PVDI                "PVDI"
 
-#if defined(__GNUC__)
-#define DEF_DOCTYPES            "\0\1" "\x19" "APP,PRG,TTP,TOS=MgMx/Gem1"
-#else
-#define DEF_DOCTYPES            "\0\1" "\pAPP,PRG,TTP,TOS=MgMx/Gem1"
-#endif
-
-#ifdef DEMO
-#define PREFS_FILE        "MagiCMacX2 Demo Prefs"
-#else
-#define PREFS_FILE        "MagiCMacX2 Prefs"
-#endif
 
 #define  ATARI_SCRAP_FILE "/GEMSYS/GEMSCRAP/SCRAP.TXT"
 
 
 unsigned Preferences::AtariLanguage = 0;
 unsigned Preferences::AtariMemSize = (8 * 1024 * 1024);
-bool Preferences::bShowMacMenu = true;
+bool Preferences::bShowHostMenu = true;
 enAtariScreenColourMode Preferences::atariScreenColourMode = atariScreenMode16M;
 bool Preferences::bHideHostMouse = false;
 bool Preferences::bAutoStartMagiC = true;
-unsigned Preferences::drvFlags[NDRIVES];    // 1 == RevDir / 2 == 8+3
+unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3
 const char *Preferences::drvPath[NDRIVES];
-unsigned Preferences::KeyCodeForRightMouseButton = -1;  // TODO: find it
 char Preferences::AtariKernelPath[1024] = "/home/and/Documents/Atari-rootfs/MagicMacX.OS";
 char Preferences::AtariRootfsPath[1024] = "/home/and/Documents/Atari-rootfs";
-char Preferences::AtariScrapFileUnixPath[1024] = "/home/and/Documents/Atari-rootfs" ATARI_SCRAP_FILE;
+bool Preferences::AtariHostHomeRdonly = true;
 char Preferences::AtariTempFilesUnixPath[1024] = "/tmp";
 char Preferences::szPrintingCommand[256] = "echo printing not yet implemented";
 char Preferences::szAuxPath[256];
 int Preferences::Monitor = 0;        // 0 == Hauptbildschirm
-bool Preferences::bAtariScreenManualSize;
 unsigned Preferences::AtariScreenX = 100;
 unsigned Preferences::AtariScreenY = 100;
 unsigned Preferences::AtariScreenWidth = 1024;      // 320..4096
@@ -88,6 +76,21 @@ unsigned Preferences::AtariScreenStretchX = 2;     // horizontal stretch
 unsigned Preferences::AtariScreenStretchY = 2;     // vertical stretch
 unsigned Preferences::ScreenRefreshFrequency = 60;
 //bool Preferences::bPPC_VDI_Patch;
+
+// derived
+char Preferences::AtariScrapFileUnixPath[1024];
+
+
+static const char *get_home()
+{
+    const char *homedir;
+
+    if ((homedir = getenv("HOME")) == nullptr)
+    {
+        homedir = getpwuid(getuid())->pw_dir;
+    }
+    return homedir;
+}
 
 
 /**********************************************************************
@@ -105,7 +108,29 @@ int Preferences::Init()
         drvPath[i] = nullptr;
         drvFlags[i] = 0;        // Lange Namen, vorw�rts sortiert
     }
+
+    char path[1024] = "";
+    const char *home = get_home();
+    if (home != nullptr)
+    {
+        strcpy(path, home);
+    }
+    strcat(path, "/.config/magiclinux.conf");
+    (void) getPreferences(path);
+
+    // drive C: is root FS with 8+3 name scheme
     drvFlags['C'-'A'] |= 2;        // C: drive has 8+3 name scheme
+    setDrvPath('C'-'A', AtariRootfsPath);
+
+    // drive H: is user home
+    if (home != nullptr)
+    {
+        drvFlags['H'-'A'] = AtariHostHomeRdonly ? 1 : 0;        // long names, read-only
+        setDrvPath('H'-'A', home);
+    }
+
+    strcpy(AtariScrapFileUnixPath, AtariRootfsPath);
+    strcat(AtariScrapFileUnixPath, ATARI_SCRAP_FILE);
     return 0;
 }
 
@@ -117,8 +142,59 @@ int Preferences::Init()
 *
 **********************************************************************/
 
-int Preferences::GetPreferences()
+int Preferences::getPreferences(const char *cfgfile)
 {
+    struct stat statbuf;
+    FILE *f;
+
+    if (stat(cfgfile, &statbuf))
+    {
+        // Configuration file does not exist. Create it.
+        f = fopen(cfgfile, "wt");
+        if (f == nullptr)
+        {
+            return 1;
+        }
+
+        fprintf(f, "[HOST PATHS]\n");
+        fprintf(f, "atari_kernel_path = \"%s\"\n", AtariKernelPath);
+        fprintf(f, "atari_rootfs_path = \"%s\"\n", AtariRootfsPath);
+        fprintf(f, "atari_h_rdonly = %s\n", AtariHostHomeRdonly ? "YES" : "NO");
+        fprintf(f, "atari_temp_path = \"%s\"\n", AtariTempFilesUnixPath);
+        fprintf(f, "[HOST DEVICES]\n");
+        fprintf(f, "atari_print_cmd = \"%s\"\n", szPrintingCommand);
+        fprintf(f, "atari_serial_dev_path = \"%s\"\n", szAuxPath);
+        fprintf(f, "[ATARI SCREEN]\n");
+        fprintf(f, "atari_screen_width = %u\n", AtariScreenWidth);
+        fprintf(f, "atari_screen_height = %u\n", AtariScreenHeight);
+        fprintf(f, "atari_screen_stretch_x = %u\n", AtariScreenStretchX);
+        fprintf(f, "atari_screen_stretch_y = %u\n", AtariScreenStretchY);
+        fprintf(f, "atari_screen_rate_hz = %u\n", ScreenRefreshFrequency);
+        fprintf(f, "atari_screen_colour_mode = %u\n", atariScreenColourMode);
+        fprintf(f, "# 0:24b 1:16b 2:256 3:16 4:16ip 5:4ip 6:mono\n");
+        fprintf(f, "hide_host_mouse = %s\n", bHideHostMouse ? "YES" : "NO");
+        fprintf(f, "[SCREEN PLACEMENT]\n");
+        fprintf(f, "app_display_number = %u\n", Monitor);
+        fprintf(f, "app_window_x = %u\n", AtariScreenX);
+        fprintf(f, "app_window_y = %u\n", AtariScreenY);
+        fprintf(f, "[ATARI EMULATION]\n");
+        fprintf(f, "atari_memory_size = %u\n", AtariMemSize);
+        fprintf(f, "atari_language = %u\n", AtariLanguage);
+        fprintf(f, "show_host_menu = %s\n", bShowHostMenu ? "YES" : "NO");
+        fprintf(f, "atari_autostart = %s\n", bAutoStartMagiC ? "YES" : "NO");
+        fprintf(f, "[ADDITIONAL ATARI DRIVES]\n");
+        fprintf(f, "# atari_drv_n = flags [1:read-only, 2:8+3] path\n");
+        for (unsigned n = 1; n < NDRIVES; n++)
+        {
+            if (drvPath[n] != nullptr)
+            {
+                fprintf(f, "atari_drv_%c = %u \"%s\"\n", n + 'a', drvFlags[n], drvPath[n]);
+            }
+        }
+
+        fclose(f);
+        return 0;
+    }
 #if 0
     // TODO: implement
     int ret;

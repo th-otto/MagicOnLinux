@@ -54,7 +54,7 @@ class Preferences
     // Initialisierung
     static int Init(void);
     // Alle Einstellungen holen
-    static int GetPreferences(void);
+    static int getPreferences(const char *cfgfile);
     static void Update_Monitor(void);
     static void Update_AtariMem(void);
     static void Update_GeneralSettings(void);
@@ -66,20 +66,19 @@ class Preferences
     // Variablen
     static unsigned AtariMemSize;
     static unsigned AtariLanguage;
-    static bool bShowMacMenu;
+    static bool bShowHostMenu;
     static enAtariScreenColourMode atariScreenColourMode;
     static bool bHideHostMouse;
     static bool bAutoStartMagiC;
     static unsigned drvFlags[NDRIVES];    // 1 == RevDir / 2 == 8+3
-    static unsigned KeyCodeForRightMouseButton;
 	static char AtariKernelPath[1024];              // "MagicMacX.OS" file
 	static char AtariRootfsPath[1024];              // Atari C:
+    static bool AtariHostHomeRdonly;                // Atari H: is write protected
 	static char AtariScrapFileUnixPath[1024];
 	static char AtariTempFilesUnixPath[1024];
     static char szPrintingCommand[256];
     static char szAuxPath[256];
     static int Monitor;        // 0 == Hauptbildschirm
-    static bool bAtariScreenManualSize;
     static unsigned AtariScreenX;
     static unsigned AtariScreenY;
     static unsigned AtariScreenWidth;      // 320..4096

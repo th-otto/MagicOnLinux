@@ -103,11 +103,14 @@ void EmulationRunner::ChangeAtariDrive(unsigned drvnr, const char *path)
     DebugInfo2("()\n");
     if (drvnr < NDRIVES)
     {
+        (void) path;
+        #if 0
         Preferences::setDrvPath(drvnr, path);
         if (m_EmulatorRunning)
         {
             m_Emulator.ChangeXFSDrive(drvnr);
         }
+        #endif
     }
 }
 

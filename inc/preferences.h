@@ -55,6 +55,8 @@ class Preferences
     static int Init(bool rewrite_conf);
     // Alle Einstellungen holen
     static int getPreferences(const char *cfgfile, bool rewrite_conf);
+    static int writePreferences(const char *cfgfile);
+    static int evaluatePreferencesLine(const char *line);
     static void Update_Monitor(void);
     static void Update_AtariMem(void);
     static void Update_GeneralSettings(void);
@@ -80,7 +82,7 @@ class Preferences
 	static char AtariTempFilesUnixPath[1024];
     static char szPrintingCommand[256];
     static char szAuxPath[256];
-    static int Monitor;        // 0 == Hauptbildschirm
+    static unsigned Monitor;        // 0 == Hauptbildschirm
     static unsigned AtariScreenX;
     static unsigned AtariScreenY;
     static unsigned AtariScreenWidth;      // 320..4096

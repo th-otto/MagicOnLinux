@@ -24,6 +24,8 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <ctype.h>
+#include <errno.h>
 #include <pwd.h>
 #include <sys/stat.h>
 #include "preferences.h"
@@ -31,26 +33,69 @@
 
 #define MAX_ATARIMEMSIZE	(2U*1024U*1024U*1024U)		// 2 Gigabytes
 
-// Schalter
-
-#define MONITOR                "AtariMonitor"
-#define ATARIMEM            "AtariMemSizeInKB"
-#define SHOWMACMOUSE        "ShowMacMouse"
-#define AUTOSTARTMAGIC        "AutoStartMagiC"
-#define KEYCODEFORRIGHTMOUSEBUTTON    "KeyCodeForRightMouseButton"
-#define PRINTINGCOMMAND        "PrintingCommand"
-#define AUXPATH                "AuxPath"
-#define SHOWMACMENU            "ShowMacMenu"
-#define SETSCREENSIZEMANUALLY    "SetAtariScreenSizeManually"
-#define SETSCREENSIZE_X        "SetAtariScreenSizeX"
-#define SETSCREENSIZE_Y        "SetAtariScreenSizeY"
-#define SETSCREENSIZE_WIDTH        "SetAtariScreenSizeWidth"
-#define SETSCREENSIZE_HEIGHT    "SetAtariScreenSizeHeight"
-#define SCREEN_FREQ            "ScreenRefreshFreq"
-#define PVDI                "PVDI"
-
-
 #define  ATARI_SCRAP_FILE "/GEMSYS/GEMSCRAP/SCRAP.TXT"
+
+// variable numbers in preferences
+#define VAR_ATARI_KERNEL_PATH           0
+#define VAR_ATARI_ROOTFS_PATH           1
+#define VAR_ATARI_H_HOME                2
+#define VAR_ATARI_H_RDONLY              3
+#define VAR_ATARI_M_HOST_ROOT           4
+#define VAR_ATARI_M_HOST_ROOT_RDONLY    5
+#define VAR_ATARI_TEMP_PATH             6
+#define VAR_ATARI_PRINT_CMD             7
+#define VAR_ATARI_SERIAL_DEV_PATH       8
+#define VAR_ATARI_SCREEN_WIDTH          9
+#define VAR_ATARI_SCREEN_HEIGHT         10
+#define VAR_ATARI_SCREEN_STRETCH_X      11
+#define VAR_ATARI_SCREEN_STRETCH_Y      12
+#define VAR_ATARI_SCREEN_RATE_HZ        13
+#define VAR_ATARI_SCREEN_COLOUR_MODE    14
+#define VAR_HIDE_HOST_MOUSE             15
+#define VAR_APP_DISPLAY_NUMBER          16
+#define VAR_APP_WINDOW_X                17
+#define VAR_APP_WINDOW_Y                18
+#define VAR_ATARI_MEMORY_SIZE           19
+#define VAR_ATARI_LANGUAGE              20
+#define VAR_SHOW_HOST_MENU              21
+#define VAR_ATARI_AUTOSTART             22
+#define VAR_ATARI_DRV_                  23
+#define VAR_NUMBER                      24
+
+// variable names in preferences
+static const char *var_name[VAR_NUMBER] =
+{
+    //[HOST PATHS]
+    "atari_kernel_path",
+    "atari_rootfs_path",
+    "atari_h_home",
+    "atari_h_rdonly",
+    "atari_m_host_root",
+    "atari_m_host_root_rdonly",
+    "atari_temp_path",
+    //[HOST DEVICES]
+    "atari_print_cmd",
+    "atari_serial_dev_path",
+    //[ATARI SCREEN]
+    "atari_screen_width",
+    "atari_screen_height",
+    "atari_screen_stretch_x",
+    "atari_screen_stretch_y",
+    "atari_screen_rate_hz",
+    "atari_screen_colour_mode",
+    "hide_host_mouse",
+    //[SCREEN PLACEMENT]
+    "app_display_number",
+    "app_window_x",
+    "app_window_y",
+    //[ATARI EMULATION]
+    "atari_memory_size",
+    "atari_language",
+    "show_host_menu",
+    "atari_autostart",
+    //[ADDITIONAL ATARI DRIVES]
+    "atari_drv_"
+};
 
 
 unsigned Preferences::AtariLanguage = 0;
@@ -70,7 +115,7 @@ bool Preferences::AtariHostRootRdOnly = true;                // Atari M: is writ
 char Preferences::AtariTempFilesUnixPath[1024] = "/tmp";
 char Preferences::szPrintingCommand[256] = "echo printing not yet implemented";
 char Preferences::szAuxPath[256];
-int Preferences::Monitor = 0;        // 0 == Hauptbildschirm
+unsigned Preferences::Monitor = 0;        // 0 == Hauptbildschirm
 unsigned Preferences::AtariScreenX = 100;
 unsigned Preferences::AtariScreenY = 100;
 unsigned Preferences::AtariScreenWidth = 1024;      // 320..4096
@@ -145,6 +190,285 @@ int Preferences::Init(bool rewrite_conf)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Write configuration file
+ *
+ * @param[in]  cfgfile   path
+ *
+ * @return 0 or error code
+ *
+ ************************************************************************************************/
+int Preferences::writePreferences(const char *cfgfile)
+{
+    FILE *f = fopen(cfgfile, "wt");
+    if (f == nullptr)
+    {
+        return errno;
+    }
+
+    fprintf(f, "[HOST PATHS]\n");
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_KERNEL_PATH], AtariKernelPath);
+    fprintf(f, "atari_rootfs_path = \"%s\"\n", AtariRootfsPath);
+    fprintf(f, "atari_h_home = %s\n", AtariHostHome ? "YES" : "NO");
+    fprintf(f, "atari_h_rdonly = %s\n", AtariHostHomeRdOnly ? "YES" : "NO");
+    fprintf(f, "atari_m_host_root = %s\n", AtariHostRoot ? "YES" : "NO");
+    fprintf(f, "atari_m_host_root_rdonly = %s\n", AtariHostRootRdOnly ? "YES" : "NO");
+    fprintf(f, "atari_temp_path = \"%s\"\n", AtariTempFilesUnixPath);
+    fprintf(f, "[HOST DEVICES]\n");
+    fprintf(f, "atari_print_cmd = \"%s\"\n", szPrintingCommand);
+    fprintf(f, "atari_serial_dev_path = \"%s\"\n", szAuxPath);
+    fprintf(f, "[ATARI SCREEN]\n");
+    fprintf(f, "atari_screen_width = %u\n", AtariScreenWidth);
+    fprintf(f, "atari_screen_height = %u\n", AtariScreenHeight);
+    fprintf(f, "atari_screen_stretch_x = %u\n", AtariScreenStretchX);
+    fprintf(f, "atari_screen_stretch_y = %u\n", AtariScreenStretchY);
+    fprintf(f, "atari_screen_rate_hz = %u\n", ScreenRefreshFrequency);
+    fprintf(f, "atari_screen_colour_mode = %u\n", atariScreenColourMode);
+    fprintf(f, "# 0:24b 1:16b 2:256 3:16 4:16ip 5:4ip 6:mono\n");
+    fprintf(f, "hide_host_mouse = %s\n", bHideHostMouse ? "YES" : "NO");
+    fprintf(f, "[SCREEN PLACEMENT]\n");
+    fprintf(f, "app_display_number = %u\n", Monitor);
+    fprintf(f, "app_window_x = %u\n", AtariScreenX);
+    fprintf(f, "app_window_y = %u\n", AtariScreenY);
+    fprintf(f, "[ATARI EMULATION]\n");
+    fprintf(f, "atari_memory_size = %u\n", AtariMemSize);
+    fprintf(f, "atari_language = %u\n", AtariLanguage);
+    fprintf(f, "show_host_menu = %s\n", bShowHostMenu ? "YES" : "NO");
+    fprintf(f, "atari_autostart = %s\n", bAutoStartMagiC ? "YES" : "NO");
+    fprintf(f, "[ADDITIONAL ATARI DRIVES]\n");
+    fprintf(f, "# atari_drv_n = flags [1:read-only, 2:8+3] path\n");
+    for (unsigned n = 1; n < NDRIVES; n++)
+    {
+        if (drvPath[n] != nullptr)
+        {
+            fprintf(f, "atari_drv_%c = %u \"%s\"\n", n + 'a', drvFlags[n], drvPath[n]);
+        }
+    }
+
+    fclose(f);
+    return 0;
+}
+
+
+// read string, optionally enclosed in "" or ''
+// TODO: check for missing limiter and overflow
+static void eval_quotated_str(char *out, unsigned maxlen, const char **in)
+{
+    char *endp = out + maxlen - 1;
+    char limiter = **in;
+    if ((limiter == '\"') || (limiter == '\''))
+    {
+        (*in)++;
+    }
+    else
+    {
+        limiter = 0;
+    }
+    while((**in) && (**in != '\n') && (**in != limiter) && (out < endp))
+    {
+        *out++ = **in;
+        (*in)++;
+    }
+    if ((**in == limiter) && (limiter != 0))
+    {
+        (*in)++;
+    }
+
+    *out = '\0';
+}
+
+
+static void eval_unsigned(unsigned *out, unsigned maxval, const char **in)
+{
+    char *endptr;
+    unsigned long long value = strtoul(*in, &endptr, 0 /*auto base*/);
+    if (endptr > *in)
+    {
+        if (value <= maxval)
+        {
+            *out = (unsigned) value;
+        }
+    }
+}
+
+
+// TODO: error handling
+static void eval_bool(bool *out, const char *YesOrNo)
+{
+    if (!strcasecmp(YesOrNo, "yes"))
+        *out = true;
+    else
+    if (!strcasecmp(YesOrNo, "no"))
+        *out = false;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Evaluate a single preferences line
+ *
+ * @param[in]  line   input line, with trailing \n and zero byte
+ *
+ * @return 0 for OK, 1 for error
+ *
+ * @note empty lines, sections and comments have already been processed
+ *
+ ************************************************************************************************/
+int Preferences::evaluatePreferencesLine(const char *line)
+{
+    char YesOrNo[16];
+    unsigned vu;
+    unsigned var;
+    const char *key;
+
+    for (var = 0; var < VAR_NUMBER; var++)
+    {
+        key = var_name[var];
+        if (!strncasecmp(line, key, strlen(key)))
+            break;
+    }
+
+    if (var >= VAR_NUMBER)
+    {
+        printf("unknown key");
+        return 1;
+    }
+
+    line += strlen(key);
+    // skip spaces
+    while(isspace(*line))
+    {
+        line++;
+    }
+    if (*line != '=')
+    {
+        return 1;
+    }
+    line++;
+    // skip spaces
+    while(isspace(*line))
+    {
+        line++;
+    }
+
+    switch(var)
+    {
+        case VAR_ATARI_KERNEL_PATH:
+            eval_quotated_str(AtariKernelPath, sizeof(AtariKernelPath), &line);
+            printf("AtariKernelPath = ==%s==\n", AtariKernelPath);
+            break;
+
+        case VAR_ATARI_ROOTFS_PATH:
+            eval_quotated_str(AtariRootfsPath, sizeof(AtariRootfsPath), &line);
+            break;
+
+        case VAR_ATARI_H_HOME:
+            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
+            eval_bool(&AtariHostHome, YesOrNo);
+            printf("AtariHostHome = %s\n", YesOrNo);
+            break;
+
+        case VAR_ATARI_H_RDONLY:
+            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
+            eval_bool(&AtariHostHomeRdOnly, YesOrNo);
+            break;
+
+        case VAR_ATARI_M_HOST_ROOT:
+            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
+            eval_bool(&AtariHostRoot, YesOrNo);
+            break;
+
+        case VAR_ATARI_M_HOST_ROOT_RDONLY:
+            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
+            eval_bool(&AtariHostRootRdOnly, YesOrNo);
+            break;
+
+        case VAR_ATARI_TEMP_PATH:
+            eval_quotated_str(AtariTempFilesUnixPath, sizeof(AtariTempFilesUnixPath), &line);
+            break;
+
+        case VAR_ATARI_PRINT_CMD:
+            eval_quotated_str(szPrintingCommand, sizeof(szPrintingCommand), &line);
+            break;
+
+        case VAR_ATARI_SERIAL_DEV_PATH:
+            eval_quotated_str(szAuxPath, sizeof(szAuxPath), &line);
+            break;
+
+        case VAR_ATARI_SCREEN_WIDTH:
+            eval_unsigned(&AtariScreenWidth, 4096, &line);
+            printf("AtariScreenWidth = %u\n", AtariScreenWidth);
+            break;
+
+        case VAR_ATARI_SCREEN_HEIGHT:
+            eval_unsigned(&AtariScreenHeight, 2048, &line);
+            break;
+
+        case VAR_ATARI_SCREEN_STRETCH_X:
+            eval_unsigned(&AtariScreenStretchX, 8, &line);
+            break;
+
+        case VAR_ATARI_SCREEN_STRETCH_Y:
+            eval_unsigned(&AtariScreenStretchY, 8, &line);
+            break;
+
+        case VAR_ATARI_SCREEN_RATE_HZ:
+            eval_unsigned(&ScreenRefreshFrequency, 120, &line);
+            break;
+
+        case VAR_ATARI_SCREEN_COLOUR_MODE:
+            eval_unsigned(&vu, 6, &line);
+            atariScreenColourMode = (enAtariScreenColourMode) vu;
+            break;
+
+        case VAR_HIDE_HOST_MOUSE:
+            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
+            eval_bool(&bHideHostMouse, YesOrNo);
+            break;
+
+        case VAR_APP_DISPLAY_NUMBER:
+            eval_unsigned(&Monitor, 0xffffffff, &line);
+            break;
+
+        case VAR_APP_WINDOW_X:
+            eval_unsigned(&AtariScreenX, 4096, &line);
+            break;
+
+        case VAR_APP_WINDOW_Y:
+            eval_unsigned(&AtariScreenY, 4096, &line);
+            break;
+
+        case VAR_ATARI_MEMORY_SIZE:
+            eval_unsigned(&AtariMemSize, 0x20000000, &line);
+            break;
+
+        case VAR_ATARI_LANGUAGE:
+            eval_unsigned(&AtariLanguage, 0xffffffff, &line);
+            break;
+
+        case VAR_SHOW_HOST_MENU:
+            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
+            eval_bool(&bShowHostMenu, YesOrNo);
+            break;
+
+        case VAR_ATARI_AUTOSTART:
+            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
+            eval_bool(&bAutoStartMagiC, YesOrNo);
+            break;
+
+        case VAR_ATARI_DRV_:
+            break;
+
+        default:
+            printf("wrong line\n");
+            break;
+    } // switch
+
+    return 0;
+}
+
+
 /**********************************************************************
 *
 * Alle Einstellungen holen
@@ -160,54 +484,50 @@ int Preferences::getPreferences(const char *cfgfile, bool rewrite_conf)
     if (rewrite_conf || stat(cfgfile, &statbuf))
     {
         // Configuration file does not exist. Create it.
-        f = fopen(cfgfile, "wt");
-        if (f == nullptr)
-        {
-            return 1;
-        }
-
-        fprintf(f, "[HOST PATHS]\n");
-        fprintf(f, "atari_kernel_path = \"%s\"\n", AtariKernelPath);
-        fprintf(f, "atari_rootfs_path = \"%s\"\n", AtariRootfsPath);
-        fprintf(f, "atari_h_home = %s\n", AtariHostHome ? "YES" : "NO");
-        fprintf(f, "atari_h_rdonly = %s\n", AtariHostHomeRdOnly ? "YES" : "NO");
-        fprintf(f, "atari_m_host_root = %s\n", AtariHostRoot ? "YES" : "NO");
-        fprintf(f, "atari_m_host_root_rdonly = %s\n", AtariHostRootRdOnly ? "YES" : "NO");
-        fprintf(f, "atari_temp_path = \"%s\"\n", AtariTempFilesUnixPath);
-        fprintf(f, "[HOST DEVICES]\n");
-        fprintf(f, "atari_print_cmd = \"%s\"\n", szPrintingCommand);
-        fprintf(f, "atari_serial_dev_path = \"%s\"\n", szAuxPath);
-        fprintf(f, "[ATARI SCREEN]\n");
-        fprintf(f, "atari_screen_width = %u\n", AtariScreenWidth);
-        fprintf(f, "atari_screen_height = %u\n", AtariScreenHeight);
-        fprintf(f, "atari_screen_stretch_x = %u\n", AtariScreenStretchX);
-        fprintf(f, "atari_screen_stretch_y = %u\n", AtariScreenStretchY);
-        fprintf(f, "atari_screen_rate_hz = %u\n", ScreenRefreshFrequency);
-        fprintf(f, "atari_screen_colour_mode = %u\n", atariScreenColourMode);
-        fprintf(f, "# 0:24b 1:16b 2:256 3:16 4:16ip 5:4ip 6:mono\n");
-        fprintf(f, "hide_host_mouse = %s\n", bHideHostMouse ? "YES" : "NO");
-        fprintf(f, "[SCREEN PLACEMENT]\n");
-        fprintf(f, "app_display_number = %u\n", Monitor);
-        fprintf(f, "app_window_x = %u\n", AtariScreenX);
-        fprintf(f, "app_window_y = %u\n", AtariScreenY);
-        fprintf(f, "[ATARI EMULATION]\n");
-        fprintf(f, "atari_memory_size = %u\n", AtariMemSize);
-        fprintf(f, "atari_language = %u\n", AtariLanguage);
-        fprintf(f, "show_host_menu = %s\n", bShowHostMenu ? "YES" : "NO");
-        fprintf(f, "atari_autostart = %s\n", bAutoStartMagiC ? "YES" : "NO");
-        fprintf(f, "[ADDITIONAL ATARI DRIVES]\n");
-        fprintf(f, "# atari_drv_n = flags [1:read-only, 2:8+3] path\n");
-        for (unsigned n = 1; n < NDRIVES; n++)
-        {
-            if (drvPath[n] != nullptr)
-            {
-                fprintf(f, "atari_drv_%c = %u \"%s\"\n", n + 'a', drvFlags[n], drvPath[n]);
-            }
-        }
-
-        fclose(f);
-        return 0;
+        return writePreferences(cfgfile);
     }
+
+    f = fopen(cfgfile, "rt");
+    if (f == 0)
+    {
+        return errno;
+    }
+
+    char line[2048];
+    int num_err = 0;
+    while(fgets(line, 2046, f))
+    {
+        const char *c = line;
+
+        // skip spaces
+        while(isspace(*c))
+        {
+            c++;
+        }
+
+        // skip comments
+        if (*c == '#')
+        {
+            continue;
+        }
+
+        // skip section names
+        if (*c == '[')
+        {
+            continue;
+        }
+
+        // skip empty lines
+        if (*c == '\0')
+        {
+            continue;
+        }
+
+        num_err += evaluatePreferencesLine(c);
+    }
+    fclose(f);
+    return num_err;
+
 #if 0
     // TODO: implement
     int ret;

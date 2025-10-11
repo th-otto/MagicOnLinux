@@ -8,8 +8,11 @@
 
 int main(int argc, const char *argv[])
 {
-    (void) argc;
-    (void) argv;
+    if ((argc > 1) && (!strcmp(argv[1], "-rewrite_conf")))
+    {
+        Preferences::Init(true);
+        return 0;
+    }
 
 /*
     printf("__UINTPTR_MAX__ == 0x%lx\n", __UINTPTR_MAX__);
@@ -21,7 +24,7 @@ int main(int argc, const char *argv[])
 */
 
     DebugInit(NULL /* stderr */);
-    Preferences::Init();
+    Preferences::Init(false);
     EmulationInit();
     EmulationOpenWindow();
     EmulationRun();

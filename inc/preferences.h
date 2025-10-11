@@ -52,9 +52,9 @@ class Preferences
 {
    public:
     // Initialisierung
-    static int Init(void);
+    static int Init(bool rewrite_conf);
     // Alle Einstellungen holen
-    static int getPreferences(const char *cfgfile);
+    static int getPreferences(const char *cfgfile, bool rewrite_conf);
     static void Update_Monitor(void);
     static void Update_AtariMem(void);
     static void Update_GeneralSettings(void);
@@ -70,10 +70,12 @@ class Preferences
     static enAtariScreenColourMode atariScreenColourMode;
     static bool bHideHostMouse;
     static bool bAutoStartMagiC;
-    static unsigned drvFlags[NDRIVES];    // 1 == RevDir / 2 == 8+3
 	static char AtariKernelPath[1024];              // "MagicMacX.OS" file
 	static char AtariRootfsPath[1024];              // Atari C:
-    static bool AtariHostHomeRdonly;                // Atari H: is write protected
+    static bool AtariHostHome;                       // Atari H: is home
+    static bool AtariHostHomeRdOnly;                // Atari H: is write protected
+    static bool AtariHostRoot;                      // Atari M: as host root
+    static bool AtariHostRootRdOnly;                // Atari M: is write protected
 	static char AtariScrapFileUnixPath[1024];
 	static char AtariTempFilesUnixPath[1024];
     static char szPrintingCommand[256];
@@ -89,6 +91,7 @@ class Preferences
     //static bool m_bPPC_VDI_Patch;
 
     static const char *drvPath[NDRIVES];
+    static unsigned drvFlags[NDRIVES];    // 1 == RevDir / 2 == 8+3
 
     static const char *getDrvPath(unsigned drv)
     {

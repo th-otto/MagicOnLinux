@@ -50,7 +50,7 @@ class CHostXFS
     enum HostXFSDrvType
     {
         eNoHostXFS,     //< drive is NOT a host directory
-        eHostRoot,      //< drive is the host root directory, used for M:
+        //eHostRoot,      //< drive is the host root directory, used for M:
         eHostDir        //< drive is a host directory
     };
 
@@ -60,7 +60,7 @@ class CHostXFS
         switch(type)
         {
             case eNoHostXFS: return "NoHostXFS"; break;
-            case eHostRoot: return "HostRoot"; break;
+            //case eHostRoot: return "HostRoot"; break;
             case eHostDir: return "HostDir"; break;
             default: return "UNKNOWN"; break;
         }
@@ -238,6 +238,7 @@ class CHostXFS
     FSRef xfs_path[NDRVS];        // nur auswerten, wenn drv_valid = true
 */
     const char *drv_host_path[NDRVS];     // nullptr, if not valid
+    const char *drv_atari_name[NDRVS];            // nullptr, if not valid
     long drv_dirID[NDRVS];
     bool drv_longnames[NDRVS];            // initialisiert auf 0en
     bool drv_readOnly[NDRVS];

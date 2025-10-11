@@ -773,11 +773,13 @@ INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
 {
     DebugInfo("%s(drv = %u, mode = %u)", __func__, drv, mode);
 
+    /*
     // drive M: or host root may not be closed
     if ((drv == 'M'-'A') || (drv_type[drv] == eHostRoot))
     {
         return((mode) ? E_OK : EACCDN);
     }
+    */
 
     if (drv_changed[drv])
     {
@@ -2347,12 +2349,24 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
         return EDRIVE;
     }
 
-    if (bufsiz < 12)
+    const char *atari_name = drv_atari_name[drv];
+    if (atari_name != nullptr)
     {
-        return ATARIERR_ERANGE;
+        if (bufsiz < strlen(atari_name) + 1)
+        {
+            return ATARIERR_ERANGE;
+        }
+        strcpy(name, atari_name);
+    }
+    else
+    {
+        if (bufsiz < 12)
+        {
+            return ATARIERR_ERANGE;
+        }
+        sprintf(name, "HOSTXFS.%u", drv);
     }
 
-    sprintf(name, "HOSTXFS.%u", drv);
     DebugInfo2("() -> \"%s\"", name);
 
     return E_OK;
@@ -3682,6 +3696,11 @@ void CHostXFS::activateXfsDrives(uint8_t *AdrOffset68k)
         drv_changed[i] = 0;
         drv_dirID[i] = 0;             // ?
     }
+
+    // TODO: read from Preferences
+    drv_atari_name['C' - 'A'] = "MAGIC";
+    drv_atari_name['H' - 'A'] = "HOME";
+    drv_atari_name['M' - 'A'] = "ROOT";
 
     setDrivebits(xfs_drvbits, AdrOffset68k);
 }

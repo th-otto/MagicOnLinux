@@ -63,7 +63,10 @@ unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3
 const char *Preferences::drvPath[NDRIVES];
 char Preferences::AtariKernelPath[1024] = "/home/and/Documents/Atari-rootfs/MagicMacX.OS";
 char Preferences::AtariRootfsPath[1024] = "/home/and/Documents/Atari-rootfs";
-bool Preferences::AtariHostHomeRdonly = true;
+bool Preferences::AtariHostHome = true;                      // Atari H: as host home
+bool Preferences::AtariHostHomeRdOnly = true;
+bool Preferences::AtariHostRoot = true;                      // Atari M: as host root
+bool Preferences::AtariHostRootRdOnly = true;                // Atari M: is write protected
 char Preferences::AtariTempFilesUnixPath[1024] = "/tmp";
 char Preferences::szPrintingCommand[256] = "echo printing not yet implemented";
 char Preferences::szAuxPath[256];
@@ -101,7 +104,7 @@ static const char *get_home()
 *
 **********************************************************************/
 
-int Preferences::Init()
+int Preferences::Init(bool rewrite_conf)
 {
     for (int i = 0; i < NDRIVES; i++)
     {
@@ -116,17 +119,24 @@ int Preferences::Init()
         strcpy(path, home);
     }
     strcat(path, "/.config/magiclinux.conf");
-    (void) getPreferences(path);
+    (void) getPreferences(path, rewrite_conf);
 
     // drive C: is root FS with 8+3 name scheme
     drvFlags['C'-'A'] |= 2;        // C: drive has 8+3 name scheme
     setDrvPath('C'-'A', AtariRootfsPath);
 
     // drive H: is user home
-    if (home != nullptr)
+    if (AtariHostHome && (home != nullptr))
     {
-        drvFlags['H'-'A'] = AtariHostHomeRdonly ? 1 : 0;        // long names, read-only
+        drvFlags['H'-'A'] = AtariHostHomeRdOnly ? 1 : 0;        // long names, read-only
         setDrvPath('H'-'A', home);
+    }
+
+    // drive M: is host root, if requested
+    if (AtariHostRoot)
+    {
+        drvFlags['M'-'A'] = AtariHostRootRdOnly ? 1 : 0;        // long names, read-only
+        setDrvPath('M'-'A', "/");
     }
 
     strcpy(AtariScrapFileUnixPath, AtariRootfsPath);
@@ -142,12 +152,12 @@ int Preferences::Init()
 *
 **********************************************************************/
 
-int Preferences::getPreferences(const char *cfgfile)
+int Preferences::getPreferences(const char *cfgfile, bool rewrite_conf)
 {
     struct stat statbuf;
     FILE *f;
 
-    if (stat(cfgfile, &statbuf))
+    if (rewrite_conf || stat(cfgfile, &statbuf))
     {
         // Configuration file does not exist. Create it.
         f = fopen(cfgfile, "wt");
@@ -159,7 +169,10 @@ int Preferences::getPreferences(const char *cfgfile)
         fprintf(f, "[HOST PATHS]\n");
         fprintf(f, "atari_kernel_path = \"%s\"\n", AtariKernelPath);
         fprintf(f, "atari_rootfs_path = \"%s\"\n", AtariRootfsPath);
-        fprintf(f, "atari_h_rdonly = %s\n", AtariHostHomeRdonly ? "YES" : "NO");
+        fprintf(f, "atari_h_home = %s\n", AtariHostHome ? "YES" : "NO");
+        fprintf(f, "atari_h_rdonly = %s\n", AtariHostHomeRdOnly ? "YES" : "NO");
+        fprintf(f, "atari_m_host_root = %s\n", AtariHostRoot ? "YES" : "NO");
+        fprintf(f, "atari_m_host_root_rdonly = %s\n", AtariHostRootRdOnly ? "YES" : "NO");
         fprintf(f, "atari_temp_path = \"%s\"\n", AtariTempFilesUnixPath);
         fprintf(f, "[HOST DEVICES]\n");
         fprintf(f, "atari_print_cmd = \"%s\"\n", szPrintingCommand);

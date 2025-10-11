@@ -88,7 +88,7 @@ class CMagiC
     int GetKbBufferFree(void);
     void PutKeyToBuffer(unsigned char key);
     static void *_EmuThread(void *param);
-    OSStatus EmuThread(void);
+    int EmuThread(void);
 #if defined(USE_ASGARD_PPC_68K_EMU)
     static int IRQCallback(int IRQLine, void *thisPtr);
 #else

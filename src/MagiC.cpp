@@ -26,9 +26,11 @@
 // system headers
 #include <cassert>
 #include <cerrno>
+#include <sys/stat.h>
 #include <sys/param.h>
 #include <time.h>
 // programm headers
+#include "emulation_globals.h"
 #include "Debug.h"
 #include "Globals.h"
 #include "MagiC.h"
@@ -308,6 +310,26 @@ void CMagiC::OS_WaitForEvent(uint32_t *event, uint32_t *flags)
 }
 
 
+/**//**************************************************************************
+*
+*  @brief Get file size from host path
+*
+******************************************************************************/
+static int64_t getFileSize(const char *hostPath)
+{
+	int ret;
+	struct stat statbuf;
+
+	ret = stat(hostPath, &statbuf);
+	if (ret == 0)
+	{
+		return statbuf.st_size;
+	}
+
+	return -1;
+}
+
+
 /** **********************************************************************************************
 *
 * @brief Load and relocate an Atari executable file, here the MagiC kernel
@@ -328,7 +350,7 @@ int CMagiC::LoadReloc
     BasePage **basePage
 )
 {
-    int err = noErr;
+    int err = 0;
     size_t len, codlen;
     ExeHeader exehead;
     BasePage *bp;
@@ -393,7 +415,7 @@ Reinstall the application.
     if (tpaSize > m_RAM68ksize)
     {
         DebugError2("() - Insufficient memory");
-        err = memFullErr;
+        err = 1;
         goto exitReloc;
     }
 
@@ -484,7 +506,7 @@ Reinstall the application.
             relBuf = (uint8_t *) malloc(RelocBufSize + 2);
             if (relBuf == nullptr)
             {
-                err = memFullErr;
+                err = 1;    // out-of-memory
                 goto exitReloc;
             }
 
@@ -553,7 +575,7 @@ exitReloc:
 void CMagiC::Init_CookieData(MgMxCookieData *pCookieData)
 {
     pCookieData->mgmx_magic     = htobe32('MgMx');
-    pCookieData->mgmx_version   = htobe32(CGlobals::s_ProgramVersionMajor);
+    pCookieData->mgmx_version   = htobe32(PROGRAM_VERSION_MAJOR);
     pCookieData->mgmx_len       = htobe32(sizeof(MgMxCookieData));
     pCookieData->mgmx_xcmd      = htobe32(0);        // wird vom Kernel gesetzt
     pCookieData->mgmx_xcmd_exec = htobe32(0);        // wird vom Kernel gesetzt
@@ -727,7 +749,7 @@ Assign more memory to the application using the Finder dialogue "Information"!
     }
 
     // Atari-Kernel lesen
-    err = LoadReloc(CGlobals::s_atariKernelPath, 0, -1, &m_BasePage);
+    err = LoadReloc(Preferences::AtariKernelPath, 0, -1, &m_BasePage);
     if (err)
         return(err);
     DebugInfo("MagiC kernel loaded and relocated successfully");
@@ -908,7 +930,7 @@ Reinstall the application.
     m_HostXFS.SetXFSDrive(
                     'C'-'A',                            // drvnum
                     CHostXFS::eHostDir,                    // drvType
-                    CGlobals::s_atariRootfsPath,                // path
+                    Preferences::AtariRootfsPath,                // path
                     (Preferences::drvFlags['C'-'A'] & 2) ? false : true,    // lange Dateinamen
                     (Preferences::drvFlags['C'-'A'] & 1) ? true : false,    // umgekehrte Verzeichnis-Reihenfolge (Problem bei OS X 10.2!)
                     m_RAM68k);
@@ -1216,7 +1238,7 @@ void *CMagiC::_EmuThread(void *param)
     return (void *) (uint64_t) (((CMagiC *) param)->EmuThread());
 }
 
-OSStatus CMagiC::EmuThread( void )
+int CMagiC::EmuThread( void )
 {
     uint32_t EventFlags;
     bool bNewBstate[2];

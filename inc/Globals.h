@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <endian.h>
-#include <atomic>
 // Programm-Header
 #include "preferences.h"
 
@@ -71,9 +70,6 @@ extern "C" {
 #define setAtari32(addr, val) \
     *((uint32_t *) (addr)) = val;
 
-//#define min(a,b) (((a) < (b)) ? (a) : (b))
-//#define max(a,b) (((a) > (b)) ? (a) : (b))
-#define MAX_ATARIMEMSIZE	(2U*1024U*1024U*1024U)		// 2 Gigabytes
 
 typedef struct
 {
@@ -89,14 +85,6 @@ typedef struct
 	int16_t y;
 } Point;
 
-// compatibility to macOS
-typedef int OSStatus;
-
-enum OSErr
-{
-	noErr = 0,
-	memFullErr = -1
-};
 
 // intermediate replacement for error alert
 static inline void MyAlert(const char *a, const char *b)
@@ -108,42 +96,28 @@ static inline void MyAlert(const char *a, const char *b)
 // global variables
 //
 
-extern std::atomic_bool gbAtariVideoBufChanged;
-extern uint8_t *addrOpcodeROM;
-extern uint32_t addr68kVideo;			// start of 68k video memory (68k address)
-extern uint32_t addr68kVideoEnd;		// end of 68k video memory (68k address)
-extern bool gbAtariVideoRamHostEndian;	// true: video RAM is stored in host endian-mode
-#ifdef _DEBUG
-extern uint32_t addrOsRomStart;			// beginning of write-protected memory area (68k address)
-extern uint32_t addrOsRomEnd;			// end of write-protected memory area (68k address)
-#endif
-extern uint8_t *hostVideoAddr;			// start of host video memory (host address)
 
 void sendBusError(uint32_t addr, const char *AccessMode);
 void getActAtariPrg(const char **pName, uint32_t *pact_pd);
-
-
-// helper
-int64_t getFileSize(const char *path);
 
 
 // global functions used by XCMD
 extern void MMX_BeginDialog(void);
 extern void MMX_EndDialog(void);
 // global function used by CMagiCWindow to report closing
-extern void SendWindowClose( void );
+extern void SendWindowClose(void);
 // global function used by CMagiCWindow to report collapsing
-extern void SendWindowCollapsing( void );
+extern void SendWindowCollapsing(void);
 // global function used by CMagiCWindow to report collapsed window has re-expanded
-extern void SendWindowExpanded( void );
+extern void SendWindowExpanded(void);
 // global function used by CMagiCWindow to report keyboard focus acquired
-extern void SendWindowFocusAcquired( void );
+extern void SendWindowFocusAcquired(void);
 // global function used by CMagiCWindow to report keyboard focus relinguish
-extern void SendWindowFocusRelinguish( void );
+extern void SendWindowFocusRelinguish(void);
 // global function used by CMagiCWindow to report mouse clicks
-extern void SendWindowMoveHandler( uint32_t evkind, Rect *pNewRect );
+extern void SendWindowMoveHandler(uint32_t evkind, Rect *pNewRect);
 // global function used by CMagiCWindow to report mouse clicks
-extern int SendMouseButtonHandler( unsigned int NumOfButton, bool bIsDown );
+extern int SendMouseButtonHandler(unsigned int NumOfButton, bool bIsDown);
 // global function used by CMagiC to report 68k exceptions
 extern void Send68kExceptionData(
 			uint16_t exc,
@@ -163,36 +137,4 @@ extern void UpdateAtariDoubleBuffer(void);
 // TODO: needed?
 //extern DialogItemIndex MyAlert(int16_t alertID, AlertType alertType);
 
-class CGlobals
-{
-     public:
-	CGlobals();
-	static char s_atariKernelPath[1024];
-	static char s_atariRootfsPath[1024];
-	static char s_atariScrapFileUnixPath[1024];
-	static char s_atariTempFilesUnixPath[1024];
-	static const unsigned s_ProgramVersionMajor = 0;
-	static const unsigned s_ProgramVersionMinor = 1;
-	static int getDosPath(
-				const char *hostpPath,
-				char *pBuf,
-				unsigned uBufLen);
-	static void Init(void);
-	static bool s_bRunning;
-
-	// leave Mac menu visible, no fullscreen
-	static bool s_bShowMacMenu;
-	// curent Atari screen size
-	static bool s_bAtariScreenManualSize;
-	static unsigned short s_AtariScreenX;
-	static unsigned short s_AtariScreenY;
-	static unsigned short s_AtariScreenWidth;
-	static unsigned short s_AtariScreenHeight;
-
-	static bool s_XFSDrvWasChanged[NDRIVES];
-
-   private:
-};
-
-extern CGlobals Globals;
 #endif

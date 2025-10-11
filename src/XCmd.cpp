@@ -136,7 +136,7 @@ int CXCmd::Init(void)
 *
 **********************************************************************/
 
-OSErr CXCmd::Preload(void)
+int CXCmd::Preload(void)
 {
 #if 0
 	// TODO: implement
@@ -183,7 +183,7 @@ OSErr CXCmd::Preload(void)
 
 	return(0);
 #else
-	return noErr;
+	return 0;
 #endif
 }
 
@@ -275,7 +275,7 @@ void CXCmd::InitXCMD(uint64_t connectionId)
 *
 **********************************************************************/
 
-OSErr CXCmd::LoadFile(const char *path, uint64_t *pConnectionId)
+int CXCmd::LoadFile(const char *path, uint64_t *pConnectionId)
 {
 #if 0
 	// TODO: implement
@@ -322,7 +322,7 @@ OSErr CXCmd::LoadFile(const char *path, uint64_t *pConnectionId)
 #else
 	(void) path;
 	(void) pConnectionId;
-	return noErr;
+	return 0;
 #endif
 }
 
@@ -333,7 +333,7 @@ OSErr CXCmd::LoadFile(const char *path, uint64_t *pConnectionId)
 *
 **********************************************************************/
 
-OSErr CXCmd::LoadLibrary(const char *libName, uint64_t *pConnectionId)
+int CXCmd::LoadLibrary(const char *libName, uint64_t *pConnectionId)
 {
 #if 0
 	// TODO: implement
@@ -404,7 +404,7 @@ OSErr CXCmd::LoadLibrary(const char *libName, uint64_t *pConnectionId)
 #else
 	(void) libName;
 	(void) pConnectionId;
-	return noErr;
+	return 0;
 #endif
 }
 
@@ -415,7 +415,7 @@ OSErr CXCmd::LoadLibrary(const char *libName, uint64_t *pConnectionId)
 *
 **********************************************************************/
 
-OSErr CXCmd::LoadPlugin
+int CXCmd::LoadPlugin
 (
 	const char *pUnixPath,			// Plugin name or complete path
 	const char *SearchPath,			// path (e.g. "~/Library/MagicMacX/PlugIns")
@@ -582,7 +582,7 @@ OSErr CXCmd::LoadPlugin
 	(void)  SearchPath;
 	(void) pPluginRef;
 	(void) ppInterface;
-	return noErr;
+	return 0;
 #endif
 }
 
@@ -689,7 +689,7 @@ static void DebugPrintSymbolsInCFPlugIn(MagicMacXPluginInterfaceStruct *pInterfa
 *
 **********************************************************************/
 
-OSErr CXCmd::OnCommandLoadLibrary
+int CXCmd::OnCommandLoadLibrary
 (
 	const char *szLibName,		// name oder Pfad
 	bool bIsPath,			// true: Pfad / false: Name
@@ -847,7 +847,7 @@ OSErr CXCmd::OnCommandLoadLibrary
 	(void) bIsPath;
 	(void) pXCmdDescriptor;
 	(void) pNumOfSymbols;
-	return noErr;
+	return 0;
 #endif
 }
 
@@ -858,7 +858,7 @@ OSErr CXCmd::OnCommandLoadLibrary
 *
 **********************************************************************/
 
-OSErr CXCmd::OnCommandUnloadLibrary
+int CXCmd::OnCommandUnloadLibrary
 (
 	uint32_t XCmdDescriptor
 )
@@ -908,7 +908,7 @@ OSErr CXCmd::OnCommandUnloadLibrary
 		return(fnfErr);
 #else
 	(void) XCmdDescriptor;
-	return noErr;
+	return 0;
 #endif
 }
 
@@ -919,7 +919,7 @@ OSErr CXCmd::OnCommandUnloadLibrary
 *
 **********************************************************************/
 
-OSErr CXCmd::OnCommandFindSymbol
+int CXCmd::OnCommandFindSymbol
 (
 	uint32_t XCmdDescriptor,
 	char *pSymName,
@@ -1037,7 +1037,7 @@ OSErr CXCmd::OnCommandFindSymbol
 	(void) SymIndex;
 	(void) pSymClass;
 	(void) pSymbolAddress;
-	return noErr;
+	return 0;
 #endif
 }
 

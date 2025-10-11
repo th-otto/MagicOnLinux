@@ -18,7 +18,7 @@
 
 /*
 *
-* "Preferences" f�r MagicMacX
+* Preferences for application
 *
 */
 
@@ -27,6 +27,8 @@
 // Programm-Header
 #include "preferences.h"
 #include "Globals.h"
+
+#define MAX_ATARIMEMSIZE	(2U*1024U*1024U*1024U)		// 2 Gigabytes
 
 // Schalter
 
@@ -58,6 +60,8 @@
 #define PREFS_FILE        "MagiCMacX2 Prefs"
 #endif
 
+#define  ATARI_SCRAP_FILE "/GEMSYS/GEMSCRAP/SCRAP.TXT"
+
 
 unsigned Preferences::AtariLanguage = 0;
 unsigned Preferences::AtariMemSize = (8 * 1024 * 1024);
@@ -68,6 +72,10 @@ bool Preferences::bAutoStartMagiC = true;
 unsigned Preferences::drvFlags[NDRIVES];    // 1 == RevDir / 2 == 8+3
 const char *Preferences::drvPath[NDRIVES];
 unsigned Preferences::KeyCodeForRightMouseButton = -1;  // TODO: find it
+char Preferences::AtariKernelPath[1024] = "/home/and/Documents/Atari-rootfs/MagicMacX.OS";
+char Preferences::AtariRootfsPath[1024] = "/home/and/Documents/Atari-rootfs";
+char Preferences::AtariScrapFileUnixPath[1024] = "/home/and/Documents/Atari-rootfs" ATARI_SCRAP_FILE;
+char Preferences::AtariTempFilesUnixPath[1024] = "/tmp";
 char Preferences::szPrintingCommand[256] = "echo printing not yet implemented";
 char Preferences::szAuxPath[256];
 int Preferences::Monitor = 0;        // 0 == Hauptbildschirm

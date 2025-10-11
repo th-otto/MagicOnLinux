@@ -103,7 +103,7 @@ CHostXFS::CHostXFS()
     drv_longnames['C'-'A'] = false;
     drv_rvsDirOrder['C'-'A'] = false;   // ?
     drv_dirID['C'-'A'] = 0;             // ?
-    drv_host_path['C'-'A'] = CGlobals::s_atariRootfsPath;
+    drv_host_path['C'-'A'] = Preferences::AtariRootfsPath;
 
     HostHandles::init();
 

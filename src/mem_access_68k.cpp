@@ -30,6 +30,7 @@
 #include <time.h>
 // programm headers
 #include "Debug.h"
+#include "emulation_globals.h"
 #include "Globals.h"
 #include "Atari.h"
 #include "missing.h"

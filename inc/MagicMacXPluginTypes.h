@@ -62,9 +62,9 @@ struct XCmdInfo
 typedef struct _MagicMacXPluginInterfaceStruct
 {
 	IUNKNOWN_C_GUTS
-	OSErr (*PluginInit)(void *pThis, const struct XCmdInfo *pInfo);
-	OSErr (*PluginExit)(void *pThis);
-	OSErr (*GetPluginInfo)(
+	int (*PluginInit)(void *pThis, const struct XCmdInfo *pInfo);
+	int (*PluginExit)(void *pThis);
+	int (*GetPluginInfo)(
 			void *pThis,
 			const char **pName,
 			const char **pCreator,

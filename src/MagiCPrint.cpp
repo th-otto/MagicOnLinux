@@ -73,10 +73,10 @@ CMagiCPrint::~CMagiCPrint()
 		// dann ein rm auf alle Druckdateien im Verzeichnis "PrintQueue".
 
 		sprintf(command, "cd \"%s\";rm PrintQueue/MagiCPrintFile????????",
-							CGlobals::s_atariTempFilesUnixPath);
+							Preferences::AtariTempFilesUnixPath);
 		// Ausgabe-Umlenkung (stdout und stderr)
 		strcat(command, " >&\"");
-		strcat(command, CGlobals::s_atariTempFilesUnixPath);
+		strcat(command, Preferences::AtariTempFilesUnixPath);
 		strcat(command, "PrintQueue/PrintCommand_rm.txt\"");
 
 		DebugInfo("CMagiCPrint::~CMagiCPrint() --- Setze Kommando ab: %s", command);
@@ -135,7 +135,7 @@ uint32_t CMagiCPrint::Write(const uint8_t *pBuf, uint32_t cnt)
 	{
 		// Druckdatei nicht mehr geöffnet => Neu anlegen
 
-		sprintf(PrintFileName, "%s/PrintQueue/MagiCPrintFile%08d", CGlobals::s_atariTempFilesUnixPath, m_PrintFileCounter++);
+		sprintf(PrintFileName, "%s/PrintQueue/MagiCPrintFile%08d", Preferences::AtariTempFilesUnixPath, m_PrintFileCounter++);
 		DebugInfo("CMagiCPrint::Write() --- Lege Druckdatei \"%s\" an", PrintFileName);
 		m_printFile = fopen(PrintFileName, "w");
 		if	(m_printFile == nullptr)
@@ -189,7 +189,7 @@ uint32_t CMagiCPrint::ClosePrinterFile(void)
 	// werden, da system() immer im Wurzelverzeichnis läuft.
 	// Dateinamen in Anführungszeichen setzen, da der Pfadname Leerzeichen enthalten kann.
 	sprintf(szPrintFileNameUnix, "\"%s/PrintQueue/MagiCPrintFile%08d\"",
-						CGlobals::s_atariTempFilesUnixPath,
+						Preferences::AtariTempFilesUnixPath,
 						m_PrintFileCounter - 1);
 
 	// unseren Pfad ggf. in das Benutzerkommando einsetzen (%APPDIR%)
@@ -200,7 +200,7 @@ uint32_t CMagiCPrint::ClosePrinterFile(void)
 	{
 		if	(!strncmp(src, "%APPDIR%", 8))
 		{
-			strcpy(dst, CGlobals::s_atariTempFilesUnixPath);
+			strcpy(dst, Preferences::AtariTempFilesUnixPath);
 			dst += strlen(dst);
 			src += 8;
 		}
@@ -215,7 +215,7 @@ uint32_t CMagiCPrint::ClosePrinterFile(void)
 
 	// Ausgabe-Umlenkung (stdout und stderr)
 	strcat(command, " >&\"");
-	strcat(command, CGlobals::s_atariTempFilesUnixPath);
+	strcat(command, Preferences::AtariTempFilesUnixPath);
 	strcat(command, "PrintQueue/PrintCommand_stdout.txt\"");
 
 	DebugInfo("CMagiCPrint::ClosePrinterFile() --- Setze Kommando ab: %s", command);

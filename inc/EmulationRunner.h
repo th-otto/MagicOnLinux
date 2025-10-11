@@ -36,6 +36,7 @@
 #include "Clipboard.h"        // MagiC clipboad handling
 #include "missing.h"
 
+
 class EmulationRunner
 {
     protected:

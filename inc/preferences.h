@@ -18,7 +18,7 @@
 
 /*
 *
-* "Preferences" for application
+* Preferences for application
 *
 */
 
@@ -27,6 +27,9 @@
 
 #include <string.h>
 #include <stdlib.h>
+
+#define PROGRAM_VERSION_MAJOR 0
+#define PROGRAM_VERSION_MINOR 1
 
 #define NDRIVES ('Z'-'A' + 1)
 #define ATARIDRIVEISMAPPABLE(d)    ((d != 'C'-'A') && (d != 'M'-'A') && (d != 'U'-'A'))
@@ -49,16 +52,16 @@ class Preferences
 {
    public:
     // Initialisierung
-    static int Init( void );
+    static int Init(void);
     // Alle Einstellungen holen
-    static int GetPreferences( void );
-    static void Update_Monitor( void );
-    static void Update_AtariMem( void );
-    static void Update_GeneralSettings( void );
-    static void Update_Drives( void );
-    static void Update_PrintingCommand( void );
-    static void Update_AuxPath( void );
-    static void Update_AtariScreen( void );
+    static int GetPreferences(void);
+    static void Update_Monitor(void);
+    static void Update_AtariMem(void);
+    static void Update_GeneralSettings(void);
+    static void Update_Drives(void);
+    static void Update_PrintingCommand(void);
+    static void Update_AuxPath(void);
+    static void Update_AtariScreen(void);
 
     // Variablen
     static unsigned AtariMemSize;
@@ -69,6 +72,10 @@ class Preferences
     static bool bAutoStartMagiC;
     static unsigned drvFlags[NDRIVES];    // 1 == RevDir / 2 == 8+3
     static unsigned KeyCodeForRightMouseButton;
+	static char AtariKernelPath[1024];              // "MagicMacX.OS" file
+	static char AtariRootfsPath[1024];              // Atari C:
+	static char AtariScrapFileUnixPath[1024];
+	static char AtariTempFilesUnixPath[1024];
     static char szPrintingCommand[256];
     static char szAuxPath[256];
     static int Monitor;        // 0 == Hauptbildschirm

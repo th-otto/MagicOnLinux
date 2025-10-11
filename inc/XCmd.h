@@ -62,9 +62,9 @@ class CXCmd
 	// initialisieren
 	int Init(void);
 	// XCmd laden
-	OSErr LoadFile(const char *path, uint64_t *pConnectionId);
-	OSErr LoadLibrary(const char *libName, uint64_t *pConnectionId);
-	OSErr LoadPlugin(
+	int LoadFile(const char *path, uint64_t *pConnectionId);
+	int LoadLibrary(const char *libName, uint64_t *pConnectionId);
+	int LoadPlugin(
 			const char *pPath,
 			const char *SearchPath,
 			uint64_t *pPlugInRef,
@@ -86,20 +86,20 @@ class CXCmd
 	};
 	static tsLoadedPlugin s_Plugins[MAX_PLUGINS];
 #endif
-	OSErr OnCommandLoadLibrary(
+	int OnCommandLoadLibrary(
 				const char *szLibName,
 				bool bIsPath,
 				UINT32 *pDescriptor,
 				INT32 *pNumOfSymbols);
-	OSErr OnCommandUnloadLibrary(uint32_t XCmdDescriptor);
-	OSErr OnCommandFindSymbol(
+	int OnCommandUnloadLibrary(uint32_t XCmdDescriptor);
+	int OnCommandFindSymbol(
 				uint32_t XCmdDescriptor,
 				char *pSymName,
 				uint32_t SymNumber,
 				unsigned char *pSymClass,
 				uint32_t *pSymbolAddress
 				);
-   	OSErr Preload(void);
+   	int Preload(void);
    	void InitXCMD(uint64_t connectionId);
    	static XCmdCallbackFunctionProcType Callback;
 

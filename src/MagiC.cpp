@@ -1718,8 +1718,8 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool KeyUp)
 #ifdef _DEBUG_KB_CRITICAL_REGION
             CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
 #endif
-            DebugError2("() --- Tastenpuffer ist voll");
-            return(1);
+            DebugError2("() -- keyboard buffer full. Ignore key press");
+            return 1;
         }
 
         // Umrechnen in Atari-Scancode
@@ -1731,15 +1731,16 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool KeyUp)
 #ifdef _DEBUG_KB_CRITICAL_REGION
             CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
 #endif
+            DebugError2("() -- unknown key. Ignore key press");
             return 0;        // unbekannte Taste
         }
 
         if (KeyUp)
+        {
             val |= 0x80;
+        }
 
-        OS_EnterCriticalRegion(&m_KbCriticalRegionId);
         PutKeyToBuffer(val);
-        OS_ExitCriticalRegion(&m_KbCriticalRegionId);
 
         // Interrupt-Vektor 70 für Tastatur/MIDI mitliefern
 

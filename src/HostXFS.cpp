@@ -67,8 +67,10 @@ extern void _DumpAtariMem(const char *filename);
 #endif
 
 // suppress Host XFS debug info
-//#undef DebugInfo
-//#define DebugInfo(...)
+#undef DebugInfo
+#define DebugInfo(...)
+#undef DebugInfo2
+#define DebugInfo2(...)
 
 
 /** **********************************************************************************************

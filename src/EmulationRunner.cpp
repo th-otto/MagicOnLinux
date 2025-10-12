@@ -661,8 +661,8 @@ void EmulationRunner::_OpenWindow(void)
 
 
     // note that the SDL surface cannot distinguish between packed pixel and interleaved.
-    m_hostScreenW = Preferences::AtariScreenWidth  * (Preferences::AtariScreenStretchX ? 2 : 1);
-    m_hostScreenH = Preferences::AtariScreenHeight * (Preferences::AtariScreenStretchY ? 2 : 1);
+    m_hostScreenW = Preferences::AtariScreenWidth  * Preferences::AtariScreenStretchX;
+    m_hostScreenH = Preferences::AtariScreenHeight * Preferences::AtariScreenStretchY;
 
     // This is the screen buffer for the emulated Atari
     m_sdl_atari_surface = SDL_CreateRGBSurface(

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "Debug.h"
 #include "preferences.h"
 #include "EmulationMain.h"
@@ -8,6 +9,22 @@
 
 int main(int argc, const char *argv[])
 {
+    if ((argc == 2) && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")))
+    {
+        fputs("Usage:\n"
+              "  -h or --help\n"
+              "  -rewrite_conf\n"
+              "  -open_conf\n",
+            stderr);
+        return 0;
+    }
+
+    if ((argc > 1) && (!strcmp(argv[1], "-open_conf")))
+    {
+        system("gnome-text-editor ~/.config/magiclinux.conf &");
+        return 0;
+    }
+
     if ((argc > 1) && (!strcmp(argv[1], "-rewrite_conf")))
     {
         Preferences::Init(true);
@@ -24,7 +41,10 @@ int main(int argc, const char *argv[])
 */
 
     DebugInit(NULL /* stderr */);
-    Preferences::Init(false);
+    if (Preferences::Init(false))
+    {
+        fputs("There were syntax errors in configuration file\n", stderr);
+    }
     EmulationInit();
     EmulationOpenWindow();
     EmulationRun();

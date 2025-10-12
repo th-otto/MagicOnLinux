@@ -46,7 +46,7 @@ uint8_t *hostVideoAddr;				// start of host video memory (host address)
  ************************************************************************************************/
 EmulationRunner::EmulationRunner(void)
 {
-    DebugInfo2("%s()");
+    //DebugInfo2("%s()");
     m_bQuitLoop = false;
     //drawContext = NULL;
     m_EmulatorThread = nullptr;
@@ -66,7 +66,7 @@ EmulationRunner::EmulationRunner(void)
  ************************************************************************************************/
 EmulationRunner::~EmulationRunner(void)
 {
-    DebugInfo2("()");
+    //DebugInfo2("()");
 }
 
 

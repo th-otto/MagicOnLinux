@@ -164,7 +164,7 @@ int Preferences::Init(bool rewrite_conf)
         strcpy(path, home);
     }
     strcat(path, "/.config/magiclinux.conf");
-    (void) getPreferences(path, rewrite_conf);
+    int num_errors = getPreferences(path, rewrite_conf);
 
     // drive C: is root FS with 8+3 name scheme
     drvFlags['C'-'A'] |= 2;        // C: drive has 8+3 name scheme
@@ -186,7 +186,7 @@ int Preferences::Init(bool rewrite_conf)
 
     strcpy(AtariScrapFileUnixPath, AtariRootfsPath);
     strcat(AtariScrapFileUnixPath, ATARI_SCRAP_FILE);
-    return 0;
+    return num_errors;
 }
 
 
@@ -209,7 +209,7 @@ int Preferences::writePreferences(const char *cfgfile)
 
     fprintf(f, "[HOST PATHS]\n");
     fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_KERNEL_PATH], AtariKernelPath);
-    fprintf(f, "atari_rootfs_path = \"%s\"\n", AtariRootfsPath);
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_ROOTFS_PATH], AtariRootfsPath);
     fprintf(f, "atari_h_home = %s\n", AtariHostHome ? "YES" : "NO");
     fprintf(f, "atari_h_rdonly = %s\n", AtariHostHomeRdOnly ? "YES" : "NO");
     fprintf(f, "atari_m_host_root = %s\n", AtariHostRoot ? "YES" : "NO");
@@ -252,34 +252,57 @@ int Preferences::writePreferences(const char *cfgfile)
 
 
 // read string, optionally enclosed in "" or ''
-// TODO: check for missing limiter and overflow
-static void eval_quotated_str(char *out, unsigned maxlen, const char **in)
+static int eval_quotated_str(char *out, unsigned maxlen, const char **in)
 {
-    char *endp = out + maxlen - 1;
-    char limiter = **in;
-    if ((limiter == '\"') || (limiter == '\''))
+    const char *in_start = *in;
+    const char *in_end;
+    char delimiter = **in;
+    if ((delimiter == '\"') || (delimiter == '\''))
     {
         (*in)++;
+        in_start++;
     }
     else
     {
-        limiter = 0;
+        delimiter = 0;
     }
-    while((**in) && (**in != '\n') && (**in != limiter) && (out < endp))
-    {
-        *out++ = **in;
-        (*in)++;
-    }
-    if ((**in == limiter) && (limiter != 0))
+    while((**in) && (**in != '\n') && (**in != delimiter))
     {
         (*in)++;
     }
 
-    *out = '\0';
+    if (delimiter != 0)
+    {
+        if (**in == delimiter)
+        {
+            in_end = *in;
+            (*in)++;
+        }
+        else
+        {
+            return 1;   // missing delimiter
+        }
+    }
+    else
+    {
+        in_end = *in;
+    }
+
+    unsigned len = in_end - in_start;
+    if (len < maxlen)
+    {
+        strncpy(out, in_start, len);
+        out[len] = '\0';
+    }
+    else
+    {
+        return 1;       // overflow
+    }
+    return 0;
 }
 
 
-static void eval_unsigned(unsigned *out, unsigned maxval, const char **in)
+static int eval_unsigned(unsigned *out, unsigned maxval, const char **in)
 {
     char *endptr;
     unsigned long long value = strtoul(*in, &endptr, 0 /*auto base*/);
@@ -288,20 +311,45 @@ static void eval_unsigned(unsigned *out, unsigned maxval, const char **in)
         if (value <= maxval)
         {
             *out = (unsigned) value;
+            *in = endptr;
+            return 0;
         }
     }
+    return 1;
 }
 
 
-// TODO: error handling
-static void eval_bool(bool *out, const char *YesOrNo)
+static int eval_bool(bool *out, const char *YesOrNo)
 {
     if (!strcasecmp(YesOrNo, "yes"))
+    {
         *out = true;
+        return 0;
+    }
     else
     if (!strcasecmp(YesOrNo, "no"))
+    {
         *out = false;
+        return 0;
+    }
+
+    return 1;
 }
+
+
+// read string, optionally enclosed in "" or ''
+static int eval_quotated_str_bool(bool *out, const char **line)
+{
+    char YesOrNo[16];
+    int num_errors;
+
+    num_errors = eval_quotated_str(YesOrNo, sizeof(YesOrNo), line);
+    if (num_errors == 0)
+        num_errors += eval_bool(out, YesOrNo);
+
+    return num_errors;
+}
+
 
 
 /** **********************************************************************************************
@@ -317,16 +365,39 @@ static void eval_bool(bool *out, const char *YesOrNo)
  ************************************************************************************************/
 int Preferences::evaluatePreferencesLine(const char *line)
 {
-    char YesOrNo[16];
     unsigned vu;
     unsigned var;
     const char *key;
+    int num_errors = 0;
+    unsigned drv;
 
     for (var = 0; var < VAR_NUMBER; var++)
     {
         key = var_name[var];
-        if (!strncasecmp(line, key, strlen(key)))
-            break;
+        unsigned keylen = strlen(key);
+        if (!strncasecmp(line, key, keylen))
+        {
+            if (var == VAR_ATARI_DRV_)
+            {
+                char c = toupper(line[keylen]);
+                if ((c < 'A') || (c > 'Z'))
+                {
+                    return 1;
+                }
+                line += keylen + 1;
+                drv = c - 'A';
+                break;
+            }
+            else
+            {
+                char c = line[keylen];
+                if (isspace(c) || (c == '='))
+                {
+                    line += keylen;
+                    break;
+                }
+            }
+        }
     }
 
     if (var >= VAR_NUMBER)
@@ -335,7 +406,6 @@ int Preferences::evaluatePreferencesLine(const char *line)
         return 1;
     }
 
-    line += strlen(key);
     // skip spaces
     while(isspace(*line))
     {
@@ -355,117 +425,140 @@ int Preferences::evaluatePreferencesLine(const char *line)
     switch(var)
     {
         case VAR_ATARI_KERNEL_PATH:
-            eval_quotated_str(AtariKernelPath, sizeof(AtariKernelPath), &line);
-            printf("AtariKernelPath = ==%s==\n", AtariKernelPath);
+            num_errors += eval_quotated_str(AtariKernelPath, sizeof(AtariKernelPath), &line);
             break;
 
         case VAR_ATARI_ROOTFS_PATH:
-            eval_quotated_str(AtariRootfsPath, sizeof(AtariRootfsPath), &line);
+            num_errors += eval_quotated_str(AtariRootfsPath, sizeof(AtariRootfsPath), &line);
             break;
 
         case VAR_ATARI_H_HOME:
-            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
-            eval_bool(&AtariHostHome, YesOrNo);
-            printf("AtariHostHome = %s\n", YesOrNo);
+            num_errors += eval_quotated_str_bool(&AtariHostHome, &line);
             break;
 
         case VAR_ATARI_H_RDONLY:
-            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
-            eval_bool(&AtariHostHomeRdOnly, YesOrNo);
+            num_errors += eval_quotated_str_bool(&AtariHostHomeRdOnly, &line);
             break;
 
         case VAR_ATARI_M_HOST_ROOT:
-            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
-            eval_bool(&AtariHostRoot, YesOrNo);
+            num_errors += eval_quotated_str_bool(&AtariHostRoot, &line);
             break;
 
         case VAR_ATARI_M_HOST_ROOT_RDONLY:
-            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
-            eval_bool(&AtariHostRootRdOnly, YesOrNo);
+            num_errors += eval_quotated_str_bool(&AtariHostRootRdOnly, &line);
             break;
 
         case VAR_ATARI_TEMP_PATH:
-            eval_quotated_str(AtariTempFilesUnixPath, sizeof(AtariTempFilesUnixPath), &line);
+            num_errors += eval_quotated_str(AtariTempFilesUnixPath, sizeof(AtariTempFilesUnixPath), &line);
             break;
 
         case VAR_ATARI_PRINT_CMD:
-            eval_quotated_str(szPrintingCommand, sizeof(szPrintingCommand), &line);
+            num_errors += eval_quotated_str(szPrintingCommand, sizeof(szPrintingCommand), &line);
             break;
 
         case VAR_ATARI_SERIAL_DEV_PATH:
-            eval_quotated_str(szAuxPath, sizeof(szAuxPath), &line);
+            num_errors += eval_quotated_str(szAuxPath, sizeof(szAuxPath), &line);
             break;
 
         case VAR_ATARI_SCREEN_WIDTH:
-            eval_unsigned(&AtariScreenWidth, 4096, &line);
+            num_errors += eval_unsigned(&AtariScreenWidth, 4096, &line);
             printf("AtariScreenWidth = %u\n", AtariScreenWidth);
             break;
 
         case VAR_ATARI_SCREEN_HEIGHT:
-            eval_unsigned(&AtariScreenHeight, 2048, &line);
+            num_errors += eval_unsigned(&AtariScreenHeight, 2048, &line);
             break;
 
         case VAR_ATARI_SCREEN_STRETCH_X:
-            eval_unsigned(&AtariScreenStretchX, 8, &line);
+            num_errors += eval_unsigned(&AtariScreenStretchX, 8, &line);
             break;
 
         case VAR_ATARI_SCREEN_STRETCH_Y:
-            eval_unsigned(&AtariScreenStretchY, 8, &line);
+            num_errors += eval_unsigned(&AtariScreenStretchY, 8, &line);
             break;
 
         case VAR_ATARI_SCREEN_RATE_HZ:
-            eval_unsigned(&ScreenRefreshFrequency, 120, &line);
+            num_errors += eval_unsigned(&ScreenRefreshFrequency, 120, &line);
             break;
 
         case VAR_ATARI_SCREEN_COLOUR_MODE:
-            eval_unsigned(&vu, 6, &line);
+            num_errors += eval_unsigned(&vu, 6, &line);
             atariScreenColourMode = (enAtariScreenColourMode) vu;
             break;
 
         case VAR_HIDE_HOST_MOUSE:
-            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
-            eval_bool(&bHideHostMouse, YesOrNo);
+            num_errors += eval_quotated_str_bool(&bHideHostMouse, &line);
             break;
 
         case VAR_APP_DISPLAY_NUMBER:
-            eval_unsigned(&Monitor, 0xffffffff, &line);
+            num_errors += eval_unsigned(&Monitor, 0xffffffff, &line);
             break;
 
         case VAR_APP_WINDOW_X:
-            eval_unsigned(&AtariScreenX, 4096, &line);
+            num_errors += eval_unsigned(&AtariScreenX, 4096, &line);
             break;
 
         case VAR_APP_WINDOW_Y:
-            eval_unsigned(&AtariScreenY, 4096, &line);
+            num_errors += eval_unsigned(&AtariScreenY, 4096, &line);
             break;
 
         case VAR_ATARI_MEMORY_SIZE:
-            eval_unsigned(&AtariMemSize, 0x20000000, &line);
+            num_errors += eval_unsigned(&AtariMemSize, 0x20000000, &line);
             break;
 
         case VAR_ATARI_LANGUAGE:
-            eval_unsigned(&AtariLanguage, 0xffffffff, &line);
+            num_errors += eval_unsigned(&AtariLanguage, 0xffffffff, &line);
             break;
 
         case VAR_SHOW_HOST_MENU:
-            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
-            eval_bool(&bShowHostMenu, YesOrNo);
+            num_errors += eval_quotated_str_bool(&bShowHostMenu, &line);
             break;
 
         case VAR_ATARI_AUTOSTART:
-            eval_quotated_str(YesOrNo, sizeof(YesOrNo), &line);
-            eval_bool(&bAutoStartMagiC, YesOrNo);
+            num_errors += eval_quotated_str_bool(&bAutoStartMagiC, &line);
             break;
 
         case VAR_ATARI_DRV_:
+            {
+                unsigned flags;
+                num_errors += eval_unsigned(&flags, 0xffffffff, &line);
+                if (num_errors > 0)
+                {
+                    break;
+                }
+                while(isspace(*line))
+                {
+                    line++;
+                }
+                char pathbuf[1024];
+                num_errors += eval_quotated_str(pathbuf, sizeof(pathbuf), &line);
+                if (num_errors == 0)
+                {
+                    setDrvPath(drv, pathbuf);
+                    drvFlags[drv] = flags;
+                }
+            }
             break;
 
         default:
-            printf("wrong line\n");
+            return 1;
             break;
     } // switch
 
-    return 0;
+    if (num_errors == 0)
+    {
+        // skip trailing blanks
+        while(isspace(*line))
+        {
+            line++;
+        }
+        if ((*line != '\0') && (*line != '\n'))
+        {
+            num_errors++;   // rubbish at end of line
+        }
+    }
+
+    return num_errors;
 }
 
 
@@ -523,7 +616,12 @@ int Preferences::getPreferences(const char *cfgfile, bool rewrite_conf)
             continue;
         }
 
-        num_err += evaluatePreferencesLine(c);
+        int nline_err = evaluatePreferencesLine(c);
+        if (nline_err)
+        {
+            fprintf(stderr, "Syntax error in configuration file: %s", line);
+        }
+        num_err += nline_err;
     }
     fclose(f);
     return num_err;

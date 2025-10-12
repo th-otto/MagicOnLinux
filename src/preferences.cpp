@@ -210,39 +210,39 @@ int Preferences::writePreferences(const char *cfgfile)
     fprintf(f, "[HOST PATHS]\n");
     fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_KERNEL_PATH], AtariKernelPath);
     fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_ROOTFS_PATH], AtariRootfsPath);
-    fprintf(f, "atari_h_home = %s\n", AtariHostHome ? "YES" : "NO");
-    fprintf(f, "atari_h_rdonly = %s\n", AtariHostHomeRdOnly ? "YES" : "NO");
-    fprintf(f, "atari_m_host_root = %s\n", AtariHostRoot ? "YES" : "NO");
-    fprintf(f, "atari_m_host_root_rdonly = %s\n", AtariHostRootRdOnly ? "YES" : "NO");
-    fprintf(f, "atari_temp_path = \"%s\"\n", AtariTempFilesUnixPath);
+    fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_H_HOME], AtariHostHome ? "YES" : "NO");
+    fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_H_RDONLY], AtariHostHomeRdOnly ? "YES" : "NO");
+    fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_M_HOST_ROOT], AtariHostRoot ? "YES" : "NO");
+    fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_M_HOST_ROOT_RDONLY], AtariHostRootRdOnly ? "YES" : "NO");
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_TEMP_PATH], AtariTempFilesUnixPath);
     fprintf(f, "[HOST DEVICES]\n");
-    fprintf(f, "atari_print_cmd = \"%s\"\n", szPrintingCommand);
-    fprintf(f, "atari_serial_dev_path = \"%s\"\n", szAuxPath);
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_PRINT_CMD], szPrintingCommand);
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_SERIAL_DEV_PATH], szAuxPath);
     fprintf(f, "[ATARI SCREEN]\n");
-    fprintf(f, "atari_screen_width = %u\n", AtariScreenWidth);
-    fprintf(f, "atari_screen_height = %u\n", AtariScreenHeight);
-    fprintf(f, "atari_screen_stretch_x = %u\n", AtariScreenStretchX);
-    fprintf(f, "atari_screen_stretch_y = %u\n", AtariScreenStretchY);
-    fprintf(f, "atari_screen_rate_hz = %u\n", ScreenRefreshFrequency);
-    fprintf(f, "atari_screen_colour_mode = %u\n", atariScreenColourMode);
+    fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_SCREEN_WIDTH], AtariScreenWidth);
+    fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_SCREEN_HEIGHT], AtariScreenHeight);
+    fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_SCREEN_STRETCH_X], AtariScreenStretchX);
+    fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_SCREEN_STRETCH_Y], AtariScreenStretchY);
+    fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_SCREEN_RATE_HZ], ScreenRefreshFrequency);
+    fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_SCREEN_COLOUR_MODE], atariScreenColourMode);
     fprintf(f, "# 0:24b 1:16b 2:256 3:16 4:16ip 5:4ip 6:mono\n");
-    fprintf(f, "hide_host_mouse = %s\n", bHideHostMouse ? "YES" : "NO");
+    fprintf(f, "%s = %s\n",     var_name[VAR_HIDE_HOST_MOUSE], bHideHostMouse ? "YES" : "NO");
     fprintf(f, "[SCREEN PLACEMENT]\n");
-    fprintf(f, "app_display_number = %u\n", Monitor);
-    fprintf(f, "app_window_x = %u\n", AtariScreenX);
-    fprintf(f, "app_window_y = %u\n", AtariScreenY);
+    fprintf(f, "%s = %u\n",     var_name[VAR_APP_DISPLAY_NUMBER], Monitor);
+    fprintf(f, "%s = %u\n",     var_name[VAR_APP_WINDOW_X], AtariScreenX);
+    fprintf(f, "%s = %u\n",     var_name[VAR_APP_WINDOW_Y], AtariScreenY);
     fprintf(f, "[ATARI EMULATION]\n");
-    fprintf(f, "atari_memory_size = %u\n", AtariMemSize);
-    fprintf(f, "atari_language = %u\n", AtariLanguage);
-    fprintf(f, "show_host_menu = %s\n", bShowHostMenu ? "YES" : "NO");
-    fprintf(f, "atari_autostart = %s\n", bAutoStartMagiC ? "YES" : "NO");
+    fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_MEMORY_SIZE], AtariMemSize);
+    fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_LANGUAGE], AtariLanguage);
+    fprintf(f, "%s = %s\n",     var_name[VAR_SHOW_HOST_MENU], bShowHostMenu ? "YES" : "NO");
+    fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_AUTOSTART], bAutoStartMagiC ? "YES" : "NO");
     fprintf(f, "[ADDITIONAL ATARI DRIVES]\n");
-    fprintf(f, "# atari_drv_n = flags [1:read-only, 2:8+3] path\n");
-    for (unsigned n = 1; n < NDRIVES; n++)
+    fprintf(f, "# %s<A..Z> = flags [1:read-only, 2:8+3] path\n", var_name[VAR_ATARI_DRV_]);
+    for (unsigned n = 0; n < NDRIVES; n++)
     {
         if (drvPath[n] != nullptr)
         {
-            fprintf(f, "atari_drv_%c = %u \"%s\"\n", n + 'a', drvFlags[n], drvPath[n]);
+            fprintf(f, "%s%c = %u \"%s\"\n", var_name[VAR_ATARI_DRV_], n + 'a', drvFlags[n], drvPath[n]);
         }
     }
 
@@ -462,7 +462,6 @@ int Preferences::evaluatePreferencesLine(const char *line)
 
         case VAR_ATARI_SCREEN_WIDTH:
             num_errors += eval_unsigned(&AtariScreenWidth, 4096, &line);
-            printf("AtariScreenWidth = %u\n", AtariScreenWidth);
             break;
 
         case VAR_ATARI_SCREEN_HEIGHT:
@@ -625,133 +624,4 @@ int Preferences::getPreferences(const char *cfgfile, bool rewrite_conf)
     }
     fclose(f);
     return num_err;
-}
-
-
-/**********************************************************************
-*
-* Aktualisieren
-*
-**********************************************************************/
-
-void Preferences::Update_Monitor(void)
-{
-#if 0
-    // TODO: implement
-    SetRsrcNum(CFSTR(MONITOR), (long) (m_Monitor));
-
-    Update();    // write to disk
-#endif
-}
-
-void Preferences::Update_AtariMem(void)
-{
-#if 0
-    // TODO: implement
-    SetRsrcNum(CFSTR(ATARIMEM), (long) (m_AtariMemSize >> 10));
-
-    Update();    // write to disk
-#endif
-}
-
-void Preferences::Update_GeneralSettings(void)
-{
-#if 0
-    // TODO: implement
-    SetRsrcNum(CFSTR(SHOWMACMOUSE), (long) m_bShowMacMouse);
-    SetRsrcNum(CFSTR(AUTOSTARTMAGIC), (long) m_bAutoStartMagiC);
-    SetRsrcNum(CFSTR(KEYCODEFORRIGHTMOUSEBUTTON), (long) m_KeyCodeForRightMouseButton);
-
-    SetRsrcNum(CFSTR(PVDI), (long) m_bPPC_VDI_Patch);
-
-    Update();    // write to disk
-#endif
-}
-
-void Preferences::Update_AtariScreen(void)
-{
-#if 0
-    // TODO: implement
-    SetRsrcNum(CFSTR(SHOWMACMENU), (long) m_bShowMacMenu);
-    SetRsrcNum(CFSTR(SETSCREENSIZEMANUALLY), (long) m_bAtariScreenManualSize);
-    SetRsrcNum(CFSTR(SETSCREENSIZE_X), (long) m_AtariScreenX);
-    SetRsrcNum(CFSTR(SETSCREENSIZE_Y), (long) m_AtariScreenY);
-    SetRsrcNum(CFSTR(SETSCREENSIZE_WIDTH), (long) m_AtariScreenWidth);
-    SetRsrcNum(CFSTR(SETSCREENSIZE_HEIGHT), (long) m_AtariScreenHeight);
-    SetRsrcNum(CFSTR(SCREEN_FREQ), (long) m_ScreenRefreshFrequency);
-
-    Update();    // write to disk
-#endif
-}
-
-void Preferences::Update_Drives(void)
-{
-#if 0
-    // TODO: implement
-    register int i;
-    char szData[256];
-    CFStringRef cfKey;
-
-    for    (i = 0; i < NDRIVES; i++)
-    {
-        // Pfad
-
-        if    (ATARIDRIVEISMAPPABLE(i))
-        {
-            // Alle Laufwerke au�er C:, M: und U: k�nnen einen �nderbaren Mac-Pfad haben.
-
-            sprintf(szData, "Drive_%c", i + 'A');
-            cfKey = CFStringCreateWithCString/*NoCopy*/(kCFAllocatorDefault, szData, kCFStringEncodingISOLatin1/*, kCFAllocatorNull*/);
-            SetRsrcAlias(cfKey, m_drvAlias[i]);
-            Update();    // write to disk
-            CFRelease(cfKey);
-        }
-
-        // Flags
-
-        if    (ATARIDRIVEISMAPPABLE(i) || (i == 'C' - 'A'))
-        {
-            // zus�tzlich kann C: ge�nderte Flags haben, M: und U: jedoch nicht.
-
-            sprintf(szData, "Drive_%c_Flags", i + 'A');
-            cfKey = CFStringCreateWithCString/*NoCopy*/(kCFAllocatorDefault, szData, kCFStringEncodingISOLatin1/*, kCFAllocatorNull*/);
-            if    ((m_drvAlias[i]) || (i == 'M'-'A'))
-            {
-                //(void) GetRsrcNum(cfKey, m_drvFlags[i], true);    // ggf. hinzuf�gen
-                SetRsrcNum(cfKey, m_drvFlags[i]);
-                Update();    // save to disk (necessary!!!)
-            }
-            else
-            {
-                // Flags l�schen, wenn existieren
-                SetRsrcStr(cfKey, NULL);
-                Update();
-            }
-            CFRelease(cfKey);
-        }
-    }
-#endif
-
-//    Update();    // too late? Flags will be ignored?!?
-}
-
-void Preferences::Update_PrintingCommand(void)
-{
-#if 0
-    // TODO: implement
-    SetRsrcStr(CFSTR(PRINTINGCOMMAND), m_szPrintingCommand);
-
-    Update();    // write to disk
-#endif
-}
-
-
-void Preferences::Update_AuxPath(void)
-{
-#if 0
-    // TODO: implement
-    SetRsrcStr(CFSTR(AUXPATH), m_szAuxPath);
-
-    Update();    // write to disk
-#endif
 }

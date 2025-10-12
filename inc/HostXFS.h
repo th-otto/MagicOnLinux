@@ -252,7 +252,6 @@ class CHostXFS
     static void atariFnameToHostFname(const unsigned char *src, char *dst);
     static void hostFnameToAtariFname(const char *src, unsigned char *dst);
     static int fname_is_invalid(const char *name);
-    static INT32 cnverr(int err);
     static bool filename8p3_match(const char *pattern, const char *fname);
     static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name);
     static bool nameto_8_3 (const char *host_fname,

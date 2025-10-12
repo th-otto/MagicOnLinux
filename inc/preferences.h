@@ -57,13 +57,6 @@ class Preferences
     static int getPreferences(const char *cfgfile, bool rewrite_conf);
     static int writePreferences(const char *cfgfile);
     static int evaluatePreferencesLine(const char *line);
-    static void Update_Monitor(void);
-    static void Update_AtariMem(void);
-    static void Update_GeneralSettings(void);
-    static void Update_Drives(void);
-    static void Update_PrintingCommand(void);
-    static void Update_AuxPath(void);
-    static void Update_AtariScreen(void);
 
     // Variablen
     static unsigned AtariMemSize;

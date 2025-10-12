@@ -249,56 +249,6 @@ int CHostXFS::fname_is_invalid(const char *name)
 }
 
 
-/*****************************************************************
-*
-*  (statisch) konvertiert Host-Fehlercodes in MagiC- Fehlercodes
-*
-******************************************************************/
-
-INT32 CHostXFS::cnverr(int err)
-{
-    #if 0
-    switch(err)
-    {
-          case noErr:         return E_OK;       /* 0      no error  */
-          case nsvErr:        return EDRIVE;     /* -35    no such volume */
-          case fnfErr:        return EFILNF;     /* -43    file not found */
-          case dirNFErr:      return(EPTHNF);     // -120   directory not found
-          case ioErr:         return(EREADF);     /* -36    IO Error */
-          case gfpErr:                            /* -52    get file pos error */
-          case rfNumErr:                          /* -51    Refnum error */
-          case paramErr:                          /* -50    error in user parameter list */
-          case fnOpnErr:      return(EINTRN);     /* -38    file not open */
-          case bdNamErr:                          /* -37    bad name in file system (>31 Zeichen)*/
-          case posErr:                            /* -40    pos before start of file */
-          case eofErr:        return(ATARIERR_ERANGE);     /* -39    end of file */
-          case mFulErr:       return(ENSMEM);     /* -41    memory full */
-          case tmfoErr:       return(ENHNDL);     /* -42    too many open files */
-          case wPrErr:        return(EWRPRO);     /* -44    disk is write protected */
-          case notAFileErr:                       /* -1302  is directory, no file! */
-          case wrPermErr:                         /* -61    write permission error */
-
-          case afpAccessDenied:                   // -5000  AFP access denied
-          case afpDenyConflict:                   // -5006  AFP
-          case afpVolLocked:                      // -5031  AFP
-
-          case permErr:                           /* -54    permission error */
-          case opWrErr:                           /* -49    file already open with write permission */
-          case dupFNErr:                          /* -48    duplicate filename */
-          case fBsyErr:                           /* -47    file is busy */
-          case vLckdErr:                          /* -46    volume is locked */
-          case fLckdErr:      return(EACCDN);     /* -45    file is locked */
-          case volOffLinErr:  return(EDRVNR);     /* -53    volume off line (ejected) */
-          case badMovErr:     return ENSAME;      // -122   not same volumes or folder move from/to file
-          case dataVerErr:                        // read verify error
-          case verErr:        return EBADSF;      // track format verify error
-    }
-    #endif
-
-    return (err == 0) ? E_OK : ERROR;
-}
-
-
 /** **********************************************************************************************
 *
 * @brief [static] Check if an 8+3 filename matches an 8+3 search pattern (each 12 bytes)

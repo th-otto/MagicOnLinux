@@ -1,0 +1,6 @@
+Keyboard input leads to deadlock
+Sometimes other deadlock
+implement all write accesses, like Fcreate and Fwrite
+host paths must be checked before activated
+read-only flags for drives must be evaluated
+MGEDIT cannot be run

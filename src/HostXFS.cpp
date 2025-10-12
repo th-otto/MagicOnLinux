@@ -1533,27 +1533,26 @@ INT32 CHostXFS::xfs_xattr
 }
 
 
-/*************************************************************
-*
-* Fuer Fattrib
-*
-* Wertet zur Zeit nur die DOS-Attribute
-*    F_RDONLY
-*    F_HIDDEN
-*    F_ARCHIVE
-* aus.
-*
-* Aliase werden dereferenziert.
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Fattrib() - get or set information about a file without opening it
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory, search here
+ * @param[in]  name         filename, can be long or 8+3
+ * @param[in]  rwflag       0: read, otherwise: write
+ * @param[in]  attr         attribute to write if rwflag > 0
+ *
+ * @return EW_OK or 32-bit negative error code
+ *
+ * @note We could set or reset the F_RDONLY atribute, but nothing else.
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag, uint16_t attr)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
-    (void) dd;
-    (void) name;
-    (void) rwflag;
-    (void) attr;
+    DebugInfo2("(drv = %u, name = %s, rwflag = %u, attr = %u)", drv, name, rwflag, attr);
+    unsigned char dosname[20];
+    uint16_t old_attr;
 
     if (drv_changed[drv])
     {
@@ -1563,9 +1562,57 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag
     {
         return EDRIVE;
     }
+    if (rwflag && drv_readOnly[drv])
+    {
+        return EWRPRO;
+    }
 
-    // TODO: implement
-    return EINVFN;
+    if (!drv_longnames[drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name, dosname, false, false);
+        name = (char *) dosname;
+    }
+
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd = hostFD->fd;
+    DebugInfo("%s() - get information about file in directory with host fd %d", __func__, dir_fd);
+    if (dir_fd == -1)
+    {
+        return EINTRN;
+    }
+
+    struct stat statbuf;
+    int res = fstatat(dir_fd, name, &statbuf, AT_EMPTY_PATH);
+    if (res < 0)
+    {
+        DebugWarning("%s() : fstatat() -> %s", __func__, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+
+    old_attr = 0;
+    if  ((statbuf.st_mode & S_IFMT) == S_IFDIR)
+    {
+        old_attr |= F_SUBDIR;
+    }
+    if (!(statbuf.st_mode & __S_IWRITE))
+    {
+        old_attr |= F_RDONLY;
+    }
+
+    if (rwflag)
+    {
+        DebugError2("() changing attributes not implemented, yet");
+        return EACCDN;
+    }
+
+    DebugInfo2("() -> %u", old_attr);
+    return old_attr;
 }
 
 

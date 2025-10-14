@@ -249,7 +249,7 @@ class CHostXFS
     static char toUpper(char c);
     static void atariFnameToHostFname(const unsigned char *src, char *dst);
     static void hostFnameToAtariFname(const char *src, unsigned char *dst);
-    static int fname_is_invalid(const char *name);
+    //static int fname_is_invalid(const char *name);
     static bool filename8p3_match(const char *pattern, const char *fname);
     static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name);
     static bool nameto_8_3 (const char *host_fname,
@@ -283,6 +283,7 @@ class CHostXFS
     INT32 xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode);
     INT32 xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name);
     INT32 xfs_ddelete(uint16_t drv, MXFSDD *dd);
+    INT32 xfs_DD2hostPath(MXFSDD *dd, char *buf, uint16_t bufsiz);
     INT32 xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz);
     INT32 xfs_dopendir(MAC_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd, uint16_t tosflag);
     INT32 xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,

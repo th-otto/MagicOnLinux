@@ -224,6 +224,8 @@ void CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst)
 }
 
 
+
+#if 0
 /*****************************************************************
 *
 *  (statisch) Testet, ob ein Dateiname gültig ist. Verboten sind Dateinamen, die
@@ -237,6 +239,7 @@ int CHostXFS::fname_is_invalid(const char *name)
         name++;
     return !(*name);            // Name besteht nur aus Punkten
 }
+#endif
 
 
 /** **********************************************************************************************
@@ -1596,6 +1599,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag
 
     if (rwflag)
     {
+        (void) attr;
         DebugError2("() changing attributes not implemented, yet");
         return EACCDN;
     }
@@ -1731,7 +1735,7 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
         return EINTRN;
     }
 
-    // create directory with rawrwxrwx access, which will then be ANDed with umask
+    // create directory with rwxrwxrwx access, which will then be ANDed with umask
     if (mkdirat(dir_fd, name, 0777) < 0)
     {
         DebugError2("() : openat(\"%s\") -> %s", name, strerror(errno));
@@ -1743,20 +1747,21 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
 }
 
 
-/*************************************************************
-*
-* Fuer Ddelete
-*
-* Aliase werden NICHT dereferenziert, d.h. es wird der Alias
-* selbst geloescht.
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Ddelete() - remove directory
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory to delete
+ *
+ * @return E_OK or 32-bit negative error code
+ *
+ * @note If the directory is an alias, the alias should be removed, not the directory
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
-    (void) dd;
-
+    DebugInfo2("(drv = %u)", drv);
     if (drv_changed[drv])
     {
         return E_CHNG;
@@ -1765,9 +1770,93 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
     {
         return EDRIVE;
     }
+    if (drv_readOnly[drv])
+    {
+        return EWRPRO;
+    }
 
-    // TODO: implement
-    return EINVFN;
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+
+    // We cannot remove the directory via its DD or fd, instead we need a path
+    // TODO: we might need the parent directory
+    char pathbuf[1024];
+    INT32 aret = xfs_DD2hostPath(dd, pathbuf, 1023);
+    if (aret != E_OK)
+    {
+        DebugError2("() -> %d", aret);
+        return aret;
+    }
+
+    // TODO: Change concept and keep track of parent and siblings, then
+    // use unlinkat().
+
+    if (hostFD->ref_cnt != 1)
+    {
+        DebugWarning2("() -- set dd.refcnt from %d to 1", hostFD->ref_cnt);
+    }
+    freeHostFD(hostFD);
+    if (rmdir(pathbuf))
+    {
+        DebugWarning2("() : rmdir(\"%s\") -> %s", pathbuf, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+
+    DebugInfo2("() -> E_OK");
+    return E_OK;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get host directory path, provides functionality for Dgetpath() and Ddelete()
+ *
+ * @param[in] drv       Atari drive number 0..31
+ * @param[in] dd        Atari directory descriptor
+ * @param[in] buf       buffer for host path
+ * @param[in] bufsiz    buffer size
+ *
+ * @return E_OK or negative error code
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_DD2hostPath(MXFSDD *dd, char *pathbuf, uint16_t bufsiz)
+{
+    DebugInfo2("(drv = %u, dd->dirID = %u)", drv, dd->dirID);
+
+    pathbuf[0] = '\0';      // in case of error...
+
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+
+    int dir_fd = hostFD->fd;
+    DebugInfo2("() : dir_fd = %d", dir_fd);
+    if (dir_fd == -1)
+    {
+        return EINTRN;
+    }
+
+    // get host path from directory file descriptor
+
+    char pathname[32];
+    sprintf(pathname, "/proc/self/fd/%u", dir_fd);
+    ssize_t size = readlink(pathname, pathbuf, bufsiz);
+    if (size < 0)
+    {
+        DebugWarning2("() : readlink() -> %s", strerror(errno));
+        return EINTRN;
+    }
+    pathbuf[size] = '\0';   // necessary
+
+    DebugInfo2("() -> \"%s\"", pathbuf);
+    return E_OK;
 }
 
 
@@ -1802,33 +1891,16 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
         return EDRIVE;
     }
 
-    HostHandle_t hhdl = dd->dirID;
-    HostFD *hostFD = getHostFD(hhdl);
-    if (hostFD == nullptr)
-    {
-        return EINTRN;
-    }
-
-    int dir_fd = hostFD->fd;
-    DebugInfo2("() : dir_fd = %d", dir_fd);
-    if (dir_fd == -1)
-    {
-        return EINTRN;
-    }
-
-    // get host path from directory file descriptor
-
-    char pathname[32];
-    sprintf(pathname, "/proc/self/fd/%u", dir_fd);
+    // first get host path ...
     char pathbuf[1024];
-    ssize_t size = readlink(pathname, pathbuf, 1023);
-    if (size < 0)
+    INT32 aret = xfs_DD2hostPath(dd, pathbuf, 1023);
+    if (aret < 0)
     {
-        DebugWarning2("%s() : readlink() -> %s", strerror(errno));
-        return EINTRN;
+        DebugError2("() -> %d", aret);
+        return aret;
     }
-    pathbuf[size] = '\0';   // necessary
 
+    // ... then convert host path to Atari path
     const char *atari_root = drv_host_path[drv];
     int rootlen = strlen(atari_root);
     int pathlen = strlen(pathbuf);
@@ -2342,24 +2414,21 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 }
 
 
-/*************************************************************
-*
-* Disklabel.
-* Zurueckgeliefert wird der Macintosh-Name.
-* Das Aendern des Labels ist z.Zt. nicht moeglich.
-*
-* Bei allen Operationen, die Dateinamen zurueckliefern, ist
-* darauf zu achten, dass die Angabe der Puffergroesse immer
-* INKLUSIVE End-of-String ist.
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Dwritelabel() - write volume name
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory on this drive, might be ignored
+ *
+ * @return E_OK or 32-bit negative error code
+ *
+ * @note This does not make much sense for the Host XFS, so we do not support it.
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
-    (void) dd;
-    (void) name;
-
+    DebugInfo2("(drv = %u, name = %s)", drv, name);
     if (drv_changed[drv])
     {
         return E_CHNG;
@@ -2368,9 +2437,16 @@ INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
     {
         return EDRIVE;
     }
+    if (drv_readOnly[drv])
+    {
+        return EWRPRO;
+    }
 
-    // TODO: implement
-    return EINVFN;
+    (void) dd;
+    (void) name;
+
+    DebugInfo2("() -> EACCDN");
+    return EACCDN;
 }
 
 
@@ -2381,7 +2457,7 @@ INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
  * @param[in]  drv       Atari drive number 0..31
  * @param[in]  dd        Atari directory descriptor, usually for "C:\"
  * @param[out] name      buffer for name
- * @param[in]  bufsiz    size of name buffer
+ * @param[in]  bufsiz    size of name buffer, including zero byte
  *
  * @return E_OK or negative error code
  *

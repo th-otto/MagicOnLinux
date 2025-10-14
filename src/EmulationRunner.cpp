@@ -27,7 +27,9 @@
 
 
 // global variables from "emulation_globals.h"
-std::atomic_bool gbAtariVideoBufChanged;
+uint8_t *mem68k;                    // host pointer to memory block used by emulator
+uint32_t mem68kSize;                // complete address range for 68k emulator, but without video memory
+uint32_t memVideo68kSize;        // size of emulated video memory
 uint8_t *addrOpcodeROM;				// pointer to 68k memory (host address)
 uint32_t addr68kVideo;				// start of 68k video memory (68k address)
 uint32_t addr68kVideoEnd;			// end of 68k video memory (68k address)
@@ -37,6 +39,7 @@ uint32_t addrOsRomStart;			// beginning of write-protected memory area (68k addr
 uint32_t addrOsRomEnd;				// end of write-protected memory area (68k address)
 #endif
 uint8_t *hostVideoAddr;				// start of host video memory (host address)
+std::atomic_bool gbAtariVideoBufChanged;
 
 
 /** **********************************************************************************************
@@ -86,6 +89,7 @@ void EmulationRunner::Init(void)
 
     // we do not want SDL to catch events like SIGSEGV
     ret = SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
+    //SDL_StartTextInput();   // does nothing?
     assert(!ret);
 }
 

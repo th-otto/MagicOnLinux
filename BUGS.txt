@@ -2,3 +2,22 @@ Umlaut keys are ignored by SDL?
 implement all write accesses, like Fcreate and Fwrite
 host paths must be checked before activated
 read-only flags for drives must be evaluated
+
+SDL problem:
+German T3 keyboard:
+- do not work at all: ÖÄÜß, auch nicht mit Shift
+- Shift-ß geht
+- Shift-° geht nicht, aber Shift-°, gefolgt von ^, erzeugt beide Tasten
+- Shift-§ geht nicht
+- ´ geht nicht
+- ` ist dead key
+
+Unter Wayland gehen öäüÖÄÜß§
+- ´ geht, aber ` muß man zweimal drücken, dann kommt ``
+Die Ubuntu-Tastaturbelegung ist irrelevant.
+
+
+Unter X11, english intl with AltGr dead keys>
+Paragraphenyeichen geht
+Eszett und Umlaute funktionieren
+

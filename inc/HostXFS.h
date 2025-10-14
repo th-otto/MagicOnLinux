@@ -70,7 +70,6 @@ class CHostXFS
     CHostXFS();
     ~CHostXFS();
 
-    void set68kAdressRange(uint32_t AtariMemSize);
     INT32 XFSFunctions(uint32_t params, uint8_t *AdrOffset68k);
     INT32 XFSDevFunctions(uint32_t params, uint8_t *AdrOffset68k);
     INT32 Drv2DevCode(uint32_t params, uint8_t *AdrOffset68k);
@@ -79,7 +78,6 @@ class CHostXFS
 
    private:
 
-    uint32_t m_AtariMemSize;
     typedef void PD;
 
 

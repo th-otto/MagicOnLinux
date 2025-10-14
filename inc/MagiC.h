@@ -137,9 +137,6 @@ class CMagiC
 
     // private attributes
     CMagiCScreen *m_pMagiCScreen;   // data for emulated screen
-    uint8_t *m_RAM68k;              // host pointer to memory block used by emulator
-    size_t m_RAM68ksize;            // size of the emulated memory block
-    size_t m_Video68ksize;          // size of emulated video memory
     uint8_t *m_AtariKbData;         // [0] = kbshift, [1] = kbrepeat
     uint32_t *m_pAtariActPd;        // active Atari process
     uint32_t *m_pAtariActAppl;      // active Atari application

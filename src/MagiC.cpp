@@ -197,8 +197,8 @@ void setCHostXFSHostCallback(PTR32x4_HOST *dest, tpfCHostXFS_HostCallback callba
 CMagiC::CMagiC()
 {
     m_CurrModifierKeys = 0;
-    m_RAM68k = NULL;
-    m_RAM68ksize = 0;
+    mem68k = nullptr;
+    mem68kSize = 0;
     m_BasePage = NULL;
     memset(&m_EmuTaskID, 0, sizeof(m_EmuTaskID));
 
@@ -255,9 +255,9 @@ CMagiC::~CMagiC()
         m_bEmulatorIsRunning = false;
     }
 
-    if (m_RAM68k != nullptr)
+    if (mem68k != nullptr)
     {
-        free(m_RAM68k);
+        free(mem68k);
     }
 }
 
@@ -412,7 +412,7 @@ Reinstall the application.
 
     DebugInfo2("() - Size overall, including basepage and stack = 0x%08x (%ld)", tpaSize, tpaSize);
 
-    if (tpaSize > m_RAM68ksize)
+    if (tpaSize > mem68kSize)
     {
         DebugError2("() - Insufficient memory");
         err = 1;
@@ -423,15 +423,15 @@ Reinstall the application.
 // hier basepage auf durch 4 teilbare Adresse!
 
     if (reladdr < 0)
-        reladdr = (long) (m_RAM68ksize - ((tpaSize + 2) & ~3));
-    if (reladdr + tpaSize > m_RAM68ksize)
+        reladdr = (long) (mem68kSize - ((tpaSize + 2) & ~3));
+    if (reladdr + tpaSize > mem68kSize)
     {
         DebugError2("() - Invalid load address");
         err = 2;
         goto exitReloc;
     }
 
-    tpaStart = m_RAM68k + reladdr;
+    tpaStart = mem68k + reladdr;
     tbase = tpaStart + sizeof(BasePage);
     reloff = tbase;
     bbase = tbase + codlen;
@@ -439,19 +439,19 @@ Reinstall the application.
     // All 68k addresses are relative to m_RAM68k
     bp = (BasePage *) tpaStart;
     memset(bp, 0, sizeof(BasePage));
-    bp->p_lowtpa = (PTR32_BE) htobe32(tpaStart - m_RAM68k);
-    bp->p_hitpa  = (PTR32_BE) htobe32(tpaStart - m_RAM68k + tpaSize);
-    bp->p_tbase  = (PTR32_BE) htobe32(tbase - m_RAM68k);
+    bp->p_lowtpa = (PTR32_BE) htobe32(tpaStart - mem68k);
+    bp->p_hitpa  = (PTR32_BE) htobe32(tpaStart - mem68k + tpaSize);
+    bp->p_tbase  = (PTR32_BE) htobe32(tbase - mem68k);
     bp->p_tlen   = exehead.tlen;
-    bp->p_dbase  = (PTR32_BE) htobe32(tbase - m_RAM68k + be32toh(exehead.tlen));
+    bp->p_dbase  = (PTR32_BE) htobe32(tbase - mem68k + be32toh(exehead.tlen));
     bp->p_dlen   = exehead.dlen;
-    bp->p_bbase  = (PTR32_BE) htobe32(bbase - m_RAM68k);
+    bp->p_bbase  = (PTR32_BE) htobe32(bbase - mem68k);
     bp->p_blen   = exehead.blen;
-    bp->p_dta    = (PTR32_BE) htobe32(bp->p_cmdline - m_RAM68k);
+    bp->p_dta    = (PTR32_BE) htobe32(bp->p_cmdline - mem68k);
     bp->p_parent = 0;
 
-    DebugInfo2("() - Start address Atari = 0x%08lx (host)", m_RAM68k);
-    DebugInfo2("() - Memory size Atari = 0x%08lx (= %lu kBytes)", m_RAM68ksize, m_RAM68ksize >> 10);
+    DebugInfo2("() - Start address Atari = 0x%08lx (host)", mem68k);
+    DebugInfo2("() - Memory size Atari = 0x%08lx (= %lu kBytes)", mem68kSize, mem68kSize >> 10);
     DebugInfo2("() - Load address of system (TEXT) = 0x%08lx (68k)", be32toh((uint32_t) (bp->p_tbase)));
 
     #if defined(_DEBUG_BASEPAGE)
@@ -513,8 +513,8 @@ Reinstall the application.
             // relocate first 32-bit word in Atari code
             uint32_t *tp = (uint32_t *) (reloff + loff);
 
-            //*tp += (uint32_t) (reloff - m_RAM68k);
-            *tp = htobe32((uint32_t) (reloff - m_RAM68k) + be32toh(*tp));
+            //*tp += (uint32_t) (reloff - mem68k);
+            *tp = htobe32((uint32_t) (reloff - mem68k) + be32toh(*tp));
 
             // Reloc-Tabelle in einem Rutsch einlesen
             items_read = fread(relBuf, RelocBufSize, 1, f);
@@ -536,8 +536,8 @@ Reinstall the application.
                 {
                     tp = (uint32_t *) ((char *) tp + (unsigned char) relb);
 
-                    //*tp += (uint32_t) (reloff - m_RAM68k);
-                    *tp = htobe32((uint32_t) (reloff - m_RAM68k) + be32toh(*tp));
+                    //*tp += (uint32_t) (reloff - mem68k);
+                    *tp = htobe32((uint32_t) (reloff - mem68k) + be32toh(*tp));
                 }
             }
         }
@@ -724,15 +724,15 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 
     (void) CMagiCKeyboard::Init();
 
-    m_RAM68ksize = Preferences::AtariMemSize;
+    mem68kSize = Preferences::AtariMemSize;
     numVideoLines = m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top + 1;
     m_FgBufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
-    m_Video68ksize = m_FgBufferLineLenInBytes * numVideoLines;
+    memVideo68kSize = m_FgBufferLineLenInBytes * numVideoLines;
     // get Atari memory
     // TODO: In fact we do not have to add m_Video68ksize here, because video memory
     //       is allocated separately as SDL surface in EmulatorRunner.
-    m_RAM68k = (unsigned char *) malloc(m_RAM68ksize + m_Video68ksize);
-    if (m_RAM68k == nullptr)
+    mem68k = (unsigned char *) malloc(mem68kSize + memVideo68kSize);
+    if (mem68k == nullptr)
     {
 /*
 Der Applikation steht nicht genügend Speicher zur Verfügung.
@@ -755,9 +755,9 @@ Assign more memory to the application using the Finder dialogue "Information"!
     DebugInfo("MagiC kernel loaded and relocated successfully");
 
     // 68k Speicherbegrenzungen ausrechnen
-    addr68kVideo = m_RAM68ksize;
-    DebugInfo("68k video memory starts at 68k address 0x%08x and uses %u (0x%08x) bytes.", addr68kVideo, m_Video68ksize, m_Video68ksize);
-    addr68kVideoEnd = addr68kVideo + m_Video68ksize;
+    addr68kVideo = mem68kSize;
+    DebugInfo("68k video memory starts at 68k address 0x%08x and uses %u (0x%08x) bytes.", addr68kVideo, memVideo68kSize, memVideo68kSize);
+    addr68kVideoEnd = addr68kVideo + memVideo68kSize;
     DebugInfo("68k video memory and general memory end is 0x%08x", addr68kVideoEnd);
     // real (host) address of video memory
     //m_pFgBuffer = m_RAM68k + Preferences::AtariMemSize;    // unused
@@ -768,17 +768,17 @@ Assign more memory to the application using the Finder dialogue "Information"!
     // Initialise Atari system variables
     //
 
-    setAtariBE32(m_RAM68k + phystop,  addr68kVideoEnd);
-    setAtariBE32(m_RAM68k + _v_bas_ad, m_RAM68ksize);
-    AtariMemtop = ((uint32_t) ((unsigned char *) m_BasePage - m_RAM68k)) - sizeof(Atari68kData);
-    setAtariBE32(m_RAM68k + _memtop, AtariMemtop);
-    setAtariBE16(m_RAM68k + sshiftmd, 2);                // ST high resolution (640*400*2)
-    setAtariBE16(m_RAM68k +_cmdload, 0);                // boot AES
-    setAtariBE16(m_RAM68k +_nflops, 0);                    // no floppy disk drives
+    setAtariBE32(mem68k + phystop,  addr68kVideoEnd);
+    setAtariBE32(mem68k + _v_bas_ad, mem68kSize);
+    AtariMemtop = ((uint32_t) ((unsigned char *) m_BasePage - mem68k)) - sizeof(Atari68kData);
+    setAtariBE32(mem68k + _memtop, AtariMemtop);
+    setAtariBE16(mem68k + sshiftmd, 2);                // ST high resolution (640*400*2)
+    setAtariBE16(mem68k +_cmdload, 0);                // boot AES
+    setAtariBE16(mem68k +_nflops, 0);                    // no floppy disk drives
 
     // Atari-68k-Daten setzen
 
-    pAtari68kData = (Atari68kData *) (m_RAM68k + AtariMemtop);
+    pAtari68kData = (Atari68kData *) (mem68k + AtariMemtop);
     pAtari68kData->m_PixMap = m_pMagiCScreen->m_PixMap;
     // left and top seem to be ignored, i.e. only  right and bottom are relevant
     pAtari68kData->m_PixMap.baseAddr = (PTR32_BE) addr68kVideo;        // virtual 68k address
@@ -838,10 +838,10 @@ Reinstall the application.
     setCMagiCHostCallback(&pMacXSysHdr->MacSys_biosinit, &CMagiC::AtariBIOSInit, this);
     setCMagiCHostCallback(&pMacXSysHdr->MacSys_VdiInit, &CMagiC::AtariVdiInit, this);
     setCMagiCHostCallback(&pMacXSysHdr->MacSys_Exec68k, &CMagiC::AtariExec68k, this);
-    pMacXSysHdr->MacSys_pixmap = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_PixMap) - (uint64_t) m_RAM68k));
-    pMacXSysHdr->MacSys_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) m_RAM68k));
+    pMacXSysHdr->MacSys_pixmap = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_PixMap) - (uint64_t) mem68k));
+    pMacXSysHdr->MacSys_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) mem68k));
     setCXCmdHostCallback(&pMacXSysHdr->MacSys_Xcmd, &CXCmd::Command, pXCmd);
-    pMacXSysHdr->MacSys_PPCAddr = 0;                // on 32-bit host: m_RAM68k
+    pMacXSysHdr->MacSys_PPCAddr = 0;                // on 32-bit host: mem68k
     pMacXSysHdr->MacSys_VideoAddr = 0x80000000;        // on 32-bit host: m_pMagiCScreen->m_PixMap.baseAddr
     setHostCallback(&pMacXSysHdr->MacSys_gettime,    AtariGettime);
     setHostCallback(&pMacXSysHdr->MacSys_settime,    AtariSettime);
@@ -881,28 +881,28 @@ Reinstall the application.
 #pragma GCC diagnostic pop
 
     // ssp nach Reset
-    setAtariBE32(m_RAM68k + 0, 512*1024);        // Stack auf 512k
+    setAtariBE32(mem68k + 0, 512*1024);        // Stack auf 512k
     // pc nach Reset
-    setAtari32(m_RAM68k + 4, /*big endian*/ pMacXSysHdr->MacSys_syshdr);
+    setAtari32(mem68k + 4, /*big endian*/ pMacXSysHdr->MacSys_syshdr);
 
     // TOS-SYSHDR bestimmen
 
-    pSysHdr = (SYSHDR *) (m_RAM68k + be32toh(pMacXSysHdr->MacSys_syshdr));
+    pSysHdr = (SYSHDR *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
 
     // Adresse für kbshift, kbrepeat und act_pd berechnen
 
-    m_AtariKbData = m_RAM68k + be32toh(pSysHdr->kbshift);
-    m_pAtariActPd = (uint32_t *) (m_RAM68k + be32toh(pSysHdr->_run));
+    m_AtariKbData = mem68k + be32toh(pSysHdr->kbshift);
+    m_pAtariActPd = (uint32_t *) (mem68k + be32toh(pSysHdr->_run));
 
     // Andere Atari-Strukturen
 
-    m_pAtariActAppl = (uint32_t *) (m_RAM68k + be32toh(pMacXSysHdr->MacSys_act_appl));
+    m_pAtariActAppl = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSys_act_appl));
 
     // Prüfsumme für das System berechnen
 
     chksum = 0;
-    uint32_t *fromptr = (uint32_t *) (m_RAM68k + be32toh(pMacXSysHdr->MacSys_syshdr));
-    uint32_t *toptr = (uint32_t *) (m_RAM68k + be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen));
+    uint32_t *fromptr = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
+    uint32_t *toptr = (uint32_t *) (mem68k + be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen));
 #ifdef _DEBUG
 //    AdrOsRomStart = be32toh(pMacXSysHdr->MacSys_syshdr);            // Beginn schreibgeschützter Bereich
     addrOsRomStart = be32toh((uint32_t) m_BasePage->p_tbase);        // Beginn schreibgeschützter Bereich
@@ -914,21 +914,17 @@ Reinstall the application.
     }
     while(fromptr < toptr);
 
-    setAtariBE32(m_RAM68k + os_chksum, chksum);
+    setAtariBE32(mem68k + os_chksum, chksum);
 
     // dump Atari
 
 //    DumpAtariMem("AtariMemAfterInit.data");
 
-    // Adreßüberprüfung fürs XFS
-
-    m_HostXFS.set68kAdressRange(m_RAM68ksize);
-
     // Pass all XFS drives to the Atari
 
-    setAtariBE32(m_RAM68k + _drvbits, 0);        // no Atari drives yet
-    m_HostXFS.activateXfsDrives(m_RAM68k);
-    setAtariBE16(m_RAM68k + _bootdev, 'C'-'A');    // Atari boot drive C:
+    setAtariBE32(mem68k + _drvbits, 0);        // no Atari drives yet
+    m_HostXFS.activateXfsDrives(mem68k);
+    setAtariBE16(mem68k + _bootdev, 'C'-'A');    // Atari boot drive C:
 
     //
     // initialise 68k emulator (Musashi)
@@ -936,7 +932,7 @@ Reinstall the application.
 
 #if defined(USE_ASGARD_PPC_68K_EMU)
 
-    OpcodeROM = m_RAM68k;    // ROM == RAM
+    OpcodeROM = mem68k;    // ROM == RAM
     Asgard68000SetIRQCallback(IRQCallback, this);
     Asgard68000SetHiMem(m_RAM68ksize);
     m_bSpecialExec = false;
@@ -951,10 +947,10 @@ Reinstall the application.
 
     // Emulator starten
 
-    addrOpcodeROM = m_RAM68k;    // ROM == RAM
+    addrOpcodeROM = mem68k;    // ROM == RAM
     m68k_set_int_ack_callback(IRQCallback);
-    m68k_SetBaseAddr(m_RAM68k);
-    m68k_SetHiMem(m_RAM68ksize);
+    m68k_SetBaseAddr(mem68k);
+    m68k_SetHiMem(mem68kSize);
     m_bSpecialExec = false;
 
     // Reset Musashi 68k emulator
@@ -1024,11 +1020,11 @@ void CMagiC::GetActAtariPrg(const char **pName, uint32_t *pact_pd)
 
 
     *pact_pd = be32toh(*pTheMagiC->m_pAtariActPd);
-    if ((*pact_pd != 0) && (*pact_pd < pTheMagiC->m_RAM68ksize))
+    if ((*pact_pd != 0) && (*pact_pd < mem68kSize))
     {
         pMagiCPd = (MagiC_PD *) (addrOpcodeROM + *pact_pd);
         pprocdata = be32toh(pMagiCPd->p_procdata);
-        if ((pprocdata != 0) && (pprocdata < pTheMagiC->m_RAM68ksize))
+        if ((pprocdata != 0) && (pprocdata < mem68kSize))
         {
             pMagiCProcInfo = (MagiC_ProcInfo *) (addrOpcodeROM + pprocdata);
             *pName = pMagiCProcInfo->pr_fname;    // array, not pointer!
@@ -1414,7 +1410,7 @@ int CMagiC::EmuThread( void )
 
         // ggf. Druckdatei abschließen
 
-        if (*((uint32_t *)(m_RAM68k+_hz_200)) - s_LastPrinterAccess > 200 * 10)
+        if (*((uint32_t *)(mem68k +_hz_200)) - s_LastPrinterAccess > 200 * 10)
         {
             m_MagiCPrint.ClosePrinterFile();
         }
@@ -2598,7 +2594,7 @@ uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
     DebugInfo("CMagiC::AtariSysErr() -- act_pd = 0x%08lx", act_pd);
     DebugInfo("CMagiC::AtariSysErr() -- Prozeßpfad = %s", (AtariPrgFname) ? AtariPrgFname : "<unknown>");
 #if defined(_DEBUG)
-    if (m68k_pc < pTheMagiC->m_RAM68ksize - 8)
+    if (m68k_pc < mem68kSize - 8)
     {
         uint16_t opcode1 = be16toh(*((uint16_t *) (addrOffset68k + m68k_pc)));
         uint16_t opcode2 = be16toh(*((uint16_t *) (addrOffset68k + m68k_pc + 2)));

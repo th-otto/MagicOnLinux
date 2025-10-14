@@ -47,6 +47,7 @@
 #include "Globals.h"
 #include "HostXFS.h"
 #include "Atari.h"
+#include "emulation_globals.h"
 #include "conversion.h"
 
 #if defined(_DEBUG)
@@ -134,19 +135,6 @@ static void __dump(const unsigned char *p, int len)
     }
 }
 #endif
-
-
-/** **********************************************************************************************
-*
-* @brief Define 68k address range, including video memory and kernel
-*
-* @param[in]   AtariMemSize     Atari memory size in bytes
-*
- ************************************************************************************************/
-void CHostXFS::set68kAdressRange(uint32_t AtariMemSize)
-{
-    m_AtariMemSize = AtariMemSize;
-}
 
 
 /** **********************************************************************************************
@@ -3170,7 +3158,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 name;    // char *
             } __attribute__((packed));
             dcreateparm *pdcreateparm = (dcreateparm *) params;
-            if (be32toh((UINT32) (pdcreateparm->name)) >= m_AtariMemSize)
+            if (be32toh((UINT32) (pdcreateparm->name)) >= mem68kSize)
             {
                 DebugError("CHostXFS::xfs_dcreate() - invalid name ptr");
                 return ERROR;

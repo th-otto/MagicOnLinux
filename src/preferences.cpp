@@ -154,7 +154,7 @@ int Preferences::Init(bool rewrite_conf)
     for (int i = 0; i < NDRIVES; i++)
     {
         drvPath[i] = nullptr;
-        drvFlags[i] = 0;        // Lange Namen, vorw�rts sortiert
+        drvFlags[i] = 0;        // long names, read-write
     }
 
     char path[1024] = "";
@@ -167,20 +167,20 @@ int Preferences::Init(bool rewrite_conf)
     int num_errors = getPreferences(path, rewrite_conf);
 
     // drive C: is root FS with 8+3 name scheme
-    drvFlags['C'-'A'] |= 2;        // C: drive has 8+3 name scheme
+    drvFlags['C'-'A'] = 2;        // C: drive has 8+3 name scheme
     setDrvPath('C'-'A', AtariRootfsPath);
 
     // drive H: is user home
     if (AtariHostHome && (home != nullptr))
     {
-        drvFlags['H'-'A'] = AtariHostHomeRdOnly ? 1 : 0;        // long names, read-only
+        drvFlags['H'-'A'] |= AtariHostHomeRdOnly ? 1 : 0;        // long names, read-only
         setDrvPath('H'-'A', home);
     }
 
     // drive M: is host root, if requested
     if (AtariHostRoot)
     {
-        drvFlags['M'-'A'] = AtariHostRootRdOnly ? 1 : 0;        // long names, read-only
+        drvFlags['M'-'A'] |= AtariHostRootRdOnly ? 1 : 0;        // long names, read-only
         setDrvPath('M'-'A', "/");
     }
 

@@ -995,7 +995,7 @@ INT32 CHostXFS::xfs_sfirst
     uint16_t attrib
 )
 {
-    DebugInfo("%s(drv = %u, name = \"%s\")", __func__, drv, name);
+    DebugInfo2("(drv = %u, name = \"%s\")", drv, name);
 
     dta->mxdta.dta_drive = (char) drv;
     pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname);    // search pattern -> DTA
@@ -1066,7 +1066,7 @@ INT32 CHostXFS::xfs_sfirst
             dta->macdta.dirID = hhdl;
             dta->macdta.index = 0;  // unused
 
-            DebugInfo("%s() -> E_OK", __func__);
+            DebugInfo2("() -> E_OK");
             return E_OK;
         }
     }
@@ -1078,7 +1078,7 @@ INT32 CHostXFS::xfs_sfirst
 
     closedir(dir);  // also closes dup_dir_fd
 
-    DebugInfo("%s() -> EFILNF", __func__);
+    DebugInfo2("() -> EFILNF");
     return EFILNF;
 }
 
@@ -1095,7 +1095,7 @@ INT32 CHostXFS::xfs_sfirst
  ************************************************************************************************/
 INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 {
-    DebugInfo("%s(drv = %u)", __func__, drv);
+    DebugInfo2("(drv = %u)", drv);
     (void) dta;
 
     if (drv_changed[drv])
@@ -1175,7 +1175,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 
     HostHandles::snextClose(snextHdl);  // also does closedir()
 
-    DebugInfo("%s() -> ENMFIL", __func__);
+    DebugInfo2("() -> ENMFIL");
 
     return ENMFIL;
 }
@@ -1209,7 +1209,7 @@ INT32 CHostXFS::xfs_fopen
     uint16_t attrib
 )
 {
-    DebugInfo("%s(name = \"%s\", drv = %u, omode = %d, attrib = %d)", __func__, name, drv, omode, attrib);
+    DebugInfo2("(name = \"%s\", drv = %u, omode = %d, attrib = %d)", name, drv, omode, attrib);
     unsigned char dosname[20];
 
     if (drv_changed[drv])
@@ -1294,17 +1294,17 @@ INT32 CHostXFS::xfs_fopen
     file_hostFD->fd = openat(dir_fd, name, host_omode);
     if (file_hostFD->fd < 0)
     {
-        DebugWarning("%s() : openat(\"%s\") -> %s", __func__, name, strerror(errno));
+        DebugWarning2("() : openat(\"%s\") -> %s", name, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
-    DebugInfo("%s() - host fd %d", __func__, file_hostFD->fd);
+    DebugInfo2("() - host fd %d", file_hostFD->fd);
 
     struct stat statbuf;
     int ret = fstat(file_hostFD->fd, &statbuf);
     if (ret < 0)
     {
         close(file_hostFD->fd);
-        DebugWarning("%s() : fstat(\"%s\") -> %s", __func__, name, strerror(errno));
+        DebugWarning2("() : fstat(\"%s\") -> %s", name, strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
     file_hostFD->dev = statbuf.st_dev;
@@ -1313,7 +1313,7 @@ INT32 CHostXFS::xfs_fopen
     hhdl = allocHostFD(&file_hostFD);
 
     assert (hhdl <= 0xfffff);
-    DebugInfo("%s() -> %d", __func__, hhdl);
+    DebugInfo2("() -> %d", hhdl);
     return hhdl;
 }
 
@@ -1463,7 +1463,7 @@ void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
  * @param[out] xattr        structure to be filled
  * @param[in]  mode         0: follow symlinks, otherwise do not follow
  *
- * @return EW_OK or 32-bit negative error code
+ * @return E_OK or 32-bit negative error code
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_xattr
@@ -1533,9 +1533,9 @@ INT32 CHostXFS::xfs_xattr
  * @param[in]  rwflag       0: read, otherwise: write
  * @param[in]  attr         attribute to write if rwflag > 0
  *
- * @return EW_OK or 32-bit negative error code
+ * @return E_OK or 32-bit negative error code
  *
- * @note We could set or reset the F_RDONLY atribute, but nothing else.
+ * @note TODO: We could set or reset the F_RDONLY atribute, but nothing else.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag, uint16_t attr)
@@ -1571,7 +1571,6 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag
         return EINTRN;
     }
     int dir_fd = hostFD->fd;
-    DebugInfo("%s() - get information about file in directory with host fd %d", __func__, dir_fd);
     if (dir_fd == -1)
     {
         return EINTRN;
@@ -1606,65 +1605,99 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag
 }
 
 
-/*************************************************************
-*
-* Fuer Fchown
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Fchown() - change owner id and group id for file or folder
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory, search here
+ * @param[in]  name         filename or directory name, can be long or 8+3
+ * @param[in]  uid          new user id
+ * @param[in]  gid          new group id
+ *
+ * @return E_OK or 32-bit negative error code
+ *
+ * @note TODO: We could that implement later, but it has not much use.
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, char *name,
                     uint16_t uid, uint16_t gid)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
+    DebugInfo2("(drv = %u, name = %s)", drv, name);
+    if (drv_changed[drv])
+    {
+        return E_CHNG;
+    }
+    if (drv_host_path[drv] == nullptr)
+    {
+        return EDRIVE;
+    }
+    if (drv_readOnly[drv])
+    {
+        return EWRPRO;
+    }
     (void) dd;
     (void) name;
     (void) uid;
     (void) gid;
 
-    // TODO: implement
+    DebugWarning2("() -> EINVFN", drv, name);
     return EINVFN;
 }
 
 
-/*************************************************************
-*
-* Fuer Fchmod
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Fchmod() - change access mode for file or folder
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory, search here
+ * @param[in]  name         filename or directory name, can be long or 8+3
+ * @param[in]  fmode        new mode
+ *
+ * @return E_OK or 32-bit negative error code
+ *
+ * @note TODO: We could that implement later, but it has not much use.
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
+    DebugInfo2("(drv = %u, name = %s)", drv, name);
+    if (drv_changed[drv])
+    {
+        return E_CHNG;
+    }
+    if (drv_host_path[drv] == nullptr)
+    {
+        return EDRIVE;
+    }
+    if (drv_readOnly[drv])
+    {
+        return EWRPRO;
+    }
     (void) dd;
     (void) name;
     (void) fmode;
 
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-
-    // TODO: implement
+    DebugWarning2("() -> EINVFN");
     return EINVFN;
 }
 
 
-/*************************************************************
-*
-* Fuer Dcreate
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Dcreate() - create directory
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory, create the new one here
+ * @param[in]  name         new directory name, can be long or 8+3
+ *
+ * @return E_OK or 32-bit negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
-    (void) dd;
-    (void) name;
-
+    DebugInfo2("(drv = %u, name = %s)", drv, name);
     if (drv_changed[drv])
     {
         return E_CHNG;
@@ -1673,9 +1706,40 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
     {
         return EDRIVE;
     }
+    if (drv_readOnly[drv])
+    {
+        return EWRPRO;
+    }
 
-    // TODO: implement
-    return EINVFN;
+    unsigned char dosname[20];
+    if (!drv_longnames[drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name, dosname, false, false);
+        name = (char *) dosname;
+    }
+
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd = hostFD->fd;
+    if (dir_fd == -1)
+    {
+        return EINTRN;
+    }
+
+    // create directory with rawrwxrwx access, which will then be ANDed with umask
+    if (mkdirat(dir_fd, name, 0777) < 0)
+    {
+        DebugError2("() : openat(\"%s\") -> %s", name, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+
+    DebugInfo2("() -> E_OK");
+    return E_OK;
 }
 
 

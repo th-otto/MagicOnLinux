@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1990-2018 Andreas Kromke, andreas.kromke@gmail.com
+ * Copyright (C) 1990-2018/2025 Andreas Kromke, andreas.kromke@gmail.com
  *
  * This program is free software; you can redistribute it or
  * modify it under the terms of the GNU General Public License
@@ -18,40 +18,26 @@
 
 /*
 *
-* Enth�lt alles, was mit "MagicMac OS" zu tun hat
+* Printing functionality
 *
 */
 
-// System-Header
-// Programm-Header
-#include "Globals.h"
-#include "osd_cpu.h"
-//#include "MagiCScreen.h"
-#include "XCmd.h"
-#include "HostXFS.h"
-#include "MagiCKeyboard.h"
-#include "MagiCMouse.h"
-#include "MagiCSerial.h"
-// Schalter
-
-#define KEYBOARDBUFLEN	32
-#define N_ATARI_FILES		8
+#include <stdio.h>
+#include <stdint.h>
 
 class CMagiCPrint
 {
    public:
-	// Konstruktor
-	CMagiCPrint();
-	// Destruktor
-	~CMagiCPrint();
+    static void init();
+    static void exit();
 
-	uint32_t GetOutputStatus(void);
-	uint32_t Read(uint8_t *pBuf, uint32_t NumOfBytes);
-	uint32_t Write(const uint8_t *pBuf, uint32_t NumOfBytes);
-	uint32_t ClosePrinterFile(void);
+    static uint32_t GetOutputStatus(void);
+    static uint32_t Read(uint8_t *pBuf, uint32_t cnt);
+    static uint32_t Write(const uint8_t *pBuf, uint32_t cnt);
+    static uint32_t ClosePrinterFile(void);
 
    private:
-	FILE *m_printFile;
-	int m_PrintFileCounter;
-	static bool bTempFileCreated;
+    static FILE *m_printFile;
+    static int m_PrintFileCounter;
+    static bool bTempFileCreated;
 };

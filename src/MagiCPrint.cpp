@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1990-2018 Andreas Kromke, andreas.kromke@gmail.com
+ * Copyright (C) 1990-2018/25 Andreas Kromke, andreas.kromke@gmail.com
  *
  * This program is free software; you can redistribute it or
  * modify it under the terms of the GNU General Public License
@@ -18,212 +18,184 @@
 
 /*
 *
-* Druckerausgabe
+* Printing functionality
 *
 */
 
 #include "config.h"
-// System-Header
+
 #include <errno.h>
 #include <endian.h>
-// Programm-Header
+
 #include "Debug.h"
-#include "Globals.h"
+#include "preferences.h"
 #include "MagiCPrint.h"
-//#include "PascalStrings.h"
-
-// Schalter
-
-// statische Variablen
-
-bool CMagiCPrint::bTempFileCreated = false;
 
 
-/**********************************************************************
-*
-* Konstruktor
-*
-**********************************************************************/
+FILE *CMagiCPrint::m_printFile;
+int CMagiCPrint::m_PrintFileCounter;
+bool CMagiCPrint::bTempFileCreated;
 
-CMagiCPrint::CMagiCPrint()
+
+/** **********************************************************************************************
+ *
+ * @brief Initialisation (called from main thread)
+ *
+ ************************************************************************************************/
+void CMagiCPrint::init()
 {
-	m_printFile = nullptr;
-	m_PrintFileCounter = 0;
+    m_printFile = nullptr;
+    m_PrintFileCounter = 0;
+    bTempFileCreated = false;
 }
 
 
-/**********************************************************************
-*
-* Destruktor
-*
-**********************************************************************/
-
-CMagiCPrint::~CMagiCPrint()
+/** **********************************************************************************************
+ *
+ * @brief Deinitialisation (called from main thread)
+ *
+ * @note removes all printer files
+ *
+ ************************************************************************************************/
+void CMagiCPrint::exit()
 {
-	if (bTempFileCreated)
-	{
-		char command[2048];
-		int ierr;
+    if (bTempFileCreated)
+    {
+        char command[2048];
+        int ierr;
 
-		// Lösche alle Druckdateien. Da das "rm"-Kommando versagt, wenn der
-		// Pfad Leerzeichen enthält, muß der Pfad in Anführungszeichen
-		// eingeschlossen werden. Dann wiederum funktioniert die Expansion
-		// der Fragezeichen nicht. Folglich werden zwei Kommandos abgesetzt,
-		// erst ein "cd" zum Wechsel in das Verzeichnis, in dem MagicMacX liegt,
-		// dann ein rm auf alle Druckdateien im Verzeichnis "PrintQueue".
+        // Make sure to enclose path in quotation marks, in case the path contains spaces.
+        // Issue two commands, first one moves to path, seconds one deletes files.
+        // The concatenation with && makes sure that the rm command is not issued
+        // when cd command failed.
+        // Redirect stdout and stderr to PrintCommand_rm.txt, for debugging purposes.
 
-		sprintf(command, "cd \"%s\";rm PrintQueue/MagiCPrintFile????????",
-							Preferences::AtariTempFilesUnixPath);
-		// Ausgabe-Umlenkung (stdout und stderr)
-		strcat(command, " >&\"");
-		strcat(command, Preferences::AtariTempFilesUnixPath);
-		strcat(command, "PrintQueue/PrintCommand_rm.txt\"");
+        sprintf(command, "cd \"%s\" && rm PrintQueue/MagiCPrintFile????????",
+                            Preferences::AtariTempFilesUnixPath);
 
-		DebugInfo("CMagiCPrint::~CMagiCPrint() --- Setze Kommando ab: %s", command);
-		// Lösch-Kommando absetzen
-		ierr = system(command);
-		if	(ierr)
-		{
-			DebugError("CMagiCPrint::~CMagiCPrint() --- Fehler %d beim Löschen", ierr);
-		}
-	}
+        strcat(command, " >&\"");
+        strcat(command, Preferences::AtariTempFilesUnixPath);
+        strcat(command, "PrintQueue/PrintCommand_rm.txt\"");
+
+        DebugInfo2("() -- run %s", command);
+        ierr = system(command);
+        if    (ierr)
+        {
+            DebugError2("() -- error code %d when removing files", ierr);
+        }
+    }
 }
 
 
-/**********************************************************************
-*
-* Ausgabestatus des Druckers abfragen
-* Rückgabe: -1 = bereit 0 = nicht bereit
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Get printer output state (called from emulator thread)
+ *
+ * @return status
+ * @retval -1  ready
+ * @retval 0   not ready
+ *
+ ************************************************************************************************/
 uint32_t CMagiCPrint::GetOutputStatus(void)
 {
-	return 0xffffffff;		// bereit
+    return 0xffffffff;        // always ready
 }
 
 
-/**********************************************************************
-*
-* Daten von Drucker lesen
-* Rückgabe: Anzahl gelesener Zeichen
-*
-**********************************************************************/
-
-uint32_t CMagiCPrint::Read(uint8_t *pBuf, uint32_t NumOfBytes)
+/** **********************************************************************************************
+ *
+ * @brief Read data from printer (called from emulator thread)
+ *
+ * @param[out] pBuf        read buffer
+ * @param[in]  cnt         number of bytes to read
+ *
+ * @return number of bytes read or negative error code
+ *
+ * @note Reading from printer is not supported
+ *
+ ************************************************************************************************/
+uint32_t CMagiCPrint::Read(uint8_t *pBuf, uint32_t cnt)
 {
-	(void) pBuf;
-	(void) NumOfBytes;
-	return 0;
+    (void) pBuf;
+    (void) cnt;
+    return 0;
 }
 
 
-/**********************************************************************
-*
-* Mehrere Zeichen auf Drucker ausgeben
-* Rückgabe: Anzahl geschriebener Zeichen
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Write data to printer (called from emulator thread)
+ *
+ * @param[out] pBuf        write buffer
+ * @param[in]  NumOfBytes  number of bytes to write
+ *
+ * @return number of bytes written or negative error code
+ *
+ ************************************************************************************************/
 uint32_t CMagiCPrint::Write(const uint8_t *pBuf, uint32_t cnt)
 {
-	char PrintFileName[2048];
-	long OutCnt;
+    char PrintFileName[2048];
+    long OutCnt;
 
 
-	if	(m_printFile == nullptr)
-	{
-		// Druckdatei nicht mehr geöffnet => Neu anlegen
+    if (m_printFile == nullptr)
+    {
+        // Printer output file not open or already closed. Create new one.
 
-		sprintf(PrintFileName, "%s/PrintQueue/MagiCPrintFile%08d", Preferences::AtariTempFilesUnixPath, m_PrintFileCounter++);
-		DebugInfo("CMagiCPrint::Write() --- Lege Druckdatei \"%s\" an", PrintFileName);
-		m_printFile = fopen(PrintFileName, "w");
-		if	(m_printFile == nullptr)
-		{
-			DebugError("CMagiCPrint::Write() --- Fehler %d bei fopen()", errno);
-			return 0;		// Fehler
-		}
-		bTempFileCreated = true;
-	}
+        sprintf(PrintFileName, "%s/PrintQueue/MagiCPrintFile%08d", Preferences::AtariTempFilesUnixPath, m_PrintFileCounter++);
+        DebugInfo2("() -- create printer output file \"%s\" an", PrintFileName);
+        m_printFile = fopen(PrintFileName, "w");
+        if (m_printFile == nullptr)
+        {
+            DebugError2("() : fopen(\"%s\", \"w\") -> %s", PrintFileName, strerror(errno));
+            return 0;        // nothing written
+        }
+        bTempFileCreated = true;
+    }
 
-	// Zeichen in Druckdatei schreiben
+    // write data to print file
 
-	OutCnt = (long) cnt;
-	cnt = fwrite(pBuf, 1, OutCnt, m_printFile);
+    OutCnt = (long) cnt;
+    cnt = fwrite(pBuf, 1, OutCnt, m_printFile);
 
-//	CDebug::DebugInfo("CMagiCPrint::Write() --- s_LastPrinterAccess = %u", s_LastPrinterAccess);
+//    CDebug::DebugInfo("CMagiCPrint::Write() --- s_LastPrinterAccess = %u", s_LastPrinterAccess);
 
-	// Rückgabe: Anzahl geschriebener Zeichen
-
-	return cnt;
+    return cnt;
 }
 
 
-/**********************************************************************
-*
-* Aktuelle Druckdatei schließen und absenden.
-* Rückgabe: Fehlercode
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Close and send printer output file (called from emulator thread)
+ *
+ * @return zero or negative error code
+ *
+ ************************************************************************************************/
 uint32_t CMagiCPrint::ClosePrinterFile(void)
 {
-	char szPrintFileNameUnix[2048];
-	char command2[512];
-	char command[512];
-	int ierr;
-	char *src,*dst;
+    char command[2382];
+    int ierr;
 
 
-	if	((m_printFile == nullptr) || (!m_PrintFileCounter))
-		return 0;
+    if ((m_printFile == nullptr) || (!m_PrintFileCounter))
+        return 0;
 
-	// Datei schließen
+    fclose(m_printFile);
+    m_printFile = nullptr;
 
-	fclose(m_printFile);
-	m_printFile = nullptr;
+    // Generate filename of previous print file, enclosed in quotation marks.
+    // This is necessary if there are spaces in the path.
+    sprintf(command, "%s \"%s/PrintQueue/MagiCPrintFile%08d\" >&\"%s/PrintQueue/PrintCommand_stdout.txt\"",
+                        Preferences::szPrintingCommand,
+                        Preferences::AtariTempFilesUnixPath,
+                        m_PrintFileCounter - 1,
+                        Preferences::AtariTempFilesUnixPath
+                    );
 
-	// Datei drucken
+    DebugInfo2("() -- run command: %s", command);
+    ierr = system(command);
+    if (ierr)
+        DebugError2("() -- error %d during printing", ierr);
 
-	// Dateinamen generieren. Dabei muß blöderweise der absolute Pfad eingesetzt
-	// werden, da system() immer im Wurzelverzeichnis läuft.
-	// Dateinamen in Anführungszeichen setzen, da der Pfadname Leerzeichen enthalten kann.
-	sprintf(szPrintFileNameUnix, "\"%s/PrintQueue/MagiCPrintFile%08d\"",
-						Preferences::AtariTempFilesUnixPath,
-						m_PrintFileCounter - 1);
-
-	// unseren Pfad ggf. in das Benutzerkommando einsetzen (%APPDIR%)
-
-	dst = command2;
-	src = Preferences::szPrintingCommand;
-	do
-	{
-		if	(!strncmp(src, "%APPDIR%", 8))
-		{
-			strcpy(dst, Preferences::AtariTempFilesUnixPath);
-			dst += strlen(dst);
-			src += 8;
-		}
-		else
-			*dst++ = *src++;
-	}
-	while(*src);
-	*dst = '\0';
-
-	// Druck-Dateinamen in das Benutzerkommando einsetzen
-	sprintf(command, command2, szPrintFileNameUnix);
-
-	// Ausgabe-Umlenkung (stdout und stderr)
-	strcat(command, " >&\"");
-	strcat(command, Preferences::AtariTempFilesUnixPath);
-	strcat(command, "PrintQueue/PrintCommand_stdout.txt\"");
-
-	DebugInfo("CMagiCPrint::ClosePrinterFile() --- Setze Kommando ab: %s", command);
-	// Test. ob MacOS-Fehler noch drin ist.
-	(void) system("pwd >/tmp/hallo.txt");
-	// Druck-Kommando absetzen
-	ierr = system(command);
-	if	(ierr)
-		DebugError("CMagiCPrint::ClosePrinterFile() --- Fehler %d beim Drucken", ierr);
-	return 0;
+    return ierr;
 }

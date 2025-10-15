@@ -33,11 +33,8 @@
 #include "HostXFS.h"
 #include "MagiCKeyboard.h"
 #include "MagiCMouse.h"
-#include "MagiCSerial.h"
-#include "MagiCPrint.h"
 
 #define KEYBOARDBUFLEN  32
-//#define N_ATARI_FILES   8       // remnant from MagicMac(X) and AtariX
 
 #ifndef NDEBUG
 extern bool CMagiC__sNoAtariInterrupts;    // for debugging
@@ -152,8 +149,6 @@ class CMagiC
     CHostXFS m_HostXFS;              // XFS
     CMagiCKeyboard m_MagiCKeyboard;  // Atari keyboard
     CMagiCMouse m_MagiCMouse;        // Atari mouse
-    CMagiCSerial m_MagiCSerial;      // Atari serial interface
-    CMagiCPrint m_MagiCPrint;        // Atari printer interface
     uint32_t m_CurrModifierKeys;     // current state of Shift/Cmd/Alt...
     bool m_bBIOSSerialUsed;
     bool m_bBusErrorPending;
@@ -186,13 +181,6 @@ class CMagiC
     unsigned char *m_pKbRead;           // read pointer
     unsigned char *m_pKbWrite;          // write pointer
     pthread_mutex_t m_KbCriticalRegionId;   // mutex for keyboard events
-    #if 0
-    pthread_mutex_t m_AECriticalRegionId;   // mutex for Apple events, remnants from MagicMac(X) and AtariX
-    // Apple Events (directly run Atari programs), remnants from MagicMac(X) and AtariX
-    int m_iNoOfAtariFiles;
-    int m_iOldestAtariFile;    // for ring buffer
-    char m_szStartAtariFiles[N_ATARI_FILES][256];
-    #endif
 
     // Screen data
     bool m_bScreenBufferChanged;

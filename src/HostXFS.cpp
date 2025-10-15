@@ -569,19 +569,19 @@ INT32 CHostXFS::hostpath2HostFD
     HostFD *hostFD = getFreeHostFD();   // note that this is not allocated, yet
     if (hostFD == nullptr)
     {
-        DebugError("%s() : No host FDs left", __func__);
+        DebugError2("() : No host FDs left");
         *hhdl = HOST_HANDLE_INVALID;
         return ENHNDL;
     }
 
     int rel_fd = (reldir != nullptr) ? reldir->fd : -1;
-    DebugInfo("%s() : rel host fd = %d, path = \"%s\"", __func__, rel_fd, path);
+    DebugInfo2("() : rel host fd = %d, path = \"%s\"", rel_fd, path);
     if ((rel_fd >= 0) && (path[0] == '\0'))
     {
         // the relative directory itself is addressed with an empty path
         reldir->ref_cnt++;  // TODO: correct?
         *hhdl = rel_hhdl;
-        DebugInfo("%s() : host fd = %d (reused)", __func__, rel_fd);
+        DebugInfo2("() : host fd = %d (reused)", rel_fd);
     }
     else
     {
@@ -589,16 +589,16 @@ INT32 CHostXFS::hostpath2HostFD
         int res = fstatat(rel_fd, path, &statbuf, AT_EMPTY_PATH);
         if (res < 0)
         {
-            DebugWarning("%s() : fstatat(\"%s\") -> %s", __func__, path, strerror(errno));
+            DebugWarning2("() : fstatat(\"%s\") -> %s", path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
             return CConversion::Host2AtariError(errno);
         }
-        DebugInfo("%s() : dev=%d, ino=%d)", __func__, statbuf.st_dev, statbuf.st_ino);
+        DebugInfo2("() : dev=%d, ino=%d)", statbuf.st_dev, statbuf.st_ino);
         uint16_t nhhdl;
         HostFD *hostFD_exist = findHostFD(statbuf.st_dev, statbuf.st_ino, &nhhdl);
         if (hostFD_exist != nullptr)
         {
-             DebugInfo("%s() : already opened host fd = %d", __func__, hostFD_exist->fd);
+             DebugInfo2("() : already opened host fd = %d", hostFD_exist->fd);
             *hhdl = nhhdl;
             return E_OK;
         }
@@ -606,7 +606,7 @@ INT32 CHostXFS::hostpath2HostFD
         hostFD->fd = openat(rel_fd, path, flags);
         if (hostFD->fd < 0)
         {
-            DebugWarning("%s() : openat(\"%s\") -> %s", __func__, path, strerror(errno));
+            DebugWarning2("() : openat(\"%s\") -> %s", path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
             return CConversion::Host2AtariError(errno);
         }
@@ -615,7 +615,7 @@ INT32 CHostXFS::hostpath2HostFD
         if (ret < 0)
         {
             close(hostFD->fd);
-            DebugWarning("%s() : fstat(\"%s\") -> %s", __func__, path, strerror(errno));
+            DebugWarning2("() : fstat(\"%s\") -> %s", path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
             return CConversion::Host2AtariError(errno);
         }
@@ -625,7 +625,7 @@ INT32 CHostXFS::hostpath2HostFD
         hostFD->ino = statbuf.st_ino;
 
         *hhdl = allocHostFD(&hostFD);
-        DebugInfo("%s() : host fd = %d", __func__, hostFD->fd);
+        DebugInfo2("() : host fd = %d", hostFD->fd);
     }
 
     return E_OK;
@@ -3572,6 +3572,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
  *
  * @param[in] param             68k address of parameter structure
  * @param[in] AdrOffset68k      Host address of 68k memory
+ *
+ * @return E_OK or negative error code
  *
  ************************************************************************************************/
 INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)

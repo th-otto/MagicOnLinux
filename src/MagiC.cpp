@@ -34,6 +34,8 @@
 #include "Debug.h"
 #include "Globals.h"
 #include "MagiC.h"
+#include "MagiCSerial.h"
+#include "MagiCPrint.h"
 #include "Atari.h"
 #include "mem_access_68k.h"
 //#include "Dialogue68kExc.h"
@@ -45,9 +47,6 @@
 
 static CMagiC *pTheMagiC = nullptr;
 uint32_t CMagiC::s_LastPrinterAccess = 0;
-
-CMagiCSerial *pTheSerial;
-CMagiCPrint *pThePrint;
 
 
 #ifndef NDEBUG
@@ -222,8 +221,6 @@ CMagiC::CMagiC()
     m_LineAVars = NULL;
     m_pMagiCScreen = NULL;
 //    m_PrintFileRefNum = 0;
-    pTheSerial = &m_MagiCSerial;
-    pThePrint = &m_MagiCPrint;
     pTheMagiC = this;
     m_bAtariWasRun = false;
     m_bBIOSSerialUsed = false;
@@ -1412,7 +1409,7 @@ int CMagiC::EmuThread( void )
 
         if (*((uint32_t *)(mem68k +_hz_200)) - s_LastPrinterAccess > 200 * 10)
         {
-            m_MagiCPrint.ClosePrinterFile();
+            CMagiCPrint::ClosePrinterFile();
         }
     }    // for
 
@@ -1528,41 +1525,6 @@ void CMagiC::SendBusError(uint32_t addr, const char *AccessMode)
     m_BusErrorAddress = addr;
     strcpy(m_BusErrorAccessMode, AccessMode);
 }
-
-
-#if 0
-/**********************************************************************
-*
-* Eine Atari-Datei ist doppelgeklickt oder auf das Icon von
-* MagicMacX geschoben worden (Apple-Event 'odoc').
-*
-* Wird im "main thread" aufgerufen
-*
-**********************************************************************/
-void CMagiC::SendAtariFile(const char *pBuf)
-{
-    int iWritePos;
-
-
-#ifdef _DEBUG
-    DebugInfo("CMagiC::SendAtariFile(%s)", pBuf);
-#endif
-    OS_EnterCriticalRegion(&m_AECriticalRegionId);
-    // kopiere zu startenden Pfad in die Tabelle, bis sie voll ist
-    if (m_iNoOfAtariFiles < N_ATARI_FILES)
-    {
-        if (!m_iNoOfAtariFiles)
-        {
-            // dies ist die einzige Datei. Packe sie nach vorn.
-            m_iOldestAtariFile = 0;
-        }
-        iWritePos = (m_iOldestAtariFile + m_iNoOfAtariFiles) % N_ATARI_FILES;
-        strcpy(m_szStartAtariFiles[iWritePos], pBuf);
-        m_iNoOfAtariFiles++;
-    }
-    OS_ExitCriticalRegion(&m_AECriticalRegionId);
-}
-#endif
 
 
 /**********************************************************************
@@ -2734,7 +2696,7 @@ uint32_t CMagiC::AtariPrtOs(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
     (void) addrOffset68k;
-    return(pThePrint->GetOutputStatus());
+    return CMagiCPrint::GetOutputStatus();
 }
 
 
@@ -2752,7 +2714,7 @@ uint32_t CMagiC::AtariPrtIn(uint32_t params, uint8_t *addrOffset68k)
 
     (void) params;
     (void) addrOffset68k;
-    n = pThePrint->Read(&c, 1);
+    n = CMagiCPrint::Read(&c, 1);
     if (!n)
         return 0;
     else
@@ -2773,7 +2735,7 @@ uint32_t CMagiC::AtariPrtOut(uint32_t params, uint8_t *addrOffset68k)
     uint32_t ret;
 
     DebugInfo2("()");
-    ret = pThePrint->Write(addrOffset68k + params + 1, 1);
+    ret = CMagiCPrint::Write(addrOffset68k + params + 1, 1);
     // Zeitpunkt (200Hz) des letzten Druckerzugriffs merken
     s_LastPrinterAccess = be32toh(*((uint32_t *) (addrOffset68k + _hz_200)));
     if (ret == 1)
@@ -2802,7 +2764,7 @@ uint32_t CMagiC::AtariPrtOutS(uint32_t params, uint8_t *addrOffset68k)
 
 
 //    CDebug::DebugInfo("CMagiC::AtariPrtOutS()");
-    ret = pThePrint->Write(addrOffset68k + be32toh(thePrtOutParm->buf), be32toh(thePrtOutParm->cnt));
+    ret = CMagiCPrint::Write(addrOffset68k + be32toh(thePrtOutParm->buf), be32toh(thePrtOutParm->cnt));
     // Zeitpunkt (200Hz) des letzten Druckerzugriffs merken
     s_LastPrinterAccess = be32toh(*((uint32_t *) (addrOffset68k + _hz_200)));
     return ret;
@@ -2836,13 +2798,13 @@ uint32_t CMagiC::OpenSerialBIOS(void)
     }
 
     // schon vom DOS geöffnet => Fehler
-    if (m_MagiCSerial.IsOpen())
+    if (CMagiCSerial::IsOpen())
     {
         DebugError("CMagiC::OpenSerialBIOS() -- schon vom DOS geöffnet => Fehler");
         return((uint32_t) ERROR);
     }
 
-    if (-1 == (int) m_MagiCSerial.Open(Preferences::szAuxPath))
+    if (-1 == (int) CMagiCSerial::Open())
     {
         DebugInfo("CMagiC::OpenSerialBIOS() -- kann \"%s\" nicht öffnen.", Preferences::szAuxPath);
         return((uint32_t) ERROR);
@@ -2997,22 +2959,22 @@ uint32_t CMagiC::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
                     // systeminterner Timeout abgelaufen ist (return EDRVNR, =-2). Der
                     // Timeout wird vom System sinnvoll bestimmt.
                     case 0:
-                        ret = pTheSerial->Drain();
+                        ret = CMagiCSerial::Drain();
                         break;
 
                     // Der Empfangspuffer wird gelöscht.
                     case 1:
-                        ret = pTheSerial->Flush(true, false);
+                        ret = CMagiCSerial::Flush(true, false);
                         break;
 
                     // Der Sendepuffer wird gelöscht.
                     case 2:
-                        ret = pTheSerial->Flush(false, true);
+                        ret = CMagiCSerial::Flush(false, true);
                         break;
 
                     // Empfangspuffer und Sendepuffer werden gelîscht.
                     case 3:
-                        ret = pTheSerial->Flush(true, true);
+                        ret = CMagiCSerial::Flush(true, true);
                         break;
 
                     default:
@@ -3029,7 +2991,7 @@ uint32_t CMagiC::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
                 DebugInfo("CMagiC::AtariSerConf() -- Fcntl(%s, %d)", (be16toh(theSerConfParm->cmd) == TIOCIBAUD) ? "TIOCIBAUD" : "TIOCOBAUD", NewBaudrate);
 
                 if (be16toh(theSerConfParm->cmd) == TIOCIBAUD)
-                    ret = pTheSerial->Config(
+                    ret = CMagiCSerial::Config(
                         bSet,                        // Input-Rate ggf. ändern
                         NewBaudrate,                // neue Input-Rate
                         &OldBaudrate,                // alte Baud-Rate
@@ -3055,7 +3017,7 @@ uint32_t CMagiC::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
                         0,
                         NULL);
                 else
-                    ret = pTheSerial->Config(
+                    ret = CMagiCSerial::Config(
                         false,                        // Input-Rate nicht ändern
                         0,                        // neue Input-Rate
                         NULL,                        // alte Input-Rate egal
@@ -3090,7 +3052,7 @@ uint32_t CMagiC::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
                 // Übertragungsprotokolleinstellungen erfragen
 
                 DebugInfo("CMagiC::AtariSerConf() -- Fcntl(TIOCGFLAGS, %d)", be32toh(theSerConfParm->parm));
-                (void) pTheSerial->Config(
+                (void) CMagiCSerial::Config(
                             false,                        // Input-Rate nicht ändern
                             0,                        // neue Input-Rate
                             NULL,                        // alte Input-Rate egal
@@ -3160,7 +3122,7 @@ uint32_t CMagiC::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
                     return((uint32_t) ATARIERR_ERANGE);
                 if (nStopBits == 3)
                     nStopBits = 2;
-                ret = pTheSerial->Config(
+                ret = CMagiCSerial::Config(
                             false,                        // Input-Rate nicht ändern
                             0,                        // neue Input-Rate
                             NULL,                        // alte Input-Rate egal
@@ -3219,7 +3181,7 @@ uint32_t CMagiC::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
     nBits = nBitsTable[(be16toh(theSerConfParm->ucr) >> 5) & 3];
     nStopBits = (unsigned int) (((be16toh(theSerConfParm->ucr) >> 3) == 3) ? 2 : 1);
 
-    return(pTheSerial->Config(
+    return CMagiCSerial::Config(
                     true,                        // Input-Rate ändern
                     baudtable[be16toh(theSerConfParm->baud)],    // neue Input-Rate
                     NULL,                        // alte Input-Rate egal
@@ -3243,7 +3205,7 @@ uint32_t CMagiC::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
                     NULL,
                     true,                        // Stopbits ändern
                     nStopBits,
-                    NULL));
+                    NULL);
 }
 
 
@@ -3269,7 +3231,7 @@ uint32_t CMagiC::AtariSerIs(uint32_t params, uint8_t *addrOffset68k)
         return 0;
     }
 
-    return(pTheSerial->ReadStatus() ? 0xffffffff : 0);
+    return CMagiCSerial::ReadStatus() ? 0xffffffff : 0;
 }
 
 
@@ -3295,7 +3257,7 @@ uint32_t CMagiC::AtariSerOs(uint32_t params, uint8_t *addrOffset68k)
         return 0;
     }
 
-    return(pTheSerial->WriteStatus() ? 0xffffffff : 0);
+    return CMagiCSerial::WriteStatus() ? 0xffffffff : 0;
 }
 
 
@@ -3324,7 +3286,7 @@ uint32_t CMagiC::AtariSerIn(uint32_t params, uint8_t *addrOffset68k)
         return 0;
     }
 
-    ret = pTheSerial->Read(1, &c);
+    ret = CMagiCSerial::Read(&c, 1);
     if (ret > 0)
     {
         return((uint32_t) c & 0x000000ff);
@@ -3355,7 +3317,7 @@ uint32_t CMagiC::AtariSerOut(uint32_t params, uint8_t *addrOffset68k)
         return 0;
     }
 
-    return(pTheSerial->Write(1, (char *) addrOffset68k + params + 1));
+    return CMagiCSerial::Write((char *) addrOffset68k + params + 1, 1);
 }
 
 
@@ -3383,13 +3345,13 @@ uint32_t CMagiC::AtariSerOpen(uint32_t params, uint8_t *addrOffset68k)
     }
 
     // schon vom DOS geöffnet => Fehler
-    if (pTheMagiC->m_MagiCSerial.IsOpen())
+    if (CMagiCSerial::IsOpen())
     {
         DebugInfo("CMagiC::AtariSerOpen() -- schon vom DOS geöffnet => Fehler");
         return((uint32_t) EACCDN);
     }
 
-    if (-1 == (int) pTheMagiC->m_MagiCSerial.Open(Preferences::szAuxPath))
+    if (-1 == (int) CMagiCSerial::Open())
     {
         DebugInfo("CMagiC::AtariSerOpen() -- kann \"%s\" nicht öffnen.", Preferences::szAuxPath);
         return((uint32_t) ERROR);
@@ -3420,12 +3382,12 @@ uint32_t CMagiC::AtariSerClose(uint32_t params, uint8_t *addrOffset68k)
         return 0;
 
     // nicht vom DOS geöffnet => Fehler
-    if (!pTheMagiC->m_MagiCSerial.IsOpen())
+    if (!CMagiCSerial::IsOpen())
     {
         return(uint32_t) EACCDN;
     }
 
-    if (pTheMagiC->m_MagiCSerial.Close())
+    if (CMagiCSerial::Close())
     {
         return (uint32_t) ERROR;
     }
@@ -3456,8 +3418,7 @@ uint32_t CMagiC::AtariSerRead(uint32_t params, uint8_t *addrOffset68k)
     SerReadParm *theSerReadParm = (SerReadParm *) (addrOffset68k + params);
 //    DebugInfo("CMagiC::AtariSerRead(buflen = %d)", theSerReadParm->len);
 
-    ret = pTheSerial->Read(be32toh(theSerReadParm->len),
-                        (char *) (addrOffset68k +  be32toh(theSerReadParm->buf)));
+    ret = CMagiCSerial::Read((char *) (addrOffset68k +  be32toh(theSerReadParm->buf)), be32toh(theSerReadParm->len));
     return ret;
 }
 
@@ -3485,8 +3446,7 @@ uint32_t CMagiC::AtariSerWrite(uint32_t params, uint8_t *addrOffset68k)
     SerWriteParm *theSerWriteParm = (SerWriteParm *) (addrOffset68k + params);
 //    DebugInfo("CMagiC::AtariSerWrite(buflen = %d)", theSerWriteParm->len);
 
-    ret = pTheSerial->Write(be32toh(theSerWriteParm->len),
-                            (char *) (addrOffset68k +  be32toh(theSerWriteParm->buf)));
+    ret = CMagiCSerial::Write((char *) (addrOffset68k +  be32toh(theSerWriteParm->buf)), be32toh(theSerWriteParm->len));
     return ret;
 }
 
@@ -3512,9 +3472,9 @@ uint32_t CMagiC::AtariSerStat(uint32_t params, uint8_t *addrOffset68k)
 //    DebugInfo("CMagiC::AtariSerWrite()");
     SerStatParm *theSerStatParm = (SerStatParm *) (addrOffset68k + params);
 
-    return((be16toh(theSerStatParm->rwflag)) ?
-                (pTheSerial->WriteStatus() ? 0xffffffff : 0) :
-                (pTheSerial->ReadStatus() ? 0xffffffff : 0));
+    return (be16toh(theSerStatParm->rwflag)) ?
+                (CMagiCSerial::WriteStatus() ? 0xffffffff : 0) :
+                (CMagiCSerial::ReadStatus() ? 0xffffffff : 0);
 }
 
 
@@ -3606,22 +3566,22 @@ uint32_t CMagiC::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
                 // systeminterner Timeout abgelaufen ist (return EDRVNR, =-2). Der
                 // Timeout wird vom System sinnvoll bestimmt.
                 case 0:
-                    ret = pTheSerial->Drain();
+                    ret = CMagiCSerial::Drain();
                     break;
 
                 // Der Empfangspuffer wird gelöscht.
                 case 1:
-                    ret = pTheSerial->Flush(true, false);
+                    ret = CMagiCSerial::Flush(true, false);
                     break;
 
                 // Der Sendepuffer wird gelöscht.
                 case 2:
-                    ret = pTheSerial->Flush(false, true);
+                    ret = CMagiCSerial::Flush(false, true);
                     break;
 
                 // Empfangspuffer und Sendepuffer werden gelîscht.
                 case 3:
-                    ret = pTheSerial->Flush(true, true);
+                    ret = CMagiCSerial::Flush(true, true);
                     break;
 
                 default:
@@ -3638,7 +3598,7 @@ uint32_t CMagiC::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
             DebugInfo("CMagiC::AtariSerIoctl() -- Fcntl(%s, %d)", (be16toh(theSerIoctlParm->cmd) == TIOCIBAUD) ? "TIOCIBAUD" : "TIOCOBAUD", NewBaudrate);
 
             if (be16toh(theSerIoctlParm->cmd) == TIOCIBAUD)
-                ret = pTheSerial->Config(
+                ret = CMagiCSerial::Config(
                     bSet,                        // Input-Rate ggf. ändern
                     NewBaudrate,                // neue Input-Rate
                     &OldBaudrate,                // alte Baud-Rate
@@ -3664,7 +3624,7 @@ uint32_t CMagiC::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
                     0,
                     NULL);
             else
-                ret = pTheSerial->Config(
+                ret = CMagiCSerial::Config(
                     false,                        // Input-Rate nicht ändern
                     0,                        // neue Input-Rate
                     NULL,                        // alte Input-Rate egal
@@ -3699,7 +3659,7 @@ uint32_t CMagiC::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
             // Übertragungsprotokolleinstellungen erfragen
 
             DebugInfo("CMagiC::AtariSerIoctl() -- Fcntl(TIOCGFLAGS, %d)", be32toh(theSerIoctlParm->parm));
-            (void) pTheSerial->Config(
+            (void) CMagiCSerial::Config(
                         false,                        // Input-Rate nicht ändern
                         0,                        // neue Input-Rate
                         NULL,                        // alte Input-Rate egal
@@ -3769,7 +3729,7 @@ uint32_t CMagiC::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
                 return((uint32_t) ATARIERR_ERANGE);
             if (nStopBits == 3)
                 nStopBits = 2;
-            ret = pTheSerial->Config(
+            ret = CMagiCSerial::Config(
                         false,                        // Input-Rate nicht ändern
                         0,                        // neue Input-Rate
                         NULL,                        // alte Input-Rate egal

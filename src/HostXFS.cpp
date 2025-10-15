@@ -1186,7 +1186,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 
 /** **********************************************************************************************
  *
- * @brief Open a file
+ * @brief Open a file and create it, if requested
  *
  * @param[in]  name         filename, can be long or 8+3
  * @param[in]  drv          Atari drive number 0..25
@@ -1213,7 +1213,7 @@ INT32 CHostXFS::xfs_fopen
 )
 {
     DebugInfo2("(name = \"%s\", drv = %u, omode = %d, attrib = %d)", name, drv, omode, attrib);
-    unsigned char dosname[20];
+    (void) attrib;
 
     if (drv_changed[drv])
     {
@@ -1224,6 +1224,7 @@ INT32 CHostXFS::xfs_fopen
         return EDRIVE;
     }
 
+    unsigned char dosname[20];
     if (!drv_longnames[drv])
     {
         // no long filenames supported, convert to upper case 8+3
@@ -1238,7 +1239,7 @@ INT32 CHostXFS::xfs_fopen
         return EINTRN;
     }
     int dir_fd = hostFD->fd;
-    DebugInfo("%s() - open file in directory with host fd %d", __func__, dir_fd);
+    //DebugInfo2("() - open file in directory with host fd %d", dir_fd);
     if (dir_fd == -1)
     {
         return EINTRN;
@@ -1247,32 +1248,45 @@ INT32 CHostXFS::xfs_fopen
     int host_omode = -1;
 
 
-    // TODO: allow writing
     if (omode & OM_RPERM)
     {
         host_omode = O_RDONLY;
     }
     if (omode & OM_WPERM)
     {
-        // TODO: support later
         host_omode = (host_omode == O_RDONLY) ? O_RDWR : O_WRONLY;
-        return EACCDN;
+        if (drv_readOnly[drv])
+        {
+            DebugInfo2("() -> EWRPRO");
+            return EWRPRO;
+        }
     }
     if (omode & _ATARI_O_APPEND)
     {
-        // TODO: support later
-        return EACCDN;
+        if (drv_readOnly[drv])
+        {
+            DebugInfo2("() -> EWRPRO");
+            return EWRPRO;
+        }
+        host_omode |= O_APPEND;
     }
     if (omode & _ATARI_O_CREAT)
     {
-        // TODO: support later
-        (void) attrib;
-        return EACCDN;
+        if (drv_readOnly[drv])
+        {
+            DebugInfo2("() -> EWRPRO");
+            return EWRPRO;
+        }
+        host_omode |= O_CREAT;
     }
     if (omode & _ATARI_O_TRUNC)
     {
-        // TODO: support later
-        return EACCDN;
+        if (drv_readOnly[drv])
+        {
+            DebugInfo2("() -> EWRPRO");
+            return EWRPRO;
+        }
+        host_omode |= O_TRUNC;
     }
 
     /*
@@ -1321,21 +1335,22 @@ INT32 CHostXFS::xfs_fopen
 }
 
 
-/*************************************************************
-*
-* Löscht eine Datei.
-*
-* Aliase werden NICHT dereferenziert, d.h. es wird der Alias
-* selbst gelöscht.
-*
-*************************************************************/
-
-INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name)
+/** **********************************************************************************************
+ *
+ * @brief For Fdelete() - remove a file
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  dd           directory where the file is located
+ * @param[in]  name         name of file to delete
+ *
+ * @return E_OK or 32-bit negative error code
+ *
+ * @note If the file is an alias, the alias should be removed, not the directory
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
-    (void) dd;
-    (void) name;
-
+    DebugInfo2("(drv = %u)", drv);
     if (drv_changed[drv])
     {
         return E_CHNG;
@@ -1344,9 +1359,35 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name)
     {
         return EDRIVE;
     }
+    if (drv_readOnly[drv])
+    {
+        return EWRPRO;
+    }
 
-    // TODO: implement
-    return EINVFN;
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd = hostFD->fd;
+
+    unsigned char dosname[20];
+    if (!drv_longnames[drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name, dosname, false, false);
+        name = (char *) dosname;
+    }
+
+    // with flags AT_REMOVEDIR we could remove directories, what do not want here
+    if (unlinkat(dir_fd, name, 0))
+    {
+        DebugError2("() : unlinkat(\"%s\") -> %s", name, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+
+    return E_OK;
 }
 
 
@@ -2759,15 +2800,37 @@ INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
 }
 
 
-INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, char *buf)
+/** **********************************************************************************************
+ *
+ * @brief write to an open file
+ *
+ * @param[in]  f      file descriptor
+ * @param[in]  count  number of bytes to write
+ * @param[out] buf    source buffer
+ *
+ * @return bytes read or negative error code
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, const char *buf)
 {
-    DebugError("NOT IMPLEMENTED %s(fd = 0x%0x, count = %d)", __func__, f, count);
-    (void) f;
-    (void) count;
-    (void) buf;
+    GET_hhdl_AND_fd
+    DebugInfo2("(fd = 0x%0x, count = %d) - host fd = %d", f, count, fd);
 
-    // TODO: implement
-    return EINVFN;
+    ssize_t bytes = write(fd, buf, count);
+    if (bytes < 0)
+    {
+        DebugWarning("%s() : write() -> %s", __func__, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+
+    if (bytes > 0x7fffffff)
+    {
+        DebugError("file too large");
+        return ATARIERR_ERANGE;
+    }
+
+    DebugInfo2("() => %d", (int32_t) bytes);
+    return (int32_t) bytes;
 }
 
 

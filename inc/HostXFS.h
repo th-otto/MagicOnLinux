@@ -273,7 +273,7 @@ class CHostXFS
     INT32 xfs_snext(uint16_t drv, MAC_DTA *dta);
     INT32 xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
                 uint16_t omode, uint16_t attrib);
-    INT32 xfs_fdelete(uint16_t drv, MXFSDD *dd, char *name);
+    INT32 xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name);
     INT32 xfs_link(uint16_t drv, char *nam1, char *nam2,
                    MXFSDD *dd1, MXFSDD *dd2, uint16_t mode, uint16_t dst_drv);
     INT32 xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
@@ -302,7 +302,7 @@ class CHostXFS
 
     INT32 dev_close(MAC_FD *f);
     INT32 dev_read(MAC_FD *f, INT32 count, char *buf);
-    INT32 dev_write(MAC_FD *f, INT32 count, char *buf);
+    INT32 dev_write(MAC_FD *f, INT32 count, const char *buf);
     INT32 dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode);
     INT32 dev_seek(MAC_FD *f, INT32 pos, uint16_t mode);
     INT32 dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag);

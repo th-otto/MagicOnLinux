@@ -2871,7 +2871,7 @@ INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, const char *buf)
     ssize_t bytes = write(fd, buf, count);
     if (bytes < 0)
     {
-        DebugWarning("%s() : write() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : write() -> %s", strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
 
@@ -2886,16 +2886,49 @@ INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, const char *buf)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief For Finstat() and Foutstat() - get read or write status of an open file
+ *
+ * @param[in]  f       file descriptor
+ * @param[in]  unsel   Probably NULL pointer. Meant for asynchronous I/O
+ * @param[in]  rwflag  0: get read status, 1: get write status
+ * @param[in]  apcode  Probably zero. Meant for asynchronous I/O
+ *
+ * @return 1 or 0 or negative error code
+ * @retval 1  file can be written to respectively read from
+ * @retval 0  end-of-file for reading, or file is full or write proteced
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
 {
-    DebugError("NOT IMPLEMENTED %s(fd = 0x%0x, rwflag = %d)", __func__, f, rwflag);
-    (void) f;
+    GET_hhdl_AND_fd
+    DebugInfo2("(fd = 0x%0x, rwflag = %d) - host fd = %d", f, rwflag, fd);
     (void) unsel;
-    (void) rwflag;
     (void) apcode;
 
-    // TODO: implement
-    return EINVFN;
+    if (rwflag)
+    {
+        // TODO: check if file was opened for reading only!
+        return 1;   // we can always write
+    }
+    else
+    {
+        off_t curr_pos = lseek(fd, 0, SEEK_CUR);    // get current position
+        if (curr_pos < 0)
+        {
+            DebugError2("() : lseek() -> %s", strerror(errno));
+            return CConversion::Host2AtariError(errno);
+        }
+        off_t len = lseek(fd, 0, SEEK_END);    // move to end
+        if (len < 0)
+        {
+            DebugError2("() : lseek() -> %s", strerror(errno));
+            return CConversion::Host2AtariError(errno);
+        }
+        (void) lseek(fd, curr_pos, SEEK_SET);    // move to previous position
+        return (curr_pos < len) ? 1 : 0;
+    }
 }
 
 

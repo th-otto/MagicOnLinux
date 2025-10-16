@@ -2733,7 +2733,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
     uint16_t refcnt = be16toh(f->fd.fd_refcnt);
     if (refcnt <= 0)
     {
-        DebugError("invalid file refcnt");
+        DebugError2("() -- invalid file refcnt");
         return EINTRN;
     }
     refcnt--;
@@ -2743,6 +2743,12 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
     {
         GET_hhdl_AND_fd
         freeHostFD(hostFD);     // also closes hostFD->fd
+    }
+
+    // TODO: change date and time, if modified by dev_datime()
+    if (f->mod_time_dirty)
+    {
+        DebugError2("() -- dev_fdatime() not yet implemented");
     }
 
     return E_OK;
@@ -2974,12 +2980,46 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief For Fdatime() - get or set timestamps of an open file
+ *
+ * @param[in] f       file descriptor
+ * @param[in] d       date and time
+ * @param[in] rwflag  1: change, 0: get
+ *
+ * @return E_OK or negative error code
+ *
+ * @note Like in MagicMac(X) and AtariX, we cannot change the timestamps here, but store
+ *       them in the file descriptor, so that they can be applied after the file has
+ *       been closed. TODO: make sure that we do not change timestamps on write protected
+ *       Atari drives. TODO: when closing the file, we must get the path?
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 {
     DebugError("NOT IMPLEMENTED %s(fd = 0x%0x, rwflag = %d)", __func__, f, rwflag);
     (void) f;
     (void) d;
     (void) rwflag;
+
+    if (rwflag)
+    {
+        // remember for later, when we close the file
+        f->mod_time[0] = be16toh(d[0]);
+        f->mod_time[1] = be16toh(d[1]);
+        f->mod_time_dirty = 1;
+        return E_OK;
+    }
+    else
+    if (f->mod_time_dirty)
+    {
+        // already changed
+        d[0] = htobe16(f->mod_time[0]);
+        d[1] = htobe16(f->mod_time[1]);
+        return E_OK;
+    }
+    DebugError2("() -- dev_fdatime() not yet implemented");
 
     // TODO: implement
     return EINVFN;

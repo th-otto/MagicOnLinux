@@ -274,8 +274,8 @@ class CHostXFS
     INT32 xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
                 uint16_t omode, uint16_t attrib);
     INT32 xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name);
-    INT32 xfs_link(uint16_t drv, char *nam1, char *nam2,
-                   MXFSDD *dd1, MXFSDD *dd2, uint16_t mode, uint16_t dst_drv);
+    INT32 xfs_link(uint16_t drv, const char *name_from, const char *name_to,
+                   MXFSDD *dd_from, MXFSDD *dd_to, uint16_t mode, uint16_t dst_drv);
     INT32 xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
                     XATTR *xattr, uint16_t mode);
     INT32 xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag, uint16_t attr);

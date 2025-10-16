@@ -1391,44 +1391,96 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name)
 }
 
 
-/*************************************************************
-*
-* Datei umbenennen und verschieben bzw. Hard Link erstellen.
-*
-*    mode == 1        Hardlink
-*        == 0        Umbenennen ("move")
-*
-* Aliase werden NICHT dereferenziert, d.h. es wird der Alias
-* selbst umbenannt.
-*
-* ACHTUNG: Damit <dst_drv> gültig ist, muß ein neuer MagiC-
-* Kernel verwendet werden, die alten übergeben diesen
-* Parameter nicht.
-*
-*************************************************************/
-
-INT32 CHostXFS::xfs_link(uint16_t drv, char *nam1, char *nam2,
-               MXFSDD *dd1, MXFSDD *dd2, uint16_t mode, uint16_t dst_drv)
+/** **********************************************************************************************
+ *
+ * @brief For Frename() and Flink() - create a hardlink or rename or move a file or folder
+ *
+ * @param[in]  drv          Atari drive number 0..25
+ * @param[in]  name_from    name of existing file or folder
+ * @param[in]  name_to      new name
+ * @param[in]  dd_from      directory where the file or folder is located
+ * @param[in]  dd_to        directory where the file or folder shall be located
+ * @param[in]  mode         1: hard link, 0: move or rename
+ * @param[in]  dst_drv      Atari drive where the file or folder shall be located
+ *
+ * @return E_OK or 32-bit negative error code
+ *
+ * @note If the file is an alias, the alias should be moved, not the file or directory
+ * @note Even if the Atari drive of source and destination differ, the host volume
+ *       may be the same.
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_link
+(
+    uint16_t drv,
+    const char *name_from,
+    const char *name_to,
+    MXFSDD *dd_from,
+    MXFSDD *dd_to,
+    uint16_t mode,
+    uint16_t dst_drv
+)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
-    (void) nam1;
-    (void) nam2;
-    (void) dd1;
-    (void) dd2;
-    (void) mode;
-    (void) dst_drv;
-
-    if (drv_changed[drv])
+    DebugInfo2("(drv = %u)", drv);
+    if (drv_changed[drv] || drv_changed[dst_drv])
     {
         return E_CHNG;
     }
-    if (drv_host_path[drv] == nullptr)
+    if ((drv_host_path[drv] == nullptr) || (drv_host_path[dst_drv] == nullptr))
     {
         return EDRIVE;
     }
+    if ((drv_readOnly[drv]) || (drv_readOnly[dst_drv]))
+    {
+        return EWRPRO;
+    }
 
-    // TODO: implement
-    return EINVFN;
+    if (mode != 0)
+    {
+        // TODO: maybe support hardlinks later
+        return EINVFN;
+    }
+
+    unsigned char dosname_from[20];
+    if (!drv_longnames[drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name_from, dosname_from, false, false);
+        name_from = (char *) dosname_from;
+    }
+    unsigned char dosname_to[20];
+    if (!drv_longnames[dst_drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name_to, dosname_to, false, false);
+        name_to = (char *) dosname_to;
+    }
+
+    HostHandle_t hhdl_from = dd_from->dirID;
+    HostFD *hostFD_from = getHostFD(hhdl_from);
+    if (hostFD_from == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd_from = hostFD_from->fd;
+
+
+    HostHandle_t hhdl_to = dd_to->dirID;
+    HostFD *hostFD_to = getHostFD(hhdl_to);
+    if (hostFD_to == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd_to = hostFD_to->fd;
+
+    // without RENAME_NOREPLACE, an existing file might be removed here, which we do not allow
+    if (renameat2(dir_fd_from, name_from, dir_fd_to, name_to, RENAME_NOREPLACE))
+    {
+        DebugError2("() : renameat2(\"%s\", \"%s\") -> %s", name_from, name_to, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+
+    return E_OK;
 }
 
 

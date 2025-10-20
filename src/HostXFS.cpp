@@ -69,10 +69,10 @@ extern void _DumpAtariMem(const char *filename);
 #endif
 
 // suppress Host XFS debug info
-#undef DebugInfo
-#define DebugInfo(...)
-#undef DebugInfo2
-#define DebugInfo2(...)
+//#undef DebugInfo
+//#define DebugInfo(...)
+//#undef DebugInfo2
+//#define DebugInfo2(...)
 
 
 /** **********************************************************************************************
@@ -497,7 +497,7 @@ bool CHostXFS::nameto_8_3
  ************************************************************************************************/
 INT32 CHostXFS::xfs_sync(uint16_t drv)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
+    DebugError2("NOT IMPLEMENTED (drv = %u)", drv);
 
     if (drv_changed[drv])
     {
@@ -522,7 +522,7 @@ INT32 CHostXFS::xfs_sync(uint16_t drv)
  ************************************************************************************************/
 void CHostXFS::xfs_pterm(PD *pd)
 {
-    DebugInfo("%s()", __func__);
+    DebugInfo2("()");
     (void) pd;
 }
 
@@ -603,7 +603,7 @@ INT32 CHostXFS::hostpath2HostFD
             return CConversion::Host2AtariError(errno);
         }
 
-        //DebugInfo("%s() : dev=%d, ino=%d)", __func__, statbuf.st_dev, statbuf.st_ino);
+        //DebugInfo2("() : dev=%d, ino=%d)", statbuf.st_dev, statbuf.st_ino);
         hostFD->dev = statbuf.st_dev;
         hostFD->ino = statbuf.st_ino;
 
@@ -643,7 +643,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
 
     if (flg_ask_diskchange)
     {
-        DebugInfo("%s() -> %d", __func__, (drv_changed[drv]) ? E_CHNG : E_OK);
+        DebugInfo2("() -> %d", (drv_changed[drv]) ? E_CHNG : E_OK);
         return (drv_changed[drv]) ? E_CHNG : E_OK;
     }
 
@@ -651,14 +651,14 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
 
     if (drv_changed[drv])
     {
-        DebugInfo("%s() -> E_CHNG", __func__);
+        DebugInfo2("() -> E_CHNG");
         return E_CHNG;
     }
 
     const char *pathname = drv_host_path[drv];
     if (pathname == nullptr)
     {
-        DebugInfo("%s() -> EDRIVE", __func__);
+        DebugInfo2("() -> EDRIVE");
         return EDRIVE;
     }
 
@@ -672,14 +672,14 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
     // could only be used to retrieve a unique file handle to later
     // identify the file, otherwise the "fh" will be useless.
 
-    DebugInfo("%s() : open directory \"%s\"", __func__, pathname);
+    DebugInfo2("() : open directory \"%s\"", pathname);
 
     HostHandle_t hhdl;
     INT32 atari_ret = hostpath2HostFD(nullptr, -1, pathname, /* O_PATH*/ O_DIRECTORY | O_RDONLY, &hhdl);
 
     dd->dirID = hhdl;           // host endian format
     dd->vRefNum = drv;          // host endian
-    DebugInfo("%s() -> dirID %u", __func__, hhdl);
+    DebugInfo2("() -> dirID %u", hhdl);
 
     return atari_ret;
 }
@@ -697,7 +697,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
 {
-    DebugInfo("%s(drv = %u, mode = %u)", __func__, drv, mode);
+    DebugInfo2("(drv = %u, mode = %u)", drv, mode);
 
     /*
     // drive M: or host root may not be closed
@@ -772,24 +772,24 @@ INT32 CHostXFS::xfs_path2DD
     UINT16 *dir_drive
 )
 {
-    DebugInfo("%s(drv = %u (%c:), mode = %d, dirID = %d, vRefNum = %d, name = \"%s\")",
-         __func__, drv, 'A' + drv, mode, rel_dd->dirID, rel_dd->vRefNum, pathname);
+    DebugInfo2("(drv = %u (%c:), mode = %d, dirID = %d, vRefNum = %d, name = \"%s\")",
+         drv, 'A' + drv, mode, rel_dd->dirID, rel_dd->vRefNum, pathname);
     char pathbuf[1024];
 
     if (drv_changed[drv])
     {
-        DebugWarning("%s() -> E_CHNG", __func__);
+        DebugWarning2("() -> E_CHNG");
         return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        DebugWarning("%s() -> EDRIVE", __func__);
+        DebugWarning2("() -> EDRIVE");
         return EDRIVE;
     }
 
     char *p;
     atariFnameToHostFname((const uint8_t *) pathname, pathbuf);
-    DebugInfo("%s() - host path is \"%s\"", __func__, pathbuf);
+    DebugInfo2("() - host path is \"%s\"", pathbuf);
     if (mode == 0)
     {
         // The path refers to a file. Remove filename from path.
@@ -803,7 +803,7 @@ INT32 CHostXFS::xfs_path2DD
             p = pathbuf;    // the file is directly located inside the given directory
             *p = '\0';
         }
-        DebugInfo("%s() - remaining host path with filename removed is \"%s\"", __func__, pathbuf);
+        DebugInfo2("() - remaining host path with filename removed is \"%s\"", pathbuf);
     }
     else
     {
@@ -814,7 +814,7 @@ INT32 CHostXFS::xfs_path2DD
     HostFD *rel_hostFD = getHostFD(hhdl_rel);
     if (rel_hostFD == nullptr)
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("%s() -> EINTRN");
         return EINTRN;
     }
 
@@ -827,7 +827,7 @@ INT32 CHostXFS::xfs_path2DD
     int dir_fd = openat(rel_fd, pathbuf, O_DIRECTORY | O_RDONLY);
     if (dir_fd < 0)
     {
-        DebugWarning("%s() : openat() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : openat() -> %s", strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
     HostHandle_t hhdl = HostHandles::alloc(sizeof(dir_fd));
@@ -863,7 +863,7 @@ INT32 CHostXFS::xfs_path2DD
     //       Maybe we should reuse the same handle for the
     //       same directory?
 
-    DebugInfo("%s() -> dirID %u", __func__, hhdl);
+    DebugInfo2("() -> dirID %u", hhdl);
     return atari_ret;
 }
 
@@ -884,7 +884,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     unsigned char atariname[256];   // long filename in Atari charset
     unsigned char dosname[14];      // internal, 8+3
 
-    DebugInfo("%s() - %d \"%s\"", __func__, entry->d_type, entry->d_name);
+    DebugInfo2("() - %d \"%s\"", entry->d_type, entry->d_name);
     hostFnameToAtariFname(entry->d_name, atariname);    // convert character set..
     if (pathElemToDTA8p3(atariname, dosname))  // .. and to 8+3
     {
@@ -915,7 +915,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     int fd = openat(dir_fd, entry->d_name, O_RDONLY);
     if (fd < 0)
     {
-        DebugWarning("%s() : openat(\"%s\") -> %s", __func__, entry->d_name, strerror(errno));
+        DebugWarning2("() : openat(\"%s\") -> %s", entry->d_name, strerror(errno));
         return -3;
     }
     struct stat statbuf;
@@ -923,10 +923,10 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     close(fd);
     if (ret < 0)
     {
-        DebugWarning("%s() : fstat(\"%s\") -> %s", __func__, entry->d_name, strerror(errno));
+        DebugWarning2("() : fstat(\"%s\") -> %s", entry->d_name, strerror(errno));
         return -4;
     }
-    // DebugInfo("%s() - file size = %lu\n", __func__, statbuf.st_size);
+    // DebugInfo2("() - file size = %lu\n", statbuf.st_size);
 
     //
     // fill DTA
@@ -990,12 +990,12 @@ INT32 CHostXFS::xfs_sfirst
 
     if (drv_changed[drv])
     {
-        DebugWarning("%s() -> E_CHNG", __func__);
+        DebugWarning2("() -> E_CHNG");
         return E_CHNG ;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        DebugWarning("%s() -> EDRIVE", __func__);
+        DebugWarning2("() -> EDRIVE");
         return EDRIVE;
     }
 
@@ -1003,7 +1003,7 @@ INT32 CHostXFS::xfs_sfirst
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         return EINTRN;
     }
 
@@ -1017,14 +1017,14 @@ INT32 CHostXFS::xfs_sfirst
     off_t lret = lseek(dir_fd, 0, SEEK_SET);
     if (lret < 0)
     {
-        DebugWarning("%s() : lseek() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : lseek() -> %s", strerror(errno));
     }
-    DebugInfo("%s() - open directory from host fd %d", __func__, dir_fd);
+    DebugInfo2("() - open directory from host fd %d", dir_fd);
     int dup_dir_fd = dup(dir_fd);
     DIR *dir = fdopendir(dup_dir_fd);
     if (dir == nullptr)
     {
-        DebugWarning("%s() : fdopendir() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : fdopendir() -> %s", strerror(errno));
         close(dup_dir_fd);
         return CConversion::Host2AtariError(errno);
     }
@@ -1037,7 +1037,7 @@ INT32 CHostXFS::xfs_sfirst
         {
             if (errno != 0)
             {
-                DebugWarning("%s() : readdir() -> %s", __func__, strerror(errno));
+                DebugWarning2("() : readdir() -> %s", strerror(errno));
             }
             break;  // end of directory
         }
@@ -1046,7 +1046,7 @@ INT32 CHostXFS::xfs_sfirst
         if (match == 0)
         {
             //long pos = telldir(dir);
-            //DebugInfo("%s() : directory read position %ld", __func__, pos);
+            //DebugInfo2("() : directory read position %ld", pos);
 
             dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(dir, hhdl, dup_dir_fd);
             dta->macdta.dirID = hhdl;
@@ -1086,18 +1086,18 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 
     if (drv_changed[drv])
     {
-        DebugWarning("%s() -> E_CHNG", __func__);
+        DebugWarning2("() -> E_CHNG");
         return E_CHNG;
     }
     if (drv_host_path[drv] == nullptr)
     {
-        DebugWarning("%s() -> EDRIVE", __func__);
+        DebugWarning2("() -> EDRIVE");
         return EDRIVE;
     }
 
     if (!dta->macdta.sname[0])
     {
-        DebugWarning("%s() -> ENMFIL", __func__);
+        DebugWarning2("() -> ENMFIL");
         return ENMFIL;
     }
 
@@ -1105,15 +1105,15 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         return EINTRN;
     }
 
     int dir_fd = hostFD->fd;
-    DebugInfo("%s() - using host fd %d", __func__, dir_fd);
+    DebugInfo2("() - using host fd %d", dir_fd);
     if (dir_fd == -1)
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         return EINTRN;
     }
 
@@ -1122,12 +1122,12 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
     uint16_t snextHdl = (uint16_t) dta->macdta.vRefNum;
     if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         return EINTRN;
     }
     if (hhdl != hhdl2)
     {
-        DebugError("%s() - dir_fd mismatch", __func__);
+        DebugError2("() - dir_fd mismatch");
         return EINTRN;
     }
 
@@ -1139,7 +1139,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
         {
             if (errno != 0)
             {
-                DebugWarning("%s() : readdir() -> %s", __func__, strerror(errno));
+                DebugWarning2("() : readdir() -> %s", strerror(errno));
             }
             break;  // end of directory
         }
@@ -1148,8 +1148,8 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
         if (match == 0)
         {
             //long pos = telldir(dir);
-            //DebugInfo("%s() : directory read position %ld", __func__, pos);
-            DebugInfo("%s() -> E_OK", __func__);
+            //DebugInfo2("() : directory read position %ld", pos);
+            DebugInfo2("() -> E_OK");
             return E_OK;
         }
     }
@@ -1581,7 +1581,7 @@ INT32 CHostXFS::xfs_xattr
         return EINTRN;
     }
     int dir_fd = hostFD->fd;
-    DebugInfo("%s() - get information about file in directory with host fd %d", __func__, dir_fd);
+    DebugInfo2("() - get information about file in directory with host fd %d", dir_fd);
     if (dir_fd == -1)
     {
         return EINTRN;
@@ -1591,13 +1591,13 @@ INT32 CHostXFS::xfs_xattr
     int res = fstatat(dir_fd, name, &statbuf, AT_EMPTY_PATH);
     if (res < 0)
     {
-        DebugWarning("%s() : fstatat() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : fstatat() -> %s", strerror(errno));
         memset(xattr, 0, sizeof(*xattr));
         return CConversion::Host2AtariError(errno);
     }
     statbuf2xattr(xattr, &statbuf);
 
-    DebugInfo("%s() -> E_OK", __func__);
+    DebugInfo2("() -> E_OK");
     return E_OK;
 }
 
@@ -1659,7 +1659,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
     int res = fstatat(dir_fd, name, &statbuf, AT_EMPTY_PATH);
     if (res < 0)
     {
-        DebugWarning("%s() : fstatat() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : fstatat() -> %s", strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
 
@@ -1891,9 +1891,8 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
  *
  * @brief Get host directory path, provides functionality for Dgetpath() and Ddelete()
  *
- * @param[in] drv       Atari drive number 0..31
  * @param[in] dd        Atari directory descriptor
- * @param[in] buf       buffer for host path
+ * @param[in] pathbuf   buffer for host path
  * @param[in] bufsiz    buffer size
  *
  * @return E_OK or negative error code
@@ -1901,7 +1900,7 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
  ************************************************************************************************/
 INT32 CHostXFS::xfs_DD2hostPath(MXFSDD *dd, char *pathbuf, uint16_t bufsiz)
 {
-    DebugInfo2("(drv = %u, dd->dirID = %u)", drv, dd->dirID);
+    DebugInfo2("()");
 
     pathbuf[0] = '\0';      // in case of error...
 
@@ -2061,7 +2060,7 @@ INT32 CHostXFS::xfs_dopendir
     {
         DebugWarning2("() : lseek() -> %s", strerror(errno));
     }
-    DebugInfo("%s() - open directory from host fd %d", __func__, dir_fd);
+    DebugInfo2("() - open directory from host fd %d", dir_fd);
     int dup_dir_fd = dup(dir_fd);
     DIR *dir = fdopendir(dup_dir_fd);
     if (dir == nullptr)
@@ -2143,7 +2142,7 @@ INT32 CHostXFS::xfs_dreaddir
     }
 
     int dir_fd = hostFD->fd;
-    DebugInfo("%s() - using host fd %d", __func__, dir_fd);
+    DebugInfo2("() - using host fd %d", dir_fd);
     if (dir_fd == -1)
     {
         DebugWarning2("() -> EINTRN");
@@ -2327,20 +2326,20 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 
     if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
-        DebugWarning("%s() -> EIHNDL", __func__);
+        DebugWarning2("() -> EIHNDL");
         return EIHNDL;
     }
 
     INT32 atari_err = E_OK;
     if (drv_changed[drv])
     {
-        DebugWarning("%s() -> E_CHNG", __func__);
+        DebugWarning2("() -> E_CHNG");
         atari_err = E_CHNG;
     }
     else
     if (drv_host_path[drv] == nullptr)
     {
-        DebugWarning("%s() -> EDRIVE", __func__);
+        DebugWarning2("() -> EDRIVE");
         atari_err = EDRIVE;
     }
 
@@ -2348,16 +2347,16 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         atari_err = EIHNDL;
     }
     else
     {
         int dir_fd = hostFD->fd;
-        DebugInfo("%s() - using host fd %d", __func__, dir_fd);
+        DebugInfo2("() - using host fd %d", dir_fd);
         if (dir_fd == -1)
         {
-            DebugWarning("%s() -> EINTRN", __func__);
+            DebugWarning2("() -> EINTRN");
             atari_err = EINTRN;
         }
     }
@@ -2367,13 +2366,13 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
     uint16_t snextHdl = (uint16_t) dirh->vRefNum;
     if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
     {
-        DebugWarning("%s() -> EINTRN", __func__);
+        DebugWarning2("() -> EINTRN");
         dirh->vRefNum = -1;
         return EINTRN;
     }
     if (hhdl != hhdl2)
     {
-        DebugError("%s() - dir_fd mismatch", __func__);
+        DebugError2("() - dir_fd mismatch");
         atari_err = EINTRN;
     }
 
@@ -2381,7 +2380,7 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
     dirh->dirID = -1;
     dirh->vRefNum = -1;
 
-    DebugInfo("%s() -> %d", __func__, atari_err);
+    DebugInfo2("() -> %d", atari_err);
 
     return atari_err;
 }
@@ -2589,7 +2588,7 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
  ************************************************************************************************/
 INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const char *to)
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
+    DebugError2("NOT IMPLEMENTED (drv = %u)", drv);
     (void) dd;
     (void) name;
     (void) to;
@@ -2630,7 +2629,7 @@ INT32 CHostXFS::xfs_readlink
     uint16_t bufsiz
 )
 {
-   DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
+    DebugError2("NOT IMPLEMENTED (drv = %u)", drv);
     (void) dd;
     (void) name;
     (void) buf;
@@ -2676,7 +2675,7 @@ INT32 CHostXFS::xfs_dcntl
     uint8_t *addrOffset68k
 )
 {
-    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
+    DebugInfo2("(drv = %u)", drv);
     (void) cmd;
     (void) pArg;
     (void) addrOffset68k;
@@ -2789,7 +2788,7 @@ INT32 CHostXFS::xfs_dcntl
  ************************************************************************************************/
 INT32 CHostXFS::dev_close(MAC_FD *f)
 {
-    DebugInfo("%s(fd = 0x%0x)", __func__, f);
+    DebugInfo2("(fd = 0x%0x)", f);
 
     // decrement reference counter
     uint16_t refcnt = be16toh(f->fd.fd_refcnt);
@@ -2861,7 +2860,7 @@ INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
     ssize_t bytes = read(fd, buf, count);
     if (bytes < 0)
     {
-        DebugWarning("%s() : read() -> %s", __func__, strerror(errno));
+        DebugWarning2("() : read() -> %s", strerror(errno));
         return CConversion::Host2AtariError(errno);
     }
 
@@ -3016,7 +3015,7 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
  ************************************************************************************************/
 INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 {
-    DebugError("NOT IMPLEMENTED %s(fd = 0x%0x, rwflag = %d)", __func__, f, rwflag);
+    DebugInfo2("(fd = 0x%0x, rwflag = %d)", f, rwflag);
     (void) f;
     (void) d;
     (void) rwflag;
@@ -3055,7 +3054,7 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
  ************************************************************************************************/
 INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
 {
-    DebugInfo("%s(fd = 0x%0x, cmd = %d)", __func__, f, cmd);
+    DebugInfo2("(fd = 0x%0x, cmd = %d)", f, cmd);
 
     GET_hhdl_AND_fd
 
@@ -3071,7 +3070,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
             int res = fstat(fd, &statbuf);
             if (res < 0)
             {
-                DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+                DebugWarning2("() : fstat() -> %s", strerror(errno));
             }
             XATTR *pxattr = (XATTR *) buf;
             statbuf2xattr(pxattr, &statbuf);
@@ -3089,7 +3088,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
             int res = fstat(fd, &statbuf);
             if (res < 0)
             {
-                DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+                DebugWarning2("() : fstat() -> %s", strerror(errno));
             }
             struct XATTR temp;
             statbuf2xattr(&temp, &statbuf);
@@ -3146,7 +3145,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
  ************************************************************************************************/
 INT32 CHostXFS::dev_getc(MAC_FD *f, uint16_t mode)
 {
-    DebugInfo("%s(fd = 0x%0x, mode = %d)", __func__, f, mode);
+    DebugInfo2("(fd = 0x%0x, mode = %d)", f, mode);
     (void) mode;    // no cooking, no echo
     unsigned char c;
     INT32 ret;
@@ -3185,7 +3184,7 @@ INT32 CHostXFS::dev_getc(MAC_FD *f, uint16_t mode)
  ************************************************************************************************/
 INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
 {
-    DebugInfo("%s(fd = 0x%0x, size = %d)", __func__, f, size);
+    DebugInfo2("(fd = 0x%0x, size = %d)", f, size);
     (void) mode;    // no cooking, no echo
     char c;
     INT32 processed, ret;
@@ -3235,7 +3234,7 @@ INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
  ************************************************************************************************/
 INT32 CHostXFS::dev_putc(MAC_FD *f, uint16_t mode, INT32 val)
 {
-    DebugInfo("%s(fd = 0x%0x, mode = %d)", __func__, f, mode);
+    DebugInfo2("(fd = 0x%0x, mode = %d)", f, mode);
     (void) mode;    // no cooking, no echo
     char c;
 
@@ -3263,7 +3262,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
     INT32 doserr;
     unsigned char *params = addrOffset68k + param;
 
-    DebugInfo("%s(param = %u)", __func__, param);
+    DebugInfo2("(param = %u)", param);
 
     fncode = getAtariBE16(params);
 #ifdef DEBUG_VERBOSE
@@ -3857,7 +3856,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *addrOffset68k)
     UINT32 ifd;
 
 
-    DebugInfo("%s(param = %u)", __func__, param);
+    DebugInfo2("(param = %u)", param);
 
     // first 2 bytes: function code
     uint16_t fncode = getAtariBE16(params + 0);

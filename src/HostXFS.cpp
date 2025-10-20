@@ -39,6 +39,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <assert.h>
+#include <utime.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -1200,7 +1201,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
  *       MAC_FD designed for MagiCMac only reserves space for a classic MacOS refNum.
  * @note The Atari part of the HostXFS, in particular MACXFS.S, gets the return value of
  *       this function as big-endian and stores it to the MAC_FD.
- * @note The Atari part of the file system driver sets fd.mod_time_dirty to FALSE.
+ * @note The Atari part of the file system driver sets fd.mod_tdate_dirty to FALSE.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_fopen
@@ -2724,6 +2725,11 @@ INT32 CHostXFS::xfs_dcntl
  * @note Decrementing the reference counter was extracted from the MagiC kernel for
  *       historical reasons. MagicMac used to flush the file whenever it was closed.
  *
+ * @note Like in MagicMac(X) and AtariX, changing file modification time and date is done
+ *       here deferred, not directory on dev_datime(). This function is used by the Atari
+ *       when copying files with preserving modification dates. Here, also access date is
+ *       updated to modification date.
+ *
  ************************************************************************************************/
 INT32 CHostXFS::dev_close(MAC_FD *f)
 {
@@ -2739,19 +2745,43 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
     refcnt--;
     f->fd.fd_refcnt = htobe16(refcnt);
 
+    INT32 aret = E_OK;
+
     if (refcnt == 0)
     {
         GET_hhdl_AND_fd
+
+        // change date and time, if modified by dev_datime()
+        if (f->mod_tdate_dirty)
+        {
+            // get host path from file descriptor
+            char pathname[32];
+            char pathbuf[1024];
+            sprintf(pathname, "/proc/self/fd/%u", fd);
+            ssize_t size = readlink(pathname, pathbuf, 1022);
+            if (size < 0)
+            {
+                DebugWarning2("() : readlink() -> %s", strerror(errno));
+                aret = EINTRN;
+            }
+            else
+            {
+                pathbuf[size] = '\0';   // necessary
+                struct utimbuf utim;
+                CConversion::dosDateToHostDate(f->mod_time, f->mod_date, &utim.actime);
+                CConversion::dosDateToHostDate(f->mod_time, f->mod_date, &utim.modtime);
+                if (utime(pathbuf, &utim))
+                {
+                    DebugWarning2("() : utime(\"%s\") -> %s", pathbuf, strerror(errno));
+                    aret = CConversion::Host2AtariError(errno);
+                }
+            }
+            f->mod_tdate_dirty = 0;
+        }
         freeHostFD(hostFD);     // also closes hostFD->fd
     }
 
-    // TODO: change date and time, if modified by dev_datime()
-    if (f->mod_time_dirty)
-    {
-        DebugError2("() -- dev_fdatime() not yet implemented");
-    }
-
-    return E_OK;
+    return aret;
 }
 
 
@@ -3006,20 +3036,20 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
     if (rwflag)
     {
         // remember for later, when we close the file
-        f->mod_time[0] = be16toh(d[0]);
-        f->mod_time[1] = be16toh(d[1]);
-        f->mod_time_dirty = 1;
+        f->mod_time = be16toh(d[0]);
+        f->mod_date = be16toh(d[1]);
+        f->mod_tdate_dirty = 1;
         return E_OK;
     }
     else
-    if (f->mod_time_dirty)
+    if (f->mod_tdate_dirty)
     {
         // already changed
-        d[0] = htobe16(f->mod_time[0]);
-        d[1] = htobe16(f->mod_time[1]);
+        d[0] = htobe16(f->mod_time);
+        d[1] = htobe16(f->mod_date);
         return E_OK;
     }
-    DebugError2("() -- dev_fdatime() not yet implemented");
+    DebugError2("() -- dev_datime() not yet implemented");
 
     // TODO: implement
     return EINVFN;

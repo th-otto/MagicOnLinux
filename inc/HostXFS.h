@@ -168,8 +168,9 @@ class CHostXFS
     {
          MX_FD     fd;              // common part, big endian
          UINT16_BE refnum;          // host part: handle (big-endian)
-         uint16_t  mod_time_dirty;  // host part: Fdatime() had been called (host native endian)
-         uint16_t  mod_time[2];     // host part: timecode for Fdatime() (DOS-Codes) (host native endian)
+         uint16_t  mod_tdate_dirty; // host part: Fdatime() had been called (host native endian)
+         uint16_t  mod_time;        // host part: time code for Fdatime() (DOS-Codes) (host native endian)
+         uint16_t  mod_date;        // host part: date code for Fdatime() (DOS-Codes) (host native endian)
     } __attribute__((packed));
 
     /// non XFS specific part of a Directory Handle Descriptor

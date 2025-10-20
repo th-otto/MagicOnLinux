@@ -27,14 +27,11 @@
 #ifndef _MACXFS_H_INCLUDED_
 #define _MACXFS_H_INCLUDED_
 
-// System-Header
 #include <stdint.h>
-// Programm-Header
-#include "osd_cpu.h"
 #include "Atari.h"
 #include "HostHandles.h"
 #include "MAC_XFS.H"
-// Definitionen
+
 #define NDRVS  32
 //#define SPECIALDRIVE_AB
 #ifndef ELINK
@@ -70,11 +67,11 @@ class CHostXFS
     CHostXFS();
     ~CHostXFS();
 
-    INT32 XFSFunctions(uint32_t params, uint8_t *AdrOffset68k);
-    INT32 XFSDevFunctions(uint32_t params, uint8_t *AdrOffset68k);
-    INT32 Drv2DevCode(uint32_t params, uint8_t *AdrOffset68k);
-    INT32 RawDrvr(uint32_t params, uint8_t *AdrOffset68k);
-    void activateXfsDrives(uint8_t *AdrOffset68k);
+    INT32 XFSFunctions(uint32_t params, uint8_t *addrOffset68k);
+    INT32 XFSDevFunctions(uint32_t params, uint8_t *addrOffset68k);
+    INT32 Drv2DevCode(uint32_t params, uint8_t *addrOffset68k);
+    INT32 RawDrvr(uint32_t params, uint8_t *addrOffset68k);
+    void activateXfsDrives(uint8_t *addrOffset68k);
 
    private:
 
@@ -137,10 +134,12 @@ class CHostXFS
         UINT32  fd_dev;                // MX_DEV *fd_dev
     } __attribute__((packed));
 
-    /* Open- Modus von Dateien (Mag!X- intern)                                 */
-    /* NOINHERIT wird nicht unterstuetzt, weil nach TOS- Konvention nur die     */
-    /* Handles 0..5 vererbt werden                                             */
-    /* HiByte wie unter MiNT verwendet                                         */
+    /*
+     * MagiC internal file open modes.
+     * NOINHERIT is not supported, because according to GEMDOS rules only
+     * handles 0..5 are inherited to child processes.
+     * HiByte used like in MiNT
+     */
 
     #define   OM_RPERM       1
     #define   OM_WPERM       2
@@ -223,41 +222,28 @@ class CHostXFS
     bool drv_changed[NDRVS];
     bool drv_must_eject[NDRVS];
     uint32_t xfs_drvbits;
-/*
-* NDRVS Laufwerke werden vom XFS verwaltet
-* Fuer jedes Laufwerk gibt es einen FSSpec, der
-* das MAC-Verzeichnis repraesentiert, das fuer
-* "x:\" steht.
-* Ung�ltige FSSpec haben die Volume-Id 0.
-*/
-/*
-    FSSpec drv_fsspec[NDRVS];        // => macSys, damit MagiC die volume-ID
-                            // ermitteln kann.
-
-    FSRef xfs_path[NDRVS];        // nur auswerten, wenn drv_valid = true
-*/
-    const char *drv_host_path[NDRVS];     // nullptr, if not valid
-    const char *drv_atari_name[NDRVS];            // nullptr, if not valid
+    const char *drv_host_path[NDRVS];       // nullptr, if not valid
+    const char *drv_atari_name[NDRVS];      // nullptr, if not valid
     long drv_dirID[NDRVS];
-    bool drv_longnames[NDRVS];            // initialisiert auf 0en
+    bool drv_longnames[NDRVS];              // initialised with zeros
     bool drv_readOnly[NDRVS];
     HostXFSDrvType drv_type[NDRVS];
-    /* Zur Rueckgabe an den MagiC-Kernel: */
+    // Information to be passed back to MagiC kernel:
     MX_SYMLINK mx_symlink;
 
-    // statische Funktionen
+    // static functions
 
     static char toUpper(char c);
     static void atariFnameToHostFname(const unsigned char *src, char *dst);
     static void hostFnameToAtariFname(const char *src, unsigned char *dst);
-    //static int fname_is_invalid(const char *name);
     static bool filename8p3_match(const char *pattern, const char *fname);
     static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name);
     static bool nameto_8_3 (const char *host_fname,
                 unsigned char *dosname,
                 bool flg_longnames, bool toAtari);
+    static void statbuf2xattr(XATTR *xattr, const struct stat *statbuf);
 
-    // XFS-Aufrufe
+    // XFS calls
 
     INT32 xfs_sync(uint16_t drv);
     void xfs_pterm(PD *pd);
@@ -272,17 +258,17 @@ class CHostXFS
         UINT16 *dir_drive);
     INT32 xfs_sfirst(uint16_t drv, const MXFSDD *dd, const char *name, MAC_DTA *dta, uint16_t attrib);
     INT32 xfs_snext(uint16_t drv, MAC_DTA *dta);
-    INT32 xfs_fopen(char *name, uint16_t drv, MXFSDD *dd,
+    INT32 xfs_fopen(const char *name, uint16_t drv, MXFSDD *dd,
                 uint16_t omode, uint16_t attrib);
     INT32 xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name);
     INT32 xfs_link(uint16_t drv, const char *name_from, const char *name_to,
                    MXFSDD *dd_from, MXFSDD *dd_to, uint16_t mode, uint16_t dst_drv);
-    INT32 xfs_xattr(uint16_t drv, MXFSDD *dd, char *name,
+    INT32 xfs_xattr(uint16_t drv, MXFSDD *dd, const char *name,
                     XATTR *xattr, uint16_t mode);
-    INT32 xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag, uint16_t attr);
-    INT32 xfs_fchown(uint16_t drv, MXFSDD *dd, char *name, uint16_t uid, uint16_t gid);
-    INT32 xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode);
-    INT32 xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name);
+    INT32 xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t rwflag, uint16_t attr);
+    INT32 xfs_fchown(uint16_t drv, MXFSDD *dd, const char *name, uint16_t uid, uint16_t gid);
+    INT32 xfs_fchmod(uint16_t drv, MXFSDD *dd, const char *name, uint16_t fmode);
+    INT32 xfs_dcreate(uint16_t drv, MXFSDD *dd, const char *name);
     INT32 xfs_ddelete(uint16_t drv, MXFSDD *dd);
     INT32 xfs_DD2hostPath(MXFSDD *dd, char *buf, uint16_t bufsiz);
     INT32 xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz);
@@ -293,13 +279,14 @@ class CHostXFS
     INT32 xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv);
     INT32 xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which);
     INT32 xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4]);
-    INT32 xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name);
+    INT32 xfs_wlabel(uint16_t drv, MXFSDD *dd, const char *name);
     INT32 xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz);
-    INT32 xfs_readlink(uint16_t drv, MXFSDD *dd, char *name,
+    INT32 xfs_readlink(uint16_t drv, MXFSDD *dd, const char *name,
                     char *buf, uint16_t bufsiz);
-    INT32 xfs_dcntl(uint16_t drv, MXFSDD *dd, char *name, uint16_t cmd, void *pArg, unsigned char *AdrOffset68k);
+    INT32 xfs_dcntl(uint16_t drv, MXFSDD *dd, const char *name, uint16_t cmd, void *pArg, uint8_t *addrOffset68k);
+    INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const char *to);
 
-    // Gerätetreiber
+    // File driver
 
     INT32 dev_close(MAC_FD *f);
     INT32 dev_read(MAC_FD *f, INT32 count, char *buf);
@@ -312,14 +299,12 @@ class CHostXFS
     INT32 dev_getline( MAC_FD *f, char *buf, INT32 size, uint16_t mode);
     INT32 dev_putc(MAC_FD *f, uint16_t mode, INT32 val);
 
-    // Hilfsfunktionen
+    // auxiliar functions
 
     INT32 hostpath2HostFD(HostFD *reldir, uint16_t rel_hhdl, const char *path, int flags, HostHandle_t *hhdl);
     int _snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta);
-    INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to);
-    void statbuf2xattr(XATTR *xattr, const struct stat *statbuf);
 
-    void setDrivebits (uint32_t newbits, uint8_t *AdrOffset68k);
+    void setDrivebits (uint32_t newbits, uint8_t *addrOffset68k);
 };
 
 #endif

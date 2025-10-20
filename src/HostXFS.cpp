@@ -33,7 +33,7 @@
 */
 
 #include "config.h"
-// System-Header
+
 #include <endian.h>
 #include <string.h>
 #include <fcntl.h>
@@ -43,7 +43,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
-// Programm-Header
+
 #include "Debug.h"
 #include "Globals.h"
 #include "HostXFS.h"
@@ -223,24 +223,6 @@ void CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst)
         DebugError("file name length overflow: %s", buf_start);
     }
 }
-
-
-
-#if 0
-/*****************************************************************
-*
-*  (statisch) Testet, ob ein Dateiname gültig ist. Verboten sind Dateinamen, die
-*  nur aus '.'-en bestehen.
-*
-******************************************************************/
-
-int CHostXFS::fname_is_invalid(const char *name)
-{
-    while ((*name) == '.')        // führende Punkte weglassen
-        name++;
-    return !(*name);            // Name besteht nur aus Punkten
-}
-#endif
 
 
 /** **********************************************************************************************
@@ -635,7 +617,7 @@ INT32 CHostXFS::hostpath2HostFD
 
 /** **********************************************************************************************
  *
- * @brief Atari callback: Open a drive, i.e. fill in a descriptor for it, if valid
+ * @brief Open a drive, i.e. fill in a descriptor for it, if valid
  *
  * @param[in]  drv                   Atari drive number 0..25 for A: .. Z:
  * @param[out] dd                    directory descriptor of the drive's root directory
@@ -1206,7 +1188,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
  ************************************************************************************************/
 INT32 CHostXFS::xfs_fopen
 (
-    char *name,
+    const char *name,
     uint16_t drv,
     MXFSDD *dd,
     uint16_t omode,
@@ -1567,7 +1549,7 @@ INT32 CHostXFS::xfs_xattr
 (
     uint16_t drv,
     MXFSDD *dd,
-    char *name,
+    const char *name,
     XATTR *xattr,
     uint16_t mode
 )
@@ -1635,7 +1617,7 @@ INT32 CHostXFS::xfs_xattr
  * @note TODO: We could set or reset the F_RDONLY atribute, but nothing else.
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag, uint16_t attr)
+INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t rwflag, uint16_t attr)
 {
     DebugInfo2("(drv = %u, name = %s, rwflag = %u, attr = %u)", drv, name, rwflag, attr);
     unsigned char dosname[20];
@@ -1718,7 +1700,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, char *name, uint16_t rwflag
  * @note TODO: We could that implement later, but it has not much use.
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, char *name,
+INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const char *name,
                     uint16_t uid, uint16_t gid)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
@@ -1758,7 +1740,7 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, char *name,
  * @note TODO: We could that implement later, but it has not much use.
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode)
+INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, const char *name, uint16_t fmode)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     if (drv_changed[drv])
@@ -1793,7 +1775,7 @@ INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, char *name, uint16_t fmode)
  * @return E_OK or 32-bit negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, char *name)
+INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, const char *name)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     if (drv_changed[drv])
@@ -2127,7 +2109,6 @@ INT32 CHostXFS::xfs_dreaddir
 )
 {
     DebugInfo2("(drv = %u, size = %u)", drv);
-
 
     if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
@@ -2520,7 +2501,7 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
  * @note This does not make much sense for the Host XFS, so we do not support it.
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
+INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, const char *name)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     if (drv_changed[drv])
@@ -2549,7 +2530,7 @@ INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, char *name)
  * @brief For Dreadlabel(), get volume name
  *
  * @param[in]  drv       Atari drive number 0..31
- * @param[in]  dd        Atari directory descriptor, usually for "C:\"
+ * @param[in]  dd        Atari directory descriptor, usually for "X:\"
  * @param[out] name      buffer for name
  * @param[in]  bufsiz    size of name buffer, including zero byte
  *
@@ -2594,16 +2575,19 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
 }
 
 
-/*************************************************************
-*
-* Fuer Fsymlink
-*
-* Unter dem Namen <name> wird im Ordner <dirID> ein
-* Alias erstellt, der die Datei <to> repraesentiert.
-*
-*************************************************************/
-
-INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to)
+/** **********************************************************************************************
+ *
+ * @brief For Fsymlink(), create a symbolic link with name "to" that links to "name" in "dd"
+ *
+ * @param[in]  drv       Atari drive number 0..31
+ * @param[in]  dd        Atari directory descriptor
+ * @param[out] name      existing file or folder
+ * @param[in]  to        new name for symlink
+ *
+ * @return E_OK or negative error code
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const char *to)
 {
     DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
@@ -2624,14 +2608,27 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, char *name, char *to)
 }
 
 
-/*************************************************************
-*
-* Fuer Freadlink
-*
-*************************************************************/
-
-INT32 CHostXFS::xfs_readlink(uint16_t drv, MXFSDD *dd, char *name,
-                char *buf, uint16_t bufsiz)
+/** **********************************************************************************************
+ *
+ * @brief For Freadlink(), get the destination a symbolic link is pointing to
+ *
+ * @param[in]  drv       Atari drive number 0..31
+ * @param[in]  dd        Atari directory descriptor
+ * @param[in]  name      name of existing symbolic link
+ * @param[out] buf       read buffer
+ * @param[in]  bufsiz    size of read buffer
+ *
+ * @return E_OK or negative error code
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::xfs_readlink
+(
+    uint16_t drv,
+    MXFSDD *dd,
+    const char *name,
+    char *buf,
+    uint16_t bufsiz
+)
 {
    DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
     (void) dd;
@@ -2653,31 +2650,36 @@ INT32 CHostXFS::xfs_readlink(uint16_t drv, MXFSDD *dd, char *name,
 }
 
 
-/*************************************************************
-*
-* XFS-Funktion 27 (Dcntl())
-*
-* Der Parameter <pArg> ist bereits umgerechnet worden von der Atari-Adresse
-* in die Mac-Adresse.
-*
-*************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief For Dcntl(), various operations on files or folders referenced by path
+ *
+ * @param[in]  drv              Atari drive number 0..31
+ * @param[in]  dd               Atari directory descriptor
+ * @param[in]  name             name of existing file or folder or symbolic link
+ * @param[in]  cmd              sub-command
+ * @param[in]  pArg             command specific parameters
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return E_OK or negative error code
+ *
+ * @note Supports FUTIME and FSTAT
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::xfs_dcntl
 (
     uint16_t drv,
     MXFSDD *dd,
-    char *name,
+    const char *name,
     uint16_t cmd,
     void *pArg,
-    uint8_t *addrOffset68kXFS
+    uint8_t *addrOffset68k
 )
 {
     DebugError("NOT IMPLEMENTED %s(drv = %u)", __func__, drv);
-    (void) dd;
-    (void) name;
     (void) cmd;
     (void) pArg;
-    (void) addrOffset68kXFS;
+    (void) addrOffset68k;
 
     if (drv_changed[drv])
     {
@@ -2686,6 +2688,60 @@ INT32 CHostXFS::xfs_dcntl
     if (drv_host_path[drv] == nullptr)
     {
         return EDRIVE;
+    }
+
+    unsigned char dosname[20];
+    if (!drv_longnames[drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name, dosname, false, false);
+        name = (char *) dosname;
+    }
+
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd = hostFD->fd;
+    if (dir_fd == -1)
+    {
+        return EINTRN;
+    }
+
+    struct stat statbuf;
+    if ((cmd == FUTIME) || (cmd == FSTAT))
+    {
+		if (!pArg)
+        {
+		    return EINVFN;
+        }
+        int res = fstatat(dir_fd, name, &statbuf, AT_EMPTY_PATH);
+        if (res < 0)
+        {
+            DebugWarning2("() : fstatat(\"%s\") -> %s", name, strerror(errno));
+            return CConversion::Host2AtariError(errno);
+        }
+    }
+
+    switch(cmd)
+    {
+        case FUTIME:
+        {
+            struct XATTR temp;
+            statbuf2xattr(&temp, &statbuf);
+            struct mutimbuf *mutim = (struct mutimbuf *) pArg;
+            mutim->acdate = temp.adate;
+            mutim->actime = temp.atime;
+            mutim->moddate = temp.mdate;
+            mutim->modtime = temp.mtime;
+            return E_OK;
+        }
+
+        case FSTAT:
+            statbuf2xattr((XATTR *) pArg, &statbuf);
+            return E_OK;
     }
 
     return EINVFN;
@@ -2752,6 +2808,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
         GET_hhdl_AND_fd
 
         // change date and time, if modified by dev_datime()
+        // TODO: make sure Atari drive is not write protected
         if (f->mod_tdate_dirty)
         {
             // get host path from file descriptor
@@ -2783,75 +2840,6 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
 
     return aret;
 }
-
-
-/*
-*
-* pread() und pwrite() für "Hintergrund-DMA".
-*
-* Der Atari-Teil des XFS legt den ParamBlockRec (50 Bytes) auf dem Stapel
-* an und initialisiert <ioCompletion>, <ioBuffer> und <ioReqCount>.
-* Die Completion-Routine befindet sich
-* auf der "Atari-Seite" in "macxfs.s", wird jedoch im Mac-Modus aufgerufen;
-* diesen Umstand habe ich berücksichtigt.
-* Die Completion-Routine erhält in a0 einen Zeiger auf den ParamBlockRec und
-* in d0 (== ParamBlockrec.ioResult) den Fehlercode. Die Routine darf d0-d2 und
-* a0-a1 verändern (PureC-Konvention) und ist "void". a5 ist undefiniert.
-* Mit dem Trick:
-*
-*    INT32 geta0 ( void )
-*        = 0x2008;            // MOVE.L    A0,D0
-*
-*    static pascal void dev_p_complete( void )
-*    {
-*        ParamBlockRec *pb = (ParamBlockRec *) geta0();
-*    }
-*
-* könnte man die Routine auch in C schreiben. Den ParamBlockRec kann man
-* beliebig für eigene Zwecke erweitern (z.B. a5 ablegen).
-*
-* Rückgabe von dev_pread() und dev_pwrite():
-*
-* >=0        Transfer läuft und ist beendet, wenn ioComplete den
-*        Fehlercode enthält.
-* <0        Fehler
-*
-*/
-
-/*
-static INT32 CHostXFS::dev_pwrite( MAC_FD *f, ParamBlockRec *pb )
-{
-    OSErr err;
-
-
-    pb->ioParam.ioRefNum = f->refnum;        // Datei-Handle
-    pb->ioParam.ioPosMode = 0;                // ???
-
-    pb->ioParam.ioResult = 1;                    // warte, bis <= 0
-    err = PBWriteAsync (pb);                // asynchron!
-    if (err)
-        return(cnverr(err));
-    return(pb->ioParam.ioActCount);
-}
-
-
-static INT32 CHostXFS::dev_pread( MAC_FD *f, ParamBlockRec *pb )
-{
-    OSErr err;
-
-
-    pb->ioParam.ioRefNum = f->refnum;        // Datei-Handle
-    pb->ioParam.ioPosMode = 0;                // ???
-
-    pb->ioParam.ioResult = 1;                    // warte, bis <= 0
-    err = PBReadAsync (pb);                // asynchron!
-    if (err == eofErr)
-        err = 0;                    // nur Teil eingelesen, kein Fehler!
-    if (err)
-        return(cnverr(err));
-    return(pb->ioParam.ioActCount);
-}
-*/
 
 
 /** **********************************************************************************************
@@ -2927,9 +2915,9 @@ INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, const char *buf)
  * @brief For Finstat() and Foutstat() - get read or write status of an open file
  *
  * @param[in]  f       file descriptor
- * @param[in]  unsel   Probably NULL pointer. Meant for asynchronous I/O
+ * @param[in]  unsel   (remnants of original MagiCMac's asynchronous I/O)
  * @param[in]  rwflag  0: get read status, 1: get write status
- * @param[in]  apcode  Probably zero. Meant for asynchronous I/O
+ * @param[in]  apcode  (remnants of original MagiCMac's asynchronous I/O)
  *
  * @return 1 or 0 or negative error code
  * @retval 1  file can be written to respectively read from
@@ -3039,7 +3027,6 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
         f->mod_time = be16toh(d[0]);
         f->mod_date = be16toh(d[1]);
         f->mod_tdate_dirty = 1;
-        return E_OK;
     }
     else
     if (f->mod_tdate_dirty)
@@ -3047,12 +3034,9 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
         // already changed
         d[0] = htobe16(f->mod_time);
         d[1] = htobe16(f->mod_date);
-        return E_OK;
     }
-    DebugError2("() -- dev_datime() not yet implemented");
 
-    // TODO: implement
-    return EINVFN;
+    return E_OK;
 }
 
 
@@ -3083,23 +3067,49 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
             {
                 return EINVFN;
             }
-            struct stat stat;
-            int res = fstat(fd, &stat);
+            struct stat statbuf;
+            int res = fstat(fd, &statbuf);
             if (res < 0)
             {
                 DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
             }
             XATTR *pxattr = (XATTR *) buf;
-            statbuf2xattr(pxattr, &stat);
+            statbuf2xattr(pxattr, &statbuf);
             return E_OK;
             break;
+        }
+
+        case FUTIME:
+        {
+            if (buf == nullptr)
+            {
+                return EINVFN;
+            }
+            struct stat statbuf;
+            int res = fstat(fd, &statbuf);
+            if (res < 0)
+            {
+                DebugWarning("%s() : fstat() -> %s", __func__, strerror(errno));
+            }
+            struct XATTR temp;
+            statbuf2xattr(&temp, &statbuf);
+            struct mutimbuf *mutim = (struct mutimbuf *) buf;
+            mutim->acdate = temp.adate;
+            mutim->actime = temp.atime;
+            mutim->moddate = temp.mdate;
+            mutim->modtime = temp.mtime;
+            return E_OK;
         }
 
         case FTRUNCATE:
         {
             uint32_t newsize = be32toh(*((int32_t *) buf));
-            DebugError("FTRUNCATE to size %d not yet supported", newsize);
-            break;
+            int res = ftruncate(fd, newsize);
+            if (res < 0)
+            {
+                DebugWarning2("() : ftruncate() -> %s", strerror(errno));
+                return CConversion::Host2AtariError(errno);
+            }
         }
 
         case FMACOPENRES:
@@ -3115,61 +3125,95 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
             break;
 
         case FMACMAGICEX:
-        {
-            MMEXRec *mmex = (MMEXRec *) buf;
-            switch (mmex->funcNo)
-            {
-                case MMEX_INFO:
-                    mmex->longVal = 1;
-                    //  mmex->destPtr = MM_VersionPtr;
-                    mmex->destPtr = 0;
-                    return E_OK;
-
-                case MMEX_GETFREFNUM:
-                    // Mac-Datei-Handle liefern
-                    mmex->longVal = (long) f->refnum;
-                    return E_OK;
-            }
-        }
+            // not supported
+            break;
     }
 
     return EINVFN;
 }
 
+
+/** **********************************************************************************************
+ *
+ * @brief Read character from open file
+ *
+ * @param[in]  f     file descriptor
+ * @param[in]  mode  bit 0: cooked, bit 1: echo
+ *
+ * @return character read or negative error code
+ * @retval 0xff1a  end-of-file
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::dev_getc(MAC_FD *f, uint16_t mode)
 {
     DebugInfo("%s(fd = 0x%0x, mode = %d)", __func__, f, mode);
-    (void) mode;
+    (void) mode;    // no cooking, no echo
     unsigned char c;
     INT32 ret;
 
     ret = dev_read(f, 1L, (char *) &c);
     if (ret < 0L)
-        return ret;            // Fehler
+    {
+        // an error occurred
+        return ret;
+    }
+
     if (!ret)
-        return(0x0000ff1a);        // EOF
+    {
+        // nothing read, return EOF
+        return(0x0000ff1a);
+    }
+
+    // return the character read
     return c & 0x000000ff;
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Read a line until LF from an open file
+ *
+ * @param[in]  f     file descriptor
+ * @param[in]  buf   read buffer
+ * @param[in]  size  size of read buffer
+ * @param[in]  mode  bit 0: cooked, bit 1: echo
+ *
+ * @return number or characters read or negative error code
+ *
+ * @note LF is not stored to the buffer, and CR is ignored. The buffer is not zero terminated.
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
 {
     DebugInfo("%s(fd = 0x%0x, size = %d)", __func__, f, size);
-    (void) mode;
+    (void) mode;    // no cooking, no echo
     char c;
     INT32 processed, ret;
 
-    for (processed = 0L; processed < size;)
+    for (processed = 0; processed < size;)
     {
         ret = dev_read(f, 1L, (char *) &c);
         if (ret < 0L)
-            return ret;            // Fehler
+        {
+            // error
+            return ret;
+        }
         if (ret == 0L)
+        {
+            // end-of-file, stop here
             break;            // EOF
+        }
         if (c == 0x0d)
+        {
+            // ignore CR
             continue;
+        }
         if (c == 0x0a)
+        {
+            // LF, stop here
             break;
+        }
+
         processed++;
         *buf++ = c;
     }
@@ -3178,10 +3222,21 @@ INT32 CHostXFS::dev_getline(MAC_FD *f, char *buf, INT32 size, uint16_t mode)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Write character to an open file
+ *
+ * @param[in]  f     file descriptor
+ * @param[in]  mode  bit 0: cooked, bit 1: echo
+ * @param[in]  val   character to write, only eight bits used
+ *
+ * @return 1 or negative error code
+ *
+ ************************************************************************************************/
 INT32 CHostXFS::dev_putc(MAC_FD *f, uint16_t mode, INT32 val)
 {
     DebugInfo("%s(fd = 0x%0x, mode = %d)", __func__, f, mode);
-    (void) mode;
+    (void) mode;    // no cooking, no echo
     char c;
 
     c = (char) val;
@@ -3189,23 +3244,24 @@ INT32 CHostXFS::dev_putc(MAC_FD *f, uint16_t mode, INT32 val)
 }
 
 
-/*************************************************************
-*
-* Dispatcher für XFS-Funktionen
-*
-* params        Zeiger auf Parameter (68k-Adresse)
-* AdrOffset68k    Offset für 68k-Adresse
-*
-* Note that here is no endian conversion of the return
-* value, because this is already done inside the 68k emulator.
-*
-*************************************************************/
-
-INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Dispatcher for file system driver
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return E_OK or negative error code
+ *
+ * @note There is no endian conversion of the return value, because this is already
+ *       done inside the 68k emulator.
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
 {
     UINT16 fncode;
     INT32 doserr;
-    unsigned char *params = AdrOffset68k + param;
+    unsigned char *params = addrOffset68k + param;
 
     DebugInfo("%s(param = %u)", __func__, param);
 
@@ -3245,7 +3301,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
                 UINT32 pd;        // PD *
             } __attribute__((packed));
             ptermparm *pptermparm = (ptermparm *) params;
-            xfs_pterm((PD *) (AdrOffset68k + be32toh(pptermparm->pd)));
+            xfs_pterm((PD *) (addrOffset68k + be32toh(pptermparm->pd)));
             doserr = E_OK;
             break;
         }
@@ -3261,7 +3317,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             drv_openparm *pdrv_openparm = (drv_openparm *) params;
             doserr = xfs_drv_open(
                     be16toh(pdrv_openparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pdrv_openparm->dd)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pdrv_openparm->dd)),
                     be32toh(pdrv_openparm->flg_ask_diskchange));
             break;
         }
@@ -3303,21 +3359,21 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             doserr = xfs_path2DD(
                     be16toh(ppath2DDparm->mode),
                     be16toh(ppath2DDparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(ppath2DDparm->rel_dd)),
-                    (char *) (AdrOffset68k + be32toh(ppath2DDparm->pathname)),
+                    (MXFSDD *) (addrOffset68k + be32toh(ppath2DDparm->rel_dd)),
+                    (char *) (addrOffset68k + be32toh(ppath2DDparm->pathname)),
                     &remain_path,
-                    (MXFSDD *) (AdrOffset68k + be32toh(ppath2DDparm->symlink_dd)),
+                    (MXFSDD *) (addrOffset68k + be32toh(ppath2DDparm->symlink_dd)),
                     &symlink,
-                    (MXFSDD *) (AdrOffset68k + be32toh(ppath2DDparm->dd)),
-                    (UINT16 *) (AdrOffset68k + be32toh(ppath2DDparm->dir_drive))
+                    (MXFSDD *) (addrOffset68k + be32toh(ppath2DDparm->dd)),
+                    (UINT16 *) (addrOffset68k + be32toh(ppath2DDparm->dir_drive))
                     );
 
             // calculate Atari address from host address
-            uint32_t emuAddr = remain_path - (char *) AdrOffset68k;
+            uint32_t emuAddr = remain_path - (char *) addrOffset68k;
             // store to result
-            setAtariBE32(AdrOffset68k + be32toh(ppath2DDparm->remain_path), emuAddr);
-            emuAddr = symlink - (char *) AdrOffset68k;
-            setAtariBE32(AdrOffset68k + be32toh(ppath2DDparm->symlink), emuAddr);
+            setAtariBE32(addrOffset68k + be32toh(ppath2DDparm->remain_path), emuAddr);
+            emuAddr = symlink - (char *) addrOffset68k;
+            setAtariBE32(addrOffset68k + be32toh(ppath2DDparm->symlink), emuAddr);
 #ifdef DEBUG_VERBOSE
             __dump((const unsigned char *) ppath2DDparm, sizeof(*ppath2DDparm));
             if (doserr >= 0)
@@ -3339,9 +3395,9 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             sfirstparm *psfirstparm = (sfirstparm *) params;
             doserr = xfs_sfirst(
                     be16toh(psfirstparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(psfirstparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(psfirstparm->name)),
-                    (MAC_DTA *) (AdrOffset68k + be32toh(psfirstparm->dta)),
+                    (MXFSDD *) (addrOffset68k + be32toh(psfirstparm->dd)),
+                    (char *) (addrOffset68k + be32toh(psfirstparm->name)),
+                    (MAC_DTA *) (addrOffset68k + be32toh(psfirstparm->dta)),
                     be16toh(psfirstparm->attrib)
                     );
             break;
@@ -3357,7 +3413,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             snextparm *psnextparm = (snextparm *) params;
             doserr = xfs_snext(
                     be16toh(psnextparm->drv),
-                    (MAC_DTA *) (AdrOffset68k + be32toh(psnextparm->dta))
+                    (MAC_DTA *) (addrOffset68k + be32toh(psnextparm->dta))
                     );
             break;
         }
@@ -3374,9 +3430,9 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             } __attribute__((packed));
             fopenparm *pfopenparm = (fopenparm *) params;
             doserr = xfs_fopen(
-                    (char *) (AdrOffset68k + be32toh(pfopenparm->name)),
+                    (char *) (addrOffset68k + be32toh(pfopenparm->name)),
                     be16toh(pfopenparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pfopenparm->dd)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pfopenparm->dd)),
                     be16toh(pfopenparm->omode),
                     be16toh(pfopenparm->attrib)
                     );
@@ -3394,8 +3450,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             fdeleteparm *pfdeleteparm = (fdeleteparm *) params;
             doserr = xfs_fdelete(
                     be16toh(pfdeleteparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pfdeleteparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(pfdeleteparm->name))
+                    (MXFSDD *) (addrOffset68k + be32toh(pfdeleteparm->dd)),
+                    (char *) (addrOffset68k + be32toh(pfdeleteparm->name))
                     );
             break;
         }
@@ -3415,10 +3471,10 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             flinkparm *pflinkparm = (flinkparm *) params;
             doserr = xfs_link(
                     be16toh(pflinkparm->drv),
-                    (char *) (AdrOffset68k + be32toh(pflinkparm->nam1)),
-                    (char *) (AdrOffset68k + be32toh(pflinkparm->nam2)),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pflinkparm->dd1)),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pflinkparm->dd2)),
+                    (char *) (addrOffset68k + be32toh(pflinkparm->nam1)),
+                    (char *) (addrOffset68k + be32toh(pflinkparm->nam2)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pflinkparm->dd1)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pflinkparm->dd2)),
                     be16toh(pflinkparm->mode),
                     be16toh(pflinkparm->dst_drv)
                     );
@@ -3438,9 +3494,9 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             xattrparm *pxattrparm = (xattrparm *) params;
             doserr = xfs_xattr(
                     be16toh(pxattrparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pxattrparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(pxattrparm->name)),
-                    (XATTR *) (AdrOffset68k + be32toh(pxattrparm->xattr)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pxattrparm->dd)),
+                    (char *) (addrOffset68k + be32toh(pxattrparm->name)),
+                    (XATTR *) (addrOffset68k + be32toh(pxattrparm->xattr)),
                     be16toh(pxattrparm->mode)
                     );
             break;
@@ -3459,8 +3515,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             attribparm *pattribparm = (attribparm *) params;
             doserr = xfs_attrib(
                     be16toh(pattribparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pattribparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(pattribparm->name)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pattribparm->dd)),
+                    (char *) (addrOffset68k + be32toh(pattribparm->name)),
                     be16toh(pattribparm->rwflag),
                     be16toh(pattribparm->attr)
                     );
@@ -3480,8 +3536,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             chownparm *pchownparm = (chownparm *) params;
             doserr = xfs_fchown(
                     be16toh(pchownparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pchownparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(pchownparm->name)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pchownparm->dd)),
+                    (char *) (addrOffset68k + be32toh(pchownparm->name)),
                     be16toh(pchownparm->uid),
                     be16toh(pchownparm->gid)
                     );
@@ -3500,8 +3556,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             chmodparm *pchmodparm = (chmodparm *) params;
             doserr = xfs_fchmod(
                     be16toh(pchmodparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pchmodparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(pchmodparm->name)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pchmodparm->dd)),
+                    (char *) (addrOffset68k + be32toh(pchmodparm->name)),
                     be16toh(pchmodparm->fmode)
                     );
             break;
@@ -3524,8 +3580,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
 
             doserr = xfs_dcreate(
                     be16toh(pdcreateparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pdcreateparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(pdcreateparm->name))
+                    (MXFSDD *) (addrOffset68k + be32toh(pdcreateparm->dd)),
+                    (char *) (addrOffset68k + be32toh(pdcreateparm->name))
                     );
             break;
         }
@@ -3540,7 +3596,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             ddeleteparm *pddeleteparm = (ddeleteparm *) params;
             doserr = xfs_ddelete(
                     be16toh(pddeleteparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pddeleteparm->dd))
+                    (MXFSDD *) (addrOffset68k + be32toh(pddeleteparm->dd))
                     );
             break;
         }
@@ -3557,8 +3613,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             dd2nameparm *pdd2nameparm = (dd2nameparm *) params;
             doserr = xfs_DD2name(
                     be16toh(pdd2nameparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pdd2nameparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(pdd2nameparm->buf)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pdd2nameparm->dd)),
+                    (char *) (addrOffset68k + be32toh(pdd2nameparm->buf)),
                     be16toh(pdd2nameparm->bufsiz)
                     );
             break;
@@ -3575,9 +3631,9 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             } __attribute__((packed));
             dopendirparm *pdopendirparm = (dopendirparm *) params;
             doserr = xfs_dopendir(
-                    (MAC_DIRHANDLE *) (AdrOffset68k + be32toh(pdopendirparm->dirh)),
+                    (MAC_DIRHANDLE *) (addrOffset68k + be32toh(pdopendirparm->dirh)),
                     be16toh(pdopendirparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pdopendirparm->dd)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pdopendirparm->dd)),
                     be16toh(pdopendirparm->tosflag)
                     );
             break;
@@ -3596,12 +3652,12 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             } __attribute__((packed));
             dreaddirparm *pdreaddirparm = (dreaddirparm *) params;
             doserr = xfs_dreaddir(
-                    (MAC_DIRHANDLE *) (AdrOffset68k + be32toh(pdreaddirparm->dirh)),
+                    (MAC_DIRHANDLE *) (addrOffset68k + be32toh(pdreaddirparm->dirh)),
                     be16toh(pdreaddirparm->drv),
                     be16toh(pdreaddirparm->size),
-                    (char *) (AdrOffset68k + be32toh(pdreaddirparm->buf)),
-                    (XATTR *) ((pdreaddirparm->xattr) ? AdrOffset68k + be32toh(pdreaddirparm->xattr) : NULL),
-                    (INT32 *) ((pdreaddirparm->xr) ? (AdrOffset68k + be32toh(pdreaddirparm->xr)) : NULL)
+                    (char *) (addrOffset68k + be32toh(pdreaddirparm->buf)),
+                    (XATTR *) ((pdreaddirparm->xattr) ? addrOffset68k + be32toh(pdreaddirparm->xattr) : NULL),
+                    (INT32 *) ((pdreaddirparm->xr) ? (addrOffset68k + be32toh(pdreaddirparm->xr)) : NULL)
                     );
             break;
         }
@@ -3615,7 +3671,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             } __attribute__((packed));
             drewinddirparm *pdrewinddirparm = (drewinddirparm *) params;
             doserr = xfs_drewinddir(
-                    (MAC_DIRHANDLE *) (AdrOffset68k + be32toh(pdrewinddirparm->dirh)),
+                    (MAC_DIRHANDLE *) (addrOffset68k + be32toh(pdrewinddirparm->dirh)),
                     be16toh(pdrewinddirparm->drv)
                     );
             break;
@@ -3630,7 +3686,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             } __attribute__((packed));
             dclosedirparm *pdclosedirparm = (dclosedirparm *) params;
             doserr = xfs_dclosedir(
-                    (MAC_DIRHANDLE *) (AdrOffset68k + be32toh(pdclosedirparm->dirh)),
+                    (MAC_DIRHANDLE *) (addrOffset68k + be32toh(pdclosedirparm->dirh)),
                     be16toh(pdclosedirparm->drv)
                     );
             break;
@@ -3647,7 +3703,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             dpathconfparm *pdpathconfparm = (dpathconfparm *) params;
             doserr = xfs_dpathconf(
                     be16toh(pdpathconfparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pdpathconfparm->dd)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pdpathconfparm->dd)),
                     be16toh(pdpathconfparm->which)
                     );
             break;
@@ -3665,7 +3721,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             doserr = xfs_dfree(
                     be16toh(pdfreeparm->drv),
                     pdfreeparm->dirID,
-                    (UINT32 *) (AdrOffset68k + be32toh(pdfreeparm->data))
+                    (UINT32 *) (addrOffset68k + be32toh(pdfreeparm->data))
                     );
 #ifdef DEBUG_VERBOSE
             __dump((const unsigned char *) (AdrOffset68k + CFSwapInt32BigToHost(pdfreeparm->data)), 16);
@@ -3684,8 +3740,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             wlabelparm *pwlabelparm = (wlabelparm *) params;
             doserr = xfs_wlabel(
                     be16toh(pwlabelparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pwlabelparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(pwlabelparm->name))
+                    (MXFSDD *) (addrOffset68k + be32toh(pwlabelparm->dd)),
+                    (char *) (addrOffset68k + be32toh(pwlabelparm->name))
                     );
             break;
         }
@@ -3702,8 +3758,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             rlabelparm *prlabelparm = (rlabelparm *) params;
             doserr = xfs_rlabel(
                     be16toh(prlabelparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(prlabelparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(prlabelparm->name)),
+                    (MXFSDD *) (addrOffset68k + be32toh(prlabelparm->dd)),
+                    (char *) (addrOffset68k + be32toh(prlabelparm->name)),
                     be16toh(prlabelparm->bufsiz)
                     );
             break;
@@ -3721,9 +3777,9 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             symlinkparm *psymlinkparm = (symlinkparm *) params;
             doserr = xfs_symlink(
                     be16toh(psymlinkparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(psymlinkparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(psymlinkparm->name)),
-                    (char *) (AdrOffset68k + be32toh(psymlinkparm->to))
+                    (MXFSDD *) (addrOffset68k + be32toh(psymlinkparm->dd)),
+                    (char *) (addrOffset68k + be32toh(psymlinkparm->name)),
+                    (char *) (addrOffset68k + be32toh(psymlinkparm->to))
                     );
             break;
         }
@@ -3741,9 +3797,9 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             readlinkparm *preadlinkparm = (readlinkparm *) params;
             doserr = xfs_readlink(
                     be16toh(preadlinkparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(preadlinkparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(preadlinkparm->name)),
-                    (char *) (AdrOffset68k + be32toh(preadlinkparm->buf)),
+                    (MXFSDD *) (addrOffset68k + be32toh(preadlinkparm->dd)),
+                    (char *) (addrOffset68k + be32toh(preadlinkparm->name)),
+                    (char *) (addrOffset68k + be32toh(preadlinkparm->buf)),
                     be16toh(preadlinkparm->bufsiz)
                     );
             break;
@@ -3762,11 +3818,11 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
             dcntlparm *pdcntlparm = (dcntlparm *) params;
             doserr = xfs_dcntl(
                     be16toh(pdcntlparm->drv),
-                    (MXFSDD *) (AdrOffset68k + be32toh(pdcntlparm->dd)),
-                    (char *) (AdrOffset68k + be32toh(pdcntlparm->name)),
+                    (MXFSDD *) (addrOffset68k + be32toh(pdcntlparm->dd)),
+                    (char *) (addrOffset68k + be32toh(pdcntlparm->name)),
                     be16toh(pdcntlparm->cmd),
-                    AdrOffset68k + be32toh(pdcntlparm->arg),
-                    AdrOffset68k
+                    addrOffset68k + be32toh(pdcntlparm->arg),
+                    addrOffset68k
                     );
             break;
         }
@@ -3786,18 +3842,18 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *AdrOffset68k)
 
 /** **********************************************************************************************
  *
- * @brief Dispatcher for file driver
+ * @brief Emulator callback: Dispatcher for file driver
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] AdrOffset68k      Host address of 68k memory
+ * @param[in] addrOffset68k     Host address of 68k memory
  *
  * @return E_OK or negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
+INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *addrOffset68k)
 {
     INT32 doserr;
-    unsigned char *params = AdrOffset68k + param;
+    unsigned char *params = addrOffset68k + param;
     UINT32 ifd;
 
 
@@ -3809,7 +3865,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
     // next 4 bytes: pointer to MAC_FD
     ifd = *((UINT32 *) params);
     params += 4;
-    MAC_FD *f = (MAC_FD *) (AdrOffset68k + be32toh(ifd));
+    MAC_FD *f = (MAC_FD *) (addrOffset68k + be32toh(ifd));
 
 #ifdef DEBUG_VERBOSE
     DebugInfo("CHostXFS::XFSDevFunctions(%d)", (int) fncode);
@@ -3835,7 +3891,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
             doserr = dev_read(
                     f,
                     be32toh(pdevreadparm->count),
-                    (char *) (AdrOffset68k + be32toh(pdevreadparm->buf))
+                    (char *) (addrOffset68k + be32toh(pdevreadparm->buf))
                     );
             break;
         }
@@ -3852,7 +3908,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
             doserr = dev_write(
                     f,
                     be32toh(pdevwriteparm->count),
-                    (char *) (AdrOffset68k + be32toh(pdevwriteparm->buf))
+                    (char *) (addrOffset68k + be32toh(pdevwriteparm->buf))
                     );
             break;
         }
@@ -3869,7 +3925,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
             devstatparm *pdevstatparm = (devstatparm *) params;
             doserr = dev_stat(
                     f,
-                    (void *) (AdrOffset68k + pdevstatparm->unsel),
+                    (void *) (addrOffset68k + pdevstatparm->unsel),
                     be16toh(pdevstatparm->rwflag),
                     be32toh(pdevstatparm->apcode)
                     );
@@ -3904,7 +3960,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
             devdatimeparm *pdevdatimeparm = (devdatimeparm *) params;
             doserr = dev_datime(
                     f,
-                    (UINT16 *) (AdrOffset68k + be32toh(pdevdatimeparm->d)),
+                    (UINT16 *) (addrOffset68k + be32toh(pdevdatimeparm->d)),
                     be16toh(pdevdatimeparm->rwflag)
                     );
             break;
@@ -3922,7 +3978,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
             doserr = dev_ioctl(
                     f,
                     be16toh(pdevioctlparm->cmd),
-                    (void *) (AdrOffset68k + be32toh(pdevioctlparm->buf))
+                    (void *) (addrOffset68k + be32toh(pdevioctlparm->buf))
                     );
             break;
         }
@@ -3954,7 +4010,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
             devgetlineparm *pdevgetlineparm = (devgetlineparm *) params;
             doserr = dev_getline(
                     f,
-                    (char *) (AdrOffset68k + be32toh(pdevgetlineparm->buf)),
+                    (char *) (addrOffset68k + be32toh(pdevgetlineparm->buf)),
                     be32toh(pdevgetlineparm->size),
                     be16toh(pdevgetlineparm->mode)
                     );
@@ -3991,21 +4047,106 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *AdrOffset68k)
 
 /** **********************************************************************************************
  *
+ * @brief Emulator callback: Convert Atari drive to device code
+ *
+ * @param[in] params            68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return zero or non-negative device code
+ *
+ * @note Used by the Atari to eject the correct medium for the respective virtual drive.
+ *       Not really useful for Linux host.
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::Drv2DevCode(UINT32 params, uint8_t *addrOffset68k)
+{
+    uint16_t drv = getAtariBE16(addrOffset68k + params);
+    assert(drv < NDRVS);
+
+    if (drv <= 1)
+    {
+        // floppy disc A: and B:
+        return (INT32) 0x00010000 | (drv + 1);
+    }
+
+    const char *vol = drv_host_path[drv];
+    if (vol == nullptr)
+    {
+        // maybe an AHDI-Drive? Not supported yet.
+        return 0;
+        // return (INT32) (0x00020000 | drv);
+    }
+    else
+    {
+        // The drive is a host directory.
+        // Ejecting host volumes is not supported yet.
+        return 0;
+        // return (INT32) (0x00010000 | (UINT16) drvNum);
+    }
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Device operations
+ *
+ * @param[in] params            68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return zero or negative error code
+ *
+ * @note Used by the Atari to eject a medium. Not really useful for Linux host.
+ *
+ ************************************************************************************************/
+INT32 CHostXFS::RawDrvr(UINT32 param, uint8_t *addrOffset68k)
+{
+    INT32 ret;
+    struct sparams
+    {
+        UINT16 opcode;
+        UINT32 device;
+    };
+
+    sparams *params = (sparams *) (addrOffset68k + param);
+
+    switch(params->opcode)
+    {
+        case 0:
+            if (params->device == 0)    // ??
+                ret = EDRIVE;
+            else
+            if ((params->device >> 16)  == 1)
+                ret = EDRIVE;        // Mac medium
+            else
+                ret = EDRIVE;        // eject AHDI medium
+            break;
+
+            default:
+            ret = EINVFN;
+            break;
+    }
+
+    return ret;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Updates both Atari and host bitmaps of valid drives
  *
  * @param[in] newbits           valid drives as bit map
- * @param[in] AdrOffset68k      Host address of 68k memory
+ * @param[in] addrOffset68k     Host address of 68k memory
  *
  * Updates both Atari (_drvbits) and host variable (xfs_drvbits)
  *
  ************************************************************************************************/
-void CHostXFS::setDrivebits(uint32_t newbits, uint8_t *AdrOffset68k)
+void CHostXFS::setDrivebits(uint32_t newbits, uint8_t *addrOffset68k)
 {
-    uint32_t val = getAtariBE32(AdrOffset68k + _drvbits);
+    uint32_t val = getAtariBE32(addrOffset68k + _drvbits);
     //newbits |= (1L << ('m'-'a'));   // virtual drive M: is always present
     val &= -1L - xfs_drvbits;       // clear old bits
     val |= newbits;                 // set new bits
-    setAtariBE32(AdrOffset68k + _drvbits, val);
+    setAtariBE32(addrOffset68k + _drvbits, val);
     xfs_drvbits = newbits;
 }
 
@@ -4014,10 +4155,10 @@ void CHostXFS::setDrivebits(uint32_t newbits, uint8_t *AdrOffset68k)
  *
  * @brief Tell Atari about all XFS drives
  *
- * @param[in] AdrOffset68k      Host address of 68k memory
+ * @param[in] addrOffset68k      Host address of 68k memory
  *
  ************************************************************************************************/
-void CHostXFS::activateXfsDrives(uint8_t *AdrOffset68k)
+void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
 {
     xfs_drvbits = 0;
     for (int i = 0; i < NDRIVES; i++)
@@ -4049,80 +4190,5 @@ void CHostXFS::activateXfsDrives(uint8_t *AdrOffset68k)
     drv_atari_name['H' - 'A'] = "HOME";
     drv_atari_name['M' - 'A'] = "ROOT";
 
-    setDrivebits(xfs_drvbits, AdrOffset68k);
-}
-
-
-/*************************************************************
-*
-* Rechnet einen Laufwerkbuchstaben um ein einen "device code".
-* Wird vom Atari benötigt, um das richtige Medium auszuwerfen.
-*
-* Dies ist ein direkter Einsprungpunkt vom Emulator.
-*
-*************************************************************/
-
-INT32 CHostXFS::Drv2DevCode(UINT32 params, uint8_t *AdrOffset68k)
-{
-    uint16_t drv = getAtariBE16(AdrOffset68k + params);
-    assert(drv < NDRVS);
-
-    if (drv <= 1)
-    {
-        // floppy disk A: & B:
-        return (INT32) 0x00010000 | (drv + 1);    // liefert 1 bzw. 2
-    }
-
-    const char *vol = drv_host_path[drv];
-    if (vol == nullptr)
-    {
-        // maybe an AHDI-Drive? Not supported yet.
-        return 0;
-        // return (INT32) (0x00020000 | drv);
-    }
-    else
-    {
-        // The drive is a host directory.
-        // Ejecting host volumes is not supported yet.
-        return 0;
-        // return (INT32) (0x00010000 | (UINT16) drvNum);
-    }
-}
-
-
-/*************************************************************
-*
-* Erledigt Gerätefunktionen, hier nur: Auswerfen eines
-* Mediums
-*
-*************************************************************/
-INT32 CHostXFS::RawDrvr(UINT32 param, uint8_t *AdrOffset68k)
-{
-    INT32 ret;
-    struct sparams
-    {
-        UINT16 opcode;
-        UINT32 device;
-    };
-
-
-    sparams *params = (sparams *) (AdrOffset68k + param);
-
-    switch(params->opcode)
-    {
-        case 0:
-        if (params->device == 0)    // ??
-            ret = EDRIVE;
-        else
-        if ((params->device >> 16)  == 1)
-            ret = EDRIVE;        // Mac-Medium
-        else
-            ret = EDRIVE;        // AHDI-Medium auswerfen
-        break;
-
-        default:
-        ret = EINVFN;
-        break;
-    }
-    return ret;
+    setDrivebits(xfs_drvbits, addrOffset68k);
 }

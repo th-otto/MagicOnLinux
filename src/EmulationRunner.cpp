@@ -661,7 +661,6 @@ void EmulationRunner::_OpenWindow(void)
                             Preferences::AtariScreenWidth, Preferences::AtariScreenHeight,
                             screenbitsperpixel, (planeBytes == 2) ? "ip" : "");
     m_visible = false;
-    m_initiallyVisible = false;
 
 
     // note that the SDL surface cannot distinguish between packed pixel and interleaved.
@@ -938,7 +937,6 @@ void EmulationRunner::EventLoop(void)
                     {
                         case SDL_WINDOWEVENT_SHOWN:
                             m_visible = true;
-                            m_initiallyVisible = true;
                             break;
 
                         case SDL_WINDOWEVENT_FOCUS_GAINED:
@@ -1149,16 +1147,7 @@ void EmulationRunner::EmulatorWindowUpdate(void)
 
         if (m_visible)
         {
-            if (m_initiallyVisible)
-            {
-                (void) SDL_RenderCopy(m_sdl_renderer, m_sdl_texture, nullptr, nullptr);
-                m_initiallyVisible = false;
-            }
-            else
-            {
-                (void) SDL_RenderCopy(m_sdl_renderer, m_sdl_texture, &rc2, &rc);
-                //SDL_GL_SwapWindow(m_sdl_window);
-            }
+            (void) SDL_RenderCopy(m_sdl_renderer, m_sdl_texture, &rc2, &rc);
             SDL_RenderPresent(m_sdl_renderer);
         }
     }

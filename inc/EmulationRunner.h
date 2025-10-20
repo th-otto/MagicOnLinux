@@ -73,7 +73,6 @@ class EmulationRunner
     char m_window_title[256];
     uint32_t m_counter;
     bool m_visible;
-    bool m_initiallyVisible;
 
     SDL_Surface *m_sdl_atari_surface;        // surface in Atari native pixel format or NULL
     SDL_Surface *m_sdl_surface;                // surface in host native pixel format

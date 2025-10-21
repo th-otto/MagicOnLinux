@@ -239,17 +239,22 @@ int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv,
     {
         drv = default_drv;
     }
-    const char *host_root = drv_host_path[drv];
-    if (host_root != nullptr)
+    if (src[0] == '\\')
     {
-        if (strlen(host_root) >= buflen)
+        // absolute Atari path
+        const char *host_root = drv_host_path[drv];
+        if (host_root != nullptr)
         {
-            DebugError2("() - buffer overflow");
-            return -1;
+            unsigned len = strlen(host_root);
+            if (len >= buflen)
+            {
+                DebugError2("() - buffer overflow");
+                return -1;
+            }
+            strcpy(dst, host_root);
+            dst += len;
+            buflen -= len;
         }
-        strcpy(dst, host_root);
-        dst += strlen(host_root);
-        buflen -= strlen(host_root);
     }
 
     return atariFnameToHostFname(src, dst, buflen);
@@ -260,14 +265,17 @@ int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv,
 *
 * @brief [static] Convert host filename to Atari filename
 *
-* @param[in]   src     host filename
-* @param[out]  dst     Atari filename (max 256 bytes including zero)
+* @param[in]   src      host filename
+* @param[out]  dst      Atari filename (max 256 bytes including zero)
+* @param[in]   buflen   buffer length, including end-of-string.
+*
+* @return -1 on overflow, otherwise zero
 *
  ************************************************************************************************/
-void CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst)
+int CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst, unsigned buflen)
 {
     unsigned char *buf_start = dst;
-    while (*src && (dst < buf_start + 255))
+    while (*src && (dst < buf_start + buflen - 1))
     {
         if (*src == '/')
         {
@@ -283,6 +291,54 @@ void CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst)
     {
         DebugError("file name length overflow: %s", buf_start);
     }
+
+    return (*src == '\0') ? 0 : -1;
+}
+
+
+/** **********************************************************************************************
+*
+* @brief Convert host path to Atari path
+*
+* @param[in]   src          host path
+* @param[in]   default_drv  Atari drive, if src does not start with an Atari root
+* @param[out]  dst          buffer for Atari path
+* @param[in]   buflen       buffer length, including end-of-string.
+*
+* @return -1 on overflow, otherwise zero
+*
+ ************************************************************************************************/
+int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned buflen)
+{
+    if (buflen < 4)
+    {
+        return -1;
+    }
+
+    unsigned drv;
+    for (drv = 0; drv < NDRIVES; drv++)
+    {
+        const char *host_root = drv_host_path[drv];
+        unsigned len = strlen(host_root);
+        if (!strncmp(src, host_root, len))
+        {
+            *dst++ = drv + 'A';
+            *dst++ = ':';
+            *dst++ = '\\';
+            buflen -= 3;
+            break;
+        }
+    }
+
+    if (drv >= NDRIVES)
+    {
+        *dst++ = default_drv + 'A';
+        *dst++ = ':';
+        *dst++ = '\\';
+        buflen -= 3;
+    }
+
+    return hostFnameToAtariFname(src, dst, buflen);
 }
 
 
@@ -947,7 +1003,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     unsigned char dosname[14];      // internal, 8+3
 
     DebugInfo2("() - %d \"%s\"", entry->d_type, entry->d_name);
-    hostFnameToAtariFname(entry->d_name, atariname);    // convert character set..
+    hostFnameToAtariFname(entry->d_name, atariname, 256);    // convert character set..
     if (pathElemToDTA8p3(atariname, dosname))  // .. and to 8+3
     {
         return -1;   // filename too long
@@ -2067,7 +2123,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     */
     *p++ = '\\';
     bufsiz -= 1;
-    hostFnameToAtariFname(atari_path, (unsigned char *) p);
+    hostFnameToAtariFname(atari_path, (unsigned char *) p, bufsiz);
     DebugInfo2("() -> \"%s\"", buf);
 
     return E_OK;
@@ -2149,7 +2205,7 @@ INT32 CHostXFS::xfs_dopendir
  *
  * @param[in]  dirh      directory handle from Dopendir()
  * @param[in]  drv       Atari drive number 0..31
- * @param[in]  size      buffer size for name and, if requested, i-node
+ * @param[in]  bufsiz    buffer size for name and, if requested, i-node
  * @param[out] buf       buffer for name and, if requested, i-node
  * @param[out] xattr     file information for Dxreaddir(), is nullptr for Dreaddir()
  * @param[out] xr        error code from Fxattr()
@@ -2163,13 +2219,13 @@ INT32 CHostXFS::xfs_dreaddir
 (
     MAC_DIRHANDLE *dirh,
     uint16_t drv,
-    uint16_t size,
+    uint16_t bufsiz,
     char *buf,
     XATTR *xattr,
     INT32 *xr
 )
 {
-    DebugInfo2("(drv = %u, size = %u)", drv);
+    DebugInfo2("(drv = %u, bufsiz = %u)", drv);
 
     if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
@@ -2177,7 +2233,7 @@ INT32 CHostXFS::xfs_dreaddir
         return EIHNDL;
     }
 
-    if ((dirh->tosflag) && (size < 13))
+    if ((dirh->tosflag) && (bufsiz < 13))
     {
         DebugWarning2("() : name buffer is too small for 8+3, ignore all entries");
         return ATARIERR_ERANGE;
@@ -2279,15 +2335,16 @@ INT32 CHostXFS::xfs_dreaddir
 
         DebugInfo2("() - found \"%s\"", entry->d_name);
         // buf needs space for 4 bytes i-node plus filename plus NUL byte
-		if (size >= strlen(entry->d_name) + 5)
+		if (bufsiz >= strlen(entry->d_name) + 5)
         {
             strncpy(buf, (char *) &entry->d_ino, 4);
             buf += 4;
-            hostFnameToAtariFname(entry->d_name, (unsigned char *) buf);
+            bufsiz -= 4;
+            hostFnameToAtariFname(entry->d_name, (unsigned char *) buf, bufsiz);
         }
         else
         {
-            DebugError2("() : buffer size %u too small => ERANGE", size);
+            DebugError2("() : buffer size %u too small => ERANGE", bufsiz);
             atari_err = ATARIERR_ERANGE;
         }
 
@@ -4154,7 +4211,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *addrOffset68k)
 INT32 CHostXFS::Drv2DevCode(UINT32 params, uint8_t *addrOffset68k)
 {
     uint16_t drv = getAtariBE16(addrOffset68k + params);
-    assert(drv < NDRVS);
+    assert(drv < NDRIVES);
 
     if (drv <= 1)
     {

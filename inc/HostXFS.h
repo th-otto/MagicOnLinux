@@ -32,7 +32,6 @@
 #include "HostHandles.h"
 #include "MAC_XFS.H"
 
-#define NDRVS  32
 //#define SPECIALDRIVE_AB
 #ifndef ELINK
 #define ELINK -300
@@ -219,15 +218,15 @@ class CHostXFS
     // lokale Variablen:
     // -----------------
 
-    bool drv_changed[NDRVS];
-    bool drv_must_eject[NDRVS];
+    bool drv_changed[NDRIVES];
+    bool drv_must_eject[NDRIVES];
     uint32_t xfs_drvbits;
-    const char *drv_host_path[NDRVS];       // nullptr, if not valid
-    const char *drv_atari_name[NDRVS];      // nullptr, if not valid
-    long drv_dirID[NDRVS];
-    bool drv_longnames[NDRVS];              // initialised with zeros
-    bool drv_readOnly[NDRVS];
-    HostXFSDrvType drv_type[NDRVS];
+    const char *drv_host_path[NDRIVES];       // nullptr, if not valid
+    const char *drv_atari_name[NDRIVES];      // nullptr, if not valid
+    long drv_dirID[NDRIVES];
+    bool drv_longnames[NDRIVES];              // initialised with zeros
+    bool drv_readOnly[NDRIVES];
+    HostXFSDrvType drv_type[NDRIVES];
     // Information to be passed back to MagiC kernel:
     MX_SYMLINK mx_symlink;
 
@@ -236,9 +235,10 @@ class CHostXFS
     static char toUpper(char c);
     static int getDrvNo(char c);
     int atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned buflen);
+    int hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned buflen);
 
     static int atariFnameToHostFname(const unsigned char *src, char *dst, unsigned buflen);
-    static void hostFnameToAtariFname(const char *src, unsigned char *dst);
+    static int hostFnameToAtariFname(const char *src, unsigned char *dst, unsigned buflen);
     static bool filename8p3_match(const char *pattern, const char *fname);
     static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name);
     static bool nameto_8_3 (const char *host_fname,
@@ -277,7 +277,7 @@ class CHostXFS
     INT32 xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz);
     INT32 xfs_dopendir(MAC_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd, uint16_t tosflag);
     INT32 xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,
-            uint16_t size, char *buf, XATTR *xattr, INT32 *xr);
+            uint16_t bufsiz, char *buf, XATTR *xattr, INT32 *xr);
     INT32 xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv);
     INT32 xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv);
     INT32 xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which);

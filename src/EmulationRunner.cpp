@@ -89,8 +89,11 @@ void EmulationRunner::Init(void)
 
     // we do not want SDL to catch events like SIGSEGV
     ret = SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
-    //SDL_StartTextInput();   // does nothing?
     assert(!ret);
+
+    // For whatever reason we need this to make non-US-keys working in X11. However, the
+    // dead-key problem is NOT solved with this call.
+    SDL_StopTextInput();
 }
 
 

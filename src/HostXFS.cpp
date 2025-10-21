@@ -173,15 +173,16 @@ char CHostXFS::toUpper(char c)
 * @brief [static] Convert Atari filename to host filename, including path separator
 *
 * @param[in]   src     Atari filename
-* @param[out]  dst     host filename
+* @param[out]  dst     buffer for host filename
+* @param[in]   buflen  buffer length, including end-of-string.
 *
-* @note: Maximum output path length is 1024 bytes, including end-of-string.
+* @return -1 on overflow, otherwise zero
 *
  ************************************************************************************************/
-void CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst)
+int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigned buflen)
 {
     char *buf_start = dst;
-    while (*src && (dst < buf_start + 1022))    // TODO: add overflow handling
+    while (*src && (dst < buf_start + buflen - 1))    // TODO: add overflow handling
     {
         if (*src == '\\')
         {
@@ -192,6 +193,66 @@ void CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst)
             *dst++ = CConversion::Atari2MacFilename(*src++);
     }
     *dst = EOS;
+    return (dst >= buf_start + buflen - 1) ? -1 : 0;
+}
+
+
+/** **********************************************************************************************
+*
+* @brief [static] Get drive number from Atari drive name
+*
+* @param[in]   c            first character of an Atari path
+*
+* @return 0..NDRVS-1 if valid (upper or lower case), otherwise -1.
+*
+ ************************************************************************************************/
+int CHostXFS::getDrvNo(char c)
+{
+    char drv = toUpper(c);
+    if ((drv >= 'A') && (drv <= 'Z'))
+        return drv - 'A';
+    else
+        return -1;
+}
+
+
+/** **********************************************************************************************
+*
+* @brief Convert Atari path to host path
+*
+* @param[in]   src          Atari path
+* @param[in]   default_drv  Atari drive, if src does not start with "A:" or similar
+* @param[out]  dst          buffer for host path
+* @param[in]   buflen       buffer length, including end-of-string.
+*
+* @return -1 on overflow, otherwise zero
+*
+ ************************************************************************************************/
+int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned buflen)
+{
+    int drv = getDrvNo(src[0]);
+    if ((drv >= 0) && (src[1] == ':'))
+    {
+        src += 2;
+    }
+    else
+    {
+        drv = default_drv;
+    }
+    const char *host_root = drv_host_path[drv];
+    if (host_root != nullptr)
+    {
+        if (strlen(host_root) >= buflen)
+        {
+            DebugError2("() - buffer overflow");
+            return -1;
+        }
+        strcpy(dst, host_root);
+        dst += strlen(host_root);
+        buflen -= strlen(host_root);
+    }
+
+    return atariFnameToHostFname(src, dst, buflen);
 }
 
 
@@ -494,10 +555,12 @@ bool CHostXFS::nameto_8_3
  *
  * @return 0 = OK   < 0 = error  > 0 in progress
  *
+ * @note This call has currently no functionality for the host file system.
+ *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_sync(uint16_t drv)
 {
-    DebugError2("NOT IMPLEMENTED (drv = %u)", drv);
+    DebugInfo2("(drv = %u)", drv);
 
     if (drv_changed[drv])
     {
@@ -508,8 +571,7 @@ INT32 CHostXFS::xfs_sync(uint16_t drv)
         return EDRIVE;
     }
 
-    // TODO: implement
-    return EINVFN;
+    return E_OK;
 }
 
 
@@ -788,7 +850,7 @@ INT32 CHostXFS::xfs_path2DD
     }
 
     char *p;
-    atariFnameToHostFname((const uint8_t *) pathname, pathbuf);
+    atariFnameToHostFname((const uint8_t *) pathname, pathbuf, 1024);
     DebugInfo2("() - host path is \"%s\"", pathbuf);
     if (mode == 0)
     {
@@ -1447,7 +1509,6 @@ INT32 CHostXFS::xfs_link
     }
     int dir_fd_from = hostFD_from->fd;
 
-
     HostHandle_t hhdl_to = dd_to->dirID;
     HostFD *hostFD_to = getHostFD(hhdl_to);
     if (hostFD_to == nullptr)
@@ -1675,6 +1736,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
 
     if (rwflag)
     {
+        // TODO: implement
         (void) attr;
         DebugError2("() changing attributes not implemented, yet");
         return EACCDN;
@@ -2579,20 +2641,16 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
  * @brief For Fsymlink(), create a symbolic link with name "to" that links to "name" in "dd"
  *
  * @param[in]  drv       Atari drive number 0..31
- * @param[in]  dd        Atari directory descriptor
- * @param[out] name      existing file or folder
- * @param[in]  to        new name for symlink
+ * @param[in]  dd        Atari directory descriptor where the new symlink shall be located
+ * @param[out] target    existing file or folder
+ * @param[in]  name      new name for symlink
  *
  * @return E_OK or negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const char *to)
+INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *target, const char *name)
 {
-    DebugError2("NOT IMPLEMENTED (drv = %u)", drv);
-    (void) dd;
-    (void) name;
-    (void) to;
-
+    DebugInfo2("(drv = %u)", drv);
     if (drv_changed[drv])
     {
         return E_CHNG;
@@ -2601,9 +2659,45 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const ch
     {
         return EDRIVE;
     }
+    if (drv_readOnly[drv])
+    {
+        return EWRPRO;
+    }
 
-    // TODO: implement
-    return EINVFN;
+    unsigned char dosname[20];
+    if (!drv_longnames[drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name, dosname, false, false);
+        name = (char *) dosname;
+    }
+
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd = hostFD->fd;
+
+    // convert Atari path to host path
+    char host_target[1024];
+    if (atariPath2HostPath((const unsigned char *) target, drv, host_target, 1024) >= 0)
+    {
+        target = host_target;
+    }
+    else
+    {
+        DebugError2("() : cannot convert Atari path \"%s\" to host path", target);
+    }
+
+    if (symlinkat(host_target, dir_fd, name))
+    {
+        DebugError2("() : symlinkat(\"%s\", \"%s\") -> %s", name, target, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+
+    return E_OK;
 }
 
 

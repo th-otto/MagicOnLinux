@@ -234,7 +234,10 @@ class CHostXFS
     // static functions
 
     static char toUpper(char c);
-    static void atariFnameToHostFname(const unsigned char *src, char *dst);
+    static int getDrvNo(char c);
+    int atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned buflen);
+
+    static int atariFnameToHostFname(const unsigned char *src, char *dst, unsigned buflen);
     static void hostFnameToAtariFname(const char *src, unsigned char *dst);
     static bool filename8p3_match(const char *pattern, const char *fname);
     static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name);
@@ -284,7 +287,7 @@ class CHostXFS
     INT32 xfs_readlink(uint16_t drv, MXFSDD *dd, const char *name,
                     char *buf, uint16_t bufsiz);
     INT32 xfs_dcntl(uint16_t drv, MXFSDD *dd, const char *name, uint16_t cmd, void *pArg, uint8_t *addrOffset68k);
-    INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const char *to);
+    INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, const char *target, const char *name);
 
     // File driver
 

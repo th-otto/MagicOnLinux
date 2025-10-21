@@ -2789,10 +2789,6 @@ INT32 CHostXFS::xfs_readlink
     {
         return EDRIVE;
     }
-    if (drv_readOnly[drv])
-    {
-        return EWRPRO;
-    }
 
     unsigned char dosname[20];
     if (!drv_longnames[drv])

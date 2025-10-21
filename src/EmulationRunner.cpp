@@ -91,8 +91,7 @@ void EmulationRunner::Init(void)
     ret = SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
     assert(!ret);
 
-    // For whatever reason we need this to make non-US-keys working in X11. However, the
-    // dead-key problem is NOT solved with this call.
+    // For whatever reason we need this to make non-US-keys working in X11.
     SDL_StopTextInput();
 }
 
@@ -991,9 +990,9 @@ void EmulationRunner::EventLoop(void)
             case SDL_KEYUP:
                 {
                     const SDL_KeyboardEvent *ev = (SDL_KeyboardEvent *) &event;
-                    DebugInfo("%s() - type %s", __func__, ev->type == SDL_KEYUP ? "up" : "down");
-                    DebugInfo("%s() - state %s", __func__, ev->state == SDL_PRESSED ? "pressed" : "released");
-                    DebugInfo("%s() - scancode = %08x, keycode = %08x, mod = %04x", __func__, ev->keysym.scancode, ev->keysym.sym, ev->keysym.mod);
+                    DebugInfo2("() - type %s", ev->type == SDL_KEYUP ? "up" : "down");
+                    DebugInfo2("() - state %s", ev->state == SDL_PRESSED ? "pressed" : "released");
+                    DebugInfo2("() - scancode = %08x (%d), keycode = %08x, mod = %04x", ev->keysym.scancode, ev->keysym.scancode, ev->keysym.sym, ev->keysym.mod);
                     (void) m_Emulator.SendSdlKeyboard(ev->keysym.scancode, ev->type == SDL_KEYUP);
                 }
                 // Quit when user presses a key.

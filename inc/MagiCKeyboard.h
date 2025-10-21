@@ -25,36 +25,11 @@
 #ifndef _MAGICKEYBOARD_INCLUDED_
 #define _MAGICKEYBOARD_INCLUDED_
 
-// System-Header
-// Programm-Header
-
-// Schalter
-
 class CMagiCKeyboard
 {
    public:
-	// Konstruktor
-	CMagiCKeyboard();
-	// Destruktor
-	~CMagiCKeyboard();
-	// Initialisieren
-	static int Init(void);
-	// Scancode umrechnen
-	unsigned char GetScanCode(uint32_t message);
-	static unsigned char SdlScanCode2AtariScanCode(int s);
-	#if 0
-	unsigned char GetModifierScanCode(uint32_t modifiers, bool *bAutoBreak);
-	#endif
-   private:
-   	uint32_t m_modifiers;
-	static const unsigned char *s_tabScancodeMac2Atari;
-	static const unsigned char s_convtab[128];
-	static const uint32_t s_modconvtab[16];
-#ifdef PATCH_DEAD_KEYS
-	char *m_OldKbTable;
-	size_t m_OldKbTableLen;
-#endif
+    static int init(void);
+    static unsigned char SdlScanCode2AtariScanCode(int s);
 };
 
 #endif
-

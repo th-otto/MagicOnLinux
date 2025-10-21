@@ -719,7 +719,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 
     // Tastaturtabelle lesen
 
-    (void) CMagiCKeyboard::Init();
+    (void) CMagiCKeyboard::init();
 
     mem68kSize = Preferences::AtariMemSize;
     numVideoLines = m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top + 1;
@@ -1314,9 +1314,9 @@ int CMagiC::EmuThread( void )
             }
             else
             {
-                bNewBstate[0] = m_MagiCMouse.SetNewButtonState(0, m_bInterruptMouseButton[0]);
-                bNewBstate[1] = m_MagiCMouse.SetNewButtonState(1, m_bInterruptMouseButton[1]);
-                bNewMpos =  m_MagiCMouse.SetNewPosition(m_InterruptMouseWhere);
+                bNewBstate[0] = CMagiCMouse::setNewButtonState(0, m_bInterruptMouseButton[0]);
+                bNewBstate[1] = CMagiCMouse::setNewButtonState(1, m_bInterruptMouseButton[1]);
+                bNewMpos =  CMagiCMouse::setNewPosition(m_InterruptMouseWhere);
                 bNewKey = (m_pKbRead != m_pKbWrite);
                 if (bNewBstate[0] || bNewBstate[1] || bNewMpos || bNewKey)
                 {
@@ -1542,19 +1542,19 @@ void CMagiC::SendShutdown(void)
 }
 
 
-/**********************************************************************
-*
-* Tastaturdaten schicken.
-*
-* Wird von der "main event loop" aufgerufen.
-* Löst einen Interrupt 6 aus.
-*
-* Rückgabe != 0, wenn die letzte Nachricht noch aussteht.
-*
-**********************************************************************/
-
-/*
-int CMagiC::SendKeyboard(uint32_t message, bool KeyUp)
+/** **********************************************************************************************
+ *
+ * @brief Send key press from event loop to the emulated machine
+ *
+ * @param[in]  sdlScanCode      SDL key scan code
+ * @param[in]  KeyUp            true: up, false: down
+ *
+ * @return non-zero, if keyboard buffer is full
+ *
+ * @note Called from main event loop
+ *
+ ************************************************************************************************/
+int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
 {
     unsigned char val;
 
@@ -1571,100 +1571,7 @@ int CMagiC::SendKeyboard(uint32_t message, bool KeyUp)
 
     if (m_bEmulatorIsRunning)
     {
-    //    CDebug::DebugInfo("CMagiC::SendKeyboard() --- message == %08x, KeyUp == %d", message, (int) KeyUp);
-        if (Preferences::KeyCodeForRightMouseButton)
-        {
-            if ((message >> 8) == Preferences::KeyCodeForRightMouseButton)
-            {
-                // Emulation der rechten Maustaste
-                return(SendMouseButton( 1, !KeyUp ));
-            }
-        }
-
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboard() --- Enter critical region m_KbCriticalRegionId");
-    #endif
-        OS_EnterCriticalRegion(m_KbCriticalRegionId, kDurationForever);
-        if (GetKbBufferFree() < 1)
-        {
-            OS_ExitCriticalRegion(m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
-    #endif
-            DebugError("CMagiC::SendKeyboard() --- Tastenpuffer ist voll");
-            return(1);
-        }
-
-        // Umrechnen in Atari-Scancode
-
-        val = m_MagiCKeyboard.GetScanCode(message);
-        if (!val)
-        {
-            OS_ExitCriticalRegion(m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
-    #endif
-            return 0;        // unbekannte Taste
-        }
-
-        if (KeyUp)
-            val |= 0x80;
-
-        PutKeyToBuffer(val);
-
-        // Interrupt-Vektor 70 für Tastatur/MIDI mitliefern
-
-        m_bInterruptMouseKeyboardPending = true;
-    #if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-    #else
-        m68k_StopExecution();
-    #endif
-
-        OS_SetEvent(            // aufwecken, wenn in "idle task"
-                &m_InterruptEventsId,
-                EMU_INTPENDING_KBMOUSE);
-
-        OS_ExitCriticalRegion(m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
-    #endif
-    }
-
-    return 0;    // OK
-}
-*/
-
-
-/**********************************************************************
- *
- * Tastaturdaten schicken.
- *
- * Wird von der "main event loop" aufgerufen.
- * Löst einen Interrupt 6 aus.
- *
- * Rückgabe != 0, wenn die letzte Nachricht noch aussteht.
- *
- **********************************************************************/
-
-int CMagiC::SendSdlKeyboard(int sdlScanCode, bool KeyUp)
-{
-    unsigned char val;
-
-
-#ifndef NDEBUG
-    if (CMagiC__sNoAtariInterrupts)
-    {
-        return 0;
-    }
-#endif
-#ifdef _DEBUG_NO_ATARI_KB_INTERRUPTS
-    return 0;
-#endif
-
-    if (m_bEmulatorIsRunning)
-    {
-        //    CDebug::DebugInfo("CMagiC::SendKeyboard() --- message == %08x, KeyUp == %d", message, (int) KeyUp);
+        //    CDebug::DebugInfo("CMagiC::SendKeyboard() --- message == %08x, keyUp == %d", message, (int) keyUp);
 
 #ifdef _DEBUG_KB_CRITICAL_REGION
         CDebug::DebugInfo("CMagiC::SendKeyboard() --- Enter critical region m_KbCriticalRegionId");
@@ -1680,9 +1587,9 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool KeyUp)
             return 1;
         }
 
-        // Umrechnen in Atari-Scancode
+        // Convert from SDL to Atari scancode
 
-        val = m_MagiCKeyboard.SdlScanCode2AtariScanCode(sdlScanCode);
+        val = CMagiCKeyboard::SdlScanCode2AtariScanCode(sdlScanCode);
         if (!val)
         {
             OS_ExitCriticalRegion(&m_KbCriticalRegionId);
@@ -1690,17 +1597,17 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool KeyUp)
             CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
 #endif
             DebugError2("() -- unknown key. Ignore key press");
-            return 0;        // unbekannte Taste
+            return 0;
         }
 
-        if (KeyUp)
+        if (keyUp)
         {
             val |= 0x80;
         }
 
         PutKeyToBuffer(val);
 
-        // Interrupt-Vektor 70 für Tastatur/MIDI mitliefern
+        // interrupt vector 70 for keyboard/MIDI
 
         m_bInterruptMouseKeyboardPending = true;
 #if defined(USE_ASGARD_PPC_68K_EMU)
@@ -1709,7 +1616,7 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool KeyUp)
         m68k_StopExecution();
 #endif
 
-        OS_SetEvent(            // aufwecken, wenn in "idle task"
+        OS_SetEvent(            // wake up if idle
                     &m_InterruptEventsId,
                     EMU_INTPENDING_KBMOUSE);
 
@@ -2132,7 +2039,8 @@ uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
     // Aktuelle Mausposition: Bildschirmmitte
     PtAtariMousePos.x = (short) ((m_pMagiCScreen->m_PixMap.bounds_right - m_pMagiCScreen->m_PixMap.bounds_left) >> 1);
     PtAtariMousePos.y = (short) ((m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top) >> 1);
-    m_MagiCMouse.Init(m_LineAVars, PtAtariMousePos);
+    CMagiCKeyboard::init();
+    CMagiCMouse::init(m_LineAVars, PtAtariMousePos);
 
     // Umgehe Fehler in Behnes MagiC-VDI. Bei Bildbreiten von 2034 Pixeln und true colour werden
     // fälschlicherweise 0 Bytes pro Bildschirmzeile berechnet. Bei größeren Bildbreiten werden
@@ -3833,7 +3741,7 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
         char buf[3];
         if (m_LineAVars != nullptr)
         {
-            ret = m_MagiCMouse.GetNewPositionAndButtonState(buf);
+            ret = CMagiCMouse::getNewPositionAndButtonState(buf);
         }
         if (ret)
         {

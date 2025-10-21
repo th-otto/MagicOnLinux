@@ -35,123 +35,131 @@
 #define CURX     -0x158
 #define CURY     -0x156
 
+unsigned char *CMagiCMouse::m_pLineAVars;
+Point CMagiCMouse::m_PtActAtariPos;             // current position
+Point CMagiCMouse::m_PtActHostPos;              // desired position
+bool CMagiCMouse::m_bActAtariMouseButton[2];    // current state
+bool CMagiCMouse::m_bActHostMouseButton[2];     // desired state
 
-/**********************************************************************
-*
-* Konstruktor
-*
-**********************************************************************/
 
-CMagiCMouse::CMagiCMouse()
+/** **********************************************************************************************
+ *
+ * @brief Initialisation
+ *
+ * @param[in]  pLineAVars       host pointer to emulated LineA variables
+ * @param[in]  PtPos            initial host mouse postion
+ *
+ * @return currently returns always zero
+ *
+ ************************************************************************************************/
+int CMagiCMouse::init(unsigned char *pLineAVars, Point PtPos)
 {
     m_bActAtariMouseButton[0] = m_bActAtariMouseButton[1] = false;
-    m_bActMacMouseButton[0] = m_bActMacMouseButton[1] = false;
-    m_pLineAVars = nullptr;
-}
+    m_bActHostMouseButton[0] = m_bActHostMouseButton[1] = false;
 
-
-/**********************************************************************
-*
-* Destruktor
-*
-**********************************************************************/
-
-CMagiCMouse::~CMagiCMouse()
-{
-}
-
-
-/**********************************************************************
-*
-* Initialisierung
-*
-**********************************************************************/
-
-void CMagiCMouse::Init(unsigned char *pLineAVars, Point PtPos)
-{
     m_pLineAVars = pLineAVars;
     m_PtActAtariPos = PtPos;
+
+    return 0;
 }
 
 
-/**********************************************************************
-*
-* Neue Mausposition �bergeben
-*
-* R�ckgabe: true = Mausbewegung notwendig false = keine Mausbewegung
-*
-**********************************************************************/
-
-bool CMagiCMouse::SetNewPosition(Point PtPos)
+/** **********************************************************************************************
+ *
+ * @brief Pass new mouse pointer position from host to emulated system
+ *
+ * @param[in]  PtPos    new host mouse postion
+ *
+ * @return true: Atari mouse must be moved, false: no movement necessary
+ *
+ ************************************************************************************************/
+bool CMagiCMouse::setNewPosition(Point PtPos)
 {
     if (m_pLineAVars != nullptr)
     {
-        m_PtActMacPos = PtPos;
+        m_PtActHostPos = PtPos;
         // get current Atari mouse position from Atari memory (big endian)
         m_PtActAtariPos.y = getAtariBE16(m_pLineAVars + CURY);
         m_PtActAtariPos.x = getAtariBE16(m_pLineAVars + CURX);
-        return (m_PtActMacPos.y != m_PtActAtariPos.y) || (m_PtActMacPos.x != m_PtActAtariPos.x);
+        return (m_PtActHostPos.y != m_PtActAtariPos.y) || (m_PtActHostPos.x != m_PtActAtariPos.x);
     }
     else
         return false;
 }
 
 
-/**********************************************************************
-*
-* Neuen Maustastenstatus �bergeben
-*
-* R�ckgabe: true = Maustasten-Aktualisierung notwendig / false = Maustasten unver�ndert
-*
-**********************************************************************/
-
-bool CMagiCMouse::SetNewButtonState(unsigned int NumOfButton, bool bIsDown)
+/** **********************************************************************************************
+ *
+ * @brief Pass new mouse button state from host to emulated system
+ *
+ * @param[in]  NumOfButton      number of mouse button (0 or 1)
+ * @param[in]  bIsDown          true: button pressed, false: button released
+ *
+ * @return true: Atari mouse button state must be updated, false: no update necessary
+ *
+ ************************************************************************************************/
+bool CMagiCMouse::setNewButtonState(unsigned int NumOfButton, bool bIsDown)
 {
     if (NumOfButton < 2)
-        m_bActMacMouseButton[NumOfButton] = bIsDown;
-    return m_bActMacMouseButton[NumOfButton] != m_bActAtariMouseButton[NumOfButton];
+    {
+        m_bActHostMouseButton[NumOfButton] = bIsDown;
+    }
+
+    return m_bActHostMouseButton[NumOfButton] != m_bActAtariMouseButton[NumOfButton];
 }
 
 
-/**********************************************************************
-*
-* Mauspaket liefern
-*
-* R�ckgabe: true = Mausbewegung notwendig false = keine Mausbewegung
-*
-**********************************************************************/
-
-bool CMagiCMouse::GetNewPositionAndButtonState(char packet[3])
+/** **********************************************************************************************
+ *
+ * @brief Generate a mouse packet for the Atari
+ *
+ * @param[out]  packet      buffer to get the mouse packet
+ *
+ * @return true: Atari mouse button or position state must be updated, false: no update necessary
+ *
+ * @note The Atari gets mouse packets like keyboard presses from its hardware interface,
+ *       mouse packets contain position and button information.
+ * @note Atari mouse packets allow relative mouse pointer movements of up to 127 pixels in
+ *       both directions. For farther distances more than one packet is needed.
+ *
+ ************************************************************************************************/
+bool CMagiCMouse::getNewPositionAndButtonState(char packet[3])
 {
     int xdiff,ydiff;
     char packetcode;
 
+    // Determine the way to go to the desired mouse pointer position
+    xdiff = m_PtActHostPos.x - m_PtActAtariPos.x;
+    ydiff = m_PtActHostPos.y - m_PtActAtariPos.y;
 
-    xdiff = m_PtActMacPos.x - m_PtActAtariPos.x;
-    ydiff = m_PtActMacPos.y - m_PtActAtariPos.y;
-
+    // Check if we already reached the desired position and if
+    // the Atari has also been informed about the current mouse
+    // button states.
     if ((!xdiff) && (!ydiff) &&
-         (m_bActAtariMouseButton[0] == m_bActMacMouseButton[0]) &&
-         (m_bActAtariMouseButton[1] == m_bActMacMouseButton[1]))
-        return false;    // keine Bewegung/Taste notwendig
+         (m_bActAtariMouseButton[0] == m_bActHostMouseButton[0]) &&
+         (m_bActAtariMouseButton[1] == m_bActHostMouseButton[1]))
+        return false;    // neither movement nor button update necessary
 
-    if (packet)
+    // compose a mouse packet
+    if (packet != nullptr)
     {
         packetcode = '\xf8';
-        if (m_bActMacMouseButton[0])
+        if (m_bActHostMouseButton[0])
             packetcode += 2;
-        if (m_bActMacMouseButton[1])
+        if (m_bActHostMouseButton[1])
             packetcode += 1;
-        m_bActAtariMouseButton[0] = m_bActMacMouseButton[0];
-        m_bActAtariMouseButton[1] = m_bActMacMouseButton[1];
+        m_bActAtariMouseButton[0] = m_bActHostMouseButton[0];
+        m_bActAtariMouseButton[1] = m_bActHostMouseButton[1];
         *packet++ = packetcode;
 
+        // The mouse packet allows horizontal movements up to 127 pixels.
         if (abs(xdiff) < 128)
             *packet = (char) xdiff;
         else
             *packet = (xdiff > 0) ? (char) 127 : (char) -127;
         m_PtActAtariPos.x += *packet++;
 
+        // The mouse packet allows vertical movements up to 127 pixels.
         if (abs(ydiff) < 128)
             *packet = (char) ydiff;
         else

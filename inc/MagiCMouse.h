@@ -29,25 +29,17 @@
 class CMagiCMouse
 {
    public:
-    // Konstruktor
-    CMagiCMouse();
-    // Destruktor
-    ~CMagiCMouse();
-    // Initialisierung
-    void Init(unsigned char *pLineAVars, Point PtPos);
-    // Neue Mausposition �bergeben
-    bool SetNewPosition(Point PtPos);
-    // Neuen Maustastenstatus �bergeben
-    bool SetNewButtonState(unsigned int NumOfButton, bool bIsDown);
-    // packet abholen
-    bool GetNewPositionAndButtonState(char packet[3]);
+    static int init(unsigned char *pLineAVars, Point PtPos);
+    static bool setNewPosition(Point PtPos);
+    static bool setNewButtonState(unsigned int NumOfButton, bool bIsDown);
+    static bool getNewPositionAndButtonState(char packet[3]);
 
    private:
-    unsigned char *m_pLineAVars;
-    Point m_PtActAtariPos;        // Ist
-    Point m_PtActMacPos;        // Soll
-    bool m_bActAtariMouseButton[2];        // Ist
-    bool m_bActMacMouseButton[2];        // Soll
+    static unsigned char *m_pLineAVars;
+    static Point m_PtActAtariPos;           // current
+    static Point m_PtActHostPos;            // goal
+    static bool m_bActAtariMouseButton[2];  // current
+    static bool m_bActHostMouseButton[2];   // goal
 };
 
 #endif

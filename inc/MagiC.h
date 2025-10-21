@@ -147,8 +147,6 @@ class CMagiC
     void OS_WaitForEvent(uint32_t *event, uint32_t *flags);
 
     CHostXFS m_HostXFS;              // XFS
-    CMagiCKeyboard m_MagiCKeyboard;  // Atari keyboard
-    CMagiCMouse m_MagiCMouse;        // Atari mouse
     uint32_t m_CurrModifierKeys;     // current state of Shift/Cmd/Alt...
     bool m_bBIOSSerialUsed;
     bool m_bBusErrorPending;

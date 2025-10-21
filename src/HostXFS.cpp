@@ -2780,12 +2780,7 @@ INT32 CHostXFS::xfs_readlink
     uint16_t bufsiz
 )
 {
-    DebugError2("NOT IMPLEMENTED (drv = %u)", drv);
-    (void) dd;
-    (void) name;
-    (void) buf;
-    (void) bufsiz;
-
+    DebugInfo2("(drv = %u, name = \"%s\")", drv, name);
     if (drv_changed[drv])
     {
         return E_CHNG;
@@ -2794,9 +2789,46 @@ INT32 CHostXFS::xfs_readlink
     {
         return EDRIVE;
     }
+    if (drv_readOnly[drv])
+    {
+        return EWRPRO;
+    }
 
-    // TODO: implement
-    return EINVFN;
+    unsigned char dosname[20];
+    if (!drv_longnames[drv])
+    {
+        // no long filenames supported, convert to upper case 8+3
+        nameto_8_3(name, dosname, false, false);
+        name = (char *) dosname;
+    }
+
+    HostHandle_t hhdl = dd->dirID;
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        return EINTRN;
+    }
+    int dir_fd = hostFD->fd;
+
+    char host_target[1024];
+    if (readlinkat(dir_fd, name, host_target, 1024))
+    {
+        DebugError2("() : readlinkat(\"%s\") -> %s", name, strerror(errno));
+        return CConversion::Host2AtariError(errno);
+    }
+
+    // convert host path to Atari path
+    if (hostPath2AtariPath(host_target, drv, (unsigned char *) buf, bufsiz) < 0)
+    {
+        DebugError2("() : cannot convert host path \"%s\" to Atari path", host_target);
+        if (bufsiz < strlen(host_target) + 1)
+        {
+            return ERANGE;  // buffer too small
+        }
+        strcpy(buf, host_target);   // just copy host path
+    }
+
+    return E_OK;
 }
 
 

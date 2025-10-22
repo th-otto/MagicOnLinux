@@ -319,14 +319,22 @@ int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char uns
     for (drv = 0; drv < NDRIVES; drv++)
     {
         const char *host_root = drv_host_path[drv];
-        unsigned len = strlen(host_root);
-        if (!strncmp(src, host_root, len))
+        if (host_root != nullptr)
         {
-            *dst++ = drv + 'A';
-            *dst++ = ':';
-            *dst++ = '\\';
-            buflen -= 3;
-            break;
+            unsigned len = strlen(host_root);
+            if (!strncmp(src, host_root, len))
+            {
+                *dst++ = drv + 'A';
+                *dst++ = ':';
+                *dst++ = '\\';
+                buflen -= 3;
+                src += len;
+                if (src[0] == '/')
+                {
+                    src++;  // avoid double separator
+                }
+                break;
+            }
         }
     }
 
@@ -2807,10 +2815,16 @@ INT32 CHostXFS::xfs_readlink
     int dir_fd = hostFD->fd;
 
     char host_target[1024];
-    if (readlinkat(dir_fd, name, host_target, 1024))
+    int nbytes = readlinkat(dir_fd, name, host_target, sizeof(host_target) - 1);
+    if (nbytes < 0)
     {
         DebugError2("() : readlinkat(\"%s\") -> %s", name, strerror(errno));
         return CConversion::Host2AtariError(errno);
+    }
+    host_target[nbytes] = '\0';
+    if (nbytes == sizeof(host_target) - 1)
+    {
+        DebugWarning2("() : The symlink target probably was truncated: \"%s\"", host_target);
     }
 
     // convert host path to Atari path

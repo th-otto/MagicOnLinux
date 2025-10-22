@@ -106,8 +106,8 @@ bool Preferences::bHideHostMouse = false;
 bool Preferences::bAutoStartMagiC = true;
 unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3
 const char *Preferences::drvPath[NDRIVES];
-char Preferences::AtariKernelPath[1024] = "/home/and/Documents/Atari-rootfs/MagicMacX.OS";
-char Preferences::AtariRootfsPath[1024] = "/home/and/Documents/Atari-rootfs";
+char Preferences::AtariKernelPath[1024] = "~/Documents/Atari-rootfs/MagicMacX.OS";
+char Preferences::AtariRootfsPath[1024] = "~/Documents/Atari-rootfs";
 bool Preferences::AtariHostHome = true;                      // Atari H: as host home
 bool Preferences::AtariHostHomeRdOnly = true;
 bool Preferences::AtariHostRoot = true;                      // Atari M: as host root
@@ -129,6 +129,13 @@ unsigned Preferences::ScreenRefreshFrequency = 60;
 char Preferences::AtariScrapFileUnixPath[1024];
 
 
+/** **********************************************************************************************
+ *
+ * @brief Get home directory for Atari drive H:
+ *
+ * @return pointer to home directory path
+ *
+ ************************************************************************************************/
 static const char *get_home()
 {
     const char *homedir;
@@ -141,14 +148,18 @@ static const char *get_home()
 }
 
 
-/**********************************************************************
-*
-* Initialisierung: Bestimmt den "Preferences"-Ordner und legt die Datei
-* fest.
-* => 0 = OK, sonst = Fehler
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Write, load and evaluate the configuration file
+ *
+ * @param[in] rewrite_conf      overwrite existing configuration file with default values
+ *
+ * @return zero or number of errors
+ *
+ * @note The configuration file is created with default values if it does not
+ *       exist or if requested.
+ *
+ ************************************************************************************************/
 int Preferences::Init(bool rewrite_conf)
 {
     for (int i = 0; i < NDRIVES; i++)
@@ -351,6 +362,43 @@ static int eval_quotated_str_bool(bool *out, const char **line)
 }
 
 
+// replace leading '~/' in path with home directory
+static int eval_home(char *path, unsigned maxlen)
+{
+    if ((path[0] == '~') && (path[1] == '/'))
+    {
+        const char *home = get_home();
+        if (home != nullptr)
+        {
+            unsigned lenh = strlen(home);
+            unsigned lenp = strlen(path) + 1;   // including end-of-string
+
+            // subtract 1 for '~' which we will remove
+            if (lenp + lenh - 1 > maxlen)
+            {
+                fprintf(stderr, "Overflow in path: %s", path);
+                return 1;
+            }
+            memmove(path + lenh - 1, path, lenp);
+            memcpy(path, home, lenh);
+        }
+    }
+
+    return 0;
+}
+
+
+// like eval_quotated_str(), but evaluates leading '~' for user home directory
+static int eval_quotated_str_path(char *out, unsigned maxlen, const char **in)
+{
+    int num_errors = eval_quotated_str(out, maxlen, in);
+    if (num_errors == 0)
+    {
+        num_errors += eval_home(out, maxlen);
+    }
+    return num_errors;
+}
+
 
 /** **********************************************************************************************
  *
@@ -425,11 +473,11 @@ int Preferences::evaluatePreferencesLine(const char *line)
     switch(var)
     {
         case VAR_ATARI_KERNEL_PATH:
-            num_errors += eval_quotated_str(AtariKernelPath, sizeof(AtariKernelPath), &line);
+            num_errors += eval_quotated_str_path(AtariKernelPath, sizeof(AtariKernelPath), &line);
             break;
 
         case VAR_ATARI_ROOTFS_PATH:
-            num_errors += eval_quotated_str(AtariRootfsPath, sizeof(AtariRootfsPath), &line);
+            num_errors += eval_quotated_str_path(AtariRootfsPath, sizeof(AtariRootfsPath), &line);
             break;
 
         case VAR_ATARI_H_HOME:
@@ -449,7 +497,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
             break;
 
         case VAR_ATARI_TEMP_PATH:
-            num_errors += eval_quotated_str(AtariTempFilesUnixPath, sizeof(AtariTempFilesUnixPath), &line);
+            num_errors += eval_quotated_str_path(AtariTempFilesUnixPath, sizeof(AtariTempFilesUnixPath), &line);
             break;
 
         case VAR_ATARI_PRINT_CMD:
@@ -457,7 +505,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
             break;
 
         case VAR_ATARI_SERIAL_DEV_PATH:
-            num_errors += eval_quotated_str(szAuxPath, sizeof(szAuxPath), &line);
+            num_errors += eval_quotated_str_path(szAuxPath, sizeof(szAuxPath), &line);
             break;
 
         case VAR_ATARI_SCREEN_WIDTH:
@@ -530,7 +578,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
                     line++;
                 }
                 char pathbuf[1024];
-                num_errors += eval_quotated_str(pathbuf, sizeof(pathbuf), &line);
+                num_errors += eval_quotated_str_path(pathbuf, sizeof(pathbuf), &line);
                 if (num_errors == 0)
                 {
                     setDrvPath(drv, pathbuf);

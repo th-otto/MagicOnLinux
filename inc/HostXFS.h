@@ -287,7 +287,7 @@ class CHostXFS
     INT32 xfs_readlink(uint16_t drv, MXFSDD *dd, const char *name,
                     char *buf, uint16_t bufsiz);
     INT32 xfs_dcntl(uint16_t drv, MXFSDD *dd, const char *name, uint16_t cmd, void *pArg, uint8_t *addrOffset68k);
-    INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, const char *target, const char *name);
+    INT32 xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const char *target);
 
     // File driver
 

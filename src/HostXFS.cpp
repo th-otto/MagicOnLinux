@@ -2699,13 +2699,13 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
  *
  * @param[in]  drv       Atari drive number 0..31
  * @param[in]  dd        Atari directory descriptor where the new symlink shall be located
- * @param[out] target    existing file or folder
- * @param[in]  name      new name for symlink
+ * @param[in]  name      name for a symlink file to be created
+ * @param[out] target    file or folder, hopefully existing, but does not have to
  *
  * @return E_OK or negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *target, const char *name)
+INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const char *target)
 {
     DebugInfo2("(drv = %u)", drv);
     if (drv_changed[drv])

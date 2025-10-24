@@ -215,14 +215,16 @@ class CHostXFS
     UINT32 DriveToDeviceCode (short drv);
     long EjectDevice (short opcode, long device);
 
-    // lokale Variablen:
-    // -----------------
+    //
+    // attributes
+    //
 
     bool drv_changed[NDRIVES];
     bool drv_must_eject[NDRIVES];
     uint32_t xfs_drvbits;
     const char *drv_host_path[NDRIVES];       // nullptr, if not valid
     const char *drv_atari_name[NDRIVES];      // nullptr, if not valid
+    const uint32_t new_file_perm = 0600;      // Unix permissions for new files: rw-rw---- (user and group have rw access)
     long drv_dirID[NDRIVES];
     bool drv_longnames[NDRIVES];              // initialised with zeros
     bool drv_readOnly[NDRIVES];

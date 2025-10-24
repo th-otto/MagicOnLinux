@@ -1354,16 +1354,16 @@ INT32 CHostXFS::xfs_fopen
         return EINTRN;
     }
 
-    int host_omode = -1;
+    int host_oflags = -1;
 
 
     if (omode & OM_RPERM)
     {
-        host_omode = O_RDONLY;
+        host_oflags = O_RDONLY;
     }
     if (omode & OM_WPERM)
     {
-        host_omode = (host_omode == O_RDONLY) ? O_RDWR : O_WRONLY;
+        host_oflags = (host_oflags == O_RDONLY) ? O_RDWR : O_WRONLY;
         if (drv_readOnly[drv])
         {
             DebugInfo2("() -> EWRPRO");
@@ -1377,7 +1377,7 @@ INT32 CHostXFS::xfs_fopen
             DebugInfo2("() -> EWRPRO");
             return EWRPRO;
         }
-        host_omode |= O_APPEND;
+        host_oflags |= O_APPEND;
     }
     if (omode & _ATARI_O_CREAT)
     {
@@ -1386,7 +1386,7 @@ INT32 CHostXFS::xfs_fopen
             DebugInfo2("() -> EWRPRO");
             return EWRPRO;
         }
-        host_omode |= O_CREAT;
+        host_oflags |= O_CREAT;
     }
     if (omode & _ATARI_O_TRUNC)
     {
@@ -1395,7 +1395,7 @@ INT32 CHostXFS::xfs_fopen
             DebugInfo2("() -> EWRPRO");
             return EWRPRO;
         }
-        host_omode |= O_TRUNC;
+        host_oflags |= O_TRUNC;
     }
 
     /*
@@ -1414,10 +1414,7 @@ INT32 CHostXFS::xfs_fopen
         return ENHNDL;
     }
 
-    // TODO: this is a hack. It creates an endless loop
-    //off_t lret = lseek(dir_fd, 0, SEEK_SET);
-
-    file_hostFD->fd = openat(dir_fd, name, host_omode);
+    file_hostFD->fd = openat(dir_fd, name, host_oflags, new_file_perm);
     if (file_hostFD->fd < 0)
     {
         DebugWarning2("() : openat(\"%s\") -> %s", name, strerror(errno));
@@ -1784,6 +1781,22 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
     int res = fstatat(dir_fd, name, &statbuf, AT_EMPTY_PATH);
     if (res < 0)
     {
+        #if 0
+        // TODO: versagt bei "T:\ATARI\DRECK"
+        {
+            char pathname[32];
+            char pathbuf[1024];
+            sprintf(pathname, "/proc/self/fd/%u", dir_fd);
+            ssize_t size = readlink(pathname, pathbuf, sizeof(pathbuf));
+            if (size < 0)
+            {
+                DebugWarning2("() : readlink() -> %s", strerror(errno));
+                return EINTRN;
+            }
+            pathbuf[size] = '\0';   // necessary
+            DebugError2("() : fstatat() fails on fd \"%s\"", pathbuf);
+        }
+        #endif
         DebugWarning2("() : fstatat() -> %s", strerror(errno));
         return CConversion::Host2AtariError(errno);
     }

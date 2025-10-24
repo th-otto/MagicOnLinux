@@ -1,0 +1,92 @@
+# Atari X
+<img alt="Logo" src="assets/Logo.png" width="80">
+
+An Atari ST/TT emulator for **Linux**.
+
+This is kind of successor of:
+
+* *MagiC* for Atari,
+* *MagicMac* for Classic Mac OS,
+* *MagicMac X* for MacOS X on PPC and
+* *AtariX* for macOS up to 10.13 "High Sierra".
+
+# How To Build (Linux, tested with Ubuntu 24.04)
+
+- sudo apt install libsdl2-dev
+- cd ~/Documents
+- git clone https://gitlab.com/AndreasK/magiclinux
+- git clone https://gitlab.com/AndreasK/AtariX.git
+- mkdir magiclinux/build
+- pushd magiclinux/build
+- cmake -DCMAKE_BUILD_TYPE=Release ..
+- make
+- popd
+- cp -p AtariX/src/AtariX-MT/AtariX/English.lproj/MagicMacX.OS Atari-rootfs/
+- cp -rp AtariX/src/AtariX-MT/AtariX/rootfs-common Atari-rootfs
+- rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs Atari-rootfs/
+
+Replace "English" with "de" or "fr" for German or French.
+
+You might replace CMAKE_BUILD with "Debug" or omit this parameter.
+
+Alternatively you can put your Atari root file system (drive C:) and kernel (MagicMacX.OS) anywhere configure the emulator accordingly.
+
+# How To Run
+
+Run the application with magiclinux/build/magiclinux.
+
+Use parameter "-h" or "--help" for an explanation of the parameters.
+
+Use parameter "-open_conf" to open the parameter file in the gnome-text-editor. If you prefer a different editor, modify main.cpp accordingly.
+
+Use parameter "-rewrite_conf" to overwrite the existing configuration with a default file.
+
+Source files for the Atari code (MagiC kernel and applications) are also available in their respective repository, see below.
+
+# Screenshots
+<img alt="No" src="assets/Atari-Desktop - BW.png" width="1024">
+<img alt="Yes" src="assets/Settings.png" width="640">
+
+
+# Supported
+
+* Emulates MC68020 processor
+* Arbitrary screen sizes and colour depths
+* Zoom, helpful for original 640x400 or 640x200 resolution
+* Full access to host file system, up to root
+
+# Bugs and Agenda
+
+* Include German, French and English localisation of emulator and emulated system without needing to clone AtariX repository.
+* Add parameter for choosing the configuration file.
+* Add parameter for seleciting the editor for "-open_conf".
+* Ability to mount disk and floppy disk images.
+* Musashi emulator sources should be synchronised with latest version (see below).
+* Atari root file system (like MAGIC_C) folder should be automatically created and localised.
+* Clean shutdown of emulated system.
+* Tell me.
+
+# License
+
+The MagicLinux emulator is licensed according to GPLv3, see LICENSE file.
+
+# External Licenses
+
+**AtariX application for older macOS, multilingual root FS and sources**
+see: https://gitlab.com/AndreasK/AtariX
+
+**Atari Sources**
+see: https://gitlab.com/AndreasK/Atari-Mac-MagiC-Sources
+
+**Musashi 68k emulator in C**
+Copyright 1998-2002 Karl Stenerud
+Source: https://github.com/kstenerud/Musashi
+License: https://github.com/kstenerud/Musashi/readme.txt
+
+**SDL library:**
+Source: https://www.libsdl.org
+Copyright: paultaylor@jthink.net
+License: http://www.gzip.org/zlib/zlib_license.html
+
+**Atari VDI Drivers**
+Copyright: Wilfried und Sven Behne, License: mit freundlicher Genehmigung

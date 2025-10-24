@@ -1,7 +1,7 @@
-# Atari X
+# MagicOnLinuX
 <img alt="Logo" src="assets/Logo.png" width="80">
 
-An Atari ST/TT emulator for **Linux**.
+An Atari ST/TT emulator for Linux.
 
 This is kind of successor of:
 
@@ -9,6 +9,8 @@ This is kind of successor of:
 * *MagicMac* for Classic Mac OS,
 * *MagicMac X* for MacOS X on PPC and
 * *AtariX* for macOS up to 10.13 "High Sierra".
+
+Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution would have been to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
 
 # How To Build (Linux, tested with Ubuntu 24.04)
 
@@ -64,6 +66,7 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Musashi emulator sources should be synchronised with latest version (see below).
 * Atari root file system (like MAGIC_C) folder should be automatically created and localised.
 * Clean shutdown of emulated system.
+* Add support for compilation on macOS.
 * Tell me.
 
 # License

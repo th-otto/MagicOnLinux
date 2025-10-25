@@ -24,16 +24,15 @@
 
 #include "Atari.h"
 
-const char *textAtari2Host(const unsigned char *atari_text);
-
 class CConversion
 {
    public:
 	// Initialisierung
-	static int Init( void );
+	static void init( void );
 	static void Atari2MacFilename(unsigned char *s);
 	static unsigned char Atari2MacFilename(unsigned char c);
-	static char charAtari2Host(unsigned char c);
+    static unsigned charAtari2Host(unsigned char c, char *dst);
+    static const char *textAtari2Host(const unsigned char *atari_text);
 	static void Mac2AtariFilename(unsigned char *s);
 	static unsigned char Mac2AtariFilename(unsigned char c);
 	static unsigned char Mac2AtariText(unsigned char c);

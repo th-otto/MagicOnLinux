@@ -22,6 +22,7 @@
 *
 */
 
+#include <assert.h>
 #include <errno.h>
 #include <time.h>
 #include "config.h"
@@ -43,6 +44,22 @@
 // 0xe0 =  α   β   Γ   π   Σ   σ   µ   τ   Φ   Θ   Ω   δ   ∮   φ   ∈   ∩
 // 0xf0 =  ≡   ±   ≥   ≤   ⌠   ⌡   ÷   ≈   °   •   ·   √   ⁿ   ²   ³   ¯
 
+// Atari characters from 0x80 to 0xff, separated by a zero byte. As some of these
+// characters are encoded in one byte, others in two, this string is converted to
+// a table on startup.
+// Hewbrew characters are not translated and marked as 'X'.
+static const char *atari2utf8 =
+    /* 0x80 */  "Ç ü é â ä à å ç ê ë è ï î ì Ä Å "
+    /* 0x90 */  "É æ Æ ô ö ò û ù ÿ Ö Ü ¢ £ ¥ ß ƒ "
+    /* 0xa0 */  "á í ó ú ñ Ñ ª º ¿ ⌐ ¬ ½ ¼ ¡ « » "
+    /* 0xb0 */  "ã õ Ø ø œ Œ À Ã Õ ¨ ´ † ¶ © ® ™ "
+    /* 0xc0 */  "ĳ Ĳ X X X X X X X X X X X X X X "
+    /* 0xd0 */  "X X X X X X X X X X X X X § ∧ ∞ "
+    /* 0xe0 */  "α β Γ π Σ σ µ τ Φ Θ Ω δ ∮ φ ∈ ∩ "
+    /* 0xf0 */  "≡ ± ≥ ≤ ⌠ ⌡ ÷ ≈ ° • · √ ⁿ ² ³ ¯";
+static unsigned atari2utf8Index[0x80];
+
+#if 0
 static const unsigned char tabAtari2HostChar[256] =
 {
 //            0     1     2     3     4     5     6     7     8     9     A     B     C     D     E     F
@@ -63,6 +80,7 @@ static const unsigned char tabAtari2HostChar[256] =
 /* 0xe0 */    0x2A, 0xA7, 0x2A, 0xB9, 0xB7, 0x2A, 0xB5, 0x2A, 0x2A, 0x2A, 0xBD, 0xB6, 0x2A, 0x2A, 0x2A, 0x2A, /* *�*��*�***��**** */
 /* 0xf0 */    0x2A, 0xB1, 0xB3, 0xB2, 0xBA, 0xBA, 0xD6, 0xC5, 0xFB, 0xFA, 0xA5, 0xC3, 0x2A, 0x2A, 0x2A, 0xF8  /* *�����������***� */
 };
+#endif
 
 // data 'HEXA' (131, "Text ATARI->Mac")
 unsigned const char CConversion::s_tabAtari2MacText[256] =
@@ -149,16 +167,66 @@ unsigned const char CConversion::s_tabMac2AtariFilename[256] =
 };
 
 
+/*
+    If a byte starts with a 0 bit, it's a single byte value less than 128.
+    If it starts with 11, it's the first byte of a multi-byte sequence,
+      and the number of 1 bits at the start indicates how many bytes there
+      are in total (110xxxxx has two bytes, 1110xxxx has three and 11110xxx has four).
+    If it starts with 10, it's a continuation byte.
+
+*/
+
+// return zero for continuation byte!
+static unsigned utf8Len(unsigned char c)
+{
+    if ((c & 0x80) == 0)
+    {
+        return 1;       // ASCII starts with %01 or %00
+    }
+    if ((c & 0xc0) == 0x80)
+    {
+        return 0;       // continuation starts with %10
+    }
+    c <<= 2;            // starts with %11
+    unsigned len = 2;
+    while(c & 0x80)
+    {
+        c <<= 1;
+        len++;
+    }
+    return len;
+}
+
 
 /**********************************************************************
 *
-* statisch: Initialisieren
+* build conversion tables
+*
 *
 **********************************************************************/
 
-int CConversion::Init(void)
+void CConversion::init(void)
 {
-    return(0);
+    static const char *tab = atari2utf8;
+    static const char *tab_e = atari2utf8 + strlen(atari2utf8);
+
+    unsigned index = 0;
+    while ((tab < tab_e) && (index < 128))
+    {
+        atari2utf8Index[index++] = tab - atari2utf8;
+        unsigned len = utf8Len(*tab);
+        assert(len > 0);
+
+        // skip utf8 character
+        tab += len;
+
+        // skip spaces
+        while (*tab == ' ')
+        {
+            tab++;
+        }
+    }
+    assert(index == 128);
 }
 
 
@@ -210,73 +278,40 @@ unsigned char CConversion::Mac2AtariFilename(unsigned char c)
 }
 
 
-/**********************************************************************
-*
-* statisch: Text konvertieren Atari -> host
-*
-**********************************************************************/
-
-char CConversion::charAtari2Host(unsigned char c)
+// convert single Atari character to utf8 array and return length
+unsigned CConversion::charAtari2Host(unsigned char c, char *dst)
 {
-    // return(s_tabAtari2MacText[c]);
-    return tabAtari2HostChar[c];
+    unsigned len;
+
+    if (c < 128)
+    {
+        *dst = c;
+        len = 1;
+    }
+    else
+    {
+        unsigned index = atari2utf8Index[c - 128];
+        const char *utf8 = atari2utf8 + index;
+        len = utf8Len(*utf8);
+        assert(len < 5);
+        memcpy(dst, utf8, len);
+    }
+
+    return len;
 }
 
-
-const char *textAtari2Host(const unsigned char *atari_text)
+// convert Atari string to utf8 string and return it
+const char *CConversion::textAtari2Host(const unsigned char *atari_text)
 {
     static char buf[1024];
 
     char *p = buf;
-    char *pe = buf + 1022;  // leave space for two UTF8 bytes!
+    char *pe = buf + 1019;  // leave space for four UTF8 bytes and end-of-string!
     unsigned char c;
     while ((c = *atari_text++) && (p < pe))
     {
-        if (c == 0x81)
-        {
-            *p++ = '\xc3';  // ü
-            *p++ = '\xbc';
-        }
-        else
-        if (c == 0x84)
-        {
-            *p++ = '\xc3';  // ä
-            *p++ = '\xa4';
-        }
-        else
-        if (c == 0x8e)
-        {
-            *p++ = '\xc3';  // Ä
-            *p++ = '\x84';
-        }
-        else
-        if (c == 0x94)
-        {
-            *p++ = '\xc3';  // ö
-            *p++ = '\xb6';
-        }
-        else
-        if (c == 0x99)
-        {
-            *p++ = '\xc3';  // Ö
-            *p++ = '\x96';
-        }
-        else
-        if (c == 0x9a)
-        {
-            *p++ = '\xc3';  // Ü
-            *p++ = '\x9c';
-        }
-        else
-        if (c == 0x9e)
-        {
-            *p++ = '\xc3';  // ß
-            *p++ = '\x9f';
-        }
-        else
-        {
-            *p++ = tabAtari2HostChar[c];
-        }
+        unsigned len = charAtari2Host(c, p);
+        p += len;
     }
     *p = '\0';
     return buf;

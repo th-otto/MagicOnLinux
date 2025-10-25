@@ -25,6 +25,8 @@
 #ifndef ATARI_H_INCLUDED
 #define ATARI_H_INCLUDED
 
+#include <stdint.h>
+
 // define UINT32 et cetera
 #include "osd_cpu.h"
 

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "Debug.h"
+#include "conversion.h"
 #include "preferences.h"
 #include "MagiCPrint.h"
 #include "MagiCSerial.h"
@@ -47,6 +48,7 @@ int main(int argc, const char *argv[])
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }
+    CConversion::init();
     CMagiCPrint::init();
     CMagiCSerial::init();
     EmulationInit();

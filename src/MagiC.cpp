@@ -2558,7 +2558,7 @@ uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
 {
     const unsigned char *text = addrOffset68k + params;
     //printf((char *) text);
-    DebugInfo2("(%s)", textAtari2Host(text));
+    DebugInfo2("(%s)", CConversion::textAtari2Host(text));
     return 0;
 }
 

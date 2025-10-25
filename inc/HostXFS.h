@@ -307,7 +307,7 @@ class CHostXFS
 
     // auxiliar functions
 
-    INT32 hostpath2HostFD(HostFD *reldir, uint16_t rel_hhdl, const char *path, int flags, HostHandle_t *hhdl);
+    INT32 hostpath2HostFD(uint16_t drv, HostFD *reldir, uint16_t rel_hhdl, const char *path, int flags, HostHandle_t *hhdl);
     int _snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_DTA *dta);
 
     void setDrivebits (uint32_t newbits, uint8_t *addrOffset68k);

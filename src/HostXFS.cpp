@@ -51,6 +51,13 @@
 #include "emulation_globals.h"
 #include "conversion.h"
 
+#if !defined(_DEBUG_XFS)
+ #undef DebugInfo
+ #define DebugInfo(...)
+ #undef DebugInfo2
+ #define DebugInfo2(...)
+#endif
+
 #if defined(_DEBUG)
 //#define DEBUG_VERBOSE
 #endif
@@ -67,12 +74,6 @@ char *trigger_ProcessStartAddr = 0;
 unsigned trigger_ProcessFileLen = 0;
 extern void _DumpAtariMem(const char *filename);
 #endif
-
-// suppress Host XFS debug info
-//#undef DebugInfo
-//#define DebugInfo(...)
-//#undef DebugInfo2
-//#define DebugInfo2(...)
 
 
 /** **********************************************************************************************
@@ -136,6 +137,32 @@ static void __dump(const unsigned char *p, int len)
     }
 }
 #endif
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get host path from directory fd
+ *
+ * @param[in] dir_fd    host directory file descriptor
+ * @param[in] pathbuf   buffer for host path
+ * @param[in] bufsiz    buffer size
+ *
+ * @return E_OK or negative error code
+ *
+ ************************************************************************************************/
+static INT32 hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
+{
+    char pathname[32];
+    sprintf(pathname, "/proc/self/fd/%u", dir_fd);
+    ssize_t size = readlink(pathname, pathbuf, bufsiz);
+    if (size < 0)
+    {
+        DebugWarning2("() : readlink() -> %s", strerror(errno));
+        return EINTRN;
+    }
+    pathbuf[size] = '\0';   // necessary
+    return E_OK;
+}
 
 
 /** **********************************************************************************************
@@ -730,6 +757,7 @@ void CHostXFS::xfs_pterm(PD *pd)
  *
  * @brief Helper function to open a host path, relative or absolute
  *
+ * @param[in]  drv          Atari drive number 0..25
  * @param[in]  reldir       relative directory or nullptr
  * @param[in]  rel_hhdl     hhdl for relative directory
  * @param[in]  path         host path
@@ -741,6 +769,7 @@ void CHostXFS::xfs_pterm(PD *pd)
  ************************************************************************************************/
 INT32 CHostXFS::hostpath2HostFD
 (
+    uint16_t drv,
     HostFD *reldir,
     uint16_t rel_hhdl,
     const char *path,
@@ -785,14 +814,37 @@ INT32 CHostXFS::hostpath2HostFD
             return E_OK;
         }
 
-        hostFD->fd = openat(rel_fd, path, flags);
-        if (hostFD->fd < 0)
+        int dir_fd = openat(rel_fd, path, flags);
+        if (dir_fd < 0)
         {
             DebugWarning2("() : openat(\"%s\") -> %s", path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
             return CConversion::Host2AtariError(errno);
         }
 
+        //
+        // Check if hostFD->fd is valid, i.e. is inside this Atari drive
+        //
+
+        char pathbuf[1024];
+        INT32 aret = hostFd2Path(dir_fd, pathbuf, sizeof(pathbuf));
+        if (aret != E_OK)
+        {
+            return aret;
+        }
+        const char *host_root = drv_host_path[drv];
+        unsigned len = strlen(host_root);
+        if (strncmp(pathbuf, host_root, len))
+        {
+            DebugError2("() -- host path is located outside Atari drive %c: \"%s\"", 'A' + drv, pathbuf);
+            return EPTHNF;
+        }
+
+        //
+        // new path is valid, continue
+        //
+
+        hostFD->fd = dir_fd;
         int ret = fstat(hostFD->fd, &statbuf);
         if (ret < 0)
         {
@@ -868,7 +920,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
     DebugInfo2("() : open directory \"%s\"", pathname);
 
     HostHandle_t hhdl;
-    INT32 atari_ret = hostpath2HostFD(nullptr, -1, pathname, /* O_PATH*/ O_DIRECTORY | O_RDONLY, &hhdl);
+    INT32 atari_ret = hostpath2HostFD(drv, nullptr, -1, pathname, /* O_PATH*/ O_DIRECTORY | O_RDONLY, &hhdl);
 
     dd->dirID = hhdl;           // host endian format
     dd->vRefNum = drv;          // host endian
@@ -989,7 +1041,7 @@ INT32 CHostXFS::xfs_path2DD
 
     // O_PATH or O_DIRECTORY | O_RDONLY?
     HostHandle_t hhdl;
-    INT32 atari_ret = hostpath2HostFD(rel_hostFD, hhdl_rel, pathbuf, /*O_PATH?*/ O_DIRECTORY | O_RDONLY, &hhdl);
+    INT32 atari_ret = hostpath2HostFD(drv, rel_hostFD, hhdl_rel, pathbuf, /*O_PATH?*/ O_DIRECTORY | O_RDONLY, &hhdl);
 
     /*
     // Note that O_DIRECTORY is essential, otherwise fdopendir() will refuse
@@ -1971,19 +2023,10 @@ INT32 CHostXFS::xfs_DD2hostPath(MXFSDD *dd, char *pathbuf, uint16_t bufsiz)
     }
 
     // get host path from directory file descriptor
-
-    char pathname[32];
-    sprintf(pathname, "/proc/self/fd/%u", dir_fd);
-    ssize_t size = readlink(pathname, pathbuf, bufsiz);
-    if (size < 0)
-    {
-        DebugWarning2("() : readlink() -> %s", strerror(errno));
-        return EINTRN;
-    }
-    pathbuf[size] = '\0';   // necessary
+    INT32 aret = hostFd2Path(dir_fd, pathbuf, bufsiz);
 
     DebugInfo2("() -> \"%s\"", pathbuf);
-    return E_OK;
+    return aret;
 }
 
 

@@ -21,9 +21,18 @@
  *
  */
 
+ #include "config.h"
+
 #include <assert.h>
 #include "EmulationRunner.h"
 #include "emulation_globals.h"
+
+#if !defined(_DEBUG_EVENTS)
+ #undef DebugInfo
+ #define DebugInfo(...)
+ #undef DebugInfo2
+ #define DebugInfo2(...)
+#endif
 
 
 // global variables from "emulation_globals.h"
@@ -1037,6 +1046,7 @@ void EmulationRunner::EventLoop(void)
             case SDL_MOUSEWHEEL:
                 {
                     const SDL_MouseWheelEvent *ev = (SDL_MouseWheelEvent *) &event;
+                    (void) ev;
                     DebugInfo2("() - mouse wheel: x = %d, y = %d", ev->x, ev->y);
                 }
                 break;

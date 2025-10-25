@@ -461,6 +461,7 @@ const uint8 m68ki_ea_idx_cycle_table[64] =
 /* Interrupt acknowledge */
 void m68k_clear_irq(int int_level)
 {
+    (void) int_level;
 	CPU_INT_LEVEL = 0;
 }
 
@@ -488,6 +489,8 @@ static void default_reset_instr_callback(void)
 /* Called when a cmpi.l #v, dn instruction is executed */
 static void default_cmpild_instr_callback(unsigned int val, int reg)
 {
+    (void) val;
+    (void) reg;
 }
 
 /* Called when a rte instruction is executed */

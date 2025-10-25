@@ -830,6 +830,7 @@ INT32 CHostXFS::hostpath2HostFD
         INT32 aret = hostFd2Path(dir_fd, pathbuf, sizeof(pathbuf));
         if (aret != E_OK)
         {
+            close(dir_fd);
             return aret;
         }
         const char *host_root = drv_host_path[drv];
@@ -837,6 +838,7 @@ INT32 CHostXFS::hostpath2HostFD
         if (strncmp(pathbuf, host_root, len))
         {
             DebugError2("() -- host path is located outside Atari drive %c: \"%s\"", 'A' + drv, pathbuf);
+            close(dir_fd);
             return EPTHNF;
         }
 

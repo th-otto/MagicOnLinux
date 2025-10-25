@@ -104,7 +104,7 @@ bool Preferences::bShowHostMenu = true;
 enAtariScreenColourMode Preferences::atariScreenColourMode = atariScreenMode16M;
 bool Preferences::bHideHostMouse = false;
 bool Preferences::bAutoStartMagiC = true;
-unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3
+unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3 / 4 == case insensitive, ...
 const char *Preferences::drvPath[NDRIVES];
 char Preferences::AtariKernelPath[1024] = "~/Documents/Atari-rootfs/MagicMacX.OS";
 char Preferences::AtariRootfsPath[1024] = "~/Documents/Atari-rootfs";
@@ -115,13 +115,13 @@ bool Preferences::AtariHostRootRdOnly = true;                // Atari M: is writ
 char Preferences::AtariTempFilesUnixPath[1024] = "/tmp";
 char Preferences::szPrintingCommand[256] = "echo printing not yet implemented";
 char Preferences::szAuxPath[256];
-unsigned Preferences::Monitor = 0;        // 0 == Hauptbildschirm
+unsigned Preferences::Monitor = 0;
 unsigned Preferences::AtariScreenX = 100;
 unsigned Preferences::AtariScreenY = 100;
-unsigned Preferences::AtariScreenWidth = 1024;      // 320..4096
-unsigned Preferences::AtariScreenHeight = 768;     // 200..2048
-unsigned Preferences::AtariScreenStretchX = 2;     // horizontal stretch
-unsigned Preferences::AtariScreenStretchY = 2;     // vertical stretch
+unsigned Preferences::AtariScreenWidth = 1024;
+unsigned Preferences::AtariScreenHeight = 768;
+unsigned Preferences::AtariScreenStretchX = 2;
+unsigned Preferences::AtariScreenStretchY = 2;
 unsigned Preferences::ScreenRefreshFrequency = 60;
 //bool Preferences::bPPC_VDI_Patch;
 
@@ -165,7 +165,7 @@ int Preferences::Init(bool rewrite_conf)
     for (int i = 0; i < NDRIVES; i++)
     {
         drvPath[i] = nullptr;
-        drvFlags[i] = 0;        // long names, read-write
+        drvFlags[i] = 0;        // long names, read-write, case sensitive
     }
 
     char path[1024] = "";
@@ -178,20 +178,20 @@ int Preferences::Init(bool rewrite_conf)
     int num_errors = getPreferences(path, rewrite_conf);
 
     // drive C: is root FS with 8+3 name scheme
-    drvFlags['C'-'A'] = 2;        // C: drive has 8+3 name scheme
+    drvFlags['C'-'A'] = DRV_FLAG_8p3 + DRV_FLAG_CASE_INSENS;        // C: drive has 8+3 name scheme
     setDrvPath('C'-'A', AtariRootfsPath);
 
     // drive H: is user home
     if (AtariHostHome && (home != nullptr))
     {
-        drvFlags['H'-'A'] |= AtariHostHomeRdOnly ? 1 : 0;        // long names, read-only
+        drvFlags['H'-'A'] |= AtariHostHomeRdOnly ? DRV_FLAG_RDONLY : 0;        // long names, read-only
         setDrvPath('H'-'A', home);
     }
 
     // drive M: is host root, if requested
     if (AtariHostRoot)
     {
-        drvFlags['M'-'A'] |= AtariHostRootRdOnly ? 1 : 0;        // long names, read-only
+        drvFlags['M'-'A'] |= AtariHostRootRdOnly ? DRV_FLAG_RDONLY : 0;        // long names, read-only
         setDrvPath('M'-'A', "/");
     }
 
@@ -248,7 +248,7 @@ int Preferences::writePreferences(const char *cfgfile)
     fprintf(f, "%s = %s\n",     var_name[VAR_SHOW_HOST_MENU], bShowHostMenu ? "YES" : "NO");
     fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_AUTOSTART], bAutoStartMagiC ? "YES" : "NO");
     fprintf(f, "[ADDITIONAL ATARI DRIVES]\n");
-    fprintf(f, "# %s<A..Z> = flags [1:read-only, 2:8+3] path\n", var_name[VAR_ATARI_DRV_]);
+    fprintf(f, "# %s<A..Z> = flags [1:read-only, 2:8+3, 4:case-insensitive] path\n", var_name[VAR_ATARI_DRV_]);
     for (unsigned n = 0; n < NDRIVES; n++)
     {
         if (drvPath[n] != nullptr)
@@ -262,8 +262,18 @@ int Preferences::writePreferences(const char *cfgfile)
 }
 
 
-// read string, optionally enclosed in "" or ''
-static int eval_quotated_str(char *out, unsigned maxlen, const char **in)
+/** **********************************************************************************************
+ *
+ * @brief Read string, optionally enclosed in "" or ''
+ *
+ * @param[out] outbuf   output buffer, holds raw string
+ * @param[in]  bufsiz   size of output buffer including end-of-string
+ * @param[out] in       input line pointer, will be advanced accordingly
+ *
+ * @return 0 for OK or 1 for error
+ *
+ ************************************************************************************************/
+static int eval_quotated_str(char *outbuf, unsigned bufsiz, const char **in)
 {
     const char *in_start = *in;
     const char *in_end;
@@ -300,10 +310,10 @@ static int eval_quotated_str(char *out, unsigned maxlen, const char **in)
     }
 
     unsigned len = in_end - in_start;
-    if (len < maxlen)
+    if (len < bufsiz - 1)
     {
-        strncpy(out, in_start, len);
-        out[len] = '\0';
+        strncpy(outbuf, in_start, len);
+        outbuf[len] = '\0';
     }
     else
     {
@@ -313,7 +323,18 @@ static int eval_quotated_str(char *out, unsigned maxlen, const char **in)
 }
 
 
-static int eval_unsigned(unsigned *out, unsigned maxval, const char **in)
+/** **********************************************************************************************
+ *
+ * @brief Read unsigned numerical value, decimal, sedecimal or octal
+ *
+ * @param[out] outval   number
+ * @param[in]  maxval   maximum valid number
+ * @param[out] in       input line pointer, will be advanced accordingly
+ *
+ * @return 0 for OK or 1 for error
+ *
+ ************************************************************************************************/
+static int eval_unsigned(unsigned *outval, unsigned maxval, const char **in)
 {
     char *endptr;
     unsigned long long value = strtoul(*in, &endptr, 0 /*auto base*/);
@@ -321,7 +342,7 @@ static int eval_unsigned(unsigned *out, unsigned maxval, const char **in)
     {
         if (value <= maxval)
         {
-            *out = (unsigned) value;
+            *outval = (unsigned) value;
             *in = endptr;
             return 0;
         }
@@ -330,17 +351,27 @@ static int eval_unsigned(unsigned *out, unsigned maxval, const char **in)
 }
 
 
-static int eval_bool(bool *out, const char *YesOrNo)
+/** **********************************************************************************************
+ *
+ * @brief Evaluate boolan value "yes" or "no"
+ *
+ * @param[out] outval   boolean value
+ * @param[in]  YesOrNo  boolean string, case-insensitive
+ *
+ * @return 0 for OK or 1 for error
+ *
+ ************************************************************************************************/
+static int eval_bool(bool *outval, const char *YesOrNo)
 {
     if (!strcasecmp(YesOrNo, "yes"))
     {
-        *out = true;
+        *outval = true;
         return 0;
     }
     else
     if (!strcasecmp(YesOrNo, "no"))
     {
-        *out = false;
+        *outval = false;
         return 0;
     }
 
@@ -348,39 +379,59 @@ static int eval_bool(bool *out, const char *YesOrNo)
 }
 
 
-// read string, optionally enclosed in "" or ''
-static int eval_quotated_str_bool(bool *out, const char **line)
+/** **********************************************************************************************
+ *
+ * @brief Evaluate boolan string "yes" or "no", optionally enclosed in "" or ''
+ *
+ * @param[out] outval   boolean value
+ * @param[out] in       input line pointer, will be advanced accordingly
+ *
+ * @return 0 for OK or 1 for error
+ *
+ ************************************************************************************************/
+static int eval_quotated_str_bool(bool *outval, const char **line)
 {
     char YesOrNo[16];
     int num_errors;
 
     num_errors = eval_quotated_str(YesOrNo, sizeof(YesOrNo), line);
     if (num_errors == 0)
-        num_errors += eval_bool(out, YesOrNo);
+    {
+        num_errors += eval_bool(outval, YesOrNo);
+    }
 
     return num_errors;
 }
 
 
-// replace leading '~/' in path with home directory
-static int eval_home(char *path, unsigned maxlen)
+/** **********************************************************************************************
+ *
+ * @brief Replace leading '~/' in path with home directory
+ *
+ * @param[in,out] pathbuf  path to be extended
+ * @param[in]     bufsiz   size of output buffer including end-of-string
+ *
+ * @return 0 for OK or 1 for error
+ *
+ ************************************************************************************************/
+static int eval_home(char *pathbuf, unsigned bufsiz)
 {
-    if ((path[0] == '~') && (path[1] == '/'))
+    if ((pathbuf[0] == '~') && (pathbuf[1] == '/'))
     {
         const char *home = get_home();
         if (home != nullptr)
         {
             unsigned lenh = strlen(home);
-            unsigned lenp = strlen(path) + 1;   // including end-of-string
+            unsigned lenp = strlen(pathbuf) + 1;   // including end-of-string
 
             // subtract 1 for '~' which we will remove
-            if (lenp + lenh - 1 > maxlen)
+            if (lenp + lenh - 1 > bufsiz)
             {
-                fprintf(stderr, "Overflow in path: %s", path);
+                fprintf(stderr, "Overflow in path: %s", pathbuf);
                 return 1;
             }
-            memmove(path + lenh - 1, path, lenp);
-            memcpy(path, home, lenh);
+            memmove(pathbuf + lenh - 1, pathbuf, lenp);
+            memcpy(pathbuf, home, lenh);
         }
     }
 
@@ -388,13 +439,23 @@ static int eval_home(char *path, unsigned maxlen)
 }
 
 
-// like eval_quotated_str(), but evaluates leading '~' for user home directory
-static int eval_quotated_str_path(char *out, unsigned maxlen, const char **in)
+/** **********************************************************************************************
+ *
+ * @brief Read string, optionally enclosed in "" or '', and evaluates leading '~' for user home directory
+ *
+ * @param[out] outbuf   output buffer, holds raw string
+ * @param[in]  bufsiz   size of output buffer including end-of-string
+ * @param[out] in       input line pointer, will be advanced accordingly
+ *
+ * @return 0 for OK or 1 for error
+ *
+ ************************************************************************************************/
+static int eval_quotated_str_path(char *outbuf, unsigned bufsiz, const char **in)
 {
-    int num_errors = eval_quotated_str(out, maxlen, in);
+    int num_errors = eval_quotated_str(outbuf, bufsiz, in);
     if (num_errors == 0)
     {
-        num_errors += eval_home(out, maxlen);
+        num_errors += eval_home(outbuf, bufsiz);
     }
     return num_errors;
 }
@@ -450,7 +511,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
 
     if (var >= VAR_NUMBER)
     {
-        printf("unknown key");
+        fprintf(stderr, "unknown key\n");
         return 1;
     }
 
@@ -609,13 +670,15 @@ int Preferences::evaluatePreferencesLine(const char *line)
 }
 
 
-/**********************************************************************
-*
-* Alle Einstellungen holen
-* => 0 = OK, sonst = Fehler
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Read all preferences from a configuration file or write default file, if requested
+ *
+ * @param[in]  line   input line, with trailing \n and zero byte
+ *
+ * @return number of errors
+ *
+ ************************************************************************************************/
 int Preferences::getPreferences(const char *cfgfile, bool rewrite_conf)
 {
     struct stat statbuf;

@@ -37,28 +37,31 @@
 // Atari screen colour mode
 typedef enum
 {
-    atariScreenMode16M = 0,        // true colour, more than 16 millions of colours
-    atariScreenModeHC = 1,        // high colour, 16 bits per pixel
-    atariScreenMode256 = 2,        // 256 colours with palette
-    atariScreenMode16 = 3,        // 16 colours with palette, packed pixels
+    atariScreenMode16M = 0,     // true colour, more than 16 millions of colours
+    atariScreenModeHC = 1,      // high colour, 16 bits per pixel
+    atariScreenMode256 = 2,     // 256 colours with palette
+    atariScreenMode16 = 3,      // 16 colours with palette, packed pixels
     atariScreenMode16ip = 4,    // 16 colours with palette, interleaved plane
-    atariScreenMode4ip = 5,        // 4 colours with palette, interleaved plane
+    atariScreenMode4ip = 5,     // 4 colours with palette, interleaved plane
     atariScreenMode2 = 6        // monochrome
 } enAtariScreenColourMode;
+
+
+// drive flags
+#define DRV_FLAG_RDONLY         1   ///< read-only
+#define DRV_FLAG_8p3            2   ///< filenames in 8+3 format, uppercase
+#define DRV_FLAG_CASE_INSENS    4   ///< case insensitive, e.g. (V)FAT or HFS(+)
 
 
 /// @brief  static class, no constructor etc.
 class Preferences
 {
    public:
-    // Initialisierung
     static int Init(bool rewrite_conf);
-    // Alle Einstellungen holen
     static int getPreferences(const char *cfgfile, bool rewrite_conf);
     static int writePreferences(const char *cfgfile);
     static int evaluatePreferencesLine(const char *line);
 
-    // Variablen
     static unsigned AtariMemSize;
     static unsigned AtariLanguage;
     static bool bShowHostMenu;
@@ -67,32 +70,33 @@ class Preferences
     static bool bAutoStartMagiC;
 	static char AtariKernelPath[1024];              // "MagicMacX.OS" file
 	static char AtariRootfsPath[1024];              // Atari C:
-    static bool AtariHostHome;                       // Atari H: is home
+    static bool AtariHostHome;                      // Atari H: is home
     static bool AtariHostHomeRdOnly;                // Atari H: is write protected
     static bool AtariHostRoot;                      // Atari M: as host root
     static bool AtariHostRootRdOnly;                // Atari M: is write protected
-	static char AtariScrapFileUnixPath[1024];
+	static char AtariScrapFileUnixPath[1024];       // the clipboard file is called "scrap" in GEM
 	static char AtariTempFilesUnixPath[1024];
     static char szPrintingCommand[256];
     static char szAuxPath[256];
-    static unsigned Monitor;        // 0 == Hauptbildschirm
+    static unsigned Monitor;                        // 0: default
     static unsigned AtariScreenX;
     static unsigned AtariScreenY;
-    static unsigned AtariScreenWidth;      // 320..4096
-    static unsigned AtariScreenHeight;     // 200..2048
-    static unsigned AtariScreenStretchX;     // horizontal stretch
-    static unsigned AtariScreenStretchY;     // vertical stretch
+    static unsigned AtariScreenWidth;               // 320..4096
+    static unsigned AtariScreenHeight;              // 200..2048
+    static unsigned AtariScreenStretchX;            // horizontal stretch
+    static unsigned AtariScreenStretchY;            // vertical stretch
     static unsigned ScreenRefreshFrequency;
-    //static bool m_bPPC_VDI_Patch;
+    //static bool m_bPPC_VDI_Patch;                 // used for native VDI output on PPC
 
     static const char *drvPath[NDRIVES];
-    static unsigned drvFlags[NDRIVES];    // 1 == RevDir / 2 == 8+3
+    static unsigned drvFlags[NDRIVES];              // see above (read-only, ...)
 
     static const char *getDrvPath(unsigned drv)
     {
         return (drv < NDRIVES) ? drvPath[drv] : nullptr;
     }
 
+    // drive paths are dynamically allocated
     static void setDrvPath(unsigned drv, const char *path)
     {
         if (drv < NDRIVES)

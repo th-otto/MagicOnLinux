@@ -7,8 +7,8 @@ This is kind of successor of:
 
 * *MagiC* for Atari,
 * *MagicMac* for Classic Mac OS,
-* *MagicMac X* for MacOS X on PPC and
-* *AtariX* for macOS up to 10.13 "High Sierra".
+* *MagicMac X* for MacOS X on PPC (32-bit application) and
+* *AtariX* for macOS up to 10.13 "High Sierra" (32-bit application).
 
 Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution would have been to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
 

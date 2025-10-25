@@ -226,8 +226,9 @@ class CHostXFS
     const char *drv_atari_name[NDRIVES];      // nullptr, if not valid
     const uint32_t new_file_perm = 0600;      // Unix permissions for new files: rw-rw---- (user and group have rw access)
     long drv_dirID[NDRIVES];
-    bool drv_longnames[NDRIVES];              // initialised with zeros
+    bool drv_longNames[NDRIVES];              // initialised with zeros
     bool drv_readOnly[NDRIVES];
+    bool drv_caseInsens[NDRIVES];           // case-insensitive file system, like Apple's HFS(+)
     HostXFSDrvType drv_type[NDRIVES];
     // Information to be passed back to MagiC kernel:
     MX_SYMLINK mx_symlink;
@@ -241,11 +242,11 @@ class CHostXFS
 
     static int atariFnameToHostFname(const unsigned char *src, char *dst, unsigned buflen);
     static int hostFnameToAtariFname(const char *src, unsigned char *dst, unsigned buflen);
-    static bool filename8p3_match(const char *pattern, const char *fname);
-    static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name);
+    static bool filename8p3_match(const char *pattern, const char *fname, bool upperCase);
+    static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name, bool upperCase);
     static bool nameto_8_3 (const char *host_fname,
                 unsigned char *dosname,
-                bool flg_longnames, bool toAtari);
+                bool upperCase, bool toAtari);
     static void statbuf2xattr(XATTR *xattr, const struct stat *statbuf);
 
     // XFS calls
@@ -307,7 +308,7 @@ class CHostXFS
     // auxiliar functions
 
     INT32 hostpath2HostFD(HostFD *reldir, uint16_t rel_hhdl, const char *path, int flags, HostHandle_t *hhdl);
-    int _snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta);
+    int _snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_DTA *dta);
 
     void setDrivebits (uint32_t newbits, uint8_t *addrOffset68k);
 };

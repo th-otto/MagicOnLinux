@@ -69,10 +69,10 @@ extern void _DumpAtariMem(const char *filename);
 #endif
 
 // suppress Host XFS debug info
-#undef DebugInfo
-#define DebugInfo(...)
-#undef DebugInfo2
-#define DebugInfo2(...)
+//#undef DebugInfo
+//#define DebugInfo(...)
+//#undef DebugInfo2
+//#define DebugInfo2(...)
 
 
 /** **********************************************************************************************
@@ -262,15 +262,17 @@ int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv,
 
 
 /** **********************************************************************************************
-*
-* @brief [static] Convert host filename to Atari filename
-*
-* @param[in]   src      host filename
-* @param[out]  dst      Atari filename (max 256 bytes including zero)
-* @param[in]   buflen   buffer length, including end-of-string.
-*
-* @return -1 on overflow, otherwise zero
-*
+ *
+ * @brief [static] Convert host filename to Atari filename, character and path separator
+ *
+ * @param[in]   src      host filename
+ * @param[out]  dst      Atari filename
+ * @param[in]   buflen   buffer length, including end-of-string.
+ *
+ * @return -1 on overflow, otherwise zero
+ *
+ * @note There is no uppercase conversion.
+ *
  ************************************************************************************************/
 int CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst, unsigned buflen)
 {
@@ -289,7 +291,7 @@ int CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst, unsigne
     *dst = EOS;
     if (*src)
     {
-        DebugError("file name length overflow: %s", buf_start);
+        DebugError2("() -- file name length overflow: %s", buf_start);
     }
 
     return (*src == '\0') ? 0 : -1;
@@ -354,8 +356,9 @@ int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char uns
 *
 * @brief [static] Check if an 8+3 filename matches an 8+3 search pattern (each 12 bytes)
 *
-* @param[in]   pattern  internal 8+3 representation of search pattern, for Fsfirst() and Fsnext()
-* @param[out]  fname    internal 8+3 representation of filename
+* @param[in]   pattern      internal 8+3 representation of search pattern, for Fsfirst() and Fsnext()
+* @param[out]  fname        internal 8+3 representation of filename
+* @param[in]   upperCase    case insensitive compare
 *
 * @return match result
 *
@@ -372,7 +375,7 @@ int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char uns
 *       directories and volume names, are only match, if the respective bit in the search
 *       attribute is set.
 *
-*  @note match examples (bits RadOnly and Archive are ignored):
+*  @note match examples (bits ReadOnly and Archive are ignored):
 *    8    all files with bit 3 set (volumes)
 *    0    only regular files
 *    2    regular and hidden files
@@ -385,14 +388,21 @@ int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char uns
 *  $1e    everything
 *
  ************************************************************************************************/
-bool CHostXFS::filename8p3_match(const char *pattern, const char *fname)
+bool CHostXFS::filename8p3_match(const char *pattern, const char *fname, bool upperCase)
 {
-    if (fname[0] == '\xe5')     /* Suche nach geloeschter Datei */
+    if (fname[0] == '\xe5')     // search for deleted file
     {
         return((pattern[0] == '?') || (pattern[0] == fname[0]));
     }
 
-    /* vergleiche 11 Zeichen */
+    /*
+    if (!strncmp(pattern, "???????????", 11) && fname[0] == '.')
+    {
+        printf("hallo");
+    }
+   */
+
+    // compare 11 characters (8 plus 3)
 
     for (int i = 10; i >= 0; i--)
     {
@@ -400,12 +410,17 @@ bool CHostXFS::filename8p3_match(const char *pattern, const char *fname)
         char c2 = *fname++;
         if (c1 != '?')
         {
-            if (toUpper(c1) != toUpper(c2))
+            if (upperCase)
+            {
+                c1 = toUpper(c1);
+                c2 = toUpper(c2);
+            }
+            if (c1 != c2)
                 return false;
         }
     }
 
-    /* vergleiche Attribut */
+    // compare attribute
 
     char c1 = *pattern;
     char c2 = *fname;
@@ -425,26 +440,67 @@ bool CHostXFS::filename8p3_match(const char *pattern, const char *fname)
         c1 &= (F_HIDDEN | F_SYSTEM);
     }
 
-    return((bool) (c1 & c2));
+    return (bool) (c1 & c2);
 }
 
 
 /** **********************************************************************************************
-*
-* @brief [static] Convert first Atari path element to internal 8+3 format in Atari DTA
-*
-* @param[in]   path     Atari path
-* @param[out]  name     internal 8+3 representation, for Fsfirst() and Fsnext()
-*
-* @return true: the path element was truncated
-*
-* The first path element (before '\' or EOS) is converted to the 8+3 format that is internally
-* stored inside the DTA.
-*
+ *
+ * @brief [static] Convert first Atari path element to internal 8+3 format in Atari DTA
+ *
+ * @param[in]   path        Atari path
+ * @param[out]  name        internal 8+3 representation, for Fsfirst() and Fsnext()
+ * @param[in]   upperCase   convert to uppercase
+ *
+ * @return true: the path element was truncated
+ *
+ * @note On file systems with long filenames, Fsfirst()/Fsnext() should not convert to
+ *       uppercase, unless the file system is case insensitive.
+ *
+ * The first path element (before '\' or EOS) is converted to the 8+3 format that is internally
+ * stored inside the DTA.
+ *
  ************************************************************************************************/
-bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name)
+bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name, bool upperCase)
 {
     bool truncated = false;
+
+    // special case "." and ".."
+
+    if (path[0] == '.')
+    {
+        if (path[1] == '\0')
+        {
+            *name++ = '.';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            return false;
+        }
+
+        if ((path[1] == '.') && (path[2] == '\0'))
+        {
+            *name++ = '.';
+            *name++ = '.';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            *name++ = ' ';
+            return false;
+        }
+    }
 
     // copy a maximum of eight characters for filename
 
@@ -452,7 +508,7 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name)
     for (i = 0; (i < 8) && (*path) &&
          (*path != '\\') && (*path != '*') && (*path != '.') && (*path != ' '); i++)
     {
-        *name++ = toUpper(*path++);
+        *name++ = (upperCase) ? toUpper(*path++) : *path++;
     }
 
     // determine the fill character, that will be used to fill the complete eight characters
@@ -484,7 +540,7 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name)
     for (i = 0; (i < 3) && (*path) &&
          (*path != '\\') && (*path != '*') && (*path != '.') && (*path != ' '); i++)
     {
-        *name++ = toUpper(*path++);
+        *name++ = (upperCase) ? toUpper(*path++) : *path++;
     }
 
     if ((*path) && (*path != '\\') && (*path != '*'))
@@ -510,8 +566,8 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name)
  * @brief Converts host filename to 8+3 for GEMDOS
  *
  * @param[in]  host_fname       host filename
- * @param[out] dosname          8+3 GEMDOS filename
- * @param[in]  flg_longnames    true: convert to 8+3 uppercase, false: convert to 8+3
+ * @param[out] dosname          8+3 GEMDOS filename, zero terminated
+ * @param[in]  upperCase        true: convert to 8+3 uppercase, false: convert to 8+3
  * @param[in]  to_atari_charset true: convert host charset (UTF-8) to Atari charset
  *
  * @return true: filename was shortened
@@ -523,14 +579,33 @@ bool CHostXFS::nameto_8_3
 (
     const char *host_fname,
     unsigned char *dosname,
-    bool flg_longnames,
+    bool upperCase,
     bool to_atari_charset
 )
 {
+    // special case "." and ".."
+
+    if (host_fname[0] == '.')
+    {
+        if (host_fname[1] == '\0')
+        {
+            *dosname++ = '.';
+            *dosname = '\0';
+            return false;
+        }
+
+        if ((host_fname[1] == '.') && (host_fname[2] == '\0'))
+        {
+            *dosname++ = '.';
+            *dosname++ = '.';
+            *dosname = '\0';
+            return false;
+        }
+    }
+
     bool truncated = false;
 
-
-    // convert up to 8 chars for filename
+    // convert up to 8 characters for filename
     int i = 0;
     while ((i < 8) && (*host_fname) && (*host_fname != '.'))
     {
@@ -539,41 +614,31 @@ bool CHostXFS::nameto_8_3
             host_fname++;
             continue;
         }
+        char c = *host_fname++;
         if (to_atari_charset)
         {
-            if (flg_longnames)
-            {
-                *dosname++ = CConversion::Mac2AtariFilename(*host_fname++);
-            }
-            else
-            {
-                *dosname++ = (unsigned char) toUpper((char) CConversion::Mac2AtariFilename(*host_fname++));
-            }
+            c = CConversion::Mac2AtariFilename(c);
         }
-        else
+        if (upperCase)
         {
-            if (flg_longnames)
-            {
-                *dosname++ = *host_fname++;
-            }
-            else
-            {
-                *dosname++ = (unsigned char) toUpper((char) (*host_fname++));
-            }
+            c = toUpper(c);
         }
+        *dosname++ = c;
         i++;
     }
 
     while ((*host_fname) && (*host_fname != '.'))
     {
-        host_fname++;        // Rest vor dem '.' ueberlesen
+        host_fname++;        // skip everything before '.'
         truncated = true;
     }
     if (*host_fname == '.')
-        host_fname++;        // '.' ueberlesen
-    *dosname++ = '.';            // '.' in DOS-Dateinamen einbauen
+    {
+        host_fname++;        // skip '.'
+    }
+    *dosname++ = '.';        // insert '.' into DOS filename
 
-    // convert up to 3 chars for filename extension
+    // convert up to 3 characters for filename extension
     i = 0;
     while ((i < 3) && (*host_fname) && (*host_fname != '.'))
     {
@@ -582,20 +647,17 @@ bool CHostXFS::nameto_8_3
             host_fname++;
             continue;
         }
+
+        char c = *host_fname++;
         if (to_atari_charset)
         {
-            if (flg_longnames)
-                *dosname++ = CConversion::Mac2AtariFilename(*host_fname++);
-            else
-                *dosname++ = (unsigned char) toUpper((char) CConversion::Mac2AtariFilename(*host_fname++));
+            c = CConversion::Mac2AtariFilename(c);
         }
-        else
+        if (upperCase)
         {
-            if (flg_longnames)
-                *dosname++ = *host_fname++;
-            else
-                *dosname++ = (unsigned char) toUpper((char) (*host_fname++));
+            c = toUpper(c);
         }
+        *dosname++ = c;
         i++;
     }
 
@@ -609,6 +671,26 @@ bool CHostXFS::nameto_8_3
 
     return truncated;
 }
+
+
+// check if drive is valid
+#define CHK_DRIVE(DRV) \
+    if (drv_changed[DRV]) \
+    { \
+        return E_CHNG; \
+    } \
+    if (drv_host_path[DRV] == nullptr) \
+    { \
+        return EDRIVE; \
+    }
+
+// check if drive is valid and writeable
+#define CHK_DRIVE_WRITEABLE(DRV) \
+    CHK_DRIVE(DRV) \
+    if (drv_readOnly[DRV]) \
+    { \
+        return EWRPRO; \
+    }
 
 
 /** **********************************************************************************************
@@ -625,16 +707,7 @@ bool CHostXFS::nameto_8_3
 INT32 CHostXFS::xfs_sync(uint16_t drv)
 {
     DebugInfo2("(drv = %u)", drv);
-
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-
+    CHK_DRIVE(drv)
     return E_OK;
 }
 
@@ -773,13 +846,7 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
         return (drv_changed[drv]) ? E_CHNG : E_OK;
     }
 
-    drv_changed[drv] = false;        // Diskchange reset
-
-    if (drv_changed[drv])
-    {
-        DebugInfo2("() -> E_CHNG");
-        return E_CHNG;
-    }
+    drv_changed[drv] = false;        // reset disk change
 
     const char *pathname = drv_host_path[drv];
     if (pathname == nullptr)
@@ -820,30 +887,15 @@ INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchang
  *
  * @return 0 for OK or negative error code
  *
+ * @note TODO: free all handles referring to that "drive"
+ *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_close(uint16_t drv, uint16_t mode)
 {
+    (void) mode;
     DebugInfo2("(drv = %u, mode = %u)", drv, mode);
+    CHK_DRIVE(drv)
 
-    /*
-    // drive M: or host root may not be closed
-    if ((drv == 'M'-'A') || (drv_type[drv] == eHostRoot))
-    {
-        return((mode) ? E_OK : EACCDN);
-    }
-    */
-
-    if (drv_changed[drv])
-    {
-        return((mode) ? E_OK : E_CHNG);
-    }
-
-    if (drv_host_path[drv] == nullptr)
-    {
-        return((mode) ? E_OK : EDRIVE);
-    }
-
-    // "close" drive
     drv_host_path[drv] = nullptr;
     return E_OK;
 }
@@ -900,20 +952,11 @@ INT32 CHostXFS::xfs_path2DD
 {
     DebugInfo2("(drv = %u (%c:), mode = %d, dirID = %d, vRefNum = %d, name = \"%s\")",
          drv, 'A' + drv, mode, rel_dd->dirID, rel_dd->vRefNum, pathname);
+    CHK_DRIVE(drv)
+
     char pathbuf[1024];
-
-    if (drv_changed[drv])
-    {
-        DebugWarning2("() -> E_CHNG");
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        DebugWarning2("() -> EDRIVE");
-        return EDRIVE;
-    }
-
     char *p;
+
     atariFnameToHostFname((const uint8_t *) pathname, pathbuf, 1024);
     DebugInfo2("() - host path is \"%s\"", pathbuf);
     if (mode == 0)
@@ -998,21 +1041,26 @@ INT32 CHostXFS::xfs_path2DD
  *
  * @brief Check if a host directory entry matches Fsfirst/next search pattern
  *
+ * @param[in]  drv          Atari drive number 0..25
  * @param[in]  dir_fd       directory
  * @param[in]  entry        directory entry
  * @param[out] dta          file found and internal data for Fsnext
  *
  * @return 0: found, 1: mismatch, <0: error
  *
+ * @note The drive number is needed to determine, if the file system is case-insensitive
+ *
  ************************************************************************************************/
-int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
+int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_DTA *dta)
 {
     unsigned char atariname[256];   // long filename in Atari charset
     unsigned char dosname[14];      // internal, 8+3
 
     DebugInfo2("() - %d \"%s\"", entry->d_type, entry->d_name);
-    hostFnameToAtariFname(entry->d_name, atariname, 256);    // convert character set..
-    if (pathElemToDTA8p3(atariname, dosname))  // .. and to 8+3
+    // Convert character set and path separator ('\' -> '/')
+    hostFnameToAtariFname(entry->d_name, atariname, sizeof(atariname));
+    bool convUpper = drv_caseInsens[drv];
+    if (pathElemToDTA8p3(atariname, dosname, convUpper))  // .. and to 8+3
     {
         return -1;   // filename too long
     }
@@ -1029,11 +1077,11 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     }
     else
     {
-        DebugWarning("unhandled file type %d", entry->d_type);
+        DebugWarning2("() -- unhandled file type %d", entry->d_type);
         return -2;   // unhandled file type
     }
 
-    if (!filename8p3_match(dta->macdta.sname, (char *) dosname))
+    if (!filename8p3_match(dta->macdta.sname, (char *) dosname, convUpper))
     {
         return 1;
     }
@@ -1065,7 +1113,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     else
     if (statbuf.st_size > 0xffffffff)
     {
-        DebugWarning("file size > 4 GB, shown as zero length");
+        DebugWarning2("() -- file size > 4 GB, shown as zero length");
         dta->mxdta.dta_len = 0;
     }
     else
@@ -1074,7 +1122,7 @@ int CHostXFS::_snext(int dir_fd, const struct dirent *entry, MAC_DTA *dta)
     }
 
     dta->mxdta.dta_attribute = (char) dosname[11];
-    nameto_8_3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, false, true);
+    nameto_8_3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, convUpper, true);
     const struct timespec *mtime = &statbuf.st_mtim;
     uint16_t time, date;
     CConversion::hostDateToDosDate(mtime->tv_sec, &time, &date);
@@ -1110,20 +1158,12 @@ INT32 CHostXFS::xfs_sfirst
     DebugInfo2("(drv = %u, name = \"%s\")", drv, name);
 
     dta->mxdta.dta_drive = (char) drv;
-    pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname);    // search pattern -> DTA
+    bool convUpper = !drv_longNames[drv] || drv_caseInsens[drv];
+    pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname, convUpper);    // search pattern -> DTA
     dta->mxdta.dta_name[0] = 0;                    // nothing found yet
     dta->macdta.sattr = (char) attrib;            // search attribute
 
-    if (drv_changed[drv])
-    {
-        DebugWarning2("() -> E_CHNG");
-        return E_CHNG ;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        DebugWarning2("() -> EDRIVE");
-        return EDRIVE;
-    }
+    CHK_DRIVE(drv)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1168,9 +1208,11 @@ INT32 CHostXFS::xfs_sfirst
             break;  // end of directory
         }
 
-        int match = _snext(dir_fd, entry, dta);
+        int match = _snext(drv, dir_fd, entry, dta);
         if (match == 0)
         {
+            // directory entry matches search pattern
+
             //long pos = telldir(dir);
             //DebugInfo2("() : directory read position %ld", pos);
 
@@ -1208,18 +1250,8 @@ INT32 CHostXFS::xfs_sfirst
 INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 {
     DebugInfo2("(drv = %u)", drv);
+    CHK_DRIVE(drv)
     (void) dta;
-
-    if (drv_changed[drv])
-    {
-        DebugWarning2("() -> E_CHNG");
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        DebugWarning2("() -> EDRIVE");
-        return EDRIVE;
-    }
 
     if (!dta->macdta.sname[0])
     {
@@ -1270,7 +1302,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
             break;  // end of directory
         }
 
-        int match = _snext(dir_fd, entry, dta);
+        int match = _snext(drv, dir_fd, entry, dta);
         if (match == 0)
         {
             //long pos = telldir(dir);
@@ -1291,6 +1323,18 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 
     return ENMFIL;
 }
+
+
+/// Conversion from Atari filename to 8+3 Atari filename.
+/// If drive has 8+3 format, then convert name to dosname
+/// and additionally to upper case, if file system is case insenstive.
+#define CONV8p3(DRV, NAME, DOSNAME) \
+    unsigned char DOSNAME[20]; \
+    if (!drv_longNames[drv]) \
+    { \
+        nameto_8_3(NAME, DOSNAME, drv_caseInsens[DRV], false); \
+        NAME = (char *) DOSNAME; \
+    }
 
 
 /** **********************************************************************************************
@@ -1321,25 +1365,11 @@ INT32 CHostXFS::xfs_fopen
     uint16_t attrib
 )
 {
-    DebugInfo2("(name = \"%s\", drv = %u, omode = %d, attrib = %d)", name, drv, omode, attrib);
     (void) attrib;
 
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-
-    unsigned char dosname[20];
-    if (!drv_longnames[drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name, dosname, false, false);
-        name = (char *) dosname;
-    }
+    DebugInfo2("(name = \"%s\", drv = %u, omode = %d, attrib = %d)", name, drv, omode, attrib);
+    CHK_DRIVE(drv)
+    CONV8p3(drv, name, dosname)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1457,18 +1487,7 @@ INT32 CHostXFS::xfs_fopen
 INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name)
 {
     DebugInfo2("(drv = %u)", drv);
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-    if (drv_readOnly[drv])
-    {
-        return EWRPRO;
-    }
+    CHK_DRIVE_WRITEABLE(drv)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1478,13 +1497,7 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name)
     }
     int dir_fd = hostFD->fd;
 
-    unsigned char dosname[20];
-    if (!drv_longnames[drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name, dosname, false, false);
-        name = (char *) dosname;
-    }
+    CONV8p3(drv, name, dosname)
 
     // with flags AT_REMOVEDIR we could remove directories, what do not want here
     if (unlinkat(dir_fd, name, 0))
@@ -1528,18 +1541,8 @@ INT32 CHostXFS::xfs_link
 )
 {
     DebugInfo2("(drv = %u)", drv);
-    if (drv_changed[drv] || drv_changed[dst_drv])
-    {
-        return E_CHNG;
-    }
-    if ((drv_host_path[drv] == nullptr) || (drv_host_path[dst_drv] == nullptr))
-    {
-        return EDRIVE;
-    }
-    if ((drv_readOnly[drv]) || (drv_readOnly[dst_drv]))
-    {
-        return EWRPRO;
-    }
+    CHK_DRIVE_WRITEABLE(drv)
+    CHK_DRIVE_WRITEABLE(dst_drv)
 
     if (mode != 0)
     {
@@ -1547,20 +1550,8 @@ INT32 CHostXFS::xfs_link
         return EINVFN;
     }
 
-    unsigned char dosname_from[20];
-    if (!drv_longnames[drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name_from, dosname_from, false, false);
-        name_from = (char *) dosname_from;
-    }
-    unsigned char dosname_to[20];
-    if (!drv_longnames[dst_drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name_to, dosname_to, false, false);
-        name_to = (char *) dosname_to;
-    }
+    CONV8p3(drv, name_from, dosname_from)
+    CONV8p3(drv, name_to, dosname_to)
 
     HostHandle_t hhdl_from = dd_from->dirID;
     HostFD *hostFD_from = getHostFD(hhdl_from);
@@ -1676,25 +1667,11 @@ INT32 CHostXFS::xfs_xattr
     uint16_t mode
 )
 {
-    DebugInfo2("(name = \"%s\", drv = %u, mode = %d)", name, drv, mode);
     (void) mode;    // support later, if symbolic links are available
-    unsigned char dosname[20];
+    DebugInfo2("(name = \"%s\", drv = %u, mode = %d)", name, drv, mode);
+    CHK_DRIVE(drv)
 
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-
-    if (!drv_longnames[drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name, dosname, false, false);
-        name = (char *) dosname;
-    }
+    CONV8p3(drv, name, dosname)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1742,28 +1719,13 @@ INT32 CHostXFS::xfs_xattr
 INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t rwflag, uint16_t attr)
 {
     DebugInfo2("(drv = %u, name = %s, rwflag = %u, attr = %u)", drv, name, rwflag, attr);
-    unsigned char dosname[20];
-    uint16_t old_attr;
-
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
+    CHK_DRIVE(drv)
     if (rwflag && drv_readOnly[drv])
     {
         return EWRPRO;
     }
 
-    if (!drv_longnames[drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name, dosname, false, false);
-        name = (char *) dosname;
-    }
+    CONV8p3(drv, name, dosname)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1801,7 +1763,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
         return CConversion::Host2AtariError(errno);
     }
 
-    old_attr = 0;
+    uint16_t old_attr = 0;
     if  ((statbuf.st_mode & S_IFMT) == S_IFDIR)
     {
         old_attr |= F_SUBDIR;
@@ -1843,18 +1805,7 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const char *name,
                     uint16_t uid, uint16_t gid)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-    if (drv_readOnly[drv])
-    {
-        return EWRPRO;
-    }
+    CHK_DRIVE_WRITEABLE(drv)
     (void) dd;
     (void) name;
     (void) uid;
@@ -1882,18 +1833,8 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const char *name,
 INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, const char *name, uint16_t fmode)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-    if (drv_readOnly[drv])
-    {
-        return EWRPRO;
-    }
+    CHK_DRIVE_WRITEABLE(drv)
+
     (void) dd;
     (void) name;
     (void) fmode;
@@ -1917,26 +1858,9 @@ INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
 INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, const char *name)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-    if (drv_readOnly[drv])
-    {
-        return EWRPRO;
-    }
+    CHK_DRIVE_WRITEABLE(drv)
 
-    unsigned char dosname[20];
-    if (!drv_longnames[drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name, dosname, false, false);
-        name = (char *) dosname;
-    }
+    CONV8p3(drv, name, dosname)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1977,18 +1901,7 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, const char *name)
 INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 {
     DebugInfo2("(drv = %u)", drv);
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-    if (drv_readOnly[drv])
-    {
-        return EWRPRO;
-    }
+    CHK_DRIVE_WRITEABLE(drv)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2089,20 +2002,12 @@ INT32 CHostXFS::xfs_DD2hostPath(MXFSDD *dd, char *pathbuf, uint16_t bufsiz)
 INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz)
 {
     DebugInfo2("(drv = %u, dd->dirID = %u)", drv, dd->dirID);
-
     buf[0] = '\0';      // in case of error...
+    CHK_DRIVE(drv)
 
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
     if (bufsiz < 64)
     {
         return EPTHOV;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
     }
 
     // first get host path ...
@@ -2174,16 +2079,7 @@ INT32 CHostXFS::xfs_dopendir
 )
 {
     DebugInfo2("(drv = %u, tosflag = %d)", drv, tosflag);
-    if (drv_changed[drv])
-    {
-        DebugWarning2("() => E_CHNG");
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        DebugWarning2("() => EDRIVE");
-        return EDRIVE;
-    }
+    CHK_DRIVE(drv)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2247,6 +2143,7 @@ INT32 CHostXFS::xfs_dreaddir
 )
 {
     DebugInfo2("(drv = %u, bufsiz = %u)", drv);
+    CHK_DRIVE(drv)
 
     if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
@@ -2258,18 +2155,6 @@ INT32 CHostXFS::xfs_dreaddir
     {
         DebugWarning2("() : name buffer is too small for 8+3, ignore all entries");
         return ATARIERR_ERANGE;
-    }
-
-    if (drv_changed[drv])
-    {
-        DebugWarning2("() -> E_CHNG");
-        return E_CHNG;
-    }
-
-    if (drv_host_path[drv] == nullptr)
-    {
-        DebugWarning2("() -> EDRIVE");
-        return EDRIVE;
     }
 
     HostHandle_t hhdl = dirh->dirID;
@@ -2321,7 +2206,7 @@ INT32 CHostXFS::xfs_dreaddir
 
         if (dirh->tosflag)
         {
-            if (nameto_8_3(entry->d_name, (unsigned char *) buf, false, true))
+            if (nameto_8_3(entry->d_name, (unsigned char *) buf, drv_caseInsens[drv], true))
             {
                 DebugWarning2("() : filename \"%s\" does not fit to 8+3 scheme", entry->d_name);
                 continue;   // filename was shortened, so it was too long for 8+3
@@ -2393,23 +2278,12 @@ INT32 CHostXFS::xfs_dreaddir
 INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
     DebugInfo2("(drv = %u)", drv);
+    CHK_DRIVE(drv)
 
     if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
         DebugWarning2("() -> EIHNDL");
         return EIHNDL;
-    }
-
-    if (drv_changed[drv])
-    {
-        DebugWarning2("() -> E_CHNG");
-        return E_CHNG;
-    }
-
-    if (drv_host_path[drv] == nullptr)
-    {
-        DebugWarning2("() -> EDRIVE");
-        return EDRIVE;
     }
 
     HostHandle_t hhdl = dirh->dirID;
@@ -2463,6 +2337,7 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
 INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
 {
     DebugInfo2("(drv = %u)", drv);
+    CHK_DRIVE(drv)
 
     if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
     {
@@ -2471,18 +2346,6 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
     }
 
     INT32 atari_err = E_OK;
-    if (drv_changed[drv])
-    {
-        DebugWarning2("() -> E_CHNG");
-        atari_err = E_CHNG;
-    }
-    else
-    if (drv_host_path[drv] == nullptr)
-    {
-        DebugWarning2("() -> EDRIVE");
-        atari_err = EDRIVE;
-    }
-
     HostHandle_t hhdl = dirh->dirID;
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
@@ -2575,10 +2438,10 @@ INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
         case DP_IOPEN:       return 100;    // ???
         case DP_MAXLINKS:    return 1;
         case DP_PATHMAX:     return 128;
-        case DP_NAMEMAX:     return (drv_longnames[drv]) ? 31 : 12;
+        case DP_NAMEMAX:     return (drv_longNames[drv]) ? 31 : 12;
         case DP_ATOMIC:      return 512;    // ???
-        case DP_TRUNC:       return (drv_longnames[drv]) ? DP_AUTOTRUNC : DP_DOSTRUNC;
-        case DP_CASE:        return (drv_longnames[drv]) ? DP_CASEINSENS : DP_CASECONV;
+        case DP_TRUNC:       return (drv_longNames[drv]) ? DP_AUTOTRUNC : DP_DOSTRUNC;
+        case DP_CASE:        return (drv_longNames[drv]) ? ((drv_caseInsens[drv]) ? DP_CASEINSENS : DP_CASESENS) : DP_CASECONV;
         case DP_MODEATTR:    return F_RDONLY + F_SUBDIR + F_ARCHIVE + F_HIDDEN +
                                     DP_FT_DIR + DP_FT_REG + DP_FT_LNK;
         case DP_XATTRFIELDS: return DP_INDEX + DP_DEV + DP_NLINK + DP_BLKSIZE +
@@ -2604,22 +2467,15 @@ INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
 INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 {
     DebugInfo2("(drv = %u)", drv);
+    CHK_DRIVE(drv)
+
     (void) dirID;
     (void) data;
 
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-
     // TODO: this is dummy so far
-    // 2G free, in particular 4 M blocks à 512 bytes
-    data[0] = htobe32((2 * 1024) * 2 * 1024);   // # free blocks
-    data[1] = htobe32((2 * 1024) * 2 * 1024);   // # total blocks
+    // 1G free from 1.5G
+    data[0] = htobe32(2 * 1024 * 1024);   // # free blocks
+    data[1] = htobe32(3 * 1024 * 1024);   // # total blocks
     data[2] = htobe32(512); // sector size in bytes
     data[3] = htobe32(1);   // sectors per cluster
 
@@ -2643,18 +2499,7 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, const char *name)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-    if (drv_readOnly[drv])
-    {
-        return EWRPRO;
-    }
+    CHK_DRIVE_WRITEABLE(drv)
 
     (void) dd;
     (void) name;
@@ -2679,16 +2524,9 @@ INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, const char *name)
 INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz)
 {
     DebugInfo2("(drv = %u, bufsize = %u)", drv, bufsiz);
-    (void) dd;
+    CHK_DRIVE(drv)
 
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
+    (void) dd;
 
     const char *atari_name = drv_atari_name[drv];
     if (atari_name != nullptr)
@@ -2729,26 +2567,9 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
 INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const char *target)
 {
     DebugInfo2("(drv = %u)", drv);
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-    if (drv_readOnly[drv])
-    {
-        return EWRPRO;
-    }
+    CHK_DRIVE_WRITEABLE(drv)
 
-    unsigned char dosname[20];
-    if (!drv_longnames[drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name, dosname, false, false);
-        name = (char *) dosname;
-    }
+    CONV8p3(drv, name, dosname)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2802,22 +2623,9 @@ INT32 CHostXFS::xfs_readlink
 )
 {
     DebugInfo2("(drv = %u, name = \"%s\")", drv, name);
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
+    CHK_DRIVE(drv)
 
-    unsigned char dosname[20];
-    if (!drv_longnames[drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name, dosname, false, false);
-        name = (char *) dosname;
-    }
+    CONV8p3(drv, name, dosname)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2882,26 +2690,13 @@ INT32 CHostXFS::xfs_dcntl
 )
 {
     DebugInfo2("(drv = %u)", drv);
+    CHK_DRIVE(drv)
+
     (void) cmd;
     (void) pArg;
     (void) addrOffset68k;
 
-    if (drv_changed[drv])
-    {
-        return E_CHNG;
-    }
-    if (drv_host_path[drv] == nullptr)
-    {
-        return EDRIVE;
-    }
-
-    unsigned char dosname[20];
-    if (!drv_longnames[drv])
-    {
-        // no long filenames supported, convert to upper case 8+3
-        nameto_8_3(name, dosname, false, false);
-        name = (char *) dosname;
-    }
+    CONV8p3(drv, name, dosname)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -4374,15 +4169,17 @@ void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
         {
             drv_type[i] = eHostDir;
             drv_host_path[i] = path;
-            drv_longnames[i] = (flags & 2) == 0;
-            drv_readOnly[i] = (flags & 1);
+            drv_longNames[i] = (flags & DRV_FLAG_8p3) == 0;
+            drv_readOnly[i] = (flags & DRV_FLAG_RDONLY);
+            drv_caseInsens[i] = (flags & DRV_FLAG_CASE_INSENS);
             xfs_drvbits |= (1 << i);
         }
         else
         {
             drv_host_path[i] = nullptr;    // invalid
-            drv_longnames[i] = false;
+            drv_longNames[i] = false;
             drv_readOnly[i] = false;
+            drv_caseInsens[i] = false;      // case-sensitive, typical Linux/Unix file systems
         }
 
         drv_must_eject[i] = 0;

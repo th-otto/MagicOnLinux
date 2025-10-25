@@ -1,3 +1,5 @@
 read-only flags for drives must be evaluated
 
-files created should not be Unix-executable
+conversion tables for filenames and text are outdated and incomplete
+"cd .." on root leads to internal error
+mcmd shows "0 bytes free"

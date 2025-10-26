@@ -235,18 +235,19 @@ class CHostXFS
 
     // static functions
 
-    static INT32 hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz);
-    static int getDrvNo(char c);
-    int atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned buflen);
-    int hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned buflen);
-
-    static int atariFnameToHostFname(const unsigned char *src, char *dst, unsigned buflen);
-    static int hostFnameToAtariFname(const char *src, unsigned char *dst, unsigned buflen);
-    static bool filename8p3_match(const char *pattern, const char *fname, bool upperCase);
-    static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name, bool upperCase);
-    static bool nameto_8_3 (const char *host_fname,
+    static bool nameto_8_3(const char *fname,
                 unsigned char *dosname,
                 bool upperCase, bool toAtari);
+    static INT32 hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz);
+    static int getDrvNo(char c);
+    int atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned bufsiz);
+    int hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned bufsiz);
+
+    static int atariFnameToHostFname(const unsigned char *src, char *dst, unsigned bufsiz);
+    static int hostFnameToAtariFname(const char *src, unsigned char *dst, unsigned bufsiz);
+    static bool hostFnameToAtariFname8p3(const char *host_fname, unsigned char *dosname, bool upperCase);
+    static bool filename8p3_match(const char *pattern, const char *fname, bool upperCase);
+    static bool pathElemToDTA8p3(const unsigned char *path, unsigned char *name, bool upperCase);
     static void statbuf2xattr(XATTR *xattr, const struct stat *statbuf);
 
     // XFS calls

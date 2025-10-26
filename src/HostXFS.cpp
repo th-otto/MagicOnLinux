@@ -128,6 +128,137 @@ static void __dump(const unsigned char *p, int len)
 
 /** **********************************************************************************************
  *
+ * @brief Converts host filename to 8+3 for GEMDOS
+ *
+ * @param[in]  fname            input filename (host or Atari)
+ * @param[out] dosname          8+3 GEMDOS filename, zero terminated
+ * @param[in]  upperCase        true: convert to 8+3 uppercase, false: convert to 8+3
+ * @param[in]  to_atari_charset true: convert host charset (UTF-8) to Atari charset
+ *
+ * @return true: filename was shortened
+ *
+ * @note Characters ' ' and '\' are skipped
+ *
+ * @note If to_atari_charset is true, the fname is in utf-8, otherwise in Atari format.
+ *
+ ************************************************************************************************/
+bool CHostXFS::nameto_8_3
+(
+    const char *fname,
+    unsigned char *dosname,
+    bool upperCase,
+    bool to_atari_charset
+)
+{
+    // special case "." and ".."
+
+    if (fname[0] == '.')
+    {
+        if (fname[1] == '\0')
+        {
+            *dosname++ = '.';
+            *dosname = '\0';
+            return false;
+        }
+
+        if ((fname[1] == '.') && (fname[2] == '\0'))
+        {
+            *dosname++ = '.';
+            *dosname++ = '.';
+            *dosname = '\0';
+            return false;
+        }
+    }
+
+    bool truncated = false;
+
+    // convert up to 8 characters for filename
+    int i = 0;
+    while ((i < 8) && (*fname) && (*fname != '.'))
+    {
+        if ((*fname == ' ') || (*fname == '\\'))
+        {
+            fname++;
+            continue;
+        }
+
+        unsigned char c;
+        if (to_atari_charset)
+        {
+            // utf-8 -> Atari
+            unsigned len = CConversion::charHost2Atari(fname, &c);
+            fname += len;
+        }
+        else
+        {
+            // host_fname is alread in Atari character set
+            c = *fname++;
+        }
+
+        if (upperCase)
+        {
+            c = CConversion::charAtari2UpperCase(c);
+        }
+        *dosname++ = c;
+        i++;
+    }
+
+    while ((*fname) && (*fname != '.'))
+    {
+        fname++;        // skip everything before '.'
+        truncated = true;
+    }
+    if (*fname == '.')
+    {
+        fname++;        // skip '.'
+    }
+    *dosname++ = '.';        // insert '.' into DOS filename
+
+    // convert up to 3 characters for filename extension
+    i = 0;
+    while ((i < 3) && (*fname) && (*fname != '.'))
+    {
+        if ((*fname == ' ') || (*fname == '\\'))
+        {
+            fname++;
+            continue;
+        }
+
+        unsigned char c;
+        if (to_atari_charset)
+        {
+            // utf-8 -> Atari
+            unsigned len = CConversion::charHost2Atari(fname, &c);
+            fname += len;
+        }
+        else
+        {
+            // host_fname is alread in Atari character set
+            c = *fname++;
+        }
+
+        if (upperCase)
+        {
+            c = CConversion::charAtari2UpperCase(c);
+        }
+        *dosname++ = c;
+        i++;
+    }
+
+    if (dosname[-1] == '.')        // trailing '.'
+        dosname[-1] = EOS;        //   remove
+    else
+        *dosname = EOS;
+
+    if (*fname)
+        truncated = true;
+
+    return truncated;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief [static] Get host path from directory fd
  *
  * @param[in] dir_fd    host directory file descriptor
@@ -158,16 +289,16 @@ INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
  *
  * @param[in]   src     Atari filename
  * @param[out]  dst     buffer for host filename
- * @param[in]   buflen  buffer length, including end-of-string.
+ * @param[in]   bufsiz  buffer size, including end-of-string.
  *
  * @return -1 on overflow, otherwise zero
  *
  ************************************************************************************************/
-int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigned buflen)
+int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigned bufsiz)
 {
     char *buf_start = dst;
     // leave space for end-of-string and four-byte utf-8 character
-    while (*src && (dst < buf_start + buflen - 5))
+    while (*src && (dst < buf_start + bufsiz - 5))
     {
         if (*src == '\\')
         {
@@ -182,7 +313,7 @@ int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigne
         }
     }
     *dst = EOS;
-    return (dst >= buf_start + buflen - 1) ? -1 : 0;
+    return (dst >= buf_start + bufsiz - 1) ? -1 : 0;
 }
 
 
@@ -190,7 +321,7 @@ int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigne
  *
  * @brief [static] Get drive number from Atari drive name
  *
- * @param[in]   c            first character of an Atari path
+ * @param[in]  c    first character of an Atari path
  *
  * @return 0..NDRVS-1 if valid (upper or lower case), otherwise -1.
  *
@@ -212,12 +343,12 @@ int CHostXFS::getDrvNo(char c)
  * @param[in]   src          Atari path
  * @param[in]   default_drv  Atari drive, if src does not start with "A:" or similar
  * @param[out]  dst          buffer for host path
- * @param[in]   buflen       buffer length, including end-of-string.
+ * @param[in]   bufsiz       buffer size, including end-of-string.
  *
  * @return -1 on overflow, otherwise zero
  *
  ************************************************************************************************/
-int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned buflen)
+int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned bufsiz)
 {
     int drv = getDrvNo(src[0]);
     if ((drv >= 0) && (src[1] == ':'))
@@ -228,6 +359,7 @@ int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv,
     {
         drv = default_drv;
     }
+
     if (src[0] == '\\')
     {
         // absolute Atari path
@@ -235,18 +367,18 @@ int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv,
         if (host_root != nullptr)
         {
             unsigned len = strlen(host_root);
-            if (len >= buflen)
+            if (len >= bufsiz)
             {
                 DebugError2("() - buffer overflow");
                 return -1;
             }
             strcpy(dst, host_root);
             dst += len;
-            buflen -= len;
+            bufsiz -= len;
         }
     }
 
-    return atariFnameToHostFname(src, dst, buflen);
+    return atariFnameToHostFname(src, dst, bufsiz);
 }
 
 
@@ -256,17 +388,17 @@ int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv,
  *
  * @param[in]   src      host filename
  * @param[out]  dst      Atari filename
- * @param[in]   buflen   buffer length, including end-of-string.
+ * @param[in]   bufsiz   buffer size, including end-of-string.
  *
  * @return -1 on overflow, otherwise zero
  *
  * @note There is no uppercase conversion.
  *
  ************************************************************************************************/
-int CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst, unsigned buflen)
+int CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst, unsigned bufsiz)
 {
     unsigned char *buf_start = dst;
-    while (*src && (dst < buf_start + buflen - 1))
+    while (*src && (dst < buf_start + bufsiz - 1))
     {
         if (*src == '/')
         {
@@ -294,19 +426,36 @@ int CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst, unsigne
 
 /** **********************************************************************************************
  *
+ * @brief [static] Convert host filename to Atari 8+3 filename
+ *
+ * @param[in]   host_fname      host filename
+ * @param[out]  dosname         Atari filename
+ * @param[in]   upperCase       convert to uppercase
+ *
+ * @return true: filename was shortened
+ *
+ ************************************************************************************************/
+bool CHostXFS::hostFnameToAtariFname8p3(const char *host_fname, unsigned char *dosname, bool upperCase)
+{
+    return nameto_8_3(host_fname, dosname, upperCase, true);
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Convert host path to Atari path
  *
  * @param[in]   src          host path
  * @param[in]   default_drv  Atari drive, if src does not start with an Atari root
  * @param[out]  dst          buffer for Atari path
- * @param[in]   buflen       buffer length, including end-of-string.
+ * @param[in]   bufsiz       buffer size, including end-of-string.
  *
  * @return -1 on overflow, otherwise zero
  *
  ************************************************************************************************/
-int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned buflen)
+int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned bufsiz)
 {
-    if (buflen < 4)
+    if (bufsiz < 4)
     {
         return -1;
     }
@@ -323,7 +472,7 @@ int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char uns
                 *dst++ = drv + 'A';
                 *dst++ = ':';
                 *dst++ = '\\';
-                buflen -= 3;
+                bufsiz -= 3;
                 src += len;
                 if (src[0] == '/')
                 {
@@ -339,10 +488,10 @@ int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char uns
         *dst++ = default_drv + 'A';
         *dst++ = ':';
         *dst++ = '\\';
-        buflen -= 3;
+        bufsiz -= 3;
     }
 
-    return hostFnameToAtariFname(src, dst, buflen);
+    return hostFnameToAtariFname(src, dst, bufsiz);
 }
 
 
@@ -389,13 +538,6 @@ bool CHostXFS::filename8p3_match(const char *pattern, const char *fname, bool up
         return((pattern[0] == '?') || (pattern[0] == fname[0]));
     }
 
-    /*
-    if (!strncmp(pattern, "???????????", 11) && fname[0] == '.')
-    {
-        printf("hallo");
-    }
-   */
-
     // compare 11 characters (8 plus 3)
 
     for (int i = 10; i >= 0; i--)
@@ -410,7 +552,9 @@ bool CHostXFS::filename8p3_match(const char *pattern, const char *fname, bool up
                 c2 = CConversion::charAtari2UpperCase(c2);
             }
             if (c1 != c2)
+            {
                 return false;
+            }
         }
     }
 
@@ -465,7 +609,7 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name, 
     {
         if (path[1] == '\0')
         {
-            *name++ = '.';
+            *name++ = '.';      // "." -> ".          "
             *name++ = ' ';
             *name++ = ' ';
             *name++ = ' ';
@@ -481,7 +625,7 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name, 
 
         if ((path[1] == '.') && (path[2] == '\0'))
         {
-            *name++ = '.';
+            *name++ = '.';      // ".." -> "..         "
             *name++ = '.';
             *name++ = ' ';
             *name++ = ' ';
@@ -550,137 +694,6 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name, 
     {
         *name++ = c;
     }
-
-    return truncated;
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Converts host filename to 8+3 for GEMDOS
- *
- * @param[in]  host_fname       host filename
- * @param[out] dosname          8+3 GEMDOS filename, zero terminated
- * @param[in]  upperCase        true: convert to 8+3 uppercase, false: convert to 8+3
- * @param[in]  to_atari_charset true: convert host charset (UTF-8) to Atari charset
- *
- * @return true: filename was shortened
- *
- * @note Characters ' ' and '\' are skipped
- *
- * @note If to_atari_charset is true, the host_fname is in utf-8, otherwise in Atari format.
- *
- ************************************************************************************************/
-bool CHostXFS::nameto_8_3
-(
-    const char *host_fname,
-    unsigned char *dosname,
-    bool upperCase,
-    bool to_atari_charset
-)
-{
-    // special case "." and ".."
-
-    if (host_fname[0] == '.')
-    {
-        if (host_fname[1] == '\0')
-        {
-            *dosname++ = '.';
-            *dosname = '\0';
-            return false;
-        }
-
-        if ((host_fname[1] == '.') && (host_fname[2] == '\0'))
-        {
-            *dosname++ = '.';
-            *dosname++ = '.';
-            *dosname = '\0';
-            return false;
-        }
-    }
-
-    bool truncated = false;
-
-    // convert up to 8 characters for filename
-    int i = 0;
-    while ((i < 8) && (*host_fname) && (*host_fname != '.'))
-    {
-        if ((*host_fname == ' ') || (*host_fname == '\\'))
-        {
-            host_fname++;
-            continue;
-        }
-
-        unsigned char c;
-        if (to_atari_charset)
-        {
-            // utf-8 -> Atari
-            unsigned len = CConversion::charHost2Atari(host_fname, &c);
-            host_fname += len;
-        }
-        else
-        {
-            // host_fname is alread in Atari character set
-            c = *host_fname++;
-        }
-
-        if (upperCase)
-        {
-            c = CConversion::charAtari2UpperCase(c);
-        }
-        *dosname++ = c;
-        i++;
-    }
-
-    while ((*host_fname) && (*host_fname != '.'))
-    {
-        host_fname++;        // skip everything before '.'
-        truncated = true;
-    }
-    if (*host_fname == '.')
-    {
-        host_fname++;        // skip '.'
-    }
-    *dosname++ = '.';        // insert '.' into DOS filename
-
-    // convert up to 3 characters for filename extension
-    i = 0;
-    while ((i < 3) && (*host_fname) && (*host_fname != '.'))
-    {
-        if ((*host_fname == ' ') || (*host_fname == '\\'))
-        {
-            host_fname++;
-            continue;
-        }
-
-        unsigned char c;
-        if (to_atari_charset)
-        {
-            // utf-8 -> Atari
-            unsigned len = CConversion::charHost2Atari(host_fname, &c);
-            host_fname += len;
-        }
-        else
-        {
-            // host_fname is alread in Atari character set
-            c = *host_fname++;
-        }
-
-        if (upperCase)
-        {
-            c = CConversion::charAtari2UpperCase(c);
-        }
-        *dosname++ = c;
-        i++;
-    }
-
-    if (dosname[-1] == '.')        // trailing '.'
-        dosname[-1] = EOS;        //   remove
-    else
-        *dosname = EOS;
-
-    if (*host_fname)
-        truncated = true;
 
     return truncated;
 }
@@ -1162,7 +1175,7 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_D
     }
 
     dta->mxdta.dta_attribute = (char) dosname[11];
-    nameto_8_3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, convUpper, true);
+    hostFnameToAtariFname8p3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, convUpper);
     const struct timespec *mtime = &statbuf.st_mtim;
     uint16_t time, date;
     CConversion::hostDateToDosDate(mtime->tv_sec, &time, &date);
@@ -2244,7 +2257,7 @@ INT32 CHostXFS::xfs_dreaddir
 
         if (dirh->tosflag)
         {
-            if (nameto_8_3(entry->d_name, (unsigned char *) buf, drv_caseInsens[drv], true))
+            if (hostFnameToAtariFname8p3(entry->d_name, (unsigned char *) buf, drv_caseInsens[drv]))
             {
                 DebugWarning2("() : filename \"%s\" does not fit to 8+3 scheme", entry->d_name);
                 continue;   // filename was shortened, so it was too long for 8+3
@@ -2283,7 +2296,7 @@ INT32 CHostXFS::xfs_dreaddir
         memcpy(buf, &entry->d_ino, 4);
         buf += 4;
         bufsiz -= 4;
-        if (hostFnameToAtariFname(entry->d_name, (unsigned char *) buf, bufsiz))
+        if (hostFnameToAtariFname(entry->d_name, buf, bufsiz))
         {
             // overflow
             DebugError2("() : buffer size %u too small => ERANGE", bufsiz);

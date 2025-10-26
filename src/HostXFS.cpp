@@ -1608,23 +1608,32 @@ INT32 CHostXFS::xfs_link
     CHK_DRIVE_WRITEABLE(drv)
     CHK_DRIVE_WRITEABLE(dst_drv)
 
-    if (mode != 0)
-    {
-        // TODO: maybe support hardlinks later
-        return EINVFN;
-    }
-
     GET_hhdl_hostFD_dir_fd(dd_from, hhdl_from, hostFD_from, dir_fd_from)
     GET_hhdl_hostFD_dir_fd(dd_to, hhdl_to, hostFD_to, dir_fd_to)
 
     CONV8p3(drv, name_from, host_name_from)
     CONV8p3(drv, name_to, host_name_to)
 
-    // without RENAME_NOREPLACE, an existing file might be removed here, which we do not allow
-    if (renameat2(dir_fd_from, host_name_from, dir_fd_to, host_name_to, RENAME_NOREPLACE))
+    if (mode != 0)
     {
-        DebugError2("() : renameat2(\"%s\", \"%s\") -> %s", host_name_from, host_name_to, strerror(errno));
-        return CConversion::host2AtariError(errno);
+        // hard link: new directory entry shall refer to same file (volume and inode)
+
+        if (linkat(dir_fd_from, host_name_from, dir_fd_to, host_name_to, 0))
+        {
+            DebugError2("() : linkat(\"%s\", \"%s\") -> %s", host_name_from, host_name_to, strerror(errno));
+            return CConversion::host2AtariError(errno);
+        }
+    }
+    else
+    {
+        // move or rename: old directory entry is removed, and new one is created that refers to the same file
+
+        // without RENAME_NOREPLACE, an existing file might be removed here, which we do not allow
+        if (renameat2(dir_fd_from, host_name_from, dir_fd_to, host_name_to, RENAME_NOREPLACE))
+        {
+            DebugError2("() : renameat2(\"%s\", \"%s\") -> %s", host_name_from, host_name_to, strerror(errno));
+            return CConversion::host2AtariError(errno);
+        }
     }
 
     return E_OK;
@@ -1648,7 +1657,7 @@ void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
         case S_IFBLK:  ast_mode |= 0; break;              // block device
         case S_IFCHR:  ast_mode |= _ATARI_S_IFCHR; break; // character device
         case S_IFDIR:  ast_mode |= _ATARI_S_IFDIR;
-                        attr |= F_SUBDIR; break;           // directory
+                       attr |= F_SUBDIR; break;           // directory
         case S_IFIFO:  ast_mode |= _ATARI_S_IFIFO; break; // FIFO/pipe
         case S_IFLNK:  ast_mode |= _ATARI_S_IFLNK; break; // symlink
         case S_IFREG:  ast_mode |= _ATARI_S_IFREG; break; // regular file
@@ -3065,20 +3074,11 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
             }
         }
 
+        // macOS specific commands are not supported
         case FMACOPENRES:
-            // not supported
-            break;
-
         case FMACGETTYCR:
-            // not supported
-            break;
-
         case FMACSETTYCR:
-            // not supported
-            break;
-
         case FMACMAGICEX:
-            // not supported
             break;
     }
 

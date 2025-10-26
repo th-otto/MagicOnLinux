@@ -1,3 +1,23 @@
-read-only flags for drives must be evaluated
-
 mcmd shows "0 bytes free"
+
+In MagicMacX kernel, the floppy and hard drive functions unfortunately are all dummies:
+
+hdv_init
+hdv_rw
+hdv_bp
+hdv_mediach
+hdv_boot
+
+(see KERNEL/BIOS/MAGXMACX/DRIVE.S)
+
+This should be replaced by a concept like XFS:
+
+hdv_rw_host:
+ ....
+ moveq    #opcode, d0
+ lea      MSysX+MacSysX_rawdrvr,a0
+ MACPPCE
+ lea      ...(sp),sp
+ rts
+
+For this, the MagicMacX kernel must be recompiled, which needs a workable Atari toolchain.

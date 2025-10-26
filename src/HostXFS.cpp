@@ -1727,14 +1727,18 @@ INT32 CHostXFS::xfs_xattr
     uint16_t mode
 )
 {
-    (void) mode;    // support later, if symbolic links are available
     DebugInfo2("(name = \"%s\", drv = %u, mode = %d)", name, drv, mode);
     CHK_DRIVE(drv)
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
     struct stat statbuf;
-    int res = fstatat(dir_fd, host_name, &statbuf, AT_EMPTY_PATH);
+    int flags = AT_EMPTY_PATH;
+    if (mode)
+    {
+        flags |= AT_SYMLINK_NOFOLLOW;
+    }
+    int res = fstatat(dir_fd, host_name, &statbuf, flags);
     if (res < 0)
     {
         DebugWarning2("() : fstatat(%s) -> %s", host_name, strerror(errno));
@@ -1760,7 +1764,8 @@ INT32 CHostXFS::xfs_xattr
  *
  * @return E_OK or 32-bit negative error code
  *
- * @note TODO: We could set or reset the F_RDONLY atribute, but nothing else.
+ * @note We can set or reset the F_RDONLY atribute, but nothing else. Contrary to the Atari,
+ *       this should also work on folders.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const unsigned char *name, uint16_t rwflag, uint16_t attr)
@@ -1841,7 +1846,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const unsigned char *name, 
  *
  * @return E_OK or 32-bit negative error code
  *
- * @note TODO: We could that implement later, but it has not much use.
+ * @note We could that implement later, but it has not much use.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const unsigned char *name,
@@ -1851,13 +1856,15 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const unsigned char *name,
     CHK_DRIVE_WRITEABLE(drv)
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
-    (void) hhdl;
-    (void) name;
-    (void) uid;
-    (void) gid;
 
-    DebugWarning2("() -> EINVFN", drv, name);
-    return EINVFN;
+    // TODO: shall we follow symbolic links here? We might change the flags then.
+    if (fchownat(dir_fd, host_name, uid, gid, 0))
+    {
+        DebugWarning2("() : fchownat(%s) -> %s", host_name, strerror(errno));
+        return CConversion::host2AtariError(errno);
+    }
+
+    return E_OK;
 }
 
 
@@ -1872,7 +1879,8 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const unsigned char *name,
  *
  * @return E_OK or 32-bit negative error code
  *
- * @note TODO: We could that implement later, but it has not much use.
+ * @note The bits are same for Atari and Unix/Linux. Here, we support all 12 bits, although
+ *       the Atari documentation only mentions the lower 9.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, const unsigned char *name, uint16_t fmode)
@@ -1882,12 +1890,14 @@ INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, const unsigned char *name, 
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
-    (void) dd;
-    (void) name;
-    (void) fmode;
+    fmode &= 07777;
+    if (fchmodat(dir_fd, host_name, fmode, 0))
+    {
+        DebugWarning2("() : fchmodat(%s) -> %s", host_name, strerror(errno));
+        return CConversion::host2AtariError(errno);
+    }
 
-    DebugWarning2("() -> EINVFN");
-    return EINVFN;
+    return E_OK;
 }
 
 

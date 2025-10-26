@@ -1537,7 +1537,7 @@ INT32 CHostXFS::xfs_fopen
 
     hhdl = allocHostFD(&file_hostFD);
 
-    assert (hhdl <= 0xfffff);
+    assert(hhdl <= 0xfffff);
     DebugInfo2("() -> %d", hhdl);
     return hhdl;
 }
@@ -1779,22 +1779,6 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const unsigned char *name, 
     int res = fstatat(dir_fd, host_name, &statbuf, AT_EMPTY_PATH);
     if (res < 0)
     {
-        #if 0
-        // TODO: versagt bei "T:\ATARI\DRECK"
-        {
-            char pathname[32];
-            char pathbuf[1024];
-            sprintf(pathname, "/proc/self/fd/%u", dir_fd);
-            ssize_t size = readlink(pathname, pathbuf, sizeof(pathbuf));
-            if (size < 0)
-            {
-                DebugWarning2("() : readlink() -> %s", strerror(errno));
-                return EINTRN;
-            }
-            pathbuf[size] = '\0';   // necessary
-            DebugError2("() : fstatat() fails on fd \"%s\"", pathbuf);
-        }
-        #endif
         DebugWarning2("() : fstatat() -> %s", strerror(errno));
         return CConversion::host2AtariError(errno);
     }
@@ -2770,22 +2754,13 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
         GET_hhdl_AND_fd
 
         // change date and time, if modified by dev_datime()
-        // TODO: make sure Atari drive is not write protected
         if (f->mod_tdate_dirty)
         {
             // get host path from file descriptor
-            char pathname[32];
             char pathbuf[1024];
-            sprintf(pathname, "/proc/self/fd/%u", fd);
-            ssize_t size = readlink(pathname, pathbuf, 1022);
-            if (size < 0)
+            aret = hostFd2Path(fd, pathbuf, sizeof(pathbuf));
+            if (aret == E_OK)
             {
-                DebugWarning2("() : readlink() -> %s", strerror(errno));
-                aret = EINTRN;
-            }
-            else
-            {
-                pathbuf[size] = '\0';   // necessary
                 struct utimbuf utim;
                 CConversion::dosDateToHostDate(f->mod_time, f->mod_date, &utim.actime);
                 CConversion::dosDateToHostDate(f->mod_time, f->mod_date, &utim.modtime);
@@ -2972,23 +2947,29 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
  *
  * @note Like in MagicMac(X) and AtariX, we cannot change the timestamps here, but store
  *       them in the file descriptor, so that they can be applied after the file has
- *       been closed. TODO: make sure that we do not change timestamps on write protected
- *       Atari drives. TODO: when closing the file, we must get the path?
+ *       been closed.
+ * @note We only allow timestamp changes if the file was opend with write permission,
+ *       so we can block changes on write-protected drives.
  *
  ************************************************************************************************/
 INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 {
     DebugInfo2("(fd = 0x%0x, rwflag = %d)", f, rwflag);
-    (void) f;
-    (void) d;
-    (void) rwflag;
 
     if (rwflag)
     {
-        // remember for later, when we close the file
-        f->mod_time = be16toh(d[0]);
-        f->mod_date = be16toh(d[1]);
-        f->mod_tdate_dirty = 1;
+        if (f->fd.fd_mode & OM_WPERM)
+        {
+            // remember for later, when we close the file
+            f->mod_time = be16toh(d[0]);
+            f->mod_date = be16toh(d[1]);
+            f->mod_tdate_dirty = 1;
+        }
+        else
+        {
+            DebugError2("() - attempt to change date/time on a read-only opened file");
+            return EACCDN;
+        }
     }
     else
     if (f->mod_tdate_dirty)

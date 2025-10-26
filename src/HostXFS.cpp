@@ -319,6 +319,43 @@ int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigne
 
 /** **********************************************************************************************
  *
+ * @brief Convert Atari filename to 8+3 and uppercase, if appropriate, and to host filename (utf-8)
+ *
+ * @param[in]   src     Atari filename
+ * @param[out]  dst     buffer for host filename
+ * @param[in]   bufsiz  buffer size, including end-of-string.
+ *
+ * @return -1 on overflow, otherwise zero
+ *
+ ************************************************************************************************/
+int CHostXFS::atariFnameToHostFnameCond8p3(uint16_t drv, const unsigned char *atari_fname, char *host_fname, unsigned bufsiz)
+{
+    unsigned char dosname[16];
+    if (!drv_longNames[drv])
+    {
+        nameto_8_3((const char *) atari_fname, dosname, drv_caseInsens[drv], false);
+        atari_fname = dosname;
+    }
+
+    return atariFnameToHostFname(atari_fname, host_fname, bufsiz);
+}
+
+
+/// Conversion from Atari filename to 8+3 Atari filename.
+/// If drive has 8+3 format, then convert name to dosname
+/// and additionally to upper case, if file system is case insenstive.
+/// Finally convert to host filename in utf-8 format.
+#define CONV8p3(DRV, NAME, HOSTNAME) \
+    char HOSTNAME[256]; \
+    if (atariFnameToHostFnameCond8p3(DRV, NAME, HOSTNAME, sizeof(HOSTNAME))) \
+    { \
+        DebugError2("() -- cannot convert Atari filename to host format: %s ", NAME); \
+        return ERANGE; \
+    }
+
+
+/** **********************************************************************************************
+ *
  * @brief [static] Get drive number from Atari drive name
  *
  * @param[in]  c    first character of an Atari path
@@ -1378,25 +1415,6 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 }
 
 
-/// Conversion from Atari filename to 8+3 Atari filename.
-/// If drive has 8+3 format, then convert name to dosname
-/// and additionally to upper case, if file system is case insenstive.
-/// Finally convert to host filename in utf-8 format.
-#define CONV8p3(DRV, NAME, DOSNAME, HOSTNAME) \
-    unsigned char DOSNAME[20]; \
-    if (!drv_longNames[drv]) \
-    { \
-        nameto_8_3((const char *) NAME, DOSNAME, drv_caseInsens[DRV], false); \
-        NAME = DOSNAME; \
-    } \
-    char HOSTNAME[256]; \
-    if (atariFnameToHostFname(NAME, HOSTNAME, sizeof(HOSTNAME))) \
-    { \
-        DebugError2("() -- cannot convert Atari filename to host format: %s ", NAME); \
-        return ERANGE; \
-    }
-
-
 /** **********************************************************************************************
  *
  * @brief Open a file and create it, if requested
@@ -1429,7 +1447,7 @@ INT32 CHostXFS::xfs_fopen
 
     DebugInfo2("(name = \"%s\", drv = %u, omode = %d, attrib = %d)", name, drv, omode, attrib);
     CHK_DRIVE(drv)
-    CONV8p3(drv, name, dosname, host_name)
+    CONV8p3(drv, name, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1557,7 +1575,7 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const unsigned char *name)
     }
     int dir_fd = hostFD->fd;
 
-    CONV8p3(drv, name, dosname, host_name)
+    CONV8p3(drv, name, host_name)
 
     // with flags AT_REMOVEDIR we could remove directories, what do not want here
     if (unlinkat(dir_fd, host_name, 0))
@@ -1610,8 +1628,8 @@ INT32 CHostXFS::xfs_link
         return EINVFN;
     }
 
-    CONV8p3(drv, name_from, dosname_from, host_name_from)
-    CONV8p3(drv, name_to, dosname_to, host_name_to)
+    CONV8p3(drv, name_from, host_name_from)
+    CONV8p3(drv, name_to, host_name_to)
 
     HostHandle_t hhdl_from = dd_from->dirID;
     HostFD *hostFD_from = getHostFD(hhdl_from);
@@ -1731,7 +1749,7 @@ INT32 CHostXFS::xfs_xattr
     DebugInfo2("(name = \"%s\", drv = %u, mode = %d)", name, drv, mode);
     CHK_DRIVE(drv)
 
-    CONV8p3(drv, name, dosname, host_name)
+    CONV8p3(drv, name, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1785,7 +1803,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const unsigned char *name, 
         return EWRPRO;
     }
 
-    CONV8p3(drv, name, dosname, host_name)
+    CONV8p3(drv, name, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1920,7 +1938,7 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, const unsigned char *name)
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     CHK_DRIVE_WRITEABLE(drv)
 
-    CONV8p3(drv, name, dosname, host_name)
+    CONV8p3(drv, name, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2618,7 +2636,7 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const unsigned char *name,
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE_WRITEABLE(drv)
 
-    CONV8p3(drv, name, dosname, host_name)
+    CONV8p3(drv, name, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2674,7 +2692,7 @@ INT32 CHostXFS::xfs_readlink
     DebugInfo2("(drv = %u, name = \"%s\")", drv, name);
     CHK_DRIVE(drv)
 
-    CONV8p3(drv, name, dosname, host_name)
+    CONV8p3(drv, name, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2745,7 +2763,7 @@ INT32 CHostXFS::xfs_dcntl
     (void) pArg;
     (void) addrOffset68k;
 
-    CONV8p3(drv, name, dosname, host_name)
+    CONV8p3(drv, name, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);

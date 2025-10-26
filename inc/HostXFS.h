@@ -244,6 +244,7 @@ class CHostXFS
     int hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned bufsiz);
 
     static int atariFnameToHostFname(const unsigned char *src, char *dst, unsigned bufsiz);
+    int atariFnameToHostFnameCond8p3(uint16_t drv, const unsigned char *atari_fname, char *host_fname, unsigned bufsiz);
     static int hostFnameToAtariFname(const char *src, unsigned char *dst, unsigned bufsiz);
     static bool hostFnameToAtariFname8p3(const char *host_fname, unsigned char *dosname, bool upperCase);
     static bool filename8p3_match(const char *pattern, const char *fname, bool upperCase);

@@ -17,11 +17,8 @@
  */
 
 /*
-** (TAB-Setting: 5)
-** (Font = Chicago 12)
 **
-**
-** This is the host part of Host-XFS for MagiCLinux
+** This is the host part of Host XFS for MagiCLinux
 **
 ** (C) Andreas Kromke 1994-2025
 **
@@ -77,9 +74,9 @@ extern void _DumpAtariMem(const char *filename);
 
 
 /** **********************************************************************************************
-*
-* @brief Constructor
-*
+ *
+ * @brief Constructor
+ *
  ************************************************************************************************/
 CHostXFS::CHostXFS()
 {
@@ -88,24 +85,14 @@ CHostXFS::CHostXFS()
     {
         drv_host_path[i] = nullptr;    // invalid
     }
-
-/*
-    // M: host root
-
-    drv_type['M'-'A'] = eHostRoot;
-    drv_valid['M'-'A'] = true;
-    drv_longnames['M'-'A'] = true;
-    drv_dirID['M'-'A'] = 0;
-    drv_host_path['M'-'A'] = "/";
-*/
     HostHandles::init();
 }
 
 
 /** **********************************************************************************************
-*
-* @brief Destructor
-*
+ *
+ * @brief Destructor
+ *
  ************************************************************************************************/
 CHostXFS::~CHostXFS()
 {
@@ -114,9 +101,9 @@ CHostXFS::~CHostXFS()
 
 #ifdef DEBUG_VERBOSE
 /** **********************************************************************************************
-*
-* @brief Debug helper
-*
+ *
+ * @brief Debug helper
+ *
  ************************************************************************************************/
 static void __dump(const unsigned char *p, int len)
 {
@@ -141,7 +128,7 @@ static void __dump(const unsigned char *p, int len)
 
 /** **********************************************************************************************
  *
- * @brief Get host path from directory fd
+ * @brief [static] Get host path from directory fd
  *
  * @param[in] dir_fd    host directory file descriptor
  * @param[in] pathbuf   buffer for host path
@@ -150,7 +137,7 @@ static void __dump(const unsigned char *p, int len)
  * @return E_OK or negative error code
  *
  ************************************************************************************************/
-static INT32 hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
+INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
 {
     char pathname[32];
     sprintf(pathname, "/proc/self/fd/%u", dir_fd);
@@ -166,45 +153,15 @@ static INT32 hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
 
 
 /** **********************************************************************************************
-*
-* @brief [static] Convert Atari lowercase character to uppercase
-*
-* @param[in]   c     Atari lowercase character
-*
-* @return Atari uppercase character, if convertible, otherwise c
-*
- ************************************************************************************************/
-char CHostXFS::toUpper(char c)
-{
-    /* äöüçé(a°)(ae)(oe)à(ij)(n˜)(a˜)(o/)(o˜) */
-    static const char lowers[] = {'\x84','\x94','\x81','\x87','\x82','\x86','\x91','\xb4','\x85','\xc0','\xa4','\xb0','\xb3','\xb1',0};
-    static const char uppers[] = {'\x8e','\x99','\x9a','\x80','\x90','\x8f','\x92','\xb5','\xb6','\xc1','\xa5','\xb7','\xb2','\xb8',0};
-
-    if (c >= 'a' && c <= 'z')
-    {
-        return((char) (c & '\x5f'));
-    }
-
-    const char *found;
-    if (((unsigned char) c >= 128) && ((found = strchr(lowers, c)) != nullptr))
-    {
-        return uppers[found - lowers];
-    }
-
-    return(c);
-}
-
-
-/** **********************************************************************************************
-*
-* @brief [static] Convert Atari filename to host filename, including path separator
-*
-* @param[in]   src     Atari filename
-* @param[out]  dst     buffer for host filename
-* @param[in]   buflen  buffer length, including end-of-string.
-*
-* @return -1 on overflow, otherwise zero
-*
+ *
+ * @brief [static] Convert Atari filename to host filename, including path separator
+ *
+ * @param[in]   src     Atari filename
+ * @param[out]  dst     buffer for host filename
+ * @param[in]   buflen  buffer length, including end-of-string.
+ *
+ * @return -1 on overflow, otherwise zero
+ *
  ************************************************************************************************/
 int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigned buflen)
 {
@@ -230,17 +187,17 @@ int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigne
 
 
 /** **********************************************************************************************
-*
-* @brief [static] Get drive number from Atari drive name
-*
-* @param[in]   c            first character of an Atari path
-*
-* @return 0..NDRVS-1 if valid (upper or lower case), otherwise -1.
-*
+ *
+ * @brief [static] Get drive number from Atari drive name
+ *
+ * @param[in]   c            first character of an Atari path
+ *
+ * @return 0..NDRVS-1 if valid (upper or lower case), otherwise -1.
+ *
  ************************************************************************************************/
 int CHostXFS::getDrvNo(char c)
 {
-    char drv = toUpper(c);
+    char drv = CConversion::charAtari2UpperCase(c);
     if ((drv >= 'A') && (drv <= 'Z'))
         return drv - 'A';
     else
@@ -249,16 +206,16 @@ int CHostXFS::getDrvNo(char c)
 
 
 /** **********************************************************************************************
-*
-* @brief Convert Atari path to host path
-*
-* @param[in]   src          Atari path
-* @param[in]   default_drv  Atari drive, if src does not start with "A:" or similar
-* @param[out]  dst          buffer for host path
-* @param[in]   buflen       buffer length, including end-of-string.
-*
-* @return -1 on overflow, otherwise zero
-*
+ *
+ * @brief Convert Atari path to host path
+ *
+ * @param[in]   src          Atari path
+ * @param[in]   default_drv  Atari drive, if src does not start with "A:" or similar
+ * @param[out]  dst          buffer for host path
+ * @param[in]   buflen       buffer length, including end-of-string.
+ *
+ * @return -1 on overflow, otherwise zero
+ *
  ************************************************************************************************/
 int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned buflen)
 {
@@ -336,16 +293,16 @@ int CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst, unsigne
 
 
 /** **********************************************************************************************
-*
-* @brief Convert host path to Atari path
-*
-* @param[in]   src          host path
-* @param[in]   default_drv  Atari drive, if src does not start with an Atari root
-* @param[out]  dst          buffer for Atari path
-* @param[in]   buflen       buffer length, including end-of-string.
-*
-* @return -1 on overflow, otherwise zero
-*
+ *
+ * @brief Convert host path to Atari path
+ *
+ * @param[in]   src          host path
+ * @param[in]   default_drv  Atari drive, if src does not start with an Atari root
+ * @param[out]  dst          buffer for Atari path
+ * @param[in]   buflen       buffer length, including end-of-string.
+ *
+ * @return -1 on overflow, otherwise zero
+ *
  ************************************************************************************************/
 int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned buflen)
 {
@@ -390,40 +347,40 @@ int CHostXFS::hostPath2AtariPath(const char *src, unsigned default_drv, char uns
 
 
 /** **********************************************************************************************
-*
-* @brief [static] Check if an 8+3 filename matches an 8+3 search pattern (each 12 bytes)
-*
-* @param[in]   pattern      internal 8+3 representation of search pattern, for Fsfirst() and Fsnext()
-* @param[out]  fname        internal 8+3 representation of filename
-* @param[in]   upperCase    case insensitive compare
-*
-* @return match result
-*
-* @note Byte 11 is the search attribute, respectively the file attribute. '?' is a wildcard.
-*
-* @note Attribute comparison rules:
-*    1) ReadOnly and Archive are always ignored.
-*    2) If the search attribute is 8, exactly those files with Volume flag match,
-*       also hidden ones.
-*    3) If search attribute is different from 8, regular files always match.
-*    4) If search attribute is different from 8, directories are only found if bit 4 is set.
-*    5) If search attribute is different from 8, volume names are only found if bit 3 is set.
-*    6) If search attribute is different from 8, hiden and system files, including
-*       directories and volume names, are only match, if the respective bit in the search
-*       attribute is set.
-*
-*  @note match examples (bits ReadOnly and Archive are ignored):
-*    8    all files with bit 3 set (volumes)
-*    0    only regular files
-*    2    regular and hidden files
-*    6    regular, hidden and system files
-*  $10    regular files and regular subdirectories
-*  $12    regular and hidden files and subdirectories
-*  $16    regular and hidden and system files and directories
-*   $a    regular and hidden files and volume names
-*   $e    regular and hidden and system files and volume names
-*  $1e    everything
-*
+ *
+ * @brief [static] Check if an 8+3 filename matches an 8+3 search pattern (each 12 bytes)
+ *
+ * @param[in]   pattern      internal 8+3 representation of search pattern, for Fsfirst() and Fsnext()
+ * @param[out]  fname        internal 8+3 representation of filename
+ * @param[in]   upperCase    case insensitive compare
+ *
+ * @return match result
+ *
+ * @note Byte 11 is the search attribute, respectively the file attribute. '?' is a wildcard.
+ *
+ * @note Attribute comparison rules:
+ *    1) ReadOnly and Archive are always ignored.
+ *    2) If the search attribute is 8, exactly those files with Volume flag match,
+ *       also hidden ones.
+ *    3) If search attribute is different from 8, regular files always match.
+ *    4) If search attribute is different from 8, directories are only found if bit 4 is set.
+ *    5) If search attribute is different from 8, volume names are only found if bit 3 is set.
+ *    6) If search attribute is different from 8, hiden and system files, including
+ *       directories and volume names, are only match, if the respective bit in the search
+ *       attribute is set.
+ *
+ *  @note match examples (bits ReadOnly and Archive are ignored):
+ *    8    all files with bit 3 set (volumes)
+ *    0    only regular files
+ *    2    regular and hidden files
+ *    6    regular, hidden and system files
+ *  $10    regular files and regular subdirectories
+ *  $12    regular and hidden files and subdirectories
+ *  $16    regular and hidden and system files and directories
+ *   $a    regular and hidden files and volume names
+ *   $e    regular and hidden and system files and volume names
+ *  $1e    everything
+ *
  ************************************************************************************************/
 bool CHostXFS::filename8p3_match(const char *pattern, const char *fname, bool upperCase)
 {
@@ -449,8 +406,8 @@ bool CHostXFS::filename8p3_match(const char *pattern, const char *fname, bool up
         {
             if (upperCase)
             {
-                c1 = toUpper(c1);
-                c2 = toUpper(c2);
+                c1 = CConversion::charAtari2UpperCase(c1);
+                c2 = CConversion::charAtari2UpperCase(c2);
             }
             if (c1 != c2)
                 return false;
@@ -545,7 +502,7 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name, 
     for (i = 0; (i < 8) && (*path) &&
          (*path != '\\') && (*path != '*') && (*path != '.') && (*path != ' '); i++)
     {
-        *name++ = (upperCase) ? toUpper(*path++) : *path++;
+        *name++ = (upperCase) ? CConversion::charAtari2UpperCase(*path++) : *path++;
     }
 
     // determine the fill character, that will be used to fill the complete eight characters
@@ -577,7 +534,7 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name, 
     for (i = 0; (i < 3) && (*path) &&
          (*path != '\\') && (*path != '*') && (*path != '.') && (*path != ' '); i++)
     {
-        *name++ = (upperCase) ? toUpper(*path++) : *path++;
+        *name++ = (upperCase) ? CConversion::charAtari2UpperCase(*path++) : *path++;
     }
 
     if ((*path) && (*path != '\\') && (*path != '*'))
@@ -669,7 +626,7 @@ bool CHostXFS::nameto_8_3
 
         if (upperCase)
         {
-            c = toUpper(c);
+            c = CConversion::charAtari2UpperCase(c);
         }
         *dosname++ = c;
         i++;
@@ -711,7 +668,7 @@ bool CHostXFS::nameto_8_3
 
         if (upperCase)
         {
-            c = toUpper(c);
+            c = CConversion::charAtari2UpperCase(c);
         }
         *dosname++ = c;
         i++;

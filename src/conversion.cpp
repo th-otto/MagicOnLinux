@@ -200,6 +200,36 @@ unsigned CConversion::charAtari2Host(unsigned char c, char *dst)
 
 /** **********************************************************************************************
  *
+ * @brief [static] Convert Atari lowercase character to uppercase
+ *
+ * @param[in]   c     Atari lowercase character
+ *
+ * @return Atari uppercase character, if convertible, otherwise c
+ *
+ ************************************************************************************************/
+unsigned char CConversion::charAtari2UpperCase(unsigned char c)
+{
+    /* äöüçé(a°)(ae)(oe)à(ij)(n˜)(a˜)(o/)(o˜) */
+    static const char lowers[] = {'\x84','\x94','\x81','\x87','\x82','\x86','\x91','\xb4','\x85','\xc0','\xa4','\xb0','\xb3','\xb1',0};
+    static const char uppers[] = {'\x8e','\x99','\x9a','\x80','\x90','\x8f','\x92','\xb5','\xb6','\xc1','\xa5','\xb7','\xb2','\xb8',0};
+
+    if (c >= 'a' && c <= 'z')
+    {
+        return((char) (c & '\x5f'));
+    }
+
+    const char *found;
+    if (((unsigned char) c >= 128) && ((found = strchr(lowers, c)) != nullptr))
+    {
+        return uppers[found - lowers];
+    }
+
+    return(c);
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief [static] Convert Atari text to host text and return it
  *
  * @param[in]  atari_text   text in Atari character set

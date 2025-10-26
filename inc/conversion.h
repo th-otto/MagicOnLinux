@@ -30,6 +30,7 @@ class CConversion
 	static void init(void);
     static unsigned charHost2Atari(const char *utf8, unsigned char *dst);
     static unsigned charAtari2Host(unsigned char c, char *dst);
+    static unsigned char charAtari2UpperCase(unsigned char c);
 
     static const char *textAtari2Host(const unsigned char *atari_text);
 	static int host2AtariError(int error);

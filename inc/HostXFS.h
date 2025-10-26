@@ -235,7 +235,7 @@ class CHostXFS
 
     // static functions
 
-    static char toUpper(char c);
+    static INT32 hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz);
     static int getDrvNo(char c);
     int atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned buflen);
     int hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned buflen);

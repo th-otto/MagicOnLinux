@@ -1,4 +1,3 @@
 read-only flags for drives must be evaluated
 
-conversion tables for filenames and text are outdated and incomplete
 mcmd shows "0 bytes free"

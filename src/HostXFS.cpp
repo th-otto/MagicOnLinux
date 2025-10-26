@@ -1795,10 +1795,33 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const unsigned char *name, 
 
     if (rwflag)
     {
-        // TODO: implement
-        (void) attr;
-        DebugError2("() changing attributes not implemented, yet");
-        return EACCDN;
+        mode_t old_perm = statbuf.st_mode & 07777;  // extract permissions
+        mode_t new_perm = old_perm;
+        if (attr & F_RDONLY)
+        {
+            // write-protect, i.e. clear "write by owner" permission
+            new_perm &= ~S_IWUSR;
+        }
+        else
+        if (attr & F_RDONLY)
+        {
+            // write-allow, i.e. add "write by owner" permission
+            new_perm |= S_IWUSR;
+        }
+
+        if (old_perm != new_perm)
+        {
+            // write-protect file or folder or un-write-protect it
+            if (fchmodat(dir_fd, host_name, new_perm, 0))
+            {
+                DebugWarning2("() : fchmodat(%s) -> %s", host_name, strerror(errno));
+                return CConversion::host2AtariError(errno);
+            }
+        }
+        else
+        {
+            DebugWarning2("() attributes unchanged or not supported");
+        }
     }
 
     DebugInfo2("() -> %u", old_attr);

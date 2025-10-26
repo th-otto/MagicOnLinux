@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1990-2018 Andreas Kromke, andreas.kromke@gmail.com
+ * Copyright (C) 1990-2018/25 Andreas Kromke, andreas.kromke@gmail.com
  *
  * This program is free software; you can redistribute it or
  * modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
 
 /*
 *
-* Zeichensatz-Umsetzung f�r MagicMacX
+* Character conversions between Atari and host
 *
 */
 
@@ -27,24 +27,12 @@
 class CConversion
 {
    public:
-	// Initialisierung
-	static void init( void );
-	static void Atari2MacFilename(unsigned char *s);
-	static unsigned char Atari2MacFilename(unsigned char c);
+	static void init(void);
+    static unsigned charHost2Atari(const char *utf8, unsigned char *dst);
     static unsigned charAtari2Host(unsigned char c, char *dst);
+
     static const char *textAtari2Host(const unsigned char *atari_text);
-	static void Mac2AtariFilename(unsigned char *s);
-	static unsigned char Mac2AtariFilename(unsigned char c);
-	static unsigned char Mac2AtariText(unsigned char c);
-	static int Host2AtariError(int error);
+	static int host2AtariError(int error);
 	static void hostDateToDosDate(time_t host_time, uint16_t *time, uint16_t *date);
 	static void dosDateToHostDate(uint16_t time, uint16_t date, time_t *host_time);
-
-   private:
-	// Funktionen
-	// Attribute
-	static unsigned const char s_tabAtari2MacText[256];
-	static unsigned const char s_tabMac2AtariText[256];
-	static unsigned const char s_tabAtari2MacFilename[256];
-	static unsigned const char s_tabMac2AtariFilename[256];
 };

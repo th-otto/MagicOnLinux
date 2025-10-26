@@ -209,7 +209,8 @@ char CHostXFS::toUpper(char c)
 int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigned buflen)
 {
     char *buf_start = dst;
-    while (*src && (dst < buf_start + buflen - 1))    // TODO: add overflow handling
+    // leave space for end-of-string and four-byte utf-8 character
+    while (*src && (dst < buf_start + buflen - 5))
     {
         if (*src == '\\')
         {
@@ -217,7 +218,11 @@ int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigne
             *dst++ = '/';
         }
         else
-            *dst++ = CConversion::Atari2MacFilename(*src++);
+        {
+            // Atari -> utf-8
+            unsigned len = CConversion::charAtari2Host(*src++, dst);
+            dst += len;
+        }
     }
     *dst = EOS;
     return (dst >= buf_start + buflen - 1) ? -1 : 0;
@@ -312,7 +317,12 @@ int CHostXFS::hostFnameToAtariFname(const char *src, unsigned char *dst, unsigne
             *dst++ = '\\';
         }
         else
-            *dst++ = CConversion::Mac2AtariFilename(*src++);
+        {
+            // utf-8 -> Atari
+            unsigned len = CConversion::charHost2Atari(src, dst);
+            src += len;
+            dst++;
+        }
     }
 
     *dst = EOS;
@@ -601,6 +611,8 @@ bool CHostXFS::pathElemToDTA8p3(const unsigned char *path, unsigned char *name, 
  *
  * @note Characters ' ' and '\' are skipped
  *
+ * @note If to_atari_charset is true, the host_fname is in utf-8, otherwise in Atari format.
+ *
  ************************************************************************************************/
 bool CHostXFS::nameto_8_3
 (
@@ -641,11 +653,20 @@ bool CHostXFS::nameto_8_3
             host_fname++;
             continue;
         }
-        char c = *host_fname++;
+
+        unsigned char c;
         if (to_atari_charset)
         {
-            c = CConversion::Mac2AtariFilename(c);
+            // utf-8 -> Atari
+            unsigned len = CConversion::charHost2Atari(host_fname, &c);
+            host_fname += len;
         }
+        else
+        {
+            // host_fname is alread in Atari character set
+            c = *host_fname++;
+        }
+
         if (upperCase)
         {
             c = toUpper(c);
@@ -675,11 +696,19 @@ bool CHostXFS::nameto_8_3
             continue;
         }
 
-        char c = *host_fname++;
+        unsigned char c;
         if (to_atari_charset)
         {
-            c = CConversion::Mac2AtariFilename(c);
+            // utf-8 -> Atari
+            unsigned len = CConversion::charHost2Atari(host_fname, &c);
+            host_fname += len;
         }
+        else
+        {
+            // host_fname is alread in Atari character set
+            c = *host_fname++;
+        }
+
         if (upperCase)
         {
             c = toUpper(c);
@@ -802,7 +831,7 @@ INT32 CHostXFS::hostpath2HostFD
         {
             DebugWarning2("() : fstatat(\"%s\") -> %s", path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
-            return CConversion::Host2AtariError(errno);
+            return CConversion::host2AtariError(errno);
         }
         DebugInfo2("() : dev=%d, ino=%d)", statbuf.st_dev, statbuf.st_ino);
         uint16_t nhhdl;
@@ -819,7 +848,7 @@ INT32 CHostXFS::hostpath2HostFD
         {
             DebugWarning2("() : openat(\"%s\") -> %s", path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
-            return CConversion::Host2AtariError(errno);
+            return CConversion::host2AtariError(errno);
         }
 
         //
@@ -853,7 +882,7 @@ INT32 CHostXFS::hostpath2HostFD
             close(hostFD->fd);
             DebugWarning2("() : fstat(\"%s\") -> %s", path, strerror(errno));
             *hhdl = HOST_HANDLE_INVALID;
-            return CConversion::Host2AtariError(errno);
+            return CConversion::host2AtariError(errno);
         }
 
         //DebugInfo2("() : dev=%d, ino=%d)", statbuf.st_dev, statbuf.st_ino);
@@ -1246,7 +1275,7 @@ INT32 CHostXFS::xfs_sfirst
     {
         DebugWarning2("() : fdopendir() -> %s", strerror(errno));
         close(dup_dir_fd);
-        return CConversion::Host2AtariError(errno);
+        return CConversion::host2AtariError(errno);
     }
 
     for (;;)
@@ -1382,12 +1411,19 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
 /// Conversion from Atari filename to 8+3 Atari filename.
 /// If drive has 8+3 format, then convert name to dosname
 /// and additionally to upper case, if file system is case insenstive.
-#define CONV8p3(DRV, NAME, DOSNAME) \
+/// Finally convert to host filename in utf-8 format.
+#define CONV8p3(DRV, NAME, DOSNAME, HOSTNAME) \
     unsigned char DOSNAME[20]; \
     if (!drv_longNames[drv]) \
     { \
-        nameto_8_3(NAME, DOSNAME, drv_caseInsens[DRV], false); \
-        NAME = (char *) DOSNAME; \
+        nameto_8_3((const char *) NAME, DOSNAME, drv_caseInsens[DRV], false); \
+        NAME = DOSNAME; \
+    } \
+    char HOSTNAME[256]; \
+    if (atariFnameToHostFname(NAME, HOSTNAME, sizeof(HOSTNAME))) \
+    { \
+        DebugError2("() -- cannot convert Atari filename to host format: %s ", NAME); \
+        return ERANGE; \
     }
 
 
@@ -1412,7 +1448,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
  ************************************************************************************************/
 INT32 CHostXFS::xfs_fopen
 (
-    const char *name,
+    const unsigned char *name,
     uint16_t drv,
     MXFSDD *dd,
     uint16_t omode,
@@ -1423,7 +1459,7 @@ INT32 CHostXFS::xfs_fopen
 
     DebugInfo2("(name = \"%s\", drv = %u, omode = %d, attrib = %d)", name, drv, omode, attrib);
     CHK_DRIVE(drv)
-    CONV8p3(drv, name, dosname)
+    CONV8p3(drv, name, dosname, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1498,11 +1534,11 @@ INT32 CHostXFS::xfs_fopen
         return ENHNDL;
     }
 
-    file_hostFD->fd = openat(dir_fd, name, host_oflags, new_file_perm);
+    file_hostFD->fd = openat(dir_fd, host_name, host_oflags, new_file_perm);
     if (file_hostFD->fd < 0)
     {
-        DebugWarning2("() : openat(\"%s\") -> %s", name, strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        DebugWarning2("() : openat(\"%s\") -> %s", host_name, strerror(errno));
+        return CConversion::host2AtariError(errno);
     }
     DebugInfo2("() - host fd %d", file_hostFD->fd);
 
@@ -1511,8 +1547,8 @@ INT32 CHostXFS::xfs_fopen
     if (ret < 0)
     {
         close(file_hostFD->fd);
-        DebugWarning2("() : fstat(\"%s\") -> %s", name, strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        DebugWarning2("() : fstat(\"%s\") -> %s", host_name, strerror(errno));
+        return CConversion::host2AtariError(errno);
     }
     file_hostFD->dev = statbuf.st_dev;
     file_hostFD->ino = statbuf.st_ino;
@@ -1538,7 +1574,7 @@ INT32 CHostXFS::xfs_fopen
  * @note If the file is an alias, the alias should be removed, not the directory
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name)
+INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const unsigned char *name)
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE_WRITEABLE(drv)
@@ -1551,13 +1587,13 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name)
     }
     int dir_fd = hostFD->fd;
 
-    CONV8p3(drv, name, dosname)
+    CONV8p3(drv, name, dosname, host_name)
 
     // with flags AT_REMOVEDIR we could remove directories, what do not want here
-    if (unlinkat(dir_fd, name, 0))
+    if (unlinkat(dir_fd, host_name, 0))
     {
-        DebugError2("() : unlinkat(\"%s\") -> %s", name, strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        DebugError2("() : unlinkat(\"%s\") -> %s", host_name, strerror(errno));
+        return CConversion::host2AtariError(errno);
     }
 
     return E_OK;
@@ -1586,8 +1622,8 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const char *name)
 INT32 CHostXFS::xfs_link
 (
     uint16_t drv,
-    const char *name_from,
-    const char *name_to,
+    const unsigned char *name_from,
+    const unsigned char *name_to,
     MXFSDD *dd_from,
     MXFSDD *dd_to,
     uint16_t mode,
@@ -1604,8 +1640,8 @@ INT32 CHostXFS::xfs_link
         return EINVFN;
     }
 
-    CONV8p3(drv, name_from, dosname_from)
-    CONV8p3(drv, name_to, dosname_to)
+    CONV8p3(drv, name_from, dosname_from, host_name_from)
+    CONV8p3(drv, name_to, dosname_to, host_name_to)
 
     HostHandle_t hhdl_from = dd_from->dirID;
     HostFD *hostFD_from = getHostFD(hhdl_from);
@@ -1624,10 +1660,10 @@ INT32 CHostXFS::xfs_link
     int dir_fd_to = hostFD_to->fd;
 
     // without RENAME_NOREPLACE, an existing file might be removed here, which we do not allow
-    if (renameat2(dir_fd_from, name_from, dir_fd_to, name_to, RENAME_NOREPLACE))
+    if (renameat2(dir_fd_from, host_name_from, dir_fd_to, host_name_to, RENAME_NOREPLACE))
     {
-        DebugError2("() : renameat2(\"%s\", \"%s\") -> %s", name_from, name_to, strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        DebugError2("() : renameat2(\"%s\", \"%s\") -> %s", host_name_from, host_name_to, strerror(errno));
+        return CConversion::host2AtariError(errno);
     }
 
     return E_OK;
@@ -1716,7 +1752,7 @@ INT32 CHostXFS::xfs_xattr
 (
     uint16_t drv,
     MXFSDD *dd,
-    const char *name,
+    const unsigned char *name,
     XATTR *xattr,
     uint16_t mode
 )
@@ -1725,7 +1761,7 @@ INT32 CHostXFS::xfs_xattr
     DebugInfo2("(name = \"%s\", drv = %u, mode = %d)", name, drv, mode);
     CHK_DRIVE(drv)
 
-    CONV8p3(drv, name, dosname)
+    CONV8p3(drv, name, dosname, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1741,12 +1777,12 @@ INT32 CHostXFS::xfs_xattr
     }
 
     struct stat statbuf;
-    int res = fstatat(dir_fd, name, &statbuf, AT_EMPTY_PATH);
+    int res = fstatat(dir_fd, host_name, &statbuf, AT_EMPTY_PATH);
     if (res < 0)
     {
-        DebugWarning2("() : fstatat() -> %s", strerror(errno));
+        DebugWarning2("() : fstatat(%s) -> %s", host_name, strerror(errno));
         memset(xattr, 0, sizeof(*xattr));
-        return CConversion::Host2AtariError(errno);
+        return CConversion::host2AtariError(errno);
     }
     statbuf2xattr(xattr, &statbuf);
 
@@ -1770,7 +1806,7 @@ INT32 CHostXFS::xfs_xattr
  * @note TODO: We could set or reset the F_RDONLY atribute, but nothing else.
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t rwflag, uint16_t attr)
+INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const unsigned char *name, uint16_t rwflag, uint16_t attr)
 {
     DebugInfo2("(drv = %u, name = %s, rwflag = %u, attr = %u)", drv, name, rwflag, attr);
     CHK_DRIVE(drv)
@@ -1779,7 +1815,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
         return EWRPRO;
     }
 
-    CONV8p3(drv, name, dosname)
+    CONV8p3(drv, name, dosname, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1794,7 +1830,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
     }
 
     struct stat statbuf;
-    int res = fstatat(dir_fd, name, &statbuf, AT_EMPTY_PATH);
+    int res = fstatat(dir_fd, host_name, &statbuf, AT_EMPTY_PATH);
     if (res < 0)
     {
         #if 0
@@ -1814,7 +1850,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
         }
         #endif
         DebugWarning2("() : fstatat() -> %s", strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        return CConversion::host2AtariError(errno);
     }
 
     uint16_t old_attr = 0;
@@ -1855,7 +1891,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
  * @note TODO: We could that implement later, but it has not much use.
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const char *name,
+INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const unsigned char *name,
                     uint16_t uid, uint16_t gid)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
@@ -1884,7 +1920,7 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const char *name,
  * @note TODO: We could that implement later, but it has not much use.
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, const char *name, uint16_t fmode)
+INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, const unsigned char *name, uint16_t fmode)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     CHK_DRIVE_WRITEABLE(drv)
@@ -1909,12 +1945,12 @@ INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, const char *name, uint16_t 
  * @return E_OK or 32-bit negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, const char *name)
+INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, const unsigned char *name)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     CHK_DRIVE_WRITEABLE(drv)
 
-    CONV8p3(drv, name, dosname)
+    CONV8p3(drv, name, dosname, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -1929,10 +1965,10 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, const char *name)
     }
 
     // create directory with rwxrwxrwx access, which will then be ANDed with umask
-    if (mkdirat(dir_fd, name, 0777) < 0)
+    if (mkdirat(dir_fd, host_name, 0777) < 0)
     {
-        DebugError2("() : openat(\"%s\") -> %s", name, strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        DebugError2("() : openat(\"%s\") -> %s", host_name, strerror(errno));
+        return CConversion::host2AtariError(errno);
     }
 
     DebugInfo2("() -> E_OK");
@@ -1985,7 +2021,7 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
     if (rmdir(pathbuf))
     {
         DebugWarning2("() : rmdir(\"%s\") -> %s", pathbuf, strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        return CConversion::host2AtariError(errno);
     }
 
     DebugInfo2("() -> E_OK");
@@ -2147,7 +2183,7 @@ INT32 CHostXFS::xfs_dopendir
     {
         DebugWarning2("() : fdopendir() -> %s", strerror(errno));
         close(dup_dir_fd);
-        return CConversion::Host2AtariError(errno);
+        return CConversion::host2AtariError(errno);
     }
 
     dirh->dirID = hhdl; // unused
@@ -2182,7 +2218,7 @@ INT32 CHostXFS::xfs_dreaddir
     MAC_DIRHANDLE *dirh,
     uint16_t drv,
     uint16_t bufsiz,
-    char *buf,
+    unsigned char *buf,
     XATTR *xattr,
     INT32 *xr
 )
@@ -2273,28 +2309,26 @@ INT32 CHostXFS::xfs_dreaddir
                 else
                 {
                     DebugWarning2("() : fstat(\"%s\") -> %s", entry->d_name, strerror(errno));
-                    atari_stat_err = CConversion::Host2AtariError(errno);
+                    atari_stat_err = CConversion::host2AtariError(errno);
                     break;
                 }
             }
             else
             {
                 DebugWarning2("() : openat(\"%s\") -> %s", entry->d_name, strerror(errno));
-                atari_stat_err = CConversion::Host2AtariError(errno);
+                atari_stat_err = CConversion::host2AtariError(errno);
             }
         }
 
         DebugInfo2("() - found \"%s\"", entry->d_name);
+
         // buf needs space for 4 bytes i-node plus filename plus NUL byte
-		if (bufsiz >= strlen(entry->d_name) + 5)
+        memcpy(buf, &entry->d_ino, 4);
+        buf += 4;
+        bufsiz -= 4;
+        if (hostFnameToAtariFname(entry->d_name, (unsigned char *) buf, bufsiz))
         {
-            strncpy(buf, (char *) &entry->d_ino, 4);
-            buf += 4;
-            bufsiz -= 4;
-            hostFnameToAtariFname(entry->d_name, (unsigned char *) buf, bufsiz);
-        }
-        else
-        {
+            // overflow
             DebugError2("() : buffer size %u too small => ERANGE", bufsiz);
             atari_err = ATARIERR_ERANGE;
         }
@@ -2541,7 +2575,7 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
  * @note This does not make much sense for the Host XFS, so we do not support it.
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, const char *name)
+INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, const unsigned char *name)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     CHK_DRIVE_WRITEABLE(drv)
@@ -2566,7 +2600,7 @@ INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, const char *name)
  * @return E_OK or negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz)
+INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, unsigned char *name, uint16_t bufsiz)
 {
     DebugInfo2("(drv = %u, bufsize = %u)", drv, bufsiz);
     CHK_DRIVE(drv)
@@ -2580,7 +2614,7 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
         {
             return ATARIERR_ERANGE;
         }
-        strcpy(name, atari_name);
+        strcpy((char *) name, atari_name);
     }
     else
     {
@@ -2588,7 +2622,7 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
         {
             return ATARIERR_ERANGE;
         }
-        sprintf(name, "HOSTXFS.%u", drv);
+        sprintf((char *) name, "HOSTXFS.%u", drv);
     }
 
     DebugInfo2("() -> \"%s\"", name);
@@ -2609,12 +2643,12 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, char *name, uint16_t bufsiz
  * @return E_OK or negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const char *target)
+INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const unsigned char *name, const unsigned char *target)
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE_WRITEABLE(drv)
 
-    CONV8p3(drv, name, dosname)
+    CONV8p3(drv, name, dosname, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2628,17 +2662,17 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const char *name, const ch
     char host_target[1024];
     if (atariPath2HostPath((const unsigned char *) target, drv, host_target, 1024) >= 0)
     {
-        target = host_target;
+        target = (const unsigned char *) host_target;
     }
     else
     {
         DebugError2("() : cannot convert Atari path \"%s\" to host path", target);
     }
 
-    if (symlinkat(host_target, dir_fd, name))
+    if (symlinkat(host_target, dir_fd, host_name))
     {
-        DebugError2("() : symlinkat(\"%s\", \"%s\") -> %s", name, target, strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        DebugError2("() : symlinkat(\"%s\", \"%s\") -> %s", host_name, target, strerror(errno));
+        return CConversion::host2AtariError(errno);
     }
 
     return E_OK;
@@ -2662,15 +2696,15 @@ INT32 CHostXFS::xfs_readlink
 (
     uint16_t drv,
     MXFSDD *dd,
-    const char *name,
-    char *buf,
+    const unsigned char *name,
+    unsigned char *buf,
     uint16_t bufsiz
 )
 {
     DebugInfo2("(drv = %u, name = \"%s\")", drv, name);
     CHK_DRIVE(drv)
 
-    CONV8p3(drv, name, dosname)
+    CONV8p3(drv, name, dosname, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2681,11 +2715,11 @@ INT32 CHostXFS::xfs_readlink
     int dir_fd = hostFD->fd;
 
     char host_target[1024];
-    int nbytes = readlinkat(dir_fd, name, host_target, sizeof(host_target) - 1);
+    int nbytes = readlinkat(dir_fd, host_name, host_target, sizeof(host_target) - 1);
     if (nbytes < 0)
     {
-        DebugError2("() : readlinkat(\"%s\") -> %s", name, strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        DebugError2("() : readlinkat(\"%s\") -> %s", host_name, strerror(errno));
+        return CConversion::host2AtariError(errno);
     }
     host_target[nbytes] = '\0';
     if (nbytes == sizeof(host_target) - 1)
@@ -2701,7 +2735,7 @@ INT32 CHostXFS::xfs_readlink
         {
             return ERANGE;  // buffer too small
         }
-        strcpy(buf, host_target);   // just copy host path
+        strcpy((char *) buf, host_target);   // just copy host path
     }
 
     return E_OK;
@@ -2728,7 +2762,7 @@ INT32 CHostXFS::xfs_dcntl
 (
     uint16_t drv,
     MXFSDD *dd,
-    const char *name,
+    const unsigned char *name,
     uint16_t cmd,
     void *pArg,
     uint8_t *addrOffset68k
@@ -2741,7 +2775,7 @@ INT32 CHostXFS::xfs_dcntl
     (void) pArg;
     (void) addrOffset68k;
 
-    CONV8p3(drv, name, dosname)
+    CONV8p3(drv, name, dosname, host_name)
 
     HostHandle_t hhdl = dd->dirID;
     HostFD *hostFD = getHostFD(hhdl);
@@ -2762,11 +2796,11 @@ INT32 CHostXFS::xfs_dcntl
         {
 		    return EINVFN;
         }
-        int res = fstatat(dir_fd, name, &statbuf, AT_EMPTY_PATH);
+        int res = fstatat(dir_fd, host_name, &statbuf, AT_EMPTY_PATH);
         if (res < 0)
         {
-            DebugWarning2("() : fstatat(\"%s\") -> %s", name, strerror(errno));
-            return CConversion::Host2AtariError(errno);
+            DebugWarning2("() : fstatat(\"%s\") -> %s", host_name, strerror(errno));
+            return CConversion::host2AtariError(errno);
         }
     }
 
@@ -2875,7 +2909,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
                 if (utime(pathbuf, &utim))
                 {
                     DebugWarning2("() : utime(\"%s\") -> %s", pathbuf, strerror(errno));
-                    aret = CConversion::Host2AtariError(errno);
+                    aret = CConversion::host2AtariError(errno);
                 }
             }
             f->mod_tdate_dirty = 0;
@@ -2907,7 +2941,7 @@ INT32 CHostXFS::dev_read(MAC_FD *f, int32_t count, char *buf)
     if (bytes < 0)
     {
         DebugWarning2("() : read() -> %s", strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        return CConversion::host2AtariError(errno);
     }
 
     if (bytes > 0x7fffffff)
@@ -2941,7 +2975,7 @@ INT32 CHostXFS::dev_write(MAC_FD *f, INT32 count, const char *buf)
     if (bytes < 0)
     {
         DebugWarning2("() : write() -> %s", strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        return CConversion::host2AtariError(errno);
     }
 
     if (bytes > 0x7fffffff)
@@ -2987,13 +3021,13 @@ INT32 CHostXFS::dev_stat(MAC_FD *f, void *unsel, uint16_t rwflag, INT32 apcode)
         if (curr_pos < 0)
         {
             DebugError2("() : lseek() -> %s", strerror(errno));
-            return CConversion::Host2AtariError(errno);
+            return CConversion::host2AtariError(errno);
         }
         off_t len = lseek(fd, 0, SEEK_END);    // move to end
         if (len < 0)
         {
             DebugError2("() : lseek() -> %s", strerror(errno));
-            return CConversion::Host2AtariError(errno);
+            return CConversion::host2AtariError(errno);
         }
         (void) lseek(fd, curr_pos, SEEK_SET);    // move to previous position
         return (curr_pos < len) ? 1 : 0;
@@ -3029,7 +3063,7 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
     if (offs < 0)
     {
         DebugWarning2("() : lseek() -> %s", strerror(errno));
-        return CConversion::Host2AtariError(errno);
+        return CConversion::host2AtariError(errno);
     }
 
     if (offs > 0x7fffffff)
@@ -3153,7 +3187,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
             if (res < 0)
             {
                 DebugWarning2("() : ftruncate() -> %s", strerror(errno));
-                return CConversion::Host2AtariError(errno);
+                return CConversion::host2AtariError(errno);
             }
         }
 
@@ -3475,7 +3509,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             } __attribute__((packed));
             fopenparm *pfopenparm = (fopenparm *) params;
             doserr = xfs_fopen(
-                    (char *) (addrOffset68k + be32toh(pfopenparm->name)),
+                    (unsigned char *) (addrOffset68k + be32toh(pfopenparm->name)),
                     be16toh(pfopenparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pfopenparm->dd)),
                     be16toh(pfopenparm->omode),
@@ -3496,7 +3530,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_fdelete(
                     be16toh(pfdeleteparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pfdeleteparm->dd)),
-                    (char *) (addrOffset68k + be32toh(pfdeleteparm->name))
+                    (unsigned char *) (addrOffset68k + be32toh(pfdeleteparm->name))
                     );
             break;
         }
@@ -3516,8 +3550,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             flinkparm *pflinkparm = (flinkparm *) params;
             doserr = xfs_link(
                     be16toh(pflinkparm->drv),
-                    (char *) (addrOffset68k + be32toh(pflinkparm->nam1)),
-                    (char *) (addrOffset68k + be32toh(pflinkparm->nam2)),
+                    (unsigned char *) (addrOffset68k + be32toh(pflinkparm->nam1)),
+                    (unsigned char *) (addrOffset68k + be32toh(pflinkparm->nam2)),
                     (MXFSDD *) (addrOffset68k + be32toh(pflinkparm->dd1)),
                     (MXFSDD *) (addrOffset68k + be32toh(pflinkparm->dd2)),
                     be16toh(pflinkparm->mode),
@@ -3540,7 +3574,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_xattr(
                     be16toh(pxattrparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pxattrparm->dd)),
-                    (char *) (addrOffset68k + be32toh(pxattrparm->name)),
+                    (unsigned char *) (addrOffset68k + be32toh(pxattrparm->name)),
                     (XATTR *) (addrOffset68k + be32toh(pxattrparm->xattr)),
                     be16toh(pxattrparm->mode)
                     );
@@ -3561,7 +3595,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_attrib(
                     be16toh(pattribparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pattribparm->dd)),
-                    (char *) (addrOffset68k + be32toh(pattribparm->name)),
+                    (unsigned char *) (addrOffset68k + be32toh(pattribparm->name)),
                     be16toh(pattribparm->rwflag),
                     be16toh(pattribparm->attr)
                     );
@@ -3582,7 +3616,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_fchown(
                     be16toh(pchownparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pchownparm->dd)),
-                    (char *) (addrOffset68k + be32toh(pchownparm->name)),
+                    (unsigned char *) (addrOffset68k + be32toh(pchownparm->name)),
                     be16toh(pchownparm->uid),
                     be16toh(pchownparm->gid)
                     );
@@ -3602,7 +3636,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_fchmod(
                     be16toh(pchmodparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pchmodparm->dd)),
-                    (char *) (addrOffset68k + be32toh(pchmodparm->name)),
+                    (unsigned char *) (addrOffset68k + be32toh(pchmodparm->name)),
                     be16toh(pchmodparm->fmode)
                     );
             break;
@@ -3626,7 +3660,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_dcreate(
                     be16toh(pdcreateparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pdcreateparm->dd)),
-                    (char *) (addrOffset68k + be32toh(pdcreateparm->name))
+                    (unsigned char *) (addrOffset68k + be32toh(pdcreateparm->name))
                     );
             break;
         }
@@ -3700,7 +3734,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
                     (MAC_DIRHANDLE *) (addrOffset68k + be32toh(pdreaddirparm->dirh)),
                     be16toh(pdreaddirparm->drv),
                     be16toh(pdreaddirparm->size),
-                    (char *) (addrOffset68k + be32toh(pdreaddirparm->buf)),
+                    (unsigned char *) (addrOffset68k + be32toh(pdreaddirparm->buf)),
                     (XATTR *) ((pdreaddirparm->xattr) ? addrOffset68k + be32toh(pdreaddirparm->xattr) : NULL),
                     (INT32 *) ((pdreaddirparm->xr) ? (addrOffset68k + be32toh(pdreaddirparm->xr)) : NULL)
                     );
@@ -3786,7 +3820,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_wlabel(
                     be16toh(pwlabelparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pwlabelparm->dd)),
-                    (char *) (addrOffset68k + be32toh(pwlabelparm->name))
+                    (unsigned char *) (addrOffset68k + be32toh(pwlabelparm->name))
                     );
             break;
         }
@@ -3804,7 +3838,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_rlabel(
                     be16toh(prlabelparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(prlabelparm->dd)),
-                    (char *) (addrOffset68k + be32toh(prlabelparm->name)),
+                    (unsigned char *) (addrOffset68k + be32toh(prlabelparm->name)),
                     be16toh(prlabelparm->bufsiz)
                     );
             break;
@@ -3823,8 +3857,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_symlink(
                     be16toh(psymlinkparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(psymlinkparm->dd)),
-                    (char *) (addrOffset68k + be32toh(psymlinkparm->name)),
-                    (char *) (addrOffset68k + be32toh(psymlinkparm->to))
+                    (unsigned char *) (addrOffset68k + be32toh(psymlinkparm->name)),
+                    (unsigned char *) (addrOffset68k + be32toh(psymlinkparm->to))
                     );
             break;
         }
@@ -3843,8 +3877,8 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_readlink(
                     be16toh(preadlinkparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(preadlinkparm->dd)),
-                    (char *) (addrOffset68k + be32toh(preadlinkparm->name)),
-                    (char *) (addrOffset68k + be32toh(preadlinkparm->buf)),
+                    (unsigned char *) (addrOffset68k + be32toh(preadlinkparm->name)),
+                    (unsigned char *) (addrOffset68k + be32toh(preadlinkparm->buf)),
                     be16toh(preadlinkparm->bufsiz)
                     );
             break;
@@ -3864,7 +3898,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             doserr = xfs_dcntl(
                     be16toh(pdcntlparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pdcntlparm->dd)),
-                    (char *) (addrOffset68k + be32toh(pdcntlparm->name)),
+                    (unsigned char *) (addrOffset68k + be32toh(pdcntlparm->name)),
                     be16toh(pdcntlparm->cmd),
                     addrOffset68k + be32toh(pdcntlparm->arg),
                     addrOffset68k

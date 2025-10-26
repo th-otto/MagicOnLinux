@@ -1224,15 +1224,15 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_D
 
 
 // perform various checks to the directory file descriptor
-#define GET_hhdl_hostFD_dir_fd(DD) \
-    HostHandle_t hhdl = DD->dirID; \
-    HostFD *hostFD = getHostFD(hhdl); \
-    if (hostFD == nullptr) \
+#define GET_hhdl_hostFD_dir_fd(DD, HHDL, HOST_FD, DIR_FD) \
+    HostHandle_t HHDL = DD->dirID; \
+    HostFD *HOST_FD = getHostFD(HHDL); \
+    if (HOST_FD == nullptr) \
     { \
         return EINTRN; \
     } \
-    int dir_fd = hostFD->fd; \
-    if (dir_fd == -1) \
+    int DIR_FD = HOST_FD->fd; \
+    if (DIR_FD == -1) \
     { \
         return EINTRN; \
     }
@@ -1269,7 +1269,7 @@ INT32 CHostXFS::xfs_sfirst
     dta->macdta.sattr = (char) attrib;            // search attribute
 
     CHK_DRIVE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     // Got host fd for the directory.
     // Note that an fdopendir(), followed by readdir(), advances the file
@@ -1454,7 +1454,7 @@ INT32 CHostXFS::xfs_fopen
 
     DebugInfo2("(name = \"%s\", drv = %u, omode = %d, attrib = %d)", name, drv, omode, attrib);
     CHK_DRIVE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
     int host_oflags = -1;
@@ -1560,7 +1560,7 @@ INT32 CHostXFS::xfs_fdelete(uint16_t drv, MXFSDD *dd, const unsigned char *name)
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE_WRITEABLE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
     // with flags AT_REMOVEDIR we could remove directories, what do not want here
@@ -1614,24 +1614,11 @@ INT32 CHostXFS::xfs_link
         return EINVFN;
     }
 
+    GET_hhdl_hostFD_dir_fd(dd_from, hhdl_from, hostFD_from, dir_fd_from)
+    GET_hhdl_hostFD_dir_fd(dd_to, hhdl_to, hostFD_to, dir_fd_to)
+
     CONV8p3(drv, name_from, host_name_from)
     CONV8p3(drv, name_to, host_name_to)
-
-    HostHandle_t hhdl_from = dd_from->dirID;
-    HostFD *hostFD_from = getHostFD(hhdl_from);
-    if (hostFD_from == nullptr)
-    {
-        return EINTRN;
-    }
-    int dir_fd_from = hostFD_from->fd;
-
-    HostHandle_t hhdl_to = dd_to->dirID;
-    HostFD *hostFD_to = getHostFD(hhdl_to);
-    if (hostFD_to == nullptr)
-    {
-        return EINTRN;
-    }
-    int dir_fd_to = hostFD_to->fd;
 
     // without RENAME_NOREPLACE, an existing file might be removed here, which we do not allow
     if (renameat2(dir_fd_from, host_name_from, dir_fd_to, host_name_to, RENAME_NOREPLACE))
@@ -1734,7 +1721,7 @@ INT32 CHostXFS::xfs_xattr
     (void) mode;    // support later, if symbolic links are available
     DebugInfo2("(name = \"%s\", drv = %u, mode = %d)", name, drv, mode);
     CHK_DRIVE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
     struct stat statbuf;
@@ -1776,7 +1763,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const unsigned char *name, 
         return EWRPRO;
     }
 
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
     struct stat statbuf;
@@ -1846,7 +1833,7 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const unsigned char *name,
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     CHK_DRIVE_WRITEABLE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
     (void) hhdl;
     (void) name;
@@ -1876,7 +1863,7 @@ INT32 CHostXFS::xfs_fchmod(uint16_t drv, MXFSDD *dd, const unsigned char *name, 
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     CHK_DRIVE_WRITEABLE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
     (void) dd;
@@ -1903,7 +1890,7 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, const unsigned char *name)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     CHK_DRIVE_WRITEABLE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
     // create directory with rwxrwxrwx access, which will then be ANDed with umask
@@ -1934,7 +1921,7 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE_WRITEABLE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     // We cannot remove the directory via its DD or fd, instead we need a path
     // TODO: we might need the parent directory
@@ -1981,7 +1968,7 @@ INT32 CHostXFS::xfs_DD2hostPath(MXFSDD *dd, char *pathbuf, uint16_t bufsiz)
     DebugInfo2("()");
 
     pathbuf[0] = '\0';      // in case of error...
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     // get host path from directory file descriptor
     INT32 aret = hostFd2Path(dir_fd, pathbuf, bufsiz);
@@ -2084,7 +2071,7 @@ INT32 CHostXFS::xfs_dopendir
 {
     DebugInfo2("(drv = %u, tosflag = %d)", drv, tosflag);
     CHK_DRIVE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     off_t lret = lseek(dir_fd, 0, SEEK_SET);    // necessary if directory has been scanned before?
     if (lret < 0)
@@ -2494,7 +2481,7 @@ INT32 CHostXFS::xfs_wlabel(uint16_t drv, MXFSDD *dd, const unsigned char *name)
 {
     DebugInfo2("(drv = %u, name = %s)", drv, name);
     CHK_DRIVE_WRITEABLE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     (void) dd;
     (void) name;
@@ -2520,7 +2507,7 @@ INT32 CHostXFS::xfs_rlabel(uint16_t drv, MXFSDD *dd, unsigned char *name, uint16
 {
     DebugInfo2("(drv = %u, bufsize = %u)", drv, bufsiz);
     CHK_DRIVE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     const char *atari_name = drv_atari_name[drv];
     if (atari_name != nullptr)
@@ -2562,7 +2549,7 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const unsigned char *name,
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE_WRITEABLE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     CONV8p3(drv, name, host_name)
 
@@ -2611,7 +2598,7 @@ INT32 CHostXFS::xfs_readlink
 {
     DebugInfo2("(drv = %u, name = \"%s\")", drv, name);
     CHK_DRIVE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     CONV8p3(drv, name, host_name)
 
@@ -2671,7 +2658,7 @@ INT32 CHostXFS::xfs_dcntl
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE(drv)
-    GET_hhdl_hostFD_dir_fd(dd)
+    GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
     (void) addrOffset68k;

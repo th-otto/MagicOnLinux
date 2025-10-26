@@ -1668,16 +1668,42 @@ void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
     {
         attr |= F_RDONLY;
     }
+    uint16_t uid = pstat->st_uid;
+    uint16_t gid = pstat->st_gid;
+    if ((uid != pstat->st_uid) || (gid != pstat->st_gid))
+    {
+        DebugWarning2("() -- uid or gid overflow, set to zero");
+        uid = 0;
+        gid = 0;
+    }
+    uint16_t nlink = pstat->st_nlink;
+    if (nlink != pstat->st_nlink)
+    {
+        DebugWarning2("() -- nlink overflow, set to 65535");
+        nlink = 65535;
+    }
+    uint16_t dev = pstat->st_dev;
+    if (dev != pstat->st_dev)
+    {
+        DebugWarning2("() -- dev overflow, set to zero");
+        dev = 0;
+    }
+    uint32_t index = pstat->st_ino;
+    if (index != pstat->st_ino)
+    {
+        DebugWarning2("() -- index overflow, set to zero");
+        index = 0;
+    }
     pxattr->mode = htobe16(ast_mode);
-    pxattr->index = htobe32(0);   // not (yet) supported;
-    pxattr->dev = htobe16(0);   // not (yet) supported
-    pxattr->reserved1 = htobe16(0);   // not (yet) supported
-    pxattr->nlink = htobe16(0);   // not (yet) supported
-    pxattr->uid = htobe16(0);   // not (yet) supported
-    pxattr->gid = htobe16(0);   // not (yet) supported
+    pxattr->index = htobe32(index);
+    pxattr->dev = htobe16(dev);
+    pxattr->reserved1 = htobe16(0);
+    pxattr->nlink = htobe16(nlink);
+    pxattr->uid = htobe16(uid);
+    pxattr->gid = htobe16(gid);
     if (pstat->st_size > 0xffffffff)
     {
-        DebugWarning("file size > 4 GB, shown as zero length");
+        DebugWarning2("() -- file size > 4 GB, shown as zero length");
         pxattr->size = 0;
     }
     else
@@ -1856,6 +1882,12 @@ INT32 CHostXFS::xfs_fchown(uint16_t drv, MXFSDD *dd, const unsigned char *name,
     CHK_DRIVE_WRITEABLE(drv)
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
+
+    if ((uid == 0) || (gid == 0))
+    {
+        DebugWarning2("() : invalid uid %u or gid %u", uid, gid);
+        return EACCDN;
+    }
 
     // TODO: shall we follow symbolic links here? We might change the flags then.
     if (fchownat(dir_fd, host_name, uid, gid, 0))

@@ -152,6 +152,7 @@ static const char *get_home()
  *
  * @brief Write, load and evaluate the configuration file
  *
+ * @param[in] config_file       configuration text file, may start with '~'
  * @param[in] rewrite_conf      overwrite existing configuration file with default values
  *
  * @return zero or number of errors
@@ -160,7 +161,7 @@ static const char *get_home()
  *       exist or if requested.
  *
  ************************************************************************************************/
-int Preferences::Init(bool rewrite_conf)
+int Preferences::init(const char *config_file, bool rewrite_conf)
 {
     for (int i = 0; i < NDRIVES; i++)
     {
@@ -170,12 +171,16 @@ int Preferences::Init(bool rewrite_conf)
 
     char path[1024] = "";
     const char *home = get_home();
-    if (home != nullptr)
+    if (config_file[0] == '~')
     {
-        strcpy(path, home);
+        if (home != nullptr)
+        {
+            strcpy(path, home);
+        }
+        strcat(path, config_file + 1);
+        config_file = path;
     }
-    strcat(path, "/.config/magiclinux.conf");
-    int num_errors = getPreferences(path, rewrite_conf);
+    int num_errors = getPreferences(config_file, rewrite_conf);
 
     // drive C: is root FS with 8+3 name scheme
     drvFlags['C'-'A'] = DRV_FLAG_8p3 + DRV_FLAG_CASE_INSENS;        // C: drive has 8+3 name scheme

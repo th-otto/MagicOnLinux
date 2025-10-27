@@ -57,7 +57,7 @@ typedef enum
 class Preferences
 {
    public:
-    static int Init(bool rewrite_conf);
+    static int init(const char *config_file, bool rewrite_conf);
     static int getPreferences(const char *cfgfile, bool rewrite_conf);
     static int writePreferences(const char *cfgfile);
     static int evaluatePreferencesLine(const char *line);

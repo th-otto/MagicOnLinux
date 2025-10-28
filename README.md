@@ -1,7 +1,7 @@
 # MagicOnLinuX
 <img alt="Logo" src="assets/Logo.png" width="80">
 
-An Atari ST/TT emulator for Linux.
+An Atari ST/TT emulator for Linux, SDL2 based, running MagiC OS only.
 
 This is kind of successor of:
 
@@ -10,7 +10,7 @@ This is kind of successor of:
 * *MagicMac X* for MacOS X on PPC (32-bit application) and
 * *AtariX* for macOS up to 10.13 "High Sierra" (32-bit application).
 
-Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution would have been to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
+Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture, any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution would have been to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
 
 # How To Build (Linux, tested with Ubuntu 24.04)
 
@@ -31,17 +31,13 @@ Replace "English" with "de" or "fr" for German or French.
 
 You might replace CMAKE_BUILD with "Debug" or omit this parameter.
 
-Alternatively you can put your Atari root file system (drive C:) and kernel (MagicMacX.OS) anywhere configure the emulator accordingly.
+Alternatively you can put your Atari root file system (drive C:) and kernel (MagicMacX.OS) anywhere and configure the emulator accordingly.
 
 # How To Run
 
 Run the application with magiclinux/build/magiclinux.
 
 Use parameter "-h" or "--help" for an explanation of the parameters.
-
-Use parameter "-open_conf" to open the parameter file in the gnome-text-editor. If you prefer a different editor, modify main.cpp accordingly.
-
-Use parameter "-rewrite_conf" to overwrite the existing configuration with a default file.
 
 Source files for the Atari code (MagiC kernel and applications) are also available in their respective repository, see below.
 
@@ -60,8 +56,6 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 # Bugs and Agenda
 
 * Include German, French and English localisation of emulator and emulated system without needing to clone AtariX repository.
-* Add parameter for choosing the configuration file.
-* Add parameter for seleciting the editor for "-open_conf".
 * Ability to mount disk and floppy disk images.
 * Musashi emulator sources should be synchronised with latest version (see below).
 * Atari root file system (like MAGIC_C) folder should be automatically created and localised.

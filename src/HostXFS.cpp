@@ -287,14 +287,15 @@ INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
  *
  * @brief [static] Convert Atari filename to host filename, including path separator
  *
- * @param[in]   src     Atari filename
- * @param[out]  dst     buffer for host filename
- * @param[in]   bufsiz  buffer size, including end-of-string.
+ * @param[in]   src         Atari filename
+ * @param[in]   upperCase   convert to uppercase, for 8+3 drives
+ * @param[out]  dst         buffer for host filename
+ * @param[in]   bufsiz      buffer size, including end-of-string.
  *
  * @return -1 on overflow, otherwise zero
  *
  ************************************************************************************************/
-int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigned bufsiz)
+int CHostXFS::atariFnameToHostFname(const unsigned char *src, bool upperCase, char *dst, unsigned bufsiz)
 {
     char *buf_start = dst;
     // leave space for end-of-string and four-byte utf-8 character
@@ -308,7 +309,12 @@ int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigne
         else
         {
             // Atari -> utf-8
-            unsigned len = CConversion::charAtari2Host(*src++, dst);
+            char c = *src++;
+            if (upperCase)
+            {
+                c = CConversion::charAtari2UpperCase(c);
+            }
+            unsigned len = CConversion::charAtari2Host(c, dst);
             dst += len;
         }
     }
@@ -328,7 +334,13 @@ int CHostXFS::atariFnameToHostFname(const unsigned char *src, char *dst, unsigne
  * @return -1 on overflow, otherwise zero
  *
  ************************************************************************************************/
-int CHostXFS::atariFnameToHostFnameCond8p3(uint16_t drv, const unsigned char *atari_fname, char *host_fname, unsigned bufsiz)
+int CHostXFS::atariFnameToHostFnameCond8p3
+(
+    uint16_t drv,
+    const unsigned char *atari_fname,
+    char *host_fname,
+    unsigned bufsiz
+)
 {
     unsigned char dosname[16];
     if (!drv_longNames[drv])
@@ -337,7 +349,7 @@ int CHostXFS::atariFnameToHostFnameCond8p3(uint16_t drv, const unsigned char *at
         atari_fname = dosname;
     }
 
-    return atariFnameToHostFname(atari_fname, host_fname, bufsiz);
+    return atariFnameToHostFname(atari_fname, false, host_fname, bufsiz);
 }
 
 
@@ -415,7 +427,8 @@ int CHostXFS::atariPath2HostPath(const unsigned char *src, unsigned default_drv,
         }
     }
 
-    return atariFnameToHostFname(src, dst, bufsiz);
+    bool upperCase = drv_caseInsens[drv];   // 8+3 drives usually also are case-insensitive
+    return atariFnameToHostFname(src, upperCase, dst, bufsiz);
 }
 
 
@@ -1046,8 +1059,8 @@ INT32 CHostXFS::xfs_path2DD
 
     char pathbuf[1024];
     char *p;
-
-    atariFnameToHostFname((const uint8_t *) pathname, pathbuf, 1024);
+    bool upperCase = drv_caseInsens[drv];   // 8+3 drives usually also are case-insensitive
+    atariFnameToHostFname((const uint8_t *) pathname, upperCase, pathbuf, 1024);
     DebugInfo2("() - host path is \"%s\"", pathbuf);
     if (mode == 0)
     {
@@ -1685,7 +1698,12 @@ void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
     uint16_t dev = pstat->st_dev;
     if (dev != pstat->st_dev)
     {
-        DebugWarning2("() -- dev overflow, set to zero");
+        static int warned = 0;
+        if (!warned)
+        {
+            DebugWarning2("() -- dev overflow, set to zero - NO MORE WARNINGS");
+            warned = 1;
+        }
         dev = 0;
     }
     uint32_t index = pstat->st_ino;

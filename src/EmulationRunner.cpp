@@ -160,7 +160,9 @@ int EmulationRunner::StartEmulatorThread(void)
         return 0;
     }
     else
+    {
         return 1;
+    }
 }
 
 
@@ -550,7 +552,6 @@ static void ConvertAtari2HostSurface
                 pd8 += pDst->pitch;
             }
             break;
-
     }
 }
 
@@ -697,7 +698,7 @@ void EmulationRunner::_OpenWindow(void)
     // we do not deal with the alpha channel, otherwise we always must make sure that each pixel is 0xff******
     SDL_SetSurfaceBlendMode(m_sdl_atari_surface, SDL_BLENDMODE_NONE);
 
-    // In case the Atari does not run in native host graphics mode, we need a converversion surface,
+    // In case the Atari does not run in native host graphics mode, we need a conversion surface,
     // and instead of directly updating the texture from the Atari surface, we first convert it to 32 bits per pixel.
 
     if (screenbitsperpixel != 32)
@@ -731,13 +732,21 @@ void EmulationRunner::_OpenWindow(void)
         m_sdl_surface = m_sdl_atari_surface;
     }
 
+    int pos_x = Preferences::AtariScreenX;
+    int pos_y = Preferences::AtariScreenY;
+    if ((pos_x < 0) || (pos_y < 0))
+    {
+        pos_x = SDL_WINDOWPOS_UNDEFINED;
+        pos_y = SDL_WINDOWPOS_UNDEFINED;
+    }
+    // TODO: make window resizeable
     m_sdl_window = SDL_CreateWindow(
                                     m_window_title,
-                                    100,    // x position, TODO: read from .ini file
-                                    100,    // y position, TODO: read from .ini file
+                                    pos_x,
+                                    pos_y,
                                     m_hostScreenW,
                                     m_hostScreenH,
-                                    SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+                                    SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL /*| SDL_WINDOW_RESIZABLE*/);
     assert(m_sdl_window);
 
     m_sdl_renderer = SDL_CreateRenderer(m_sdl_window, -1, SDL_RENDERER_ACCELERATED);

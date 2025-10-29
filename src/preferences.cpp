@@ -116,8 +116,8 @@ char Preferences::AtariTempFilesUnixPath[1024] = "/tmp";
 char Preferences::szPrintingCommand[256] = "echo printing not yet implemented";
 char Preferences::szAuxPath[256];
 unsigned Preferences::Monitor = 0;
-unsigned Preferences::AtariScreenX = 100;
-unsigned Preferences::AtariScreenY = 100;
+int Preferences::AtariScreenX = -1;    // -1 = auto
+int Preferences::AtariScreenY = -1;
 unsigned Preferences::AtariScreenWidth = 1024;
 unsigned Preferences::AtariScreenHeight = 768;
 unsigned Preferences::AtariScreenStretchX = 2;
@@ -342,7 +342,7 @@ static int eval_quotated_str(char *outbuf, unsigned bufsiz, const char **in)
 static int eval_unsigned(unsigned *outval, unsigned maxval, const char **in)
 {
     char *endptr;
-    unsigned long long value = strtoul(*in, &endptr, 0 /*auto base*/);
+    unsigned long value = strtoul(*in, &endptr, 0 /*auto base*/);
     if (endptr > *in)
     {
         if (value <= maxval)
@@ -351,6 +351,31 @@ static int eval_unsigned(unsigned *outval, unsigned maxval, const char **in)
             *in = endptr;
             return 0;
         }
+    }
+    return 1;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Read signed numerical value, decimal, sedecimal or octal
+ *
+ * @param[out] outval   number
+ * @param[in]  maxval   maximum valid number
+ * @param[out] in       input line pointer, will be advanced accordingly
+ *
+ * @return 0 for OK or 1 for error
+ *
+ ************************************************************************************************/
+static int eval_signed(int *outval, const char **in)
+{
+    char *endptr;
+    long value = strtol(*in, &endptr, 0 /*auto base*/);
+    if (endptr > *in)
+    {
+        *outval = (int) value;
+        *in = endptr;
+        return 0;
     }
     return 1;
 }
@@ -608,11 +633,11 @@ int Preferences::evaluatePreferencesLine(const char *line)
             break;
 
         case VAR_APP_WINDOW_X:
-            num_errors += eval_unsigned(&AtariScreenX, 4096, &line);
+            num_errors += eval_signed(&AtariScreenX, &line);
             break;
 
         case VAR_APP_WINDOW_Y:
-            num_errors += eval_unsigned(&AtariScreenY, 4096, &line);
+            num_errors += eval_signed(&AtariScreenY, &line);
             break;
 
         case VAR_ATARI_MEMORY_SIZE:

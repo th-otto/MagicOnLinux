@@ -79,8 +79,8 @@ class Preferences
     static char szPrintingCommand[256];
     static char szAuxPath[256];
     static unsigned Monitor;                        // 0: default
-    static unsigned AtariScreenX;
-    static unsigned AtariScreenY;
+    static int AtariScreenX;                        // -1: auto
+    static int AtariScreenY;                        // -1: auto
     static unsigned AtariScreenWidth;               // 320..4096
     static unsigned AtariScreenHeight;              // 200..2048
     static unsigned AtariScreenStretchX;            // horizontal stretch

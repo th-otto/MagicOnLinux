@@ -84,6 +84,9 @@ class CDebug
 */
 #define DebugInit(...)
 #define DebugInfo(...)
+#define DebugInfo2(...)
 #define DebugWarning(...)
+#define DebugWarning2(...)
 #define DebugError(...)
+#define DebugError2(...)
 #endif

@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
     {
         char command[1024];
         sprintf(command, "%s %s", editor, config);
-        system(command);
+        (void) system(command);
         return 0;
     }
 

@@ -17,15 +17,15 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - sudo apt install libsdl2-dev
 - cd ~/Documents
 - git clone https://gitlab.com/AndreasK/magiclinux
-- git clone https://gitlab.com/AndreasK/AtariX.git
+- git clone https://gitlab.com/AndreasK/AtariX
 - mkdir magiclinux/build
 - pushd magiclinux/build
 - cmake -DCMAKE_BUILD_TYPE=Release ..
 - make
 - popd
-- cp -p AtariX/src/AtariX-MT/AtariX/English.lproj/MagicMacX.OS Atari-rootfs/
 - cp -rp AtariX/src/AtariX-MT/AtariX/rootfs-common Atari-rootfs
-- rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs Atari-rootfs/
+- cp -p AtariX/src/AtariX-MT/AtariX/English.lproj/MagicMacX.OS Atari-rootfs/
+- rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/
 
 Replace "English" with "de" or "fr" for German or French.
 
@@ -35,7 +35,7 @@ Alternatively you can put your Atari root file system (drive C:) and kernel (Mag
 
 # How To Run
 
-Run the application with magiclinux/build/magiclinux.
+Run the application with "magiclinux/build/magic-on-linux".
 
 Use parameter "-h" or "--help" for an explanation of the parameters.
 

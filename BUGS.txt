@@ -1,3 +1,8 @@
+Due to the XFS concept there is a host handle leak which can only be solved by changing
+the Atari part of the Host XFS. Note that the MacOS/Carbon based XFS only stored
+volume-ID (2 bytes) and file-ID (4 bytes) to the internal descriptor, without
+opening directory or file. This concept is not suitable for Linux/Unix.
+
 mcmd shows "0 bytes free"
 
 In MagicMacX kernel, the floppy and hard drive functions unfortunately are all dummies:

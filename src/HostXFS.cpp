@@ -2130,7 +2130,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
  * @param[out] dirh      directory handle, to be used by Dreaddir() etc.
  * @param[in]  drv       Atari drive number 0..31
  * @param[in]  dd        Atari directory descriptor
- * @param[in]  tosflag   0: long names, >0: filenames in 8+3
+ * @param[in]  tosflag   0: long names with 4 bytes inode, >0: filenames in 8+3 and without inode
  *
  * @return E_OK or negative error code
  *
@@ -2167,7 +2167,7 @@ INT32 CHostXFS::xfs_dopendir
     dirh->dirID = hhdl; // unused
     dirh->vRefNum = (int16_t) HostHandles::snextSet(dir, hhdl, dup_dir_fd);
     dirh->index = 0;  // unused
-    dirh -> tosflag = tosflag;
+    dirh ->tosflag = tosflag;
 
     DebugInfo("() -> E_OK");
 
@@ -2188,7 +2188,8 @@ INT32 CHostXFS::xfs_dopendir
  *
  * @return E_OK or negative error code
  *
- * @note If the directory had been opened in 8+3 mode, long filenames are ignored.
+ * @note If the directory had been opened in 8+3 mode, long filenames are ignored,
+ *       and no preceding 4-bytes inode will be stored to buffer.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_dreaddir
@@ -2210,6 +2211,7 @@ INT32 CHostXFS::xfs_dreaddir
         return EIHNDL;
     }
 
+    // AAAAAAAA.BBB occupies exactly 13 bytes, including "." and end-of-string
     if ((dirh->tosflag) && (bufsiz < 13))
     {
         DebugWarning2("() : name buffer is too small for 8+3, ignore all entries");
@@ -2300,10 +2302,13 @@ INT32 CHostXFS::xfs_dreaddir
 
         DebugInfo2("() - found \"%s\"", entry->d_name);
 
-        // buf needs space for 4 bytes i-node plus filename plus NUL byte
-        memcpy(buf, &entry->d_ino, 4);
-        buf += 4;
-        bufsiz -= 4;
+        if (dirh->tosflag == 0)
+        {
+            // buf needs space for 4 bytes i-node plus filename plus NUL byte
+            memcpy(buf, &entry->d_ino, 4);
+            buf += 4;
+            bufsiz -= 4;
+        }
         if (hostFnameToAtariFname(entry->d_name, buf, bufsiz))
         {
             // overflow

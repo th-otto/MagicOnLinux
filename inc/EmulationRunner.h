@@ -69,6 +69,9 @@ class EmulationRunner
 
     unsigned m_hostScreenW;
     unsigned m_hostScreenH;
+    double m_hostScreenStretchX;
+    double m_hostScreenStretchY;
+
     unsigned screenbitsperpixel;
     char m_window_title[256];
     uint32_t m_counter;

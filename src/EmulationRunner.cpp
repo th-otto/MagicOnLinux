@@ -675,10 +675,13 @@ void EmulationRunner::_OpenWindow(void)
     m_visible = false;
 
 
-    // note that the SDL surface cannot distinguish between packed pixel and interleaved.
+    // get initial screen size
     m_hostScreenW = Preferences::AtariScreenWidth  * Preferences::AtariScreenStretchX;
     m_hostScreenH = Preferences::AtariScreenHeight * Preferences::AtariScreenStretchY;
+    m_hostScreenStretchX = Preferences::AtariScreenStretchX;
+    m_hostScreenStretchY = Preferences::AtariScreenStretchY;
 
+    // note that the SDL surface cannot distinguish between packed pixel and interleaved.
     // This is the screen buffer for the emulated Atari
     m_sdl_atari_surface = SDL_CreateRGBSurface(
             0,    // no flags
@@ -716,9 +719,9 @@ void EmulationRunner::_OpenWindow(void)
 #endif
         m_sdl_surface = SDL_CreateRGBSurface(
                                              0,    // no flags
-                                             m_hostScreenW,
-                                             m_hostScreenH,
-                                             32,
+                                             Preferences::AtariScreenWidth,     // was m_hostScreenW, why?
+                                             Preferences::AtariScreenHeight,    // dito
+                                             32,    // bits per pixel
                                              rmask,
                                              gmask,
                                              bmask,
@@ -739,14 +742,14 @@ void EmulationRunner::_OpenWindow(void)
         pos_x = SDL_WINDOWPOS_UNDEFINED;
         pos_y = SDL_WINDOWPOS_UNDEFINED;
     }
-    // TODO: make window resizeable
+
     m_sdl_window = SDL_CreateWindow(
                                     m_window_title,
                                     pos_x,
                                     pos_y,
                                     m_hostScreenW,
                                     m_hostScreenH,
-                                    SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL /*| SDL_WINDOW_RESIZABLE*/);
+                                    SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
     assert(m_sdl_window);
 
     m_sdl_renderer = SDL_CreateRenderer(m_sdl_window, -1, SDL_RENDERER_ACCELERATED);
@@ -996,6 +999,16 @@ void EmulationRunner::EventLoop(void)
                                 SDL_ShowCursor(SDL_ENABLE);
                             }
                             break;
+
+                        case SDL_WINDOWEVENT_RESIZED:
+                            m_hostScreenW = ev->data1;
+                            m_hostScreenH = ev->data2;
+                            m_hostScreenStretchX = (double) m_hostScreenW / Preferences::AtariScreenWidth;
+                            m_hostScreenStretchY = (double) m_hostScreenH / Preferences::AtariScreenHeight;
+
+                            //SDL_SetWindowSize(m_sdl_window, 1000, 800);
+                            gbAtariVideoBufChanged = true;
+                            break;
                     }
                 }
                 break;
@@ -1024,10 +1037,17 @@ void EmulationRunner::EventLoop(void)
                     // TOO OFTEN DebugInfo2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
                     int x = ev->x;
                     int y = ev->y;
+                    double xd = (double) (ev->x) / m_hostScreenStretchX;
+                    double yd = (double) (ev->y) / m_hostScreenStretchY;
+                    x = (int) (xd + 0.5);   // rounding
+                    y = (int) (yd + 0.5);
+                    /*
+                    // old stuff without dynamic resizing
                     if (Preferences::AtariScreenStretchX > 1)
                         x /= Preferences::AtariScreenStretchX;
                     if (Preferences::AtariScreenStretchY > 1)
                         y /= Preferences::AtariScreenStretchY;
+                    */
                     m_Emulator.SendMousePosition(x, y);
                 }
                 break;

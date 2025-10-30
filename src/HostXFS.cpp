@@ -804,6 +804,39 @@ void CHostXFS::xfs_pterm(PD *pd)
 
 /** **********************************************************************************************
  *
+ * @brief Atari callback: Tells the host that a Directory Descriptor will be deallocated
+ *
+ * @param[in] dd                MagiC directory descriptor
+ * @param[in] addrOffset68k     needed to dereference pointers in dd
+ *
+ * @note New for MagicOnLinux
+ *
+ ************************************************************************************************/
+void CHostXFS::xfs_freeDD(XFS_DD *dd, uint8_t *addrOffset68k)
+{
+    DebugInfo2("()");
+    XFS_DMD *hdmd = (XFS_DMD *) (addrOffset68k + be32toh(dd->dd_dmd));
+    DebugInfo2("() : drive = %u", be16toh(hdmd->d_drive));
+    MXFSDD *hdd = (MXFSDD *) dd->data;
+    DebugInfo2("() : dirID = %u", hdd->dirID);
+    DebugInfo2("() : vRefNum = %u", hdd->vRefNum);
+    HostHandle_t hhdl = hdd->dirID;  // host endian
+    HostFD *hostFD = getHostFD(hhdl);
+    if (hostFD == nullptr)
+    {
+        DebugWarning2("%s() -> EINTRN");
+    }
+    else
+    {
+        // TODO: make this work
+        //freeHostFD(hostFD);
+    }
+    (void) dd;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Helper function to open a host path, relative or absolute
  *
  * @param[in]  drv          Atari drive number 0..25
@@ -3849,6 +3882,20 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             break;
         }
 
+        case 28:
+        {
+            struct freeddparm
+            {
+                UINT32 dd;    // XFS_DD *
+            } __attribute__((packed));
+            freeddparm *pfreeddparm = (freeddparm *) params;
+            xfs_freeDD(
+                    (XFS_DD *) (addrOffset68k + be32toh(pfreeddparm->dd)),
+                    addrOffset68k
+                    );
+            doserr = E_OK;
+            break;
+        }
 
         default:
             doserr = EINVFN;

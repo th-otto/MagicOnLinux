@@ -278,6 +278,7 @@ class CHostXFS
     INT32 xfs_fchmod(uint16_t drv, MXFSDD *dd, const unsigned char *name, uint16_t fmode);
     INT32 xfs_dcreate(uint16_t drv, MXFSDD *dd, const unsigned char *name);
     INT32 xfs_ddelete(uint16_t drv, MXFSDD *dd);
+    void xfs_freeDD(XFS_DD *dd, uint8_t *addrOffset68k);
     INT32 xfs_DD2hostPath(MXFSDD *dd, char *buf, uint16_t bufsiz);
     INT32 xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz);
     INT32 xfs_dopendir(MAC_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd, uint16_t tosflag);

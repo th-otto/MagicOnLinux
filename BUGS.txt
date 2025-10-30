@@ -5,6 +5,8 @@ opening directory or file. This concept is not suitable for Linux/Unix.
 
 mcmd shows "0 bytes free"
 
+Keep aspect ratio during window resize?
+
 In MagicMacX kernel, the floppy and hard drive functions unfortunately are all dummies:
 
 hdv_init

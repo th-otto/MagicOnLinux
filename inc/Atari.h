@@ -1192,6 +1192,35 @@ struct MagiC_APP
 } __attribute__((packed));
 
 
+/// @brief MagiC Drive Media Descriptor, stored in an IMB (internal memory block)
+///        Describes one volume.
+struct XFS_DMD
+{
+    UINT32 d_xfs;       // 0x00: 68k pointer to file system driver
+    UINT16 d_drive;     // 0x04: drive number 0..31
+    UINT32 d_root;      // 0x06: 68k pointer to DD of root directory
+    uint8_t data[94 - 10];
+};
+
+/// @brief  MagiC Directory Descriptor, stored in an IMB (internal memory block)
+struct XFS_DD
+{
+    UINT32 dd_dmd;      // 68k pointer to XFS_DMD
+    UINT16 dd_refcnt;
+    uint8_t data[94 - 6];   // private part, i.e. MXFSDD (6 bytes)
+} __attribute__((packed));
+
+/// @brief  MagiC File Descriptor, stored in an IMB (internal memory block)
+struct XFS_FD
+{
+    UINT32 fd_dmd;      // 0x00: 68k pointer to XFS_DMD
+    UINT16 fd_refcnt;   // 0x04: reference counter for closing, or -1
+    UINT16 fd_mode;     // 0x06: open modus (0,1,2) and flags
+    UINT32 fd_dev;      // 0x08: 68k pointer to MAGX_DEVDRVR
+    uint8_t data[94 - 12];
+} __attribute__((packed));
+
+
 #if 1
 /// DMDs, FDs and DDs are stored in MagiC in "internal memory blocks",
 /// each of size 100 bytes, including header. Thus we have 94 bytes of payload.

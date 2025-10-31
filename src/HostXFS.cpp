@@ -794,11 +794,18 @@ INT32 CHostXFS::xfs_sync(uint16_t drv)
  *
  * @param[in] pd        Atari process descriptor
  *
+ * @note used for tidy-up, e.g. close hanging Fsnext handles.
+ *
  ************************************************************************************************/
-void CHostXFS::xfs_pterm(PD *pd)
+void CHostXFS::xfs_pterm(uint32_t pd, uint8_t *addrOffset68k)
 {
-    DebugInfo2("()");
-    (void) pd;
+    DebugInfo2("() -- pd 0x%08x", pd);
+    (void) addrOffset68k;
+
+    // PD = addrOffset68k + be32toh(pptermparm->pd)), addrOffset68k;
+    uint32_t act_pd = getActPd();
+    DebugInfo2("() -- PD 0x%08x terminated, act_pd = 0x%08x", pd, act_pd);
+    HostHandles::snextPterm(act_pd);
 }
 
 
@@ -828,8 +835,7 @@ void CHostXFS::xfs_freeDD(XFS_DD *dd, uint8_t *addrOffset68k)
     }
     else
     {
-        // TODO: make this work
-        //freeHostFD(hostFD);
+        freeHostFD(hostFD);
     }
     (void) dd;
 }
@@ -1328,6 +1334,9 @@ INT32 CHostXFS::xfs_sfirst
     {
         DebugWarning2("() : lseek() -> %s", strerror(errno));
     }
+
+    // Duplicate the dir fd before opening it, otherwise it would also be
+    // closed on Dclosedir().
     DebugInfo2("() - open directory from host fd %d", dir_fd);
     int dup_dir_fd = dup(dir_fd);
     DIR *dir = fdopendir(dup_dir_fd);
@@ -1359,7 +1368,7 @@ INT32 CHostXFS::xfs_sfirst
             //long pos = telldir(dir);
             //DebugInfo2("() : directory read position %ld", pos);
 
-            dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(dir, hhdl, dup_dir_fd);
+            dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(dir, dup_dir_fd, getActPd());
             dta->macdta.dirID = hhdl;
             dta->macdta.index = 0;  // unused
 
@@ -1402,33 +1411,12 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
         return ENMFIL;
     }
 
-    HostHandle_t hhdl = dta->macdta.dirID;
-    HostFD *hostFD = getHostFD(hhdl);
-    if (hostFD == nullptr)
-    {
-        DebugWarning2("() -> EINTRN");
-        return EINTRN;
-    }
-
-    int dir_fd = hostFD->fd;
-    DebugInfo2("() - using host fd %d", dir_fd);
-    if (dir_fd == -1)
-    {
-        DebugWarning2("() -> EINTRN");
-        return EINTRN;
-    }
-
-    HostHandle_t hhdl2;
     DIR *dir;
     uint16_t snextHdl = (uint16_t) dta->macdta.vRefNum;
-    if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
+    int dup_fd;
+    if (HostHandles::snextGet(snextHdl, &dir, &dup_fd))
     {
         DebugWarning2("() -> EINTRN");
-        return EINTRN;
-    }
-    if (hhdl != hhdl2)
-    {
-        DebugError2("() - dir_fd mismatch");
         return EINTRN;
     }
 
@@ -1445,7 +1433,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
             break;  // end of directory
         }
 
-        int match = _snext(drv, dir_fd, entry, dta);
+        int match = _snext(drv, dup_fd, entry, dta);
         if (match == 0)
         {
             //long pos = telldir(dir);
@@ -2198,7 +2186,7 @@ INT32 CHostXFS::xfs_dopendir
     }
 
     dirh->dirID = hhdl; // unused
-    dirh->vRefNum = (int16_t) HostHandles::snextSet(dir, hhdl, dup_dir_fd);
+    dirh->vRefNum = (int16_t) HostHandles::snextSet(dir, dup_dir_fd, getActPd());
     dirh->index = 0;  // unused
     dirh ->tosflag = tosflag;
 
@@ -2267,17 +2255,12 @@ INT32 CHostXFS::xfs_dreaddir
         return EINTRN;
     }
 
-    HostHandle_t hhdl2;
     DIR *dir;
     uint16_t snextHdl = (uint16_t) dirh->vRefNum;
-    if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
+    int dup_fd;
+    if (HostHandles::snextGet(snextHdl, &dir, &dup_fd))
     {
         DebugWarning2("() -> EINTRN");
-        return EINTRN;
-    }
-    if (hhdl != hhdl2)
-    {
-        DebugError2("%s() - dir_fd mismatch");
         return EINTRN;
     }
 
@@ -2397,18 +2380,14 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
         return EINTRN;
     }
 
-    HostHandle_t hhdl2;
     DIR *dir;
     uint16_t snextHdl = (uint16_t) dirh->vRefNum;
-    if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
+    int dup_fd;
+    if (HostHandles::snextGet(snextHdl, &dir, &dup_fd))
     {
         DebugWarning2("s() -> EINTRN");
         dirh->vRefNum = -1;
         return EINTRN;
-    }
-    if (hhdl != hhdl2)
-    {
-        DebugError2("() - dir_fd mismatch");
     }
 
     rewinddir(dir);
@@ -2459,19 +2438,14 @@ INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
         }
     }
 
-    HostHandle_t hhdl2;
     DIR *dir;
     uint16_t snextHdl = (uint16_t) dirh->vRefNum;
-    if (HostHandles::snextGet(snextHdl, &hhdl2, &dir))
+    int dup_fd;
+    if (HostHandles::snextGet(snextHdl, &dir, &dup_fd))
     {
         DebugWarning2("() -> EINTRN");
         dirh->vRefNum = -1;
         return EINTRN;
-    }
-    if (hhdl != hhdl2)
-    {
-        DebugError2("() - dir_fd mismatch");
-        atari_err = EINTRN;
     }
 
     HostHandles::snextClose(snextHdl);  // also does closedir()
@@ -3356,7 +3330,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
                 UINT32 pd;        // PD *
             } __attribute__((packed));
             ptermparm *pptermparm = (ptermparm *) params;
-            xfs_pterm((PD *) (addrOffset68k + be32toh(pptermparm->pd)));
+            xfs_pterm(be32toh(pptermparm->pd), addrOffset68k);
             doserr = E_OK;
             break;
         }

@@ -154,15 +154,15 @@ uint8_t *HostHandles::memblock_free = nullptr;
 struct SnextEntry
 {
     time_t lru;         // filled with time()
-    HostHandle_t hhdl;  // stores dir_fd (currently unused)
-    int dup_fd;         // stores fd that is generated from dir_fd (currently unused)
+    uint32_t atari_pd;  // Atari process, used for tidy-up
+    int dup_fd;         // fd that is generated from dir_fd and used for dopendir()
     DIR *dir;
 };
 
 static SnextEntry snextTab[SNEXT_N];
 
 
-uint16_t HostHandles::snextSet(DIR *dir, HostHandle_t hhdl, int dup_fd)
+uint16_t HostHandles::snextSet(DIR *dir, int dup_fd, uint32_t act_pd)
 {
     uint16_t snextHdl = 0xffff;
     time_t oldest_time;
@@ -188,12 +188,12 @@ uint16_t HostHandles::snextSet(DIR *dir, HostHandle_t hhdl, int dup_fd)
         snextClose(snextHdl);
     }
     entry->dir = dir;
-    entry->hhdl = hhdl;
     entry->dup_fd = dup_fd;
     entry->lru = time(NULL);
+    entry->atari_pd = act_pd;
     return snextHdl;
 }
-int HostHandles::snextGet(uint16_t snextHdl, HostHandle_t *hhdl, DIR **dir)
+int HostHandles::snextGet(uint16_t snextHdl, DIR **dir, int *dup_fd)
 {
     if (snextHdl < SNEXT_N)
     {
@@ -201,14 +201,14 @@ int HostHandles::snextGet(uint16_t snextHdl, HostHandle_t *hhdl, DIR **dir)
         SnextEntry *entry = &snextTab[snextHdl];
         if (entry->lru != 0)
         {
-            *hhdl = entry->hhdl;
             *dir = entry->dir;
+            *dup_fd = entry->dup_fd;
             entry->lru = time(NULL);
             return 0;
         }
     }
 
-    DebugError("Invalid snext handle %d", snextHdl);
+    DebugError2("() -- Invalid snext handle %d", snextHdl);
     return -1;  // error
 }
 void HostHandles::snextClose(uint16_t snextHdl)
@@ -216,7 +216,7 @@ void HostHandles::snextClose(uint16_t snextHdl)
     if (snextHdl < SNEXT_N)
     {
         SnextEntry *entry = &snextTab[snextHdl];
-        closedir(entry->dir);
+        closedir(entry->dir);   // also closed dup_fd
         // entry->dup
         /*
         HostHandle_t hhdl = entry->hhdl;
@@ -238,6 +238,38 @@ void HostHandles::snextClose(uint16_t snextHdl)
         freeHostFD(hostFD);
         */
         entry->lru = 0;
+    }
+}
+void HostHandles::snextPterm(uint32_t term_pd)
+{
+    uint16_t oldestHdl = 0xffff;
+    time_t oldest_time;
+
+    for (uint16_t i = 0; i < SNEXT_N; i++)
+    {
+        if (snextTab[i].lru == 0)
+        {
+            continue;  // skip free entries
+        }
+        if ((oldestHdl == 0xffff) || (snextTab[i].lru < oldest_time))
+        {
+            oldestHdl = i;
+            oldest_time = snextTab[i].lru;
+        }
+
+        if (snextTab[i].atari_pd == term_pd)
+        {
+            DebugInfo2("() Closing orphaned snext handle %u", i);
+            snextClose(i);
+        }
+    }
+
+    // TODO: consider adding an auto-close mechanism, maybe also for fsfirst()
+    if (oldestHdl != 0xffff)
+    {
+        oldest_time = time(NULL) - oldest_time;
+        uint32_t oldest_time_min = (uint32_t) (oldest_time / 60);
+        DebugWarning2("() Oldest snext handle is %u minutes. Consider auto close?", oldest_time_min);
     }
 }
 

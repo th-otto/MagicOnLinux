@@ -890,6 +890,7 @@ Reinstall the application.
 
     m_AtariKbData = mem68k + be32toh(pSysHdr->kbshift);
     m_pAtariActPd = (uint32_t *) (mem68k + be32toh(pSysHdr->_run));
+    m_HostXFS.setActPdAddr(m_pAtariActPd);
 
     // Andere Atari-Strukturen
 

@@ -71,11 +71,9 @@ class CHostXFS
     INT32 Drv2DevCode(uint32_t params, uint8_t *addrOffset68k);
     INT32 RawDrvr(uint32_t params, uint8_t *addrOffset68k);
     void activateXfsDrives(uint8_t *addrOffset68k);
+    void setActPdAddr(uint32_t * addr) {m_pAtariActPd = addr;}
 
    private:
-
-    typedef void PD;
-
 
     #if 0
     /// file driver function table, here unused
@@ -230,6 +228,9 @@ class CHostXFS
     bool drv_readOnly[NDRIVES];
     bool drv_caseInsens[NDRIVES];           // case-insensitive file system, like Apple's HFS(+)
     HostXFSDrvType drv_type[NDRIVES];
+    uint32_t *m_pAtariActPd;
+    uint32_t getActPd() {return be32toh(*m_pAtariActPd);}
+
     // Information to be passed back to MagiC kernel:
     MX_SYMLINK mx_symlink;
 
@@ -254,7 +255,7 @@ class CHostXFS
     // XFS calls
 
     INT32 xfs_sync(uint16_t drv);
-    void xfs_pterm(PD *pd);
+    void xfs_pterm(uint32_t pd, uint8_t *addrOffset68k);
     INT32 xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange);
     INT32 xfs_drv_close(uint16_t drv, uint16_t mode);
     INT32 xfs_path2DD

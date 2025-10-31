@@ -2029,8 +2029,14 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
 
     struct AtariBlockDeviceParm
     {
-        uint16_t cmd;
-        uint32_t parm;
+        uint16_t cmd;               // sub-command (big endian)
+        uint32_t retaddr68k;        // 68 return address (big endian)
+        uint16_t flags_or_drive;    // hdv_rwabs: flags (bit 0: write), otherwise drive (big endian)
+        uint32_t buf;               // hdv_rwabs: 68k buffer address (big endian)
+        uint16_t count;             // hdv_rwabs: number of sectors (big endian)
+        uint16_t recno;             // hdv_rwabs: sector index (big endian)
+        uint16_t dev;               // hdv_rwabs: device or drive (big endian)
+        uint32_t lrecno;            // hdv_rwabs: long sector index, if recno = -1 (big endian)
     } __attribute__((packed));
 
     AtariBlockDeviceParm *theParams = (AtariBlockDeviceParm *) (addrOffset68k + params);

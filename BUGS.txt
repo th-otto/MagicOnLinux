@@ -2,6 +2,8 @@ mcmd shows "0 bytes free"
 
 Keep aspect ratio during window resize?
 
+Emulator should check version of MAGICLIN.OS to make sure the API fits.
+
 In MagicMacX kernel, the floppy and hard drive functions unfortunately are all dummies:
 
 hdv_init

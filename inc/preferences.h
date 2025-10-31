@@ -68,7 +68,7 @@ class Preferences
     static enAtariScreenColourMode atariScreenColourMode;
     static bool bHideHostMouse;
     static bool bAutoStartMagiC;
-	static char AtariKernelPath[1024];              // "MagicMacX.OS" file
+	static char AtariKernelPath[1024];              // "MAGICLIN.OS" file
 	static char AtariRootfsPath[1024];              // Atari C:
     static bool AtariHostHome;                      // Atari H: is home
     static bool AtariHostHomeRdOnly;                // Atari H: is write protected

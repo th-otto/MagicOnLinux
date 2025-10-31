@@ -106,7 +106,7 @@ bool Preferences::bHideHostMouse = false;
 bool Preferences::bAutoStartMagiC = true;
 unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3 / 4 == case insensitive, ...
 const char *Preferences::drvPath[NDRIVES];
-char Preferences::AtariKernelPath[1024] = "~/Documents/Atari-rootfs/MagicMacX.OS";
+char Preferences::AtariKernelPath[1024] = "~/Documents/Atari-rootfs/MAGICLIN.OS";
 char Preferences::AtariRootfsPath[1024] = "~/Documents/Atari-rootfs";
 bool Preferences::AtariHostHome = true;                      // Atari H: as host home
 bool Preferences::AtariHostHomeRdOnly = true;

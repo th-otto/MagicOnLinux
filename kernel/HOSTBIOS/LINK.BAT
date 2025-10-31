@@ -1,1 +1,1 @@
-aln -v -o MagicLin.OS -c magiclin.inp
+aln -v -o MAGICLIN.OS -c magiclin.inp

@@ -810,7 +810,7 @@ Assign more memory to the application using the Finder dialogue "Information"!
     if (be32toh(pMacXSysHdr->MacSys_len) != sizeof(*pMacXSysHdr))
     {
         DebugError("CMagiC::Init() - Length of struct does not match (header: %u bytes, should be: %u bytes)",
-                         pMacXSysHdr->MacSys_len, sizeof(*pMacXSysHdr));
+                         be32toh(pMacXSysHdr->MacSys_len), sizeof(*pMacXSysHdr));
         err_inv_os:
 /*
 Die Datei "MagicMacX.OS" ist defekt oder gehört zu einer anderen Programmversion als der Emulator.
@@ -873,7 +873,12 @@ Reinstall the application.
     setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs_dev, &CHostXFS::XFSDevFunctions, &m_HostXFS);
     setCHostXFSHostCallback(&pMacXSysHdr->MacSys_drv2devcode, &CHostXFS::Drv2DevCode, &m_HostXFS);
     setCHostXFSHostCallback(&pMacXSysHdr->MacSys_rawdrvr, &CHostXFS::RawDrvr, &m_HostXFS);
+#if defined(MAGICLIN)
+    setHostCallback(&pMacXSysHdr->MacSys_Daemon, MmxDaemon);
+    setHostCallback(&pMacXSysHdr->MacSys_BlockDevice, AtariBlockDevice);
+#else
     setCMagiCHostCallback(&pMacXSysHdr->MacSys_Daemon, &CMagiC::MmxDaemon, this);
+#endif
     setHostCallback(&pMacXSysHdr->MacSys_Yield, AtariYield);
 #pragma GCC diagnostic pop
 
@@ -2002,6 +2007,33 @@ int CMagiC::SendVBL(void)
 uint32_t CMagiC::AtariInit(uint32_t params, uint8_t *addrOffset68k)
 {
     DebugInfo2("() - ATARI: First initialisation phase done.");
+    (void) params;
+    (void) addrOffset68k;
+    return 0;
+}
+
+/**********************************************************************
+*
+* Callback des Emulators: unfertig
+*
+* cmd =
+*  1: void dummy_hdv_init( void )
+*  2: long dummy_rwabs(int flag, void *buf, int count, int recno, int dev)
+*  3: long dummy_getbpb(int drv)
+*  4: long dummy_mediach(int drive)
+*  5: long boot(void)
+*
+**********************************************************************/
+uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct AtariBlockDeviceParm
+    {
+        uint16_t cmd;
+        uint32_t parm;
+    } __attribute__((packed));
+
+    AtariBlockDeviceParm *theParams = (AtariBlockDeviceParm *) (addrOffset68k + params);
+    DebugInfo2("(cmd = %u) - dummy so far.", be16toh(theParams->cmd));
     (void) params;
     (void) addrOffset68k;
     return 0;
@@ -3835,7 +3867,7 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
 
         // ermittle shutdown-Status
         case 2:
-            ret = (uint32_t) m_bShutdown;
+            ret = (uint32_t) pTheMagiC->m_bShutdown;
             break;
 
         default:

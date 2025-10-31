@@ -129,7 +129,12 @@ class CMagiC
     static uint32_t AtariSerStat(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k);
     uint32_t AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffset68k);
+#if defined(MAGICLIN)
+    static uint32_t MmxDaemon(uint32_t params, unsigned char *AdrOffset68k);
+    #else
     uint32_t MmxDaemon(uint32_t params, unsigned char *AdrOffset68k);
+#endif
+    static uint32_t AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariYield(uint32_t params, uint8_t *addrOffset68k);
 
     // private attributes

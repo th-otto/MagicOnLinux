@@ -958,6 +958,8 @@ MACRO    MACPPCE
 // additionally takes a "this" pointer that is located behind the
 // host callback function pointer and passes this as first parameter
 // of a class method.
+
+#define MAGICLIN 1
 struct MacXSysHdr
 {
     // Atari -> Mac
@@ -1017,7 +1019,14 @@ struct MacXSysHdr
     PTR32x4_HOST MacSys_xfs_dev;            // corresponding file driver
     PTR32x4_HOST MacSys_drv2devcode;        // convert driver number to device number
     PTR32x4_HOST MacSys_rawdrvr;            // LONG RawDrvr({int, long} *) Raw driver (eject) for Mac
+#if defined(MAGICLIN)
+    PTR32_HOST   MacSys_Daemon;             // call for the mmx daemon
+    PTR32_HOST   MacSys_BlockDevice;        // new for MagicOnLinux
+    PTR32_HOST   MacSys_resvd1;
+    PTR32_HOST   MacSys_resvd2;
+#else
     PTR32x4_HOST MacSys_Daemon;             // call for the mmx daemon
+#endif
     PTR32_HOST   MacSys_Yield;              // call to yield CPU time (idle)
     OldMmSysHdr  MacSys_OldHdr;             // for compatibility with Behne's code
 } __attribute__((packed));

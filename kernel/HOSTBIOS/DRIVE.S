@@ -7,10 +7,10 @@
 
 **********************************************************************
 *
-* void dummy_hdv_init( void )
+* void host_hdv_init( void )
 *
 
-dummy_hdv_init:
+host_hdv_init:
  move.w	#1,-(sp)
  lea		(sp),a1					; a1 = Parameter
  lea		MSysX+MacSysX_BlockDev(pc),a0	; PPC-Adresse
@@ -21,59 +21,61 @@ dummy_hdv_init:
 
 **********************************************************************
 *
-* long dummy_rwabs(int flag, void *buf, int count, int recno, int dev)
+* long host_hdv_rwabs(int flag, void *buf, int count, int recno, int dev)
 *
 
-dummy_rwabs:
+host_hdv_rwabs:
  move.w	#2,-(sp)
  lea		(sp),a1					; a1 = Parameter
  lea		MSysX+MacSysX_BlockDev(pc),a0	; PPC-Adresse
  MACPPC							; Mac anspringen
  addq.l	#2,sp
- moveq    #EUNDEV,d0
  rts
 
 
 **********************************************************************
 *
-* long dummy_getbpb(int drv)
+* long host_hdv_getbpb(int drv)
+*
+* Röckgabe NULL fÅr ungÅltigen BPB
 *
 
-dummy_getbpb:
+host_hdv_getbpb:
  move.w	#3,-(sp)
  lea		(sp),a1					; a1 = Parameter
  lea		MSysX+MacSysX_BlockDev(pc),a0	; PPC-Adresse
  MACPPC							; Mac anspringen
  addq.l	#2,sp
- moveq    #0,d0		; NULL-Zeiger, d.h. BPB ist ungÅltig
  rts
 
 
 **********************************************************************
 *
-* long dummy_mediach(int drive)
+* long host_hdv_mediach(int drive)
+*
+* RÅckgabe EUNDEV fÅr unbekanntes Laufwerk
 *
 
-dummy_mediach:
+host_hdv_mediach:
  move.w	#4,-(sp)
  lea		(sp),a1					; a1 = Parameter
  lea		MSysX+MacSysX_BlockDev(pc),a0	; PPC-Adresse
  MACPPC							; Mac anspringen
  addq.l	#2,sp
- moveq    #EUNDEV,d0
  rts
 
 
 **********************************************************************
 *
-* long dummy_boot()
+* long host_hdv_boot()
+*
+* RÅckgabewert wird derzeit ignoriert.
 *
 
-dummy_boot:
+host_hdv_boot:
  move.w	#5,-(sp)
  lea		(sp),a1					; a1 = Parameter
  lea		MSysX+MacSysX_BlockDev(pc),a0	; PPC-Adresse
  MACPPC							; Mac anspringen
  addq.l	#2,sp
- moveq	#1,d0
  rts

@@ -2012,20 +2012,21 @@ uint32_t CMagiC::AtariInit(uint32_t params, uint8_t *addrOffset68k)
     return 0;
 }
 
-/**********************************************************************
-*
-* Callback des Emulators: unfertig
-*
-* cmd =
-*  1: void dummy_hdv_init( void )
-*  2: long dummy_rwabs(int flag, void *buf, int count, int recno, int dev)
-*  3: long dummy_getbpb(int drv)
-*  4: long dummy_mediach(int drive)
-*  5: long boot(void)
-*
-**********************************************************************/
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: hdv and boot operations
+ *
+ * @param[in] params            68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return zero or negative error code
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
 {
+    INT32 aerr = EINVFN;
+
     struct AtariBlockDeviceParm
     {
         uint16_t cmd;
@@ -2034,9 +2035,39 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
 
     AtariBlockDeviceParm *theParams = (AtariBlockDeviceParm *) (addrOffset68k + params);
     DebugInfo2("(cmd = %u) - dummy so far.", be16toh(theParams->cmd));
-    (void) params;
-    (void) addrOffset68k;
-    return 0;
+    switch(be16toh(theParams->cmd))
+    {
+        case 1:
+            // void hdv_init(void)
+            DebugInfo2("() - hdv_init");
+            break;
+
+        case 2:
+            // long hdv_rwabs(int flag, void *buf, int count, int recno, int dev)
+            DebugInfo2("() - hdv_rawbs");
+            aerr = EUNDEV;
+            break;
+
+        case 3:
+            // long hdv_getbpb(int drv)
+            DebugInfo2("() - hdv_getbpb");
+            aerr = 0;   // invalid!
+            break;
+
+        case 4:
+            // long hdv_mediach(int drive)
+            DebugInfo2("() - hdv_mediach");
+            aerr = EUNDEV;
+            break;
+
+        case 5:
+            // long hdv_boot()
+            DebugInfo2("() - hdv_boot");
+            aerr = 1;   // currently ignored
+            break;
+    }
+
+    return aerr;
 }
 
 

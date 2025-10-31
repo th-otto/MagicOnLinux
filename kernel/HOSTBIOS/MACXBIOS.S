@@ -581,11 +581,11 @@ bot_aestpa:
 
 * Installation einiger Exceptionvektoren fÅr Disk und Ausgabe
 
- move.l   #dummy_hdv_init,hdv_init
- move.l   #dummy_rwabs,hdv_rw
- move.l   #dummy_getbpb,hdv_bpb
- move.l   #dummy_mediach,hdv_mediach
- move.l   #dummy_boot,hdv_boot
+ move.l   #host_hdv_init,hdv_init
+ move.l   #host_hdv_rwabs,hdv_rw
+ move.l   #host_hdv_getbpb,hdv_bpb
+ move.l   #host_hdv_mediach,hdv_mediach
+ move.l   #host_hdv_boot,hdv_boot
  move.l	#bcostat_prt,prv_lsto
  move.l	#bconout_prt,prv_lst
  move.l	#bcostat_ser1,prv_auxo	; immer ST_MFP

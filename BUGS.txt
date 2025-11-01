@@ -4,7 +4,7 @@ Keep aspect ratio during window resize?
 
 Emulator should check version of MAGICLIN.OS to make sure the API fits.
 
-In MagicMacX kernel, the floppy and hard drive functions unfortunately are all dummies:
+hdv_bp() currently cannot be emulated, because it must return a pointer to 68k memory.
 
 hdv_init
 hdv_rw
@@ -14,15 +14,7 @@ hdv_boot
 
 (see KERNEL/BIOS/MAGXMACX/DRIVE.S)
 
-This should be replaced by a concept like XFS:
-
-hdv_rw_host:
- ....
- moveq    #opcode, d0
- lea      MSysX+MacSysX_rawdrvr,a0
- MACPPCE
- lea      ...(sp),sp
- rts
-
 What is XHDI, and shall it be supported? It seems that DFS_FAT.S, the MagiC internal (V)FAT12/16/32
 file system driver, supports this to get information about a storage volume.
+
+Atari volume images are implemented, but currently do not work for unknown reason. This needs debugging of 68k code.

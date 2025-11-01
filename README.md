@@ -10,7 +10,7 @@ This is kind of successor of:
 * *MagicMac X* for MacOS X on PPC (32-bit application) and
 * *AtariX* for macOS up to 10.13 "High Sierra" (32-bit application).
 
-Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture, any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution would have been to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
+Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture, any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file partially remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution would have been to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
 
 # How To Build (Linux, tested with Ubuntu 24.04)
 
@@ -28,6 +28,8 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/
 
 Replace "English" with "de" or "fr" for German or French.
+
+Without gxmessage you will not see error message dialogues, instead the text will be printed to stderr only.
 
 The MAGICLIN.OS kernel is currently only available in German, but you may compile and link your own.
 
@@ -54,11 +56,13 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Arbitrary screen sizes and colour depths
 * Zoom, helpful for original 640x400 or 640x200 resolution
 * Full access to host file system, up to root
+* Support of Atari volume or floppy disk images implemented, but currently they do not work for unknown reason.
 
 # Bugs and Agenda
 
 * Include German, French and English localisation of emulator and emulated system without needing to clone AtariX repository.
-* Ability to mount disk and floppy disk images.
+* Debug Atari access to mounted volume and floppy disk images. This currently fails.
+* Support partition tables, i.e. disk images, not only volume images.
 * Musashi emulator sources should be synchronised with latest version (see below).
 * Atari root file system (like MAGIC_C) folder should be automatically created and localised.
 * Clean shutdown of emulated system.
@@ -66,7 +70,7 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 
 # License
 
-The MagicLinux emulator is licensed according to GPLv3, see LICENSE file.
+The MagicOnLinux emulator is licensed according to GPLv3, see LICENSE file.
 
 # External Licenses
 

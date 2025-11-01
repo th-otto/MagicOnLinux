@@ -16,35 +16,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-//
-//  missing.h
-//  SDLOpenGLIntro
-//
-//  Created by Andreas Kromke on 07.10.11.
-//  Copyright 2011 __MyCompanyName__. All rights reserved.
-//
+/*
+*
+* Manages user interaction (GUI), mainly message dialogues
+*
+*/
 
-#ifndef SDLOpenGLIntro_missing_h
-#define SDLOpenGLIntro_missing_h
+#ifndef _GUI_H_
+#define _GUI_H_
 
-#include "resource.h"
-#include "Atari.h"
+#include <stdint.h>
 
-#define MAGIC_COLOR_TABLE_LEN 256
 
-class CMagiCScreen
-{
-  public:
-	// Konstruktor
-	CMagiCScreen();
-	// Destruktor
-	~CMagiCScreen();
-	// Initialisierung
-	int Init(void);
+extern int showAlert(const char *msg_text, const char *info_txt, int nButtons);
 
-	// Vordergrund-Bildspeicher
-	MXVDI_PIXMAP m_PixMap;					// der Atari-Bildschirm in Mac-Koordinaten
-	uint32_t m_pColourTable[MAGIC_COLOR_TABLE_LEN];			// 256 Farben: Farbtabelle
-};
+// global function used by CMagiC to report 68k exceptions
+extern void Send68kExceptionData(
+                uint16_t exc,
+                uint32_t ErrAddr,
+                char *AccessMode,
+                uint32_t pc,
+                uint16_t sr,
+                uint32_t usp,
+                uint32_t *pDx,
+                uint32_t *pAx,
+                const char *ProcPath,
+                uint32_t pd);
 
 #endif

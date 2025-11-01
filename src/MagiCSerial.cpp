@@ -23,17 +23,17 @@
 */
 
 #include "config.h"
-// System-Header
+#include <string.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/select.h>
 #include <sys/param.h>
 #include <unistd.h>
 #include <termios.h>
-// Programm-Header
 #include "Globals.h"
 #include "Debug.h"
 #include "MagiCSerial.h"
+#include "preferences.h"
 #ifdef _DEBUG
 //#define DEBUG_VERBOSE
 #endif

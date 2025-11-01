@@ -28,11 +28,11 @@
 // program header files
 #include "Globals.h"
 #include "osd_cpu.h"
-#include "missing.h"
 #include "XCmd.h"
 #include "HostXFS.h"
 #include "MagiCKeyboard.h"
 #include "MagiCMouse.h"
+#include "MagiCScreen.h"
 
 #define KEYBOARDBUFLEN  32
 

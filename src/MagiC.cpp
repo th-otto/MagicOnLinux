@@ -23,13 +23,11 @@
 */
 
 #include "config.h"
-// system headers
 #include <cassert>
 #include <cerrno>
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <time.h>
-// programm headers
 #include "emulation_globals.h"
 #include "Debug.h"
 #include "Globals.h"
@@ -38,10 +36,8 @@
 #include "MagiCPrint.h"
 #include "Atari.h"
 #include "mem_access_68k.h"
-//#include "Dialogue68kExc.h"
-//#include "DialogueSysHalt.h"
-#include "missing.h"
 #include "conversion.h"
+#include "gui.h"
 
 //#define _DEBUG_KB_CRITICAL_REGION 1
 
@@ -381,7 +377,7 @@ MagicMacX could not find the MagiC kernel file "MagicMacX.OS".
 Reinstall the application.
 [Quit program]
 */
-        MyAlert("ALRT_NO_MAGICMAC_OS", "kAlertStopAlert");
+        (void) showAlert("ALRT_NO_MAGICMAC_OS", "kAlertStopAlert", 1);
         return -1;
     }
 
@@ -741,7 +737,7 @@ The application ran out of memory.
 Assign more memory to the application using the Finder dialogue "Information"!
 [Cancel]
 */
-        MyAlert("ALRT_NOT_ENOUGH_MEM", "kAlertStopAlert");
+        showAlert("ALRT_NOT_ENOUGH_MEM", "kAlertStopAlert", 1);
         return(1);
     }
 
@@ -822,7 +818,7 @@ The file "MagicMacX.OS" seems to be corrupted or belongs to a different (newer o
 Reinstall the application.
 [Quit program]
 */
-        MyAlert("ALRT_INVALID_MAGICMAC_OS", "kAlertStopAlert");
+        showAlert("ALRT_INVALID_MAGICMAC_OS", "kAlertStopAlert", 1);
         return(1);
     }
 
@@ -2492,13 +2488,13 @@ void CMagiC::SendMessageToMainThread(bool bAsync, uint32_t command)
 
 uint32_t CMagiC::AtariSysHalt(uint32_t params, uint8_t *addrOffset68k)
 {
-    char *ErrMsg = (char *) (addrOffset68k + params);
+    char *errMsg = (char *) (addrOffset68k + params);
 
-    DebugError2("() -- %s", ErrMsg);
+    DebugError2("() -- %s", errMsg);
 
 // Daten werden getrennt von der Nachricht geliefert
 
-    SendSysHaltReason(ErrMsg);
+    showAlert("The emulator was halted", errMsg, 1);
     pTheMagiC->StopExec();
     return 0;
 }
@@ -2674,7 +2670,7 @@ uint32_t CMagiC::AtariError(uint32_t params, uint8_t *addrOffset68k)
      Install a driver, or change the monitor resolution resp. colour depth using the system's control panel. Finally, restart  MagiCMacX.
      [Quit MagiCMacX]
      */
-    MyAlert("ALRT_NO_VIDEO_DRIVER", "kAlertStopAlert");
+    showAlert("ALRT_NO_VIDEO_DRIVER", "kAlertStopAlert", 1);
     pTheMagiC->StopExec();    // fatal error for execution thread
     return 0;
 }

@@ -253,7 +253,7 @@ int Preferences::writePreferences(const char *cfgfile)
     fprintf(f, "%s = %s\n",     var_name[VAR_SHOW_HOST_MENU], bShowHostMenu ? "YES" : "NO");
     fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_AUTOSTART], bAutoStartMagiC ? "YES" : "NO");
     fprintf(f, "[ADDITIONAL ATARI DRIVES]\n");
-    fprintf(f, "# %s<A..Z> = flags [1:read-only, 2:8+3, 4:case-insensitive] path\n", var_name[VAR_ATARI_DRV_]);
+    fprintf(f, "# %s<A..Z> = flags [1:read-only, 2:8+3, 4:case-insensitive] path or image\n", var_name[VAR_ATARI_DRV_]);
     for (unsigned n = 0; n < NDRIVES; n++)
     {
         if (drvPath[n] != nullptr)

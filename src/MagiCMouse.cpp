@@ -22,6 +22,7 @@
 *
 */
 
+#include <stdlib.h>
 #include "config.h"
 #include "Globals.h"
 #include "osd_cpu.h"

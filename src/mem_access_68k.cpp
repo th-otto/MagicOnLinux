@@ -33,7 +33,7 @@
 #include "emulation_globals.h"
 #include "Globals.h"
 #include "Atari.h"
-#include "missing.h"
+#include "gui.h"
 
 // compile time switches
 

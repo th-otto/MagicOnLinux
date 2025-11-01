@@ -32,9 +32,9 @@
 #include "Debug.h"
 #include "Globals.h"
 #include "MagiC.h"
+#include "MagiCScreen.h"
 #include "XCmd.h"
 #include "Clipboard.h"        // MagiC clipboad handling
-#include "missing.h"
 
 
 class EmulationRunner

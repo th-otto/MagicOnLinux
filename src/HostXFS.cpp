@@ -47,6 +47,7 @@
 #include "Atari.h"
 #include "emulation_globals.h"
 #include "conversion.h"
+#include "gui.h"
 
 #if !defined(_DEBUG_XFS)
  #undef DebugInfo
@@ -4200,6 +4201,8 @@ void CHostXFS::setDrivebits(uint32_t newbits, uint8_t *addrOffset68k)
  ************************************************************************************************/
 void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
 {
+    struct stat statbuf;
+
     xfs_drvbits = 0;
     for (int i = 0; i < NDRIVES; i++)
     {
@@ -4207,6 +4210,12 @@ void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
         unsigned flags = Preferences::drvFlags[i];
         if (path != nullptr)
         {
+            int res = stat(path, &statbuf);
+            if (res < 0)
+            {
+                (void) showAlert("Invalid Atari drive path", path, 1);
+                continue;
+            }
             drv_type[i] = eHostDir;
             drv_host_path[i] = path;
             drv_longNames[i] = (flags & DRV_FLAG_8p3) == 0;

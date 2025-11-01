@@ -25,12 +25,9 @@
 #ifndef _INCLUDED_GLOBALS_H
 #define _INCLUDED_GLOBALS_H
 
-// System-Header
 #include <stdio.h>
 #include <stdint.h>
 #include <endian.h>
-// Programm-Header
-#include "preferences.h"
 
 #if defined(USE_ASGARD_PPC_68K_EMU)
 // Asgard 68k emulator (PPC Assembler)
@@ -86,55 +83,13 @@ typedef struct
 } Point;
 
 
-// intermediate replacement for error alert
-static inline void MyAlert(const char *a, const char *b)
-{
- 	fprintf(stderr, "%s/%s\n", a, b);
-}
-
 //
-// global variables
+// global variables and functions
 //
 
 
+// -> MagiC.cpp
 void sendBusError(uint32_t addr, const char *AccessMode);
 void getActAtariPrg(const char **pName, uint32_t *pact_pd);
-
-
-// global functions used by XCMD
-extern void MMX_BeginDialog(void);
-extern void MMX_EndDialog(void);
-// global function used by CMagiCWindow to report closing
-extern void SendWindowClose(void);
-// global function used by CMagiCWindow to report collapsing
-extern void SendWindowCollapsing(void);
-// global function used by CMagiCWindow to report collapsed window has re-expanded
-extern void SendWindowExpanded(void);
-// global function used by CMagiCWindow to report keyboard focus acquired
-extern void SendWindowFocusAcquired(void);
-// global function used by CMagiCWindow to report keyboard focus relinguish
-extern void SendWindowFocusRelinguish(void);
-// global function used by CMagiCWindow to report mouse clicks
-extern void SendWindowMoveHandler(uint32_t evkind, Rect *pNewRect);
-// global function used by CMagiCWindow to report mouse clicks
-extern int SendMouseButtonHandler(unsigned int NumOfButton, bool bIsDown);
-// global function used by CMagiC to report 68k exceptions
-extern void Send68kExceptionData(
-			uint16_t exc,
-			uint32_t ErrAddr,
-			char *AccessMode,
-			uint32_t pc,
-			uint16_t sr,
-			uint32_t usp,
-			uint32_t *pDx,
-			uint32_t *pAx,
-			const char *ProcPath,
-			uint32_t pd);
-// global function used by AtariSysHalt
-extern void SendSysHaltReason(const char *Reason);
-extern void UpdateAtariDoubleBuffer(void);
-
-// TODO: needed?
-//extern DialogItemIndex MyAlert(int16_t alertID, AlertType alertType);
 
 #endif

@@ -23,16 +23,16 @@
 */
 
 #include "config.h"
-// System-Header
+#include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <endian.h>
 #include <string.h>
 #include <errno.h>
-// Programm-Header
 #include "Globals.h"
 #include "Debug.h"
 #include "conversion.h"
+#include "preferences.h"
 #include "Clipboard.h"
 
 #define CHSET_ATARI_delta						0x7F

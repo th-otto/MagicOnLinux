@@ -4213,9 +4213,20 @@ void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
             int res = stat(path, &statbuf);
             if (res < 0)
             {
-                (void) showAlert("Invalid Atari drive path", path, 1);
+                (void) showAlert("Invalid Atari drive path:", path, 1);
                 continue;
             }
+            // we should not get symbolic links here, because of stat, not lstat...
+            mode_t ftype = (statbuf.st_mode & S_IFMT);
+            if (ftype != S_IFDIR)
+            {
+                DebugInfo2("() -- Atari drive %c: is no directory: \"%s\"", 'A' + i, path);
+                path = nullptr;
+            }
+        }
+
+        if (path != nullptr)
+        {
             drv_type[i] = eHostDir;
             drv_host_path[i] = path;
             drv_longNames[i] = (flags & DRV_FLAG_8p3) == 0;

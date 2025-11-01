@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1990-2018 Andreas Kromke, andreas.kromke@gmail.com
+ * Copyright (C) 1990-2018/2025 Andreas Kromke, andreas.kromke@gmail.com
  *
  * This program is free software; you can redistribute it or
  * modify it under the terms of the GNU General Public License
@@ -53,13 +53,13 @@ int showAlert(const char *msg_text, const char *info_txt, int nButtons)
     }
     if (f != nullptr)
     {
-        fprintf(f, "%s\n%s\n\n%s", spaces, msg_text, info_txt);
+        fprintf(f, "%s\n%s\n\n%s\n", spaces, msg_text, info_txt);
         sprintf(text, "-file \"%s\"", fname);
         fclose(f);
     }
     else
     {
-        sprintf(text, "%s\n\n%s", msg_text, info_txt);
+        sprintf(text, "%s\n\n%s\n", msg_text, info_txt);
     }
 
     switch(nButtons)

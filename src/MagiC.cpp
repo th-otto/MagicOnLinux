@@ -2113,11 +2113,12 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
     } __attribute__((packed));
 
     AtariBlockDeviceParm *theParams = (AtariBlockDeviceParm *) (addrOffset68k + params);
-    DebugInfo2("(cmd = %u) - dummy so far.", be16toh(theParams->cmd));
+    uint16_t cmd = be16toh(theParams->cmd);
+    DebugInfo2("(cmd = %u)", cmd);
 
     uint16_t drv;
 
-    switch(be16toh(theParams->cmd))
+    switch(cmd)
     {
         case 1:
             // void hdv_init(void)

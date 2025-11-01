@@ -23,6 +23,7 @@
 */
 
 #include "config.h"
+#include <fcntl.h>
 #include <cassert>
 #include <cerrno>
 #include <sys/stat.h>
@@ -251,6 +252,14 @@ CMagiC::~CMagiC()
     if (mem68k != nullptr)
     {
         free(mem68k);
+    }
+    for (int i = 0; i < NDRIVES; i++)
+    {
+        if (drv_image_fd[i] >= 0)
+        {
+            close(drv_image_fd[i]);
+            drv_image_fd[i] = -1;
+        }
     }
 }
 
@@ -923,6 +932,7 @@ Reinstall the application.
 
     setAtariBE32(mem68k + _drvbits, 0);        // no Atari drives yet
     m_HostXFS.activateXfsDrives(mem68k);
+    activateDiskImageDrives();
     setAtariBE16(mem68k + _bootdev, 'C'-'A');    // Atari boot drive C:
 
     //
@@ -2011,6 +2021,73 @@ uint32_t CMagiC::AtariInit(uint32_t params, uint8_t *addrOffset68k)
 
 /** **********************************************************************************************
  *
+ * @brief get disk images from preferences
+ *
+ ************************************************************************************************/
+void CMagiC::activateDiskImageDrives(void)
+{
+    struct stat statbuf;
+
+    m_diskimages_drvbits = 0;
+    for (int i = 0; i < NDRIVES; i++)
+    {
+        const char *path = Preferences::drvPath[i];
+        unsigned flags = Preferences::drvFlags[i];
+        if (path != nullptr)
+        {
+            int res = stat(path, &statbuf);
+            if (res < 0)
+            {
+                // alert already shown by HostXFS
+                // (void) showAlert("Invalid Atari drive path:", path, 1);
+                continue;
+            }
+            // we should not get symbolic links here, because of stat, not lstat...
+            mode_t ftype = (statbuf.st_mode & S_IFMT);
+            if (ftype != S_IFREG)
+            {
+                DebugInfo2("() -- Atari drive %c: is not a regular file: \"%s\"", 'A' + i, path);
+                path = nullptr;
+            }
+        }
+
+        if (path != nullptr)
+        {
+            drv_image_fd[i] = open(path, (flags & DRV_FLAG_RDONLY) ? O_RDONLY : O_RDWR);
+            if (drv_image_fd[i] < 0)
+            {
+                (void) showAlert("Cannot open Atari volume image:", path, 1);
+                path = nullptr;
+            }
+        }
+
+        if (path != nullptr)
+        {
+            drv_image_host_path[i] = path;
+            drv_image_size[i] = statbuf.st_size;
+            drv_longNames[i] = (flags & DRV_FLAG_8p3) == 0;
+            drv_readOnly[i] = (flags & DRV_FLAG_RDONLY);
+            m_diskimages_drvbits |= (1 << i);
+        }
+        else
+        {
+            drv_image_host_path[i] = nullptr;    // invalid
+            drv_longNames[i] = false;
+            drv_readOnly[i] = false;
+            drv_image_fd[i] = -1;   // not open
+            drv_image_size[i] = 0;
+        }
+    }
+
+    // add drvbits
+    uint32_t drvbits = getAtariBE32(mem68k + _drvbits);
+    drvbits |= m_diskimages_drvbits;
+    setAtariBE32(mem68k + _drvbits, drvbits);
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Emulator callback: hdv and boot operations
  *
  * @param[in] params            68k address of parameter structure
@@ -2059,7 +2136,62 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
             uint32_t lrecno = be32toh(theParams->lrecno);
             DebugInfo2("() - hdv_rawbs(flags = 0x%04x, buf = 0x%08x, count = %u, recno = %u, dev = %u, lrecno = %u)",
                          flags, buf, count, recno, drv, lrecno);
-            aerr = EUNDEV;
+
+            if (recno != 0xffff)
+            {
+                lrecno = recno; // old API
+            }
+
+            int fd;
+            if ((drv < NDRIVES) && ((fd = pTheMagiC->drv_image_fd[drv]) >= 0))
+            {
+                uint64_t fsize = pTheMagiC->drv_image_size[drv];
+                uint64_t secsize = 512;     // force 64-bit multiply
+
+                uint64_t new_offset = lrecno * secsize;
+                uint64_t new_count = count * secsize;
+
+                if ((new_offset < fsize) && (new_offset + new_count <= fsize))
+                {
+                    off_t offs = lseek(fd, new_offset, SEEK_SET);
+                    if (offs == (long) new_offset)
+                    {
+                        ssize_t transferred;
+
+                        if (flags & 1)
+                        {
+                           transferred = write(fd, addrOffset68k + buf, new_count);
+                        }
+                        else
+                        {
+                           transferred = read(fd, addrOffset68k + buf, new_count);
+                        }
+
+                        if (transferred == (long) new_count)
+                        {
+                            aerr = E_OK;
+                        }
+                        else
+                        {
+                            aerr = (flags & 1) ? EWRITF : EREADF;
+                        }
+                    }
+                    else
+                    {
+                        DebugError2("() - lseek() failure");
+                        aerr = ERANGE;
+                    }
+                }
+                else
+                {
+                    DebugError2("() - pos %u out of size %u", (unsigned) new_offset, (unsigned) pTheMagiC->drv_image_size[drv]);
+                    aerr = ERANGE;
+                }
+            }
+            else
+            {
+                aerr = EUNDEV;
+            }
             }
             break;
 

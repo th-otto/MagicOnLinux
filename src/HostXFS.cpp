@@ -971,11 +971,8 @@ INT32 CHostXFS::hostpath2HostFD
  *       MACXFS.S copies these six bytes later to a newly allocated DD block that would have space for
  *       94 bytes, ie. another 88 bytes.
  *
- * @note Unfortunately, the XFS function mxfs_freeDD() in MACXFS.S just frees the internal
- *       memory block (IMB) instead of calling the host before. This is a severe design
- *       flaw in MAC_XFS and has historical reasons, because classic MacOS could address
- *       each file or folder in the system with a combination of a 16-bit volume reference
- *       number and a 32-bit file number, kind of inode.
+ * @note If this function returns error EDRIVE, the MagiC kernel will try to open the drive
+ *       with the internal FAT file system driver.
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_drv_open(uint16_t drv, MXFSDD *dd, int32_t flg_ask_diskchange)

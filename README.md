@@ -14,7 +14,7 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 
 # How To Build (Linux, tested with Ubuntu 24.04)
 
-- sudo apt install libsdl2-dev
+- sudo apt install libsdl2-dev gxmessage
 - cd ~/Documents
 - git clone https://gitlab.com/AndreasK/magiclinux
 - git clone https://gitlab.com/AndreasK/AtariX
@@ -63,7 +63,6 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Atari root file system (like MAGIC_C) folder should be automatically created and localised.
 * Clean shutdown of emulated system.
 * Add support for compilation on macOS.
-* Tell me.
 
 # License
 

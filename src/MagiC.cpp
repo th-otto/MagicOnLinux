@@ -2053,6 +2053,7 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
 
         case 2:
             // long hdv_rwabs(int flags, void *buf, int count, int recno, int dev)
+            // With absense of XHDI we only support 512 bytes per sector.
             {
             uint16_t flags = be16toh(theParams->flags_or_drive);
             uint32_t buf = be32toh(theParams->buf);
@@ -2068,6 +2069,8 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
 
         case 3:
             // long hdv_getbpb(int drv)
+            // Called from DFS_FAT.S, functions drv_open() -> getxbpb()
+            //  to check if BIOS knows this drive, e.g. A: or B:
             drv = be16toh(theParams->flags_or_drive);
             DebugInfo2("() - hdv_getbpb(drv = %u)", drv);
             aerr = 0;   // invalid!

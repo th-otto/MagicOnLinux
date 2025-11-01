@@ -31,16 +31,62 @@
 #include "Debug.h"
 #include "missing.h"
 
-// TODO: make a GUI from this
-static int GuiMyAlert(const char *msg_text, const char *info_txt, int nButtons)
+// We need a temporary file, because otherwise we get a syntax
+// error for the long exception error message.
+// To make sure that the message window will not get too small horizontally,
+// send some space characters.
+int GuiMyAlert(const char *msg_text, const char *info_txt, int nButtons)
 {
+    const char *title = "MagicOnLinux";
+    // TODO: find some reasonable unicode long space
+    const char *spaces = "                                                                                                    ";
+    char text[512];
+    char buttons[64] = "";
+
     fprintf(stderr, "Alert (%d buttons):\n", nButtons);
     fprintf(stderr, "  MSG  %s\n", msg_text);
     fprintf(stderr, "  INFO %s\n", info_txt);
-    return 0;
+
+    FILE *f = nullptr;
+    char *fname = tempnam(nullptr, "magic-on-linux");
+    if (fname != nullptr)
+    {
+        f = fopen(fname, "wt");
+    }
+    if (f != nullptr)
+    {
+        fprintf(f, "%s\n%s\n\n%s", spaces, msg_text, info_txt);
+        sprintf(text, "-file \"%s\"", fname);
+        fclose(f);
+    }
+    else
+    {
+        sprintf(text, "%s\n\n%s", msg_text, info_txt);
+    }
+
+    switch(nButtons)
+    {
+        case 1:
+            sprintf(buttons, "-buttons \"OK\"");
+            break;
+        case 2:
+            sprintf(buttons, "-buttons \"OK,CANCEL\"");
+            break;
+        case 3:
+            sprintf(buttons, "-buttons \"OK,CANCEL,IGNORE\"");
+            break;
+    }
+
+    char command[1024];
+    sprintf(command, "gxmessage -nearmouse -wrap -title \"%s\" %s %s", title, buttons, text);
+    // Contrary to man page, we do not get 101, 102, 103 for the buttons, but the value is
+    // shifted by 8, so that we receive 0x6500, 0x6600 and 0x6700 for buttons and 0x0100 for window close.
+    int result = system(command);
+    fprintf(stderr, "-> %d (0x%08x)\n", result, result);
+
+    return result >> 8;
 }
 
-// TODO: make a GUI from this
 static void GuiAtariCrash
 (
     uint16_t exc,
@@ -55,23 +101,24 @@ static void GuiAtariCrash
     uint32_t pd
 )
 {
-    fprintf(stderr, "Atari crash:\n");
-    fprintf(stderr, "    exc = %u\n", exc);
-    fprintf(stderr, "    ErrAddr = 0x%08x\n", ErrAddr);
-    fprintf(stderr, "    AccessMode = %s\n", AccessMode);
-    fprintf(stderr, "    pc = 0x%08x\n", pc);
-    fprintf(stderr, "    sr = 0x%04x\n", sr);
-    fprintf(stderr, "    usp = 0x%08x\n", usp);
+    char text[1024] = "";
+    sprintf(text + strlen(text), "    exc = %u\n", exc);
+    sprintf(text + strlen(text), "    ErrAddr = 0x%08x\n", ErrAddr);
+    sprintf(text + strlen(text), "    AccessMode = %s\n", AccessMode);
+    sprintf(text + strlen(text), "    pc = 0x%08x\n", pc);
+    sprintf(text + strlen(text), "    sr = 0x%04x\n", sr);
+    sprintf(text + strlen(text), "    usp = 0x%08x\n", usp);
     for (int i = 0; i < 8; i++)
     {
-        fprintf(stderr, "     d%i = 0x%08x\n", i, pDx[i]);
+        sprintf(text + strlen(text), "     d%i = 0x%08x\n", i, pDx[i]);
     }
     for (int i = 0; i < 8; i++)
     {
-        fprintf(stderr, "     a%i = 0x%08x\n", i, pAx[i]);
+        sprintf(text + strlen(text), "     a%i = 0x%08x\n", i, pAx[i]);
     }
-    fprintf(stderr, "    ProcPath = %s\n", ProcPath);
-    fprintf(stderr, "    pd = 0x%08x\n", pd);
+    sprintf(text + strlen(text), "    ProcPath = %s\n", ProcPath);
+    sprintf(text + strlen(text), "    pd = 0x%08x\n", pd);
+    (void) GuiMyAlert("Atari crash", text, 1);
 }
 
 

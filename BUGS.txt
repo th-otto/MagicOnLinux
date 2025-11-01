@@ -23,3 +23,6 @@ hdv_rw_host:
  MACPPCE
  lea      ...(sp),sp
  rts
+
+What is XHDI, and shall it be supported? It seems that DFS_FAT.S, the MagiC internal (V)FAT12/16/32
+file system driver, supports this to get information about a storage volume.

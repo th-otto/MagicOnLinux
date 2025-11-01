@@ -162,6 +162,12 @@ int main(int argc, char *argv[])
 #endif
 */
 
+    #if 0
+    extern int GuiMyAlert(const char *msg_text, const char *info_txt, int nButtons);
+    GuiMyAlert("Greetings!", "This is MagicOnLinux", 3);
+    return 0;
+    #endif
+
     DebugInit(NULL /* stderr */);
     if (Preferences::init(config, false))
     {

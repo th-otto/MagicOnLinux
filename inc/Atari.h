@@ -244,6 +244,20 @@ struct ExeHeader
     INT16_BE  relmod;
 } __attribute__((packed));
 
+/// BIOS Parameter Block for a mounted volume
+struct BPB
+{
+    UINT16_BE b_recsiz;     // 0x00: bytes per sector
+    UINT16_BE b_clsiz;      // 0x02: sectors per cluster
+    UINT16_BE b_clsizb;     // 0x04: bytes per cluster (redundant)
+    UINT16_BE b_rdlen;      // 0x06: sectors for root directory
+    UINT16_BE b_fsiz;       // 0x08: sectors per FAT (file allocation table), zero for FAT32
+    UINT16_BE b_fatrec;     // 0x0a: sector number of second FAT
+    UINT16_BE b_datrec;     // 0x0c: sector number of first data cluster
+    UINT16_BE b_numcl;      // 0x0e: number of data clusters. If more than 65525, then FAT32
+    UINT16_BE b_flags[8];   // 0x10: bit 0 of flag 0: 0=FAT12, 1=FAT16
+};
+
 
 /// The system variable _sysbase (0x4F2L) points to this structure,
 /// which is not MagiC specific.

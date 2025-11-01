@@ -2041,34 +2041,48 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
 
     AtariBlockDeviceParm *theParams = (AtariBlockDeviceParm *) (addrOffset68k + params);
     DebugInfo2("(cmd = %u) - dummy so far.", be16toh(theParams->cmd));
+
+    uint16_t drv;
+
     switch(be16toh(theParams->cmd))
     {
         case 1:
             // void hdv_init(void)
-            DebugInfo2("() - hdv_init");
+            DebugInfo2("() - hdv_init()");
             break;
 
         case 2:
-            // long hdv_rwabs(int flag, void *buf, int count, int recno, int dev)
-            DebugInfo2("() - hdv_rawbs");
+            // long hdv_rwabs(int flags, void *buf, int count, int recno, int dev)
+            {
+            uint16_t flags = be16toh(theParams->flags_or_drive);
+            uint32_t buf = be32toh(theParams->buf);
+            uint16_t count = be16toh(theParams->count);
+            uint16_t recno = be16toh(theParams->recno);
+            drv = be16toh(theParams->dev);
+            uint32_t lrecno = be32toh(theParams->lrecno);
+            DebugInfo2("() - hdv_rawbs(flags = 0x%04x, buf = 0x%08x, count = %u, recno = %u, dev = %u, lrecno = %u)",
+                         flags, buf, count, recno, drv, lrecno);
             aerr = EUNDEV;
+            }
             break;
 
         case 3:
             // long hdv_getbpb(int drv)
-            DebugInfo2("() - hdv_getbpb");
+            drv = be16toh(theParams->flags_or_drive);
+            DebugInfo2("() - hdv_getbpb(drv = %u)", drv);
             aerr = 0;   // invalid!
             break;
 
         case 4:
             // long hdv_mediach(int drive)
-            DebugInfo2("() - hdv_mediach");
+            drv = be16toh(theParams->flags_or_drive);
+            DebugInfo2("() - hdv_mediach(drv = %u)", drv);
             aerr = EUNDEV;
             break;
 
         case 5:
             // long hdv_boot()
-            DebugInfo2("() - hdv_boot");
+            DebugInfo2("() - hdv_boot()");
             aerr = 1;   // currently ignored
             break;
     }

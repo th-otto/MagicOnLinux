@@ -363,7 +363,7 @@ int CHostXFS::atariFnameToHostFnameCond8p3
     if (atariFnameToHostFnameCond8p3(DRV, NAME, HOSTNAME, sizeof(HOSTNAME))) \
     { \
         DebugError2("() -- cannot convert Atari filename to host format: %s ", NAME); \
-        return ERANGE; \
+        return ATARIERR_ERANGE; \
     }
 
 
@@ -2652,7 +2652,7 @@ INT32 CHostXFS::xfs_readlink
         DebugError2("() : cannot convert host path \"%s\" to Atari path", host_target);
         if (bufsiz < strlen(host_target) + 1)
         {
-            return ERANGE;  // buffer too small
+            return ATARIERR_ERANGE;  // buffer too small
         }
         strcpy((char *) buf, host_target);   // just copy host path
     }

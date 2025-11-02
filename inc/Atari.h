@@ -423,7 +423,7 @@ struct SYSHDR
 #define _hz_200                 0x4ba
 #define the_env                 0x4be       // here unused
 #define _drvbits                0x4c2
-#define _dskbufp                0x4c6
+#define _dskbufp                0x4c6       // pointer to a 4096 byte disk buffer, used by BIOS GetBpb()
 #define _autopath               0x4ca       // here unused
 #define _vbl_list               0x4ce
 #define _dumpflg                0x4ee

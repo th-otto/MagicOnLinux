@@ -2086,6 +2086,163 @@ void CMagiC::activateDiskImageDrives(void)
 }
 
 
+// alles little-endian!
+// AUCH VBR genannt (Volume Boot Record)
+struct FAT_BOOT_SEC_32
+{
+    uint8_t bs_jump[3];         /* 0x00: x86 langer oder kurzer Sprung auf Bootcode */
+                                /*       0xeb,0x??,0x90 oder 0xe9,0x??,0x?? */
+    uint8_t bs_system_id[8];    /* 0x03: Systemname, sollte "MSWIN4.1" sein */
+    uint8_t bs_sec_size[2];     /* 0x0b: Bytes pro Sektor. */
+                                /*       M$ erlaubt hier 512,1024,2048 oder 4096, empfiehlt aber 512 */
+    uint8_t bs_clu_size[1];     /* 0x0d: Sektoren pro Cluster. M$ erlaubt jede */
+                                /*       2er-Potenz von 1 bis 128 und empfiehlt dringend Bytes/Cluster <= 32kB */
+    uint16_t bs_sec_resvd[1];   /* 0x0e: Anzahl reservierter Sektoren ab Partitionsanfang, */
+                                /*       darf nicht Null sein (Bootsektor!). Bei FAT12 und FAT16 */
+                                /*       sollte der Wert 1 sein, für FAT32 32 */
+    uint8_t bs_nfats[1];        /* 0x10: Anzahl FATs. M$ empfiehlt 2 */
+    uint8_t bs_dir_entr[2];     /* 0x11: Anzahl Einträge (à 32 Bytes) für root, 0 bei FAT32 */
+    uint8_t bs_nsectors[2];     /* 0x13: Anzahl Sektoren (reserviert+FAT+root+Data) bzw. 0, wenn > 65535 */
+    uint8_t bs_media[1];        /* 0x15: "media code": 0xf8 für Harddisk, 0xf0 für Wechselmedium */
+                                /*       der Wert muß im Lowbyte von FAT[0] stehen */
+    uint16_t bs_fatlen[1];      /* 0x16: Sektoren für eine FAT. 0 für FAT32 (daran wird FAT32 erkannt) */
+    uint16_t bs_secs_track[1];  /* 0x18: Sektoren pro Spur (nur historisch oder Floppy) */
+    uint16_t bs_heads[1];       /* 0x1a: Anzahl Köpfe (historisch oder Floppy) */
+    uint32_t bs_hidden[1];      /* 0x1c: Anzahl versteckter Sektoren VOR der Partition (normalerweise 0) */
+    uint32_t bs_total_sect[1];  /* 0x20: Anzahl Sektoren (reserviert+FAT+root+Data), wenn bs_nsectors == 0 oder bei FAT32 */
+
+    // Ab hier unterscheiden sich FAT12/16 und FAT32
+    // Hier die Felder für FAT32:
+
+    uint32_t bs_fatlen32[1];    /* Anzahl Sektoren für eine FAT, wenn bs_fatlen == 0 */
+    uint16_t bs_flags[1];       /* Bit 0..3: aktive FAT, wenn Bit 7 == 1 */
+                                /* Bit 4..6: reserviert */
+                                /* Bit 7: 0 für "FAT-Spiegelung", 1 für "nur eine aktive FAT" */
+                                /* Bit 8..15: reserviert */
+    uint8_t bs_version[2];      /* Hi: "major filesystem version, Lo: "lower" */
+                                /* zur Zeit 0.0. Ein Treiber sollte neuere Versionen verweigern */
+    uint32_t bs_rootclust[1];   /* Erster Cluster des Wurzelverzeichnisses, sollte */
+                                /* normalerweise 2 sein */
+    uint16_t bs_info_sect[1];   /* Sektornummer des Info-Sektors (im reservierten Bereich) */
+                                /* normalerweise 1 (direkt hinter dem Bootsektor) */
+    uint16_t bs_bckup_boot[1];  /* Sektornummer des Backup-Bootsektors (im reservierten Bereich) */
+                                /* sollte 0 sein (unbenutzt) oder 6 */
+                                /* Hinter dem Backup-Bootsektor liegt das Backup-FSInfo */
+    uint8_t bs_RESERVED2[12];   /* reserviert, sollte 0 sein */
+    uint8_t bs_DrvNum[1];       /* "drive number". 0x00 == floppy, 0x80 == HD */
+    uint8_t bs_Reserved1[1];    /* für Windows NT reserviert, sollte 0 sein */
+    uint8_t bs_BootSig[1];      /* 0x29 legt fest, daß die folgenden drei Felder gültig sind */
+    uint8_t bs_VolID[4];        /* Seriennummer, die mit bs_VolLab zusammen zur Medienwechselerkennung verwendet wird */
+                                /* ist i.a. Datum+Uhrzeit der Formatierung kombiniert */
+    uint8_t bs_VolLab[11];      /* muß mit dem Disknamen im Wurzelverzeichnis identisch sein. */
+                                /* Ist "NO NAME    ", wenn das Medium unbenannt ist */
+    uint8_t bs_FilSysType[8];   /* "FAT32   ". Darf aber nicht zur Bestimmung des Typs verwendet werden */
+
+} __attribute__((packed));
+
+
+struct FAT_BOOT_SEC_16_12
+{
+    uint8_t bs_jump[3];         /* 0x00: x86 langer oder kurzer Sprung auf Bootcode */
+                                /*       0xeb,0x??,0x90 oder 0xe9,0x??,0x?? */
+    uint8_t bs_system_id[8];    /* 0x03: Systemname, sollte "MSWIN4.1" sein */
+    uint8_t bs_sec_size[2];     /* 0x0b: Bytes pro Sektor. */
+                                /*       M$ erlaubt hier 512,1024,2048 oder 4096, empfiehlt aber 512 */
+    uint8_t bs_clu_size[1];     /* 0x0d: Sektoren pro Cluster. M$ erlaubt jede */
+                                /*       2er-Potenz von 1 bis 128 und empfiehlt dringend Bytes/Cluster <= 32kB */
+    uint16_t bs_sec_resvd[1];   /* 0x0e: Anzahl reservierter Sektoren ab Partitionsanfang, */
+                                /*       darf nicht Null sein (Bootsektor!). Bei FAT12 und FAT16 */
+                                /*       sollte der Wert 1 sein, für FAT32 32 */
+    uint8_t bs_nfats[1];        /* 0x10: Anzahl FATs. M$ empfiehlt 2 */
+    uint8_t bs_dir_entr[2];     /* 0x11: Anzahl Einträge (à 32 Bytes) für root, 0 bei FAT32 */
+    uint8_t bs_nsectors[2];     /* 0x13: Anzahl Sektoren (reserviert+FAT+root+Data) bzw. 0, wenn > 65535 */
+    uint8_t bs_media[1];        /* 0x15: "media code": 0xf8 für Harddisk, 0xf0 für Wechselmedium */
+                                /*       der Wert muß im Lowbyte von FAT[0] stehen */
+    uint16_t bs_fatlen[1];      /* 0x16: Sektoren für eine FAT. 0 für FAT32 (daran wird FAT32 erkannt) */
+    uint16_t bs_secs_track[1];  /* 0x18: Sektoren pro Spur (nur historisch oder Floppy) */
+    uint16_t bs_heads[1];       /* 0x1a: Anzahl Köpfe (historisch oder Floppy) */
+    uint32_t bs_hidden[1];      /* 0x1c: Anzahl versteckter Sektoren VOR der Partition (normalerweise 0) */
+    uint32_t bs_total_sect[1];  /* 0x20: Anzahl Sektoren (reserviert+FAT+root+Data), wenn bs_nsectors == 0 oder bei FAT32 */
+
+    // Ab hier unterscheiden sich FAT12/16 und FAT32
+    // Hier die Felder für FAT16:
+
+    uint8_t bs_drvnum;          /* 0x24: physische Laufwerknummer */
+    uint8_t bs_res;             /* 0x25: reserviert, von NT verwendet */
+    uint8_t bs_xbootsig;        /* 0x26: erweiterte Bootsignatur: Wenn == 0x29 dann sind die folgenden 3 Felder präsent. */
+    uint8_t bs_vol_id[4];       /* 0x27: Volume ID (i. d. R. Kombination aus Datum und Zeit) */
+    uint8_t bs_vol_name[11];    /* 0x2b: Volume Name (mit Leerzeichen aufgefüllt, z. B. "NO NAME "). */
+    uint8_t bs_fs_id[8];        /* 0x36: Dateisystem ID (mit Leerzeichen aufgefüllt: 'FAT ', 'FAT12 ' oder 'FAT16 ').
+                                         Hat nur informellen Charakter, d. h. sollte nicht zur Bestimmung des FAT-Typs genutzt werden! */
+} __attribute__((packed));
+
+uint32_t CMagiC::AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb)
+{
+    // read boot sector and evaluate
+    INT32 aerr = AtariRwabs(drv, 0,  1, 0, dskbuf);
+    if (aerr == E_OK)
+    {
+        // TODO: implement
+    }
+    return EUNDEV;
+}
+
+uint32_t CMagiC::AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count, uint32_t lrecno, uint8_t *buf)
+{
+    DebugInfo2("() - hdv_rawbs(flags = 0x%04x, buf = 0x%08x, count = %u, dev = %u, lrecno = %u)",
+                    flags, buf, count, drv, lrecno);
+
+    int fd;
+    if ((drv < NDRIVES) && ((fd = pTheMagiC->drv_image_fd[drv]) >= 0))
+    {
+        uint64_t fsize = pTheMagiC->drv_image_size[drv];
+        uint64_t secsize = 512;     // force 64-bit multiply
+
+        uint64_t new_offset = lrecno * secsize;
+        uint64_t new_count = count * secsize;
+
+        if ((new_offset < fsize) && (new_offset + new_count <= fsize))
+        {
+            off_t offs = lseek(fd, new_offset, SEEK_SET);
+            if (offs == (long) new_offset)
+            {
+                ssize_t transferred;
+
+                if (flags & 1)
+                {
+                    transferred = write(fd, buf, new_count);
+                }
+                else
+                {
+                    transferred = read(fd, buf, new_count);
+                }
+
+                if (transferred == (long) new_count)
+                {
+                    return E_OK;
+                }
+                else
+                {
+                    return (flags & 1) ? EWRITF : EREADF;
+                }
+            }
+            else
+            {
+                DebugError2("() - lseek() failure");
+                return ERANGE;
+            }
+        }
+        else
+        {
+            DebugError2("() - pos %u out of size %u", (unsigned) new_offset, (unsigned) pTheMagiC->drv_image_size[drv]);
+            return ERANGE;
+        }
+    }
+
+    return EUNDEV;
+}
+
+
 /** **********************************************************************************************
  *
  * @brief Emulator callback: hdv and boot operations
@@ -2099,6 +2256,15 @@ void CMagiC::activateDiskImageDrives(void)
 uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
 {
     INT32 aerr = EINVFN;
+
+    struct GetBpbParm
+    {
+        uint16_t cmd;               // sub-command (big endian)
+        uint32_t dskbuf;            // 68k address of 4096-byte buffer address (big endian)
+        uint32_t bpb;               // 68k address of 36-byte BPB buffer (big endian)
+        uint32_t retaddr68k;        // 68k return address (big endian)
+        uint16_t dev;               // drive (big endian)
+    } __attribute__((packed));
 
     struct AtariBlockDeviceParm
     {
@@ -2126,9 +2292,9 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
             break;
 
         case 2:
+        {
             // long hdv_rwabs(int flags, void *buf, int count, int recno, int dev)
             // With absense of XHDI we only support 512 bytes per sector.
-            {
             uint16_t flags = be16toh(theParams->flags_or_drive);
             uint32_t buf = be32toh(theParams->buf);
             uint16_t count = be16toh(theParams->count);
@@ -2143,67 +2309,41 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
                 lrecno = recno; // old API
             }
 
-            int fd;
-            if ((drv < NDRIVES) && ((fd = pTheMagiC->drv_image_fd[drv]) >= 0))
-            {
-                uint64_t fsize = pTheMagiC->drv_image_size[drv];
-                uint64_t secsize = 512;     // force 64-bit multiply
+            aerr = AtariRwabs(drv, flags, count, lrecno, addrOffset68k + buf);
+        }
 
-                uint64_t new_offset = lrecno * secsize;
-                uint64_t new_count = count * secsize;
+    #if 0
+    DebugWarning("Atari interrupts disabled for debugging. Remove this later!");
+    extern bool CMagiC__sNoAtariInterrupts;
+    CMagiC__sNoAtariInterrupts = true;      // TODO: remove!!
+    extern volatile unsigned char sExitImmediately;
+    sExitImmediately = 0;
+    #endif
 
-                if ((new_offset < fsize) && (new_offset + new_count <= fsize))
-                {
-                    off_t offs = lseek(fd, new_offset, SEEK_SET);
-                    if (offs == (long) new_offset)
-                    {
-                        ssize_t transferred;
-
-                        if (flags & 1)
-                        {
-                           transferred = write(fd, addrOffset68k + buf, new_count);
-                        }
-                        else
-                        {
-                           transferred = read(fd, addrOffset68k + buf, new_count);
-                        }
-
-                        if (transferred == (long) new_count)
-                        {
-                            aerr = E_OK;
-                        }
-                        else
-                        {
-                            aerr = (flags & 1) ? EWRITF : EREADF;
-                        }
-                    }
-                    else
-                    {
-                        DebugError2("() - lseek() failure");
-                        aerr = ERANGE;
-                    }
-                }
-                else
-                {
-                    DebugError2("() - pos %u out of size %u", (unsigned) new_offset, (unsigned) pTheMagiC->drv_image_size[drv]);
-                    aerr = ERANGE;
-                }
-            }
-            else
-            {
-                aerr = EUNDEV;
-            }
-            }
             break;
 
         case 3:
+        {
             // long hdv_getbpb(int drv)
             // Called from DFS_FAT.S, functions drv_open() -> getxbpb()
             //  to check if BIOS knows this drive, e.g. A: or B:
-            drv = be16toh(theParams->flags_or_drive);
+            GetBpbParm *bpbParm = (GetBpbParm *) (addrOffset68k + params);
+            drv = be16toh(bpbParm->dev);
+            BPB *bpb = (BPB *) (addrOffset68k + be32toh(bpbParm->bpb));
+            uint8_t *dskbuf = addrOffset68k + be32toh(bpbParm->dskbuf);
             DebugInfo2("() - hdv_getbpb(drv = %u)", drv);
-            aerr = 0;   // invalid!
+            aerr = AtariGetBpb(drv, dskbuf, bpb);
+            if (aerr == E_OK)
+            {
+                // return buffer address at success, result will be converted to little-endian
+                aerr = be32toh(bpbParm->bpb);
+            }
+            else
+            {
+                aerr = 0;   // error
+            }
             break;
+        }
 
         case 4:
             // long hdv_mediach(int drive)

@@ -136,6 +136,8 @@ class CMagiC
     uint32_t MmxDaemon(uint32_t params, unsigned char *AdrOffset68k);
 #endif
     static uint32_t AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb);
+    static uint32_t AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count, uint32_t lrecno, uint8_t *buf);
     static uint32_t AtariYield(uint32_t params, uint8_t *addrOffset68k);
 
     // Atari volume images

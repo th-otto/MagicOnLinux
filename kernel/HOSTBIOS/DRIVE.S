@@ -41,11 +41,17 @@ host_hdv_rwabs:
 *
 
 host_hdv_getbpb:
+ move.w   4(sp),d0                      ; d0 = drv
+ mulu     #fbpb_sizeof,d0
+ lea      bpbx,a0
+ add.w    d0,a0                         ; a0 = &bpbx[drv]
+ move.l   a0,-(sp)
+ move.l   _dskbufp,-(sp)
  move.w	#3,-(sp)
  lea		(sp),a1					; a1 = Parameter
  lea		MSysX+MacSysX_BlockDev(pc),a0	; PPC-Adresse
  MACPPC							; Mac anspringen
- addq.l	#2,sp
+ adda.w	#10,sp
  rts
 
 

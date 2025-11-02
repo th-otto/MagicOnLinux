@@ -198,6 +198,19 @@ NCOOKIES	EQU	21
 
 N_KEYTBL		EQU	10			; 10 Tastaturtabellen
 
+	OFFSET
+
+; BPB, erweitert fÅr Floppy Disk
+fbpb_bpb:      DS.B $12  /*   0: BPB */
+fbpb_ntracks:  DS.W 1    /* $12: AnzahlTracks */
+fbpb_nsides:   DS.W 1    /* $14: NSIDES */
+fbpb_nst:      DS.W 1    /* $16: NSIDES*SPT */
+fbpb_spt:      DS.W 1    /* $18: SPT */
+fbpb_nhid:     DS.W 1    /* $1a: NHID */
+fbpb_serial:   DS.L 1    /* $1c: charserial[3] */
+fbpb_msserial: DS.L 1    /* $20: charmsserial[4] */
+fbpb_sizeof:
+ 
 	TEXT
 
 
@@ -236,6 +249,7 @@ clear_area		EQU $9a4			/* war vorher auf $98c		*/
 
 	OFFSET clear_area
 
+bpbx:               DS.B 32*fbpb_sizeof /* BPBs fÅr 32 Laufwerke      */
 p_iorec_ser1:		DS.L 1			/* IOREC *p_iorec_ser1		*/
 ; IOREC:			DS.B $e			/*	0: IOREC fÅr Eingabe	*/
 ;				DS.B $e			/*  $e: IOREC fÅr Ausgabe	*/

@@ -164,6 +164,7 @@ static SnextEntry snextTab[SNEXT_N];
 
 uint16_t HostHandles::snextSet(DIR *dir, int dup_fd, uint32_t act_pd)
 {
+    DebugInfo2("(dir = %p, dup_fd = %d)", dir, dup_fd);
     uint16_t snextHdl = 0xffff;
     time_t oldest_time;
 
@@ -191,6 +192,7 @@ uint16_t HostHandles::snextSet(DIR *dir, int dup_fd, uint32_t act_pd)
     entry->dup_fd = dup_fd;
     entry->lru = time(NULL);
     entry->atari_pd = act_pd;
+    DebugInfo2("() => %u", snextHdl);
     return snextHdl;
 }
 int HostHandles::snextGet(uint16_t snextHdl, DIR **dir, int *dup_fd)
@@ -204,6 +206,7 @@ int HostHandles::snextGet(uint16_t snextHdl, DIR **dir, int *dup_fd)
             *dir = entry->dir;
             *dup_fd = entry->dup_fd;
             entry->lru = time(NULL);
+            DebugInfo2("() => dup_fd = %d", *dup_fd);
             return 0;
         }
     }
@@ -213,10 +216,11 @@ int HostHandles::snextGet(uint16_t snextHdl, DIR **dir, int *dup_fd)
 }
 void HostHandles::snextClose(uint16_t snextHdl)
 {
+    DebugInfo2("(snextHdl = %u)", snextHdl);
     if (snextHdl < SNEXT_N)
     {
         SnextEntry *entry = &snextTab[snextHdl];
-        closedir(entry->dir);   // also closed dup_fd
+        closedir(entry->dir);   // also closes dup_fd
         // entry->dup
         /*
         HostHandle_t hhdl = entry->hhdl;

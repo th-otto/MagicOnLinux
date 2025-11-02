@@ -2158,7 +2158,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
  ************************************************************************************************/
 INT32 CHostXFS::xfs_dopendir
 (
-    MAC_DIRHANDLE *dirh,
+    HOST_DIRHANDLE *dirh,
     uint16_t drv,
     MXFSDD *dd,
     uint16_t tosflag
@@ -2173,7 +2173,7 @@ INT32 CHostXFS::xfs_dopendir
     {
         DebugWarning2("() : lseek() -> %s", strerror(errno));
     }
-    DebugInfo2("() - open directory from host fd %d", dir_fd);
+    DebugInfo2("() - open directory from host dir_fd %d", dir_fd);
     int dup_dir_fd = dup(dir_fd);
     DIR *dir = fdopendir(dup_dir_fd);
     if (dir == nullptr)
@@ -2183,12 +2183,10 @@ INT32 CHostXFS::xfs_dopendir
         return CConversion::host2AtariError(errno);
     }
 
-    dirh->dirID = hhdl; // unused
-    dirh->vRefNum = (int16_t) HostHandles::snextSet(dir, dup_dir_fd, getActPd());
-    dirh->index = 0;  // unused
+    dirh->hostDirHdl = (uint16_t) HostHandles::snextSet(dir, dup_dir_fd, getActPd());
     dirh ->tosflag = tosflag;
 
-    DebugInfo("() -> E_OK");
+    DebugInfo2("() -> E_OK");
 
     return E_OK;
 }
@@ -2213,7 +2211,7 @@ INT32 CHostXFS::xfs_dopendir
  ************************************************************************************************/
 INT32 CHostXFS::xfs_dreaddir
 (
-    MAC_DIRHANDLE *dirh,
+    HOST_DIRHANDLE *dirh,
     uint16_t drv,
     uint16_t bufsiz,
     unsigned char *buf,
@@ -2224,7 +2222,7 @@ INT32 CHostXFS::xfs_dreaddir
     DebugInfo2("(drv = %u, bufsiz = %u)", drv);
     CHK_DRIVE(drv)
 
-    if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
+    if ((dirh == nullptr) || (dirh->hostDirHdl == 0xffff))
     {
         DebugWarning2("() -> EIHNDL");
         return EIHNDL;
@@ -2237,26 +2235,10 @@ INT32 CHostXFS::xfs_dreaddir
         return ATARIERR_ERANGE;
     }
 
-    HostHandle_t hhdl = dirh->dirID;
-    HostFD *hostFD = getHostFD(hhdl);
-    if (hostFD == nullptr)
-    {
-        DebugWarning2("() -> EINTRN");
-        return EINTRN;
-    }
-
-    int dir_fd = hostFD->fd;
-    DebugInfo2("() - using host fd %d", dir_fd);
-    if (dir_fd == -1)
-    {
-        DebugWarning2("() -> EINTRN");
-        return EINTRN;
-    }
-
     DIR *dir;
-    uint16_t snextHdl = (uint16_t) dirh->vRefNum;
-    int dup_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dup_fd))
+    uint16_t snextHdl = dirh->hostDirHdl;
+    int dir_fd;
+    if (HostHandles::snextGet(snextHdl, &dir, &dir_fd))
     {
         DebugWarning2("() -> EINTRN");
         return EINTRN;
@@ -2351,40 +2333,24 @@ INT32 CHostXFS::xfs_dreaddir
  * @return E_OK or negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
+INT32 CHostXFS::xfs_drewinddir(HOST_DIRHANDLE *dirh, uint16_t drv)
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE(drv)
 
-    if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
+    if ((dirh == nullptr) || (dirh->hostDirHdl == 0xffff))
     {
         DebugWarning2("() -> EIHNDL");
         return EIHNDL;
-    }
-
-    HostHandle_t hhdl = dirh->dirID;
-    HostFD *hostFD = getHostFD(hhdl);
-    if (hostFD == nullptr)
-    {
-        DebugWarning2("() -> EIHNDL");
-        return EIHNDL;
-    }
-
-    int dir_fd = hostFD->fd;
-    DebugInfo2("() - using host fd %d", dir_fd);
-    if (dir_fd == -1)
-    {
-        DebugWarning2("() -> EINTRN");
-        return EINTRN;
     }
 
     DIR *dir;
-    uint16_t snextHdl = (uint16_t) dirh->vRefNum;
-    int dup_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dup_fd))
+    uint16_t snextHdl = dirh->hostDirHdl;
+    int dir_fd;
+    if (HostHandles::snextGet(snextHdl, &dir, &dir_fd))
     {
         DebugWarning2("s() -> EINTRN");
-        dirh->vRefNum = -1;
+        dirh->hostDirHdl = -1;
         return EINTRN;
     }
 
@@ -2406,53 +2372,32 @@ INT32 CHostXFS::xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv)
  * @return E_OK or negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv)
+INT32 CHostXFS::xfs_dclosedir(HOST_DIRHANDLE *dirh, uint16_t drv)
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE(drv)
 
-    if ((dirh == nullptr) || (dirh->vRefNum == 0xffff))
+    if ((dirh == nullptr) || (dirh->hostDirHdl == 0xffff))
     {
         DebugWarning2("() -> EIHNDL");
         return EIHNDL;
     }
 
-    INT32 atari_err = E_OK;
-    HostHandle_t hhdl = dirh->dirID;
-    HostFD *hostFD = getHostFD(hhdl);
-    if (hostFD == nullptr)
-    {
-        DebugWarning2("() -> EINTRN");
-        atari_err = EIHNDL;
-    }
-    else
-    {
-        int dir_fd = hostFD->fd;
-        DebugInfo2("() - using host fd %d", dir_fd);
-        if (dir_fd == -1)
-        {
-            DebugWarning2("() -> EINTRN");
-            atari_err = EINTRN;
-        }
-    }
-
     DIR *dir;
-    uint16_t snextHdl = (uint16_t) dirh->vRefNum;
-    int dup_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dup_fd))
+    uint16_t snextHdl = dirh->hostDirHdl;
+    int dir_fd;
+    if (HostHandles::snextGet(snextHdl, &dir, &dir_fd))
     {
         DebugWarning2("() -> EINTRN");
-        dirh->vRefNum = -1;
+        dirh->hostDirHdl = -1;
         return EINTRN;
     }
 
     HostHandles::snextClose(snextHdl);  // also does closedir()
-    dirh->dirID = -1;
-    dirh->vRefNum = -1;
+    dirh->hostDirHdl = -1;
 
-    DebugInfo2("() -> %d", atari_err);
-
-    return atari_err;
+    DebugInfo2("() -> E_OK");
+    return E_OK;
 }
 
 
@@ -3658,7 +3603,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             } __attribute__((packed));
             dopendirparm *pdopendirparm = (dopendirparm *) params;
             doserr = xfs_dopendir(
-                    (MAC_DIRHANDLE *) (addrOffset68k + be32toh(pdopendirparm->dirh)),
+                    (HOST_DIRHANDLE *) (addrOffset68k + be32toh(pdopendirparm->dirh)),
                     be16toh(pdopendirparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(pdopendirparm->dd)),
                     be16toh(pdopendirparm->tosflag)
@@ -3679,7 +3624,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             } __attribute__((packed));
             dreaddirparm *pdreaddirparm = (dreaddirparm *) params;
             doserr = xfs_dreaddir(
-                    (MAC_DIRHANDLE *) (addrOffset68k + be32toh(pdreaddirparm->dirh)),
+                    (HOST_DIRHANDLE *) (addrOffset68k + be32toh(pdreaddirparm->dirh)),
                     be16toh(pdreaddirparm->drv),
                     be16toh(pdreaddirparm->size),
                     (unsigned char *) (addrOffset68k + be32toh(pdreaddirparm->buf)),
@@ -3698,7 +3643,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             } __attribute__((packed));
             drewinddirparm *pdrewinddirparm = (drewinddirparm *) params;
             doserr = xfs_drewinddir(
-                    (MAC_DIRHANDLE *) (addrOffset68k + be32toh(pdrewinddirparm->dirh)),
+                    (HOST_DIRHANDLE *) (addrOffset68k + be32toh(pdrewinddirparm->dirh)),
                     be16toh(pdrewinddirparm->drv)
                     );
             break;
@@ -3713,7 +3658,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             } __attribute__((packed));
             dclosedirparm *pdclosedirparm = (dclosedirparm *) params;
             doserr = xfs_dclosedir(
-                    (MAC_DIRHANDLE *) (addrOffset68k + be32toh(pdclosedirparm->dirh)),
+                    (HOST_DIRHANDLE *) (addrOffset68k + be32toh(pdclosedirparm->dirh)),
                     be16toh(pdclosedirparm->drv)
                     );
             break;

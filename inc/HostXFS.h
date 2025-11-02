@@ -176,12 +176,13 @@ class CHostXFS
         UINT32    dhd_dmd;            // struct _mx_dmd *dhd_dmd;
     } __attribute__((packed));
 
-    struct MAC_DIRHANDLE
+    // There would be enough space to store all information we need, i.e.
+    // a host handle with 32 bits and 64-bit host pointer to DIR, but instead we
+    // store a host handle.
+    struct HOST_DIRHANDLE
     {
          MX_DHD    dhd;             // common part, big endian
-         int32_t   dirID;           // directory id (host native endian)
-         uint16_t  vRefNum;         // MacOS volume (host native endian)
-         uint16_t  index;           // read position (host native endian)
+         uint16_t  hostDirHdl;      // host directory handle id (host native endian)
          uint16_t  tosflag;         // TOS mode, i.e. 8+3 and without inode (host native endian)
     } __attribute__((packed));
 
@@ -283,11 +284,11 @@ class CHostXFS
     void xfs_freeDD(XFS_DD *dd, uint8_t *addrOffset68k);
     INT32 xfs_DD2hostPath(MXFSDD *dd, char *buf, uint16_t bufsiz);
     INT32 xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz);
-    INT32 xfs_dopendir(MAC_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd, uint16_t tosflag);
-    INT32 xfs_dreaddir(MAC_DIRHANDLE *dirh, uint16_t drv,
+    INT32 xfs_dopendir(HOST_DIRHANDLE *dirh, uint16_t drv, MXFSDD *dd, uint16_t tosflag);
+    INT32 xfs_dreaddir(HOST_DIRHANDLE *dirh, uint16_t drv,
             uint16_t bufsiz, unsigned char *buf, XATTR *xattr, INT32 *xr);
-    INT32 xfs_drewinddir(MAC_DIRHANDLE *dirh, uint16_t drv);
-    INT32 xfs_dclosedir(MAC_DIRHANDLE *dirh, uint16_t drv);
+    INT32 xfs_drewinddir(HOST_DIRHANDLE *dirh, uint16_t drv);
+    INT32 xfs_dclosedir(HOST_DIRHANDLE *dirh, uint16_t drv);
     INT32 xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which);
     INT32 xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4]);
     INT32 xfs_wlabel(uint16_t drv, MXFSDD *dd, const unsigned char *name);

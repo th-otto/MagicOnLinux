@@ -72,9 +72,6 @@ class CMagiC
     void DumpAtariMem(const char *filename);
 
    private:
-    void UpdateAtariDoubleBuffer(void);
-    void activateDiskImageDrives(void);
-
     struct Atari68kData
     {
         MXVDI_PIXMAP m_PixMap;    // the Atari screen, baseAddr is virtual 68k address
@@ -135,18 +132,7 @@ class CMagiC
     #else
     uint32_t MmxDaemon(uint32_t params, unsigned char *AdrOffset68k);
 #endif
-    static uint32_t AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb);
-    static uint32_t AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count, uint32_t lrecno, uint8_t *buf);
     static uint32_t AtariYield(uint32_t params, uint8_t *addrOffset68k);
-
-    // Atari volume images
-    const char *drv_image_host_path[NDRIVES];       // nullptr, if not valid
-    int drv_image_fd[NDRIVES];
-    uint64_t drv_image_size[NDRIVES];
-    bool drv_longNames[NDRIVES];              // initialised with zeros
-    bool drv_readOnly[NDRIVES];
-    uint32_t m_diskimages_drvbits;
 
     // private attributes
     CMagiCScreen *m_pMagiCScreen;   // data for emulated screen

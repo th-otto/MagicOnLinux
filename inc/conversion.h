@@ -24,6 +24,19 @@
 
 #include "Atari.h"
 
+// endian conversion helpers
+
+#define getAtariBE16(addr) \
+    be16toh(*((uint16_t *) (addr)));
+#define getAtariBE32(addr) \
+    be32toh(*((uint32_t *) (addr)));
+#define setAtariBE16(addr, val) \
+    *((uint16_t *) (addr)) = htobe16(val);
+#define setAtariBE32(addr, val) \
+    *((uint32_t *) (addr)) = htobe32(val);
+#define setAtari32(addr, val) \
+    *((uint32_t *) (addr)) = val;
+
 class CConversion
 {
    public:

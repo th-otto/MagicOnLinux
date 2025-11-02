@@ -10,7 +10,7 @@ This is kind of successor of:
 * *MagicMac X* for MacOS X on PPC (32-bit application) and
 * *AtariX* for macOS up to 10.13 "High Sierra" (32-bit application).
 
-Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture, any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file partially remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution would have been to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
+Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture, any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file partially remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution will be to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
 
 # How To Build (Linux, tested with Ubuntu 24.04)
 
@@ -43,6 +43,8 @@ Run the application with "magiclinux/build/magic-on-linux".
 
 Use parameter "-h" or "--help" for an explanation of the parameters.
 
+Especially helpful: parameter "-e" to open the configuration file in a text editor.
+
 Source files for the Atari code (MagiC kernel and applications) are also available in their respective repository, see below.
 
 # Screenshots
@@ -56,12 +58,12 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Arbitrary screen sizes and colour depths
 * Zoom, helpful for original 640x400 or 640x200 resolution
 * Full access to host file system, up to root
-* Support of Atari volume or floppy disk images implemented, but currently they do not work for unknown reason.
+* Mounts Atari volume or floppy disk images
 
 # Bugs and Agenda
 
 * Include German, French and English localisation of emulator and emulated system without needing to clone AtariX repository.
-* Debug Atari access to mounted volume and floppy disk images. This currently fails.
+* FAT32 endianess bugfix to be applied to MagiC internal FAT driver.
 * Support partition tables, i.e. disk images, not only volume images.
 * Musashi emulator sources should be synchronised with latest version (see below).
 * Atari root file system (like MAGIC_C) folder should be automatically created and localised.

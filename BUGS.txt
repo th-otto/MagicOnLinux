@@ -1,35 +1,11 @@
-QED file selector does not find files when going from D:\XKAOS\MACXBIOS to D:\XKAOS\.
-
 mcmd shows "0 bytes free"
 
 Keep aspect ratio during window resize?
 
 Emulator should check version of MAGICLIN.OS to make sure the API fits.
 
-hdv_bp() currently cannot be emulated, because it must return a pointer to 68k memory.
-
-hdv_init
-hdv_rw
-hdv_bp
-hdv_mediach
-hdv_boot
-
-(see KERNEL/BIOS/MAGXMACX/DRIVE.S)
-
 What is XHDI, and shall it be supported? It seems that DFS_FAT.S, the MagiC internal (V)FAT12/16/32
 file system driver, supports this to get information about a storage volume.
 
-Atari volume images are implemented, but currently do not work for unknown reason. This needs debugging of 68k code.
-It seems that getxbpb() in DFS_FAT.S relies on BIOS Getbpb() for FAT16 and FAT12. If this fails, the function
-assumes FAT32 and fails for FAT16 or FAT12.
-
-rwabs debug
-pc=
-$7cae82     IRwabs()
-$7d687a     getxbpb()
-$7d688c
- move.b   bs_sec_size+1(sp),d1   d1 = $200
-$7d6896
- move.b   bs_clu_size(sp),d0       ; d0 = Sektoren pro Cluster  = 2
-$7d6976   (gxb_edrive2)
-$7d697e     gxb_edrive
+There seems to be a problem with long filenames on volume images.
+Writing to volume images in untested.

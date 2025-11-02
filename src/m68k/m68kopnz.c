@@ -8403,7 +8403,7 @@ void m68k_op_tst_8_pd7(void)
 	FLAG_C = CFLAG_CLEAR;
 }
 
-
+// tst.b offs(ax)
 void m68k_op_tst_8_di(void)
 {
 	uint res = OPER_AY_DI_8();
@@ -8647,7 +8647,7 @@ void m68k_op_tst_16_i(void)
 	m68ki_exception_illegal();
 }
 
-
+// tst.l dx
 void m68k_op_tst_32_d(void)
 {
 	uint res = DY;

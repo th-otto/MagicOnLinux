@@ -1210,7 +1210,7 @@ void m68k_op_adda_16_pcix(void)
 	*r_dst = MASK_OUT_ABOVE_32(*r_dst + MAKE_INT_16(OPER_PCIX_16()));
 }
 
-
+// adda.w #i16,ax
 void m68k_op_adda_16_i(void)
 {
 	uint* r_dst = &AX;
@@ -1218,7 +1218,7 @@ void m68k_op_adda_16_i(void)
 	*r_dst = MASK_OUT_ABOVE_32(*r_dst + MAKE_INT_16(OPER_I_16()));
 }
 
-
+// adda.l dx,a7
 void m68k_op_adda_32_d(void)
 {
 	uint* r_dst = &AX;

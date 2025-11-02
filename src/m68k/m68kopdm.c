@@ -4748,6 +4748,7 @@ void m68k_op_lsl_8_s(void)
 }
 
 
+//  lsl.w    #imm,dx
 void m68k_op_lsl_16_s(void)
 {
 	uint* r_dst = &DY;
@@ -5085,6 +5086,7 @@ void m68k_op_move_8_d_pd7(void)
 }
 
 
+// move.b r16(ax),dy
 void m68k_op_move_8_d_di(void)
 {
 	uint res = OPER_AY_DI_8();
@@ -7158,6 +7160,7 @@ void m68k_op_move_16_ai_i(void)
 }
 
 
+//  move.w dx,(ay)+
 void m68k_op_move_16_pi_d(void)
 {
 	uint res = MASK_OUT_ABOVE_16(DY);
@@ -8937,6 +8940,7 @@ void m68k_op_move_32_di_ix(void)
 }
 
 
+//  move.l absaddr32,offs16(ax)
 void m68k_op_move_32_di_aw(void)
 {
 	uint res = OPER_AW_32();
@@ -9589,6 +9593,7 @@ void m68k_op_movea_32_d(void)
 }
 
 
+// move.l ay,ax
 void m68k_op_movea_32_a(void)
 {
 	AX = AY;
@@ -10725,6 +10730,7 @@ void m68k_op_movem_16_er_al(void)
 }
 
 
+//  movem.l  (ax)+,reg_list
 void m68k_op_movem_32_er_pi(void)
 {
 	uint i = 0;
@@ -11688,6 +11694,7 @@ void m68k_op_moves_32_al(void)
 }
 
 
+// moveq #imm,dx
 void m68k_op_moveq_32(void)
 {
 	uint res = DX = MAKE_INT_8(MASK_OUT_ABOVE_8(REG_IR));

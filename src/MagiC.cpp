@@ -2095,43 +2095,43 @@ struct FAT_BOOT_SEC_32
     uint8_t bs_system_id[8];    /* 0x03: Systemname, sollte "MSWIN4.1" sein */
     uint8_t bs_sec_size[2];     /* 0x0b: Bytes pro Sektor. */
                                 /*       M$ erlaubt hier 512,1024,2048 oder 4096, empfiehlt aber 512 */
-    uint8_t bs_clu_size[1];     /* 0x0d: Sektoren pro Cluster. M$ erlaubt jede */
+    uint8_t bs_clu_size;        /* 0x0d: Sektoren pro Cluster. M$ erlaubt jede */
                                 /*       2er-Potenz von 1 bis 128 und empfiehlt dringend Bytes/Cluster <= 32kB */
-    uint16_t bs_sec_resvd[1];   /* 0x0e: Anzahl reservierter Sektoren ab Partitionsanfang, */
+    uint16_t bs_sec_resvd;      /* 0x0e: Anzahl reservierter Sektoren ab Partitionsanfang, */
                                 /*       darf nicht Null sein (Bootsektor!). Bei FAT12 und FAT16 */
                                 /*       sollte der Wert 1 sein, für FAT32 32 */
-    uint8_t bs_nfats[1];        /* 0x10: Anzahl FATs. M$ empfiehlt 2 */
+    uint8_t bs_nfats;           /* 0x10: Anzahl FATs. M$ empfiehlt 2 */
     uint8_t bs_dir_entr[2];     /* 0x11: Anzahl Einträge (à 32 Bytes) für root, 0 bei FAT32 */
     uint8_t bs_nsectors[2];     /* 0x13: Anzahl Sektoren (reserviert+FAT+root+Data) bzw. 0, wenn > 65535 */
-    uint8_t bs_media[1];        /* 0x15: "media code": 0xf8 für Harddisk, 0xf0 für Wechselmedium */
+    uint8_t bs_media;           /* 0x15: "media code": 0xf8 für Harddisk, 0xf0 für Wechselmedium */
                                 /*       der Wert muß im Lowbyte von FAT[0] stehen */
-    uint16_t bs_fatlen[1];      /* 0x16: Sektoren für eine FAT. 0 für FAT32 (daran wird FAT32 erkannt) */
-    uint16_t bs_secs_track[1];  /* 0x18: Sektoren pro Spur (nur historisch oder Floppy) */
-    uint16_t bs_heads[1];       /* 0x1a: Anzahl Köpfe (historisch oder Floppy) */
-    uint32_t bs_hidden[1];      /* 0x1c: Anzahl versteckter Sektoren VOR der Partition (normalerweise 0) */
-    uint32_t bs_total_sect[1];  /* 0x20: Anzahl Sektoren (reserviert+FAT+root+Data), wenn bs_nsectors == 0 oder bei FAT32 */
+    uint16_t bs_fatlen;         /* 0x16: Sektoren für eine FAT. 0 für FAT32 (daran wird FAT32 erkannt) */
+    uint16_t bs_secs_track;     /* 0x18: Sektoren pro Spur (nur historisch oder Floppy) */
+    uint16_t bs_heads;          /* 0x1a: Anzahl Köpfe (historisch oder Floppy) */
+    uint32_t bs_hidden;         /* 0x1c: Anzahl versteckter Sektoren VOR der Partition (normalerweise 0) */
+    uint32_t bs_total_sect;     /* 0x20: Anzahl Sektoren (reserviert+FAT+root+Data), wenn bs_nsectors == 0 oder bei FAT32 */
 
     // Ab hier unterscheiden sich FAT12/16 und FAT32
     // Hier die Felder für FAT32:
 
-    uint32_t bs_fatlen32[1];    /* Anzahl Sektoren für eine FAT, wenn bs_fatlen == 0 */
-    uint16_t bs_flags[1];       /* Bit 0..3: aktive FAT, wenn Bit 7 == 1 */
+    uint32_t bs_fatlen32;       /* Anzahl Sektoren für eine FAT, wenn bs_fatlen == 0 */
+    uint16_t bs_flags;          /* Bit 0..3: aktive FAT, wenn Bit 7 == 1 */
                                 /* Bit 4..6: reserviert */
                                 /* Bit 7: 0 für "FAT-Spiegelung", 1 für "nur eine aktive FAT" */
                                 /* Bit 8..15: reserviert */
     uint8_t bs_version[2];      /* Hi: "major filesystem version, Lo: "lower" */
                                 /* zur Zeit 0.0. Ein Treiber sollte neuere Versionen verweigern */
-    uint32_t bs_rootclust[1];   /* Erster Cluster des Wurzelverzeichnisses, sollte */
+    uint32_t bs_rootclust;      /* Erster Cluster des Wurzelverzeichnisses, sollte */
                                 /* normalerweise 2 sein */
-    uint16_t bs_info_sect[1];   /* Sektornummer des Info-Sektors (im reservierten Bereich) */
+    uint16_t bs_info_sect;      /* Sektornummer des Info-Sektors (im reservierten Bereich) */
                                 /* normalerweise 1 (direkt hinter dem Bootsektor) */
-    uint16_t bs_bckup_boot[1];  /* Sektornummer des Backup-Bootsektors (im reservierten Bereich) */
+    uint16_t bs_bckup_boot;     /* Sektornummer des Backup-Bootsektors (im reservierten Bereich) */
                                 /* sollte 0 sein (unbenutzt) oder 6 */
                                 /* Hinter dem Backup-Bootsektor liegt das Backup-FSInfo */
     uint8_t bs_RESERVED2[12];   /* reserviert, sollte 0 sein */
-    uint8_t bs_DrvNum[1];       /* "drive number". 0x00 == floppy, 0x80 == HD */
-    uint8_t bs_Reserved1[1];    /* für Windows NT reserviert, sollte 0 sein */
-    uint8_t bs_BootSig[1];      /* 0x29 legt fest, daß die folgenden drei Felder gültig sind */
+    uint8_t bs_DrvNum;          /* "drive number". 0x00 == floppy, 0x80 == HD */
+    uint8_t bs_Reserved1;       /* für Windows NT reserviert, sollte 0 sein */
+    uint8_t bs_BootSig;         /* 0x29 legt fest, daß die folgenden drei Felder gültig sind */
     uint8_t bs_VolID[4];        /* Seriennummer, die mit bs_VolLab zusammen zur Medienwechselerkennung verwendet wird */
                                 /* ist i.a. Datum+Uhrzeit der Formatierung kombiniert */
     uint8_t bs_VolLab[11];      /* muß mit dem Disknamen im Wurzelverzeichnis identisch sein. */
@@ -2148,21 +2148,21 @@ struct FAT_BOOT_SEC_16_12
     uint8_t bs_system_id[8];    /* 0x03: Systemname, sollte "MSWIN4.1" sein */
     uint8_t bs_sec_size[2];     /* 0x0b: Bytes pro Sektor. */
                                 /*       M$ erlaubt hier 512,1024,2048 oder 4096, empfiehlt aber 512 */
-    uint8_t bs_clu_size[1];     /* 0x0d: Sektoren pro Cluster. M$ erlaubt jede */
+    uint8_t bs_clu_size;        /* 0x0d: Sektoren pro Cluster. M$ erlaubt jede */
                                 /*       2er-Potenz von 1 bis 128 und empfiehlt dringend Bytes/Cluster <= 32kB */
-    uint16_t bs_sec_resvd[1];   /* 0x0e: Anzahl reservierter Sektoren ab Partitionsanfang, */
+    uint16_t bs_sec_resvd;      /* 0x0e: Anzahl reservierter Sektoren ab Partitionsanfang, */
                                 /*       darf nicht Null sein (Bootsektor!). Bei FAT12 und FAT16 */
                                 /*       sollte der Wert 1 sein, für FAT32 32 */
-    uint8_t bs_nfats[1];        /* 0x10: Anzahl FATs. M$ empfiehlt 2 */
+    uint8_t bs_nfats;           /* 0x10: Anzahl FATs. M$ empfiehlt 2 */
     uint8_t bs_dir_entr[2];     /* 0x11: Anzahl Einträge (à 32 Bytes) für root, 0 bei FAT32 */
     uint8_t bs_nsectors[2];     /* 0x13: Anzahl Sektoren (reserviert+FAT+root+Data) bzw. 0, wenn > 65535 */
-    uint8_t bs_media[1];        /* 0x15: "media code": 0xf8 für Harddisk, 0xf0 für Wechselmedium */
+    uint8_t bs_media;           /* 0x15: "media code": 0xf8 für Harddisk, 0xf0 für Wechselmedium */
                                 /*       der Wert muß im Lowbyte von FAT[0] stehen */
-    uint16_t bs_fatlen[1];      /* 0x16: Sektoren für eine FAT. 0 für FAT32 (daran wird FAT32 erkannt) */
-    uint16_t bs_secs_track[1];  /* 0x18: Sektoren pro Spur (nur historisch oder Floppy) */
-    uint16_t bs_heads[1];       /* 0x1a: Anzahl Köpfe (historisch oder Floppy) */
-    uint32_t bs_hidden[1];      /* 0x1c: Anzahl versteckter Sektoren VOR der Partition (normalerweise 0) */
-    uint32_t bs_total_sect[1];  /* 0x20: Anzahl Sektoren (reserviert+FAT+root+Data), wenn bs_nsectors == 0 oder bei FAT32 */
+    uint16_t bs_fatlen;         /* 0x16: Sektoren für eine FAT. 0 für FAT32 (daran wird FAT32 erkannt) */
+    uint16_t bs_secs_track;     /* 0x18: Sektoren pro Spur (nur historisch oder Floppy) */
+    uint16_t bs_heads;          /* 0x1a: Anzahl Köpfe (historisch oder Floppy) */
+    uint32_t bs_hidden;         /* 0x1c: Anzahl versteckter Sektoren VOR der Partition (normalerweise 0) */
+    uint32_t bs_total_sect;     /* 0x20: Anzahl Sektoren (reserviert+FAT+root+Data), wenn bs_nsectors == 0 oder bei FAT32 */
 
     // Ab hier unterscheiden sich FAT12/16 und FAT32
     // Hier die Felder für FAT16:
@@ -2182,7 +2182,142 @@ uint32_t CMagiC::AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb)
     INT32 aerr = AtariRwabs(drv, 0,  1, 0, dskbuf);
     if (aerr == E_OK)
     {
-        // TODO: implement
+        const FAT_BOOT_SEC_16_12 *vbr = (const FAT_BOOT_SEC_16_12 *) dskbuf;
+
+        uint16_t reserved_sectors;
+        uint16_t sec_size;
+        uint16_t cl_sectors;
+        uint16_t root_dir_size;
+        uint16_t fat_sectors;
+        uint16_t fat2_sectors;
+        uint16_t fat2_secno;
+        uint16_t data_secno;
+        uint32_t num_sectors;
+        uint32_t num_clusters;
+        uint8_t nfats;
+        uint16_t flags0 = 0;
+
+        // sector size in bytes (little-endian)
+        sec_size = vbr->bs_sec_size[0];
+        sec_size += (vbr->bs_sec_size[1] << 8);
+        if (sec_size < 512)
+        {
+            DebugWarning2("() -- Invalid sector size %u", sec_size);
+            return EUNDEV;
+        }
+        bpb->b_recsiz = htobe16(sec_size);
+
+        // sectors per cluster
+        cl_sectors = vbr->bs_clu_size;
+        if (cl_sectors < 1)
+        {
+            DebugWarning2("() -- Invalid cluster size %u sectors", cl_sectors);
+            return EUNDEV;
+        }
+        bpb->b_clsiz = htobe16(cl_sectors);
+
+        // bytes per cluster
+        bpb->b_clsizb = htobe16(sec_size * cl_sectors);
+
+        // sectors for root directory
+        root_dir_size = vbr->bs_dir_entr[0];
+        root_dir_size += (vbr->bs_dir_entr[1] << 8);
+        if (root_dir_size == 0)
+        {
+            DebugWarning2("() -- bs_dir_entr = 0, seems to be FAT32, handled by MagiC kernel");
+            return EUNDEV;
+        }
+        root_dir_size <<= 5;    // 32 bytes per entry
+        if (root_dir_size % sec_size != 0)
+        {
+            DebugWarning2("() -- Root directory size mismatch. Ignored.");
+        }
+        root_dir_size /= sec_size;
+        bpb->b_rdlen = htobe16(root_dir_size);
+
+        // sectors per FAT
+        fat_sectors = le16toh(vbr->bs_fatlen);
+        if (fat_sectors == 0)
+        {
+            DebugWarning2("() -- bs_fatlen = 0, seems to be FAT32, handled by MagiC kernel");
+            return EUNDEV;
+        }
+        bpb->b_fsiz = htobe16(fat_sectors);
+
+        // number or reserved sectors, including boot sector, should be 1
+        reserved_sectors = le16toh(vbr->bs_sec_resvd);
+        if (reserved_sectors != 1)
+        {
+            DebugWarning2("() -- %u reserved sectors, should be 1. Continue.", reserved_sectors);
+        }
+
+        // sector number of second FAT
+        fat2_secno = reserved_sectors + fat_sectors;
+        bpb->b_fatrec = htobe16(fat2_secno);
+
+        // number of FATs
+        nfats = vbr->bs_nfats;
+        if ((nfats < 1) || (nfats > 2))
+        {
+            DebugWarning2("() -- num_fats = %u is not supported", nfats);
+            return EUNDEV;
+        }
+        if (nfats == 1)
+        {
+            flags0 |= 2;    // bit 1: only one FAT
+            fat2_sectors = 0;
+        }
+        else
+        {
+            fat2_sectors = fat_sectors;
+        }
+
+        // sector number of first data cluster
+        data_secno = fat2_secno + fat2_sectors + root_dir_size;
+        bpb->b_datrec = htobe16(data_secno);
+
+        // total number of sectors
+        num_sectors = vbr->bs_nsectors[0];
+        num_sectors += (vbr->bs_nsectors[1] << 8);
+        if (num_sectors == 0)
+        {
+            num_sectors = le32toh(vbr->bs_total_sect);
+        }
+        if (num_sectors < data_secno)
+        {
+            DebugWarning2("() -- num_sectors = %u is inconsistant", num_sectors);
+            return EUNDEV;
+        }
+
+        // number of data clusters: subtract reserved, FATs, root, then convert to clusters
+        // 65525 from Microsoft documentation
+        num_clusters = (num_sectors - data_secno) / cl_sectors;
+        if (num_clusters >= 65525)
+        {
+            DebugWarning2("() -- num_clusters = %u is too much for FAT12/16", num_clusters);
+            return EUNDEV;
+        }
+        bpb->b_numcl = htobe16((uint16_t) num_clusters);
+
+        // FAT12 or FAT16
+        // 65525 from Microsoft documentation
+        if (num_clusters >= 4085)
+        {
+            flags0 |= 1;    // bit 0: FAT16
+        }
+        bpb->b_flags[0] = htobe16(flags0);
+
+        // Set unused flags to zero. Note that the MagiC kernel reserves
+        // four additional bytes, in total 36 bytes for internal BPB.
+        bpb->b_flags[1] = 0;
+        bpb->b_flags[2] = 0;
+        bpb->b_flags[3] = 0;
+        bpb->b_flags[4] = 0;
+        bpb->b_flags[5] = 0;
+        bpb->b_flags[6] = 0;
+        bpb->b_flags[7] = 0;
+
+        return E_OK;
     }
     return EUNDEV;
 }
@@ -2347,9 +2482,19 @@ uint32_t CMagiC::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
 
         case 4:
             // long hdv_mediach(int drive)
+            // -> 0 for "not changed"
+            // -> 1 for "maybe changed"
+            // -> 2 for "was changed"
             drv = be16toh(theParams->flags_or_drive);
             DebugInfo2("() - hdv_mediach(drv = %u)", drv);
-            aerr = EUNDEV;
+            if ((drv < NDRIVES) && ((pTheMagiC->drv_image_fd[drv]) >= 0))
+            {
+                aerr = 0;
+            }
+            else
+            {
+                aerr = EUNDEV;
+            }
             break;
 
         case 5:

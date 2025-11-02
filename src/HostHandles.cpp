@@ -37,6 +37,12 @@
 #include "HostHandles.h"
 
 
+#if !defined(_DEBUG_HOST_HANDLES)
+ #undef DebugInfo
+ #define DebugInfo(...)
+ #undef DebugInfo2
+ #define DebugInfo2(...)
+#endif
 
 /*
  * DD / FD handling

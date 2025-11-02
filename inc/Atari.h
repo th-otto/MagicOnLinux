@@ -255,7 +255,7 @@ struct BPB
     UINT16_BE b_fatrec;     // 0x0a: sector number of second FAT
     UINT16_BE b_datrec;     // 0x0c: sector number of first data cluster
     UINT16_BE b_numcl;      // 0x0e: number of data clusters. If more than 65525, then FAT32
-    UINT16_BE b_flags[8];   // 0x10: bit 0 of flag 0: 0=FAT12, 1=FAT16
+    UINT16_BE b_flags[8];   // 0x10: bit 0 of flag 0: 0=FAT12, 1=FAT16, bit 1: single FAT
 };
 
 

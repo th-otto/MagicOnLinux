@@ -2182,7 +2182,7 @@ uint32_t CMagiC::AtariGettime(uint32_t params, uint8_t *addrOffset68k)
            (tm.tm_hour << 11) |
            (tm.tm_mday << 16) |
            (tm.tm_mon << 21) |
-           ((tm.tm_year) - 1980) << 25;
+           ((tm.tm_year) - 80) << 25;
 }
 
 

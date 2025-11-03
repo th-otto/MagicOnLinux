@@ -9,3 +9,9 @@ file system driver, supports this to get information about a storage volume.
 
 There seems to be a problem with long filenames on volume images.
 Writing to volume images in untested.
+
+system info control panel shows 29.12.2003 as kernel build date. Update!
+
+U:\ does not show disk image as B:
+
+Prevent U: to be assigned in configuration file.

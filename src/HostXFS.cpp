@@ -806,7 +806,8 @@ void CHostXFS::xfs_pterm(uint32_t pd, uint8_t *addrOffset68k)
     // PD = addrOffset68k + be32toh(pptermparm->pd)), addrOffset68k;
     uint32_t act_pd = getActPd();
     DebugInfo2("() -- PD 0x%08x terminated, act_pd = 0x%08x", pd, act_pd);
-    HostHandles::snextPterm(act_pd);
+    (void) act_pd;
+    HostHandles::snextPterm(pd);
 }
 
 
@@ -825,6 +826,7 @@ void CHostXFS::xfs_freeDD(XFS_DD *dd, uint8_t *addrOffset68k)
     DebugInfo2("()");
     XFS_DMD *hdmd = (XFS_DMD *) (addrOffset68k + be32toh(dd->dd_dmd));
     DebugInfo2("() : drive = %u", be16toh(hdmd->d_drive));
+    (void) hdmd;
     MXFSDD *hdd = (MXFSDD *) dd->data;
     DebugInfo2("() : dirID = %u", hdd->dirID);
     DebugInfo2("() : vRefNum = %u", hdd->vRefNum);
@@ -832,7 +834,7 @@ void CHostXFS::xfs_freeDD(XFS_DD *dd, uint8_t *addrOffset68k)
     HostFD *hostFD = getHostFD(hhdl);
     if (hostFD == nullptr)
     {
-        DebugWarning2("%s() -> EINTRN");
+        DebugWarning2("%s() -- invalid hostFD");
     }
     else
     {

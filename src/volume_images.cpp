@@ -45,6 +45,8 @@ uint32_t CVolumeImages::m_diskimages_drvbits;
  *
  * @brief get disk images from preferences
  *
+ * @param[out]  new_drvbits     to be ORed to _drvbits Atari system variable
+ *
  ************************************************************************************************/
 void CVolumeImages::init(uint32_t *new_drvbits)
 {
@@ -219,6 +221,22 @@ struct FAT_BOOT_SEC_16_12
                                          Hat nur informellen Charakter, d. h. sollte nicht zur Bestimmung des FAT-Typs genutzt werden! */
 } __attribute__((packed));
 
+
+
+/** **********************************************************************************************
+ *
+ * @brief Handle hdv_getbpb
+ *
+ * @param[in]  drv       Atari drive number 0..31
+ * @param[out] dskbuf    4096-byte Atari disk buffer that may be used here
+ * @param[out] bpb       buffer for BPB (inside Atari memory)
+ *
+ * @return E_OK or negative error code
+ *
+ * @note Only handles FAT12 and FAT16. If this fails, FAT32 will be handled by MagiC kernel.
+ *       The MagiC kernel itself ONLY (!) handles BPB for FAT32.
+ *
+ ************************************************************************************************/
 uint32_t CVolumeImages::AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb)
 {
     // read boot sector and evaluate
@@ -365,6 +383,24 @@ uint32_t CVolumeImages::AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb)
     return EUNDEV;
 }
 
+
+/** **********************************************************************************************
+ *
+ * @brief Handle hdv_rwabs Atari callback, read or write sectors
+ *
+ * @param[in]  drv       Atari drive number 0..31
+ * @param[in]  flags     bit 0: write (1) or read (0), bit 1: physical, not logical sector number
+ * @param[in]  count     number of sectors to read or write
+ * @param[in]  lrecno    sector number where to start transfer
+ * @param[out] buf       data to write or buffer to read to
+ *
+ * @return E_OK or negative error code
+ *
+ * @note Physical sector numbers are not supported, yet. They are needed for multi-volume
+ *       images, i.e. with partition table. Here the disk can be addressed instead of the
+ *       partition (volume).
+ *
+ ************************************************************************************************/
 uint32_t CVolumeImages::AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count, uint32_t lrecno, uint8_t *buf)
 {
     DebugInfo2("() - hdv_rawbs(flags = 0x%04x, buf = 0x%08x, count = %u, dev = %u, lrecno = %u)",
@@ -489,15 +525,6 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
 
             aerr = AtariRwabs(drv, flags, count, lrecno, addrOffset68k + buf);
         }
-
-    #if 0
-    DebugWarning("Atari interrupts disabled for debugging. Remove this later!");
-    extern bool CMagiC__sNoAtariInterrupts;
-    CMagiC__sNoAtariInterrupts = true;      // TODO: remove!!
-    extern volatile unsigned char sExitImmediately;
-    sExitImmediately = 0;
-    #endif
-
             break;
 
         case 3:

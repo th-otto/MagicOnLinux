@@ -932,6 +932,16 @@ Reinstall the application.
     setAtariBE32(mem68k + _drvbits, drvbits);
 
     setAtariBE16(mem68k + _bootdev, 'C'-'A');    // Atari boot drive C:
+    // If _nflops < 2, drive U: will suppress B:
+    if (drvbits & 2)
+    {
+        setAtariBE16(mem68k + _nflops, 2);
+    }
+    else
+    if (drvbits & 1)
+    {
+        setAtariBE16(mem68k + _nflops, 1);
+    }
 
     //
     // initialise 68k emulator (Musashi)
@@ -2296,8 +2306,8 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
         uint32_t pValues;
     } __attribute__((packed));
 
-     VgetRGBParm *theVgetRGBParm = (VgetRGBParm *) (addrOffset68k + params);
-     uint8_t *pValues = (uint8_t *) (addrOffset68k + be32toh(theVgetRGBParm->pValues));
+    VgetRGBParm *theVgetRGBParm = (VgetRGBParm *) (addrOffset68k + params);
+    uint8_t *pValues = (uint8_t *) (addrOffset68k + be32toh(theVgetRGBParm->pValues));
     uint16_t index = be16toh(theVgetRGBParm->index);
     uint16_t cnt = be16toh(theVgetRGBParm->cnt);
     DebugInfo("CMagiC::AtariVgetRGB(index=%d, cnt=%d)", index, cnt);
@@ -2305,7 +2315,7 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
     // durchlaufe alle zu ändernden Farben
     pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable;
     j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
-    for    (i = index, pColourTable += index;
+    for (i = index, pColourTable += index;
         i < j;
         i++, pValues++, pColourTable++)
     {

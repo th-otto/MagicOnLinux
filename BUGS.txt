@@ -7,18 +7,11 @@ Emulator should check version of MAGICLIN.OS to make sure the API fits.
 What is XHDI, and shall it be supported? It seems that DFS_FAT.S, the MagiC internal (V)FAT12/16/32
 file system driver, supports this to get information about a storage volume.
 
-There seems to be a problem with long filenames on volume images.
-Writing to volume images in untested.
-
 system info control panel shows 29.12.2003 as kernel build date. Update!
-
-U:\ does not show disk image as B:
 
 Prevent U: to be assigned in configuration file.
 
 Prevent volume image from being mounted twice.
-
-Drive B: does not appear in U:
 
 Eject of host volumes should tidy-up something.
 

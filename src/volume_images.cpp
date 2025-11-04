@@ -469,6 +469,7 @@ uint32_t CVolumeImages::AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count,
  ************************************************************************************************/
 uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k)
 {
+    uint16_t cmd = getAtariBE16(addrOffset68k + params);
     INT32 aerr = EINVFN;
 
     struct GetBpbParm
@@ -480,21 +481,25 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
         uint16_t dev;               // drive (big endian)
     } __attribute__((packed));
 
-    struct AtariBlockDeviceParm
+    struct RwabsParm
     {
         uint16_t cmd;               // sub-command (big endian)
         uint32_t retaddr68k;        // 68 return address (big endian)
-        uint16_t flags_or_drive;    // hdv_rwabs: flags (bit 0: write), otherwise drive (big endian)
-        uint32_t buf;               // hdv_rwabs: 68k buffer address (big endian)
-        uint16_t count;             // hdv_rwabs: number of sectors (big endian)
-        uint16_t recno;             // hdv_rwabs: sector index (big endian)
-        uint16_t dev;               // hdv_rwabs: device or drive (big endian)
-        uint32_t lrecno;            // hdv_rwabs: long sector index, if recno = -1 (big endian)
+        uint16_t flags;             // flags (bit 0: write)
+        uint32_t buf;               // 68k buffer address (big endian)
+        uint16_t count;             // number of sectors (big endian)
+        uint16_t recno;             // sector index (big endian)
+        uint16_t dev;               // device or drive (big endian)
+        uint32_t lrecno;            // long sector index, if recno = -1 (big endian)
     } __attribute__((packed));
 
-    AtariBlockDeviceParm *theParams = (AtariBlockDeviceParm *) (addrOffset68k + params);
-    uint16_t cmd = be16toh(theParams->cmd);
-    DebugInfo2("(cmd = %u)", cmd);
+    struct MediachParm
+    {
+        uint16_t cmd;               // sub-command (big endian)
+        uint32_t retaddr68k;        // 68 return address (big endian)
+        uint16_t drive;             // drive (big endian)
+    } __attribute__((packed));
+
 
     uint16_t drv;
 
@@ -502,21 +507,22 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
     {
         case 1:
             // void hdv_init(void)
-            DebugInfo2("() - hdv_init()");
-            break;
+            DebugWarning("() - hdv_init() ignored");
+            return E_OK;
 
         case 2:
         {
             // long hdv_rwabs(int flags, void *buf, int count, int recno, int dev)
             // With absense of XHDI we only support 512 bytes per sector.
-            uint16_t flags = be16toh(theParams->flags_or_drive);
+            RwabsParm *theParams = (RwabsParm *) (addrOffset68k + params);
+            uint16_t flags = be16toh(theParams->flags);
             uint32_t buf = be32toh(theParams->buf);
             uint16_t count = be16toh(theParams->count);
             uint16_t recno = be16toh(theParams->recno);
             drv = be16toh(theParams->dev);
             uint32_t lrecno = be32toh(theParams->lrecno);
-            DebugInfo2("() - hdv_rawbs(flags = 0x%04x, buf = 0x%08x, count = %u, recno = %u, dev = %u, lrecno = %u)",
-                         flags, buf, count, recno, drv, lrecno);
+            DebugInfo2("(drv = %c:) - hdv_rawbs(flags = 0x%04x, buf = 0x%08x, count = %u, recno = %u, lrecno = %u)",
+                         'A' + drv, flags, buf, count, recno, drv, lrecno);
 
             if (recno != 0xffff)
             {
@@ -536,7 +542,7 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
             drv = be16toh(bpbParm->dev);
             BPB *bpb = (BPB *) (addrOffset68k + be32toh(bpbParm->bpb));
             uint8_t *dskbuf = addrOffset68k + be32toh(bpbParm->dskbuf);
-            DebugInfo2("() - hdv_getbpb(drv = %u)", drv);
+            DebugInfo2("(drv = %c:) - hdv_getbpb()", 'A' + drv);
             aerr = AtariGetBpb(drv, dskbuf, bpb);
             if (aerr == E_OK)
             {
@@ -551,12 +557,14 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
         }
 
         case 4:
+        {
             // long hdv_mediach(int drive)
             // -> 0 for "not changed"
             // -> 1 for "maybe changed"
             // -> 2 for "was changed"
-            drv = be16toh(theParams->flags_or_drive);
-            DebugInfo2("() - hdv_mediach(drv = %u)", drv);
+            MediachParm *theParams = (MediachParm *) (addrOffset68k + params);
+            drv = be16toh(theParams->drive);
+            DebugInfo2("(drv = %c:) - hdv_mediach()", 'A' + drv);
             if ((drv < NDRIVES) && ((drv_image_fd[drv]) >= 0))
             {
                 aerr = 0;
@@ -566,10 +574,11 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
                 aerr = EUNDEV;
             }
             break;
+        }
 
         case 5:
             // long hdv_boot()
-            DebugInfo2("() - hdv_boot()");
+            DebugWarning2("() - hdv_boot() -- currently ignored");
             aerr = 1;   // currently ignored
             break;
     }

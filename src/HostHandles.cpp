@@ -279,7 +279,10 @@ void HostHandles::snextPterm(uint32_t term_pd)
     {
         oldest_time = time(NULL) - oldest_time;
         uint32_t oldest_time_min = (uint32_t) (oldest_time / 60);
-        DebugWarning2("() Oldest snext handle is %u minutes. Consider auto close?", oldest_time_min);
+        if (oldest_time > 10)
+        {
+            DebugWarning2("() -- Oldest snext handle is %u:%02u minutes. Consider auto close?", oldest_time_min, oldest_time % 60);
+        }
     }
 }
 

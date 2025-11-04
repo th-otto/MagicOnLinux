@@ -2728,6 +2728,10 @@ INT32 CHostXFS::xfs_dcntl
         case FSTAT:
             statbuf2xattr((XATTR *) pArg, &statbuf);
             return E_OK;
+
+        default:
+            DebugWarning2("() : unsupported command 0x%04x for \"%s\"", cmd, name);
+            return EINVFN;
     }
 
     return EINVFN;
@@ -3101,6 +3105,10 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
         case FMACSETTYCR:
         case FMACMAGICEX:
             break;
+
+        default:
+            DebugWarning2("() : unsupported command 0x%04x", cmd);
+            return EINVFN;
     }
 
     return EINVFN;
@@ -4035,7 +4043,7 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *addrOffset68k)
 
 /** **********************************************************************************************
  *
- * @brief Emulator callback: Convert Atari drive to device code
+ * @brief Emulator callback: Convert Atari drive to device code TODO: This is not part of XFS, move to CMagiC!
  *
  * @param[in] params            68k address of parameter structure
  * @param[in] addrOffset68k     Host address of 68k memory
@@ -4049,34 +4057,25 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *addrOffset68k)
 INT32 CHostXFS::Drv2DevCode(UINT32 params, uint8_t *addrOffset68k)
 {
     uint16_t drv = getAtariBE16(addrOffset68k + params);
-    assert(drv < NDRIVES);
+    INT32 aret;
 
-    if (drv <= 1)
+    if ((drv < NDRIVES) && (drv_host_path[drv] != nullptr))
     {
-        // floppy disc A: and B:
-        return (INT32) 0x00010000 | (drv + 1);
-    }
-
-    const char *vol = drv_host_path[drv];
-    if (vol == nullptr)
-    {
-        // maybe an AHDI-Drive? Not supported yet.
-        return 0;
-        // return (INT32) (0x00020000 | drv);
+        aret = (INT32) 0x00010000 | (drv + 1);
     }
     else
     {
-        // The drive is a host directory.
-        // Ejecting host volumes is not supported yet.
-        return 0;
-        // return (INT32) (0x00010000 | (UINT16) drvNum);
+        aret = 0;
     }
+
+    DebugWarning2("(drv = %u) => 0x%08x", drv, aret);
+    return aret;
 }
 
 
 /** **********************************************************************************************
  *
- * @brief Emulator callback: Device operations
+ * @brief Emulator callback: Device operations. TODO: This is not part of XFS, move to CMagiC!
  *
  * @param[in] params            68k address of parameter structure
  * @param[in] addrOffset68k     Host address of 68k memory
@@ -4089,24 +4088,49 @@ INT32 CHostXFS::Drv2DevCode(UINT32 params, uint8_t *addrOffset68k)
 INT32 CHostXFS::RawDrvr(UINT32 param, uint8_t *addrOffset68k)
 {
     INT32 ret;
+    uint16_t drv;
     struct sparams
     {
         UINT16 opcode;
         UINT32 device;
-    };
+    } __attribute__((packed));
 
     sparams *params = (sparams *) (addrOffset68k + param);
+    uint16_t opcode = be16toh(params->opcode);
+    uint32_t device = be32toh(params->device);
+    DebugWarning2("(cmd = %u, device = 0x%08x)", opcode, device);
 
-    switch(params->opcode)
+    switch(opcode)
     {
         case 0:
-            if (params->device == 0)    // ??
+            if (device == 0)
+            {
+                DebugWarning2("() -- zero devcode");
                 ret = EDRIVE;
+            }
             else
-            if ((params->device >> 16)  == 1)
-                ret = EDRIVE;        // Mac medium
+            if ((device >> 16) == 1)
+            {
+                drv = (device & 0xffff) - 1;
+                // drv_host_path[drv] is already zeroed by xfs_drv_close()
+                if ((drv < NDRIVES) /*&& (drv_host_path[drv] != nullptr)*/)
+                {
+                    DebugError2("() -- ejecting of host drive not really supported");
+                    DebugError2("() -- TODO: clean up internal handles");
+                    drv_host_path[drv] = nullptr;
+                    ret = E_OK;
+                }
+                else
+                {
+                    DebugWarning2("() -- invalid host device");
+                    ret = EDRIVE;
+                }
+            }
             else
+            {
+                DebugWarning2("() -- invalid devcode");
                 ret = EDRIVE;        // eject AHDI medium
+            }
             break;
 
             default:

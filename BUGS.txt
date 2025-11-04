@@ -15,3 +15,11 @@ system info control panel shows 29.12.2003 as kernel build date. Update!
 U:\ does not show disk image as B:
 
 Prevent U: to be assigned in configuration file.
+
+Prevent volume image from being mounted twice.
+
+Drive B: does not appear in U:
+
+Eject of host volumes should tidy-up something.
+
+Eject of disk image does not work.

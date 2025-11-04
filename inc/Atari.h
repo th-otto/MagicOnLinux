@@ -79,6 +79,7 @@ typedef uint32_t PTR32x4_HOST[4];   // might be used as 64 bit function pointer 
 #define DFS_GETINFO        0x1100
 #define DFS_INSTDFS        0x1200
 #define DEV_M_INSTALL      0xcd00
+#define CDROMEJECT         0x4309   // supported by MagicMac
 
 /* supported Fcntl modes */
 #define FSTAT              0x4600

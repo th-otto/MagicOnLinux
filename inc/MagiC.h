@@ -111,21 +111,6 @@ class CMagiC
     static uint32_t AtariDebugOut(uint32_t params, uint8_t *addrOffset68k);
     static void *_Remote_AtariError( void *param );
     static uint32_t AtariError(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariPrtOs(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariPrtIn(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariPrtOut(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariPrtOutS(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerConf(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerIs(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerOs(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerIn(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerOut(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerOpen(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerClose(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerRead(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerWrite(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerStat(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k);
     uint32_t AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffset68k);
 #if defined(MAGICLIN)
     static uint32_t MmxDaemon(uint32_t params, unsigned char *AdrOffset68k);
@@ -150,7 +135,6 @@ class CMagiC
 
     CHostXFS m_HostXFS;              // XFS
     uint32_t m_CurrModifierKeys;     // current state of Shift/Cmd/Alt...
-    bool m_bBIOSSerialUsed;
     bool m_bBusErrorPending;
     uint32_t m_BusErrorAddress;
     char m_BusErrorAccessMode[32];
@@ -189,9 +173,6 @@ class CMagiC
 //    unsigned char *m_pBgBuffer;                // do we need a background buffer?
 //    unsigned long m_BgBufferLineLenInBytes;
     pthread_mutex_t m_ScrCriticalRegionId;
-
-    // for printing (static?!?)
-    static uint32_t s_LastPrinterAccess;
 
     uint32_t m_AtariShutDownDelay;        // added for AtariX
 };

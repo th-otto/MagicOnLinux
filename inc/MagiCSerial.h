@@ -31,6 +31,7 @@
 #define SERIAL_IBUFLEN    32
 #endif
 
+// static class
 class CMagiCSerial
 {
    public:
@@ -72,6 +73,23 @@ class CMagiCSerial
 
     static uint32_t Drain(void);
     static uint32_t Flush(bool bInputBuffer, bool bOutputBuffer);
+
+    static bool m_bBIOSSerialUsed;
+    static uint32_t OpenSerialBIOS(void);
+    // direct Atari callbacks
+    static uint32_t AtariSerConf(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerIs(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerOs(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerIn(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerOut(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerOpen(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerClose(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerRead(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerWrite(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerStat(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k);
+
+
 
    private:
     static int m_fd;

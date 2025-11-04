@@ -36,6 +36,13 @@ class CMagiCPrint
     static uint32_t Write(const uint8_t *pBuf, uint32_t cnt);
     static uint32_t ClosePrinterFile(void);
 
+    static uint32_t AtariPrtOs(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariPrtIn(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariPrtOut(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariPrtOutS(uint32_t params, uint8_t *addrOffset68k);
+
+    static uint32_t s_LastPrinterAccess;
+
    private:
     static FILE *m_printFile;
     static int m_PrintFileCounter;

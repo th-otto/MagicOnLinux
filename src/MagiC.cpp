@@ -220,7 +220,7 @@ CMagiC::CMagiC()
     m_pMagiCScreen = NULL;
 //    m_PrintFileRefNum = 0;
     pTheMagiC = this;
-    m_bAtariWasRun = false;
+    m_bEmulatorHasEnded = false;
     m_bBIOSSerialUsed = false;
     m_bScreenBufferChanged = false;
     m_bEmulatorIsRunning = false;
@@ -380,7 +380,7 @@ MagicMacX could not find the MagiC kernel file "MagicMacX.OS".
 Reinstall the application.
 [Quit program]
 */
-        (void) showAlert("ALRT_NO_MAGICMAC_OS", "kAlertStopAlert", 1);
+        (void) showAlert("The emulator cannot find the kernel file MAGICLIN.OS", "Repair configuration file!", 1);
         return -1;
     }
 
@@ -740,7 +740,7 @@ The application ran out of memory.
 Assign more memory to the application using the Finder dialogue "Information"!
 [Cancel]
 */
-        showAlert("ALRT_NOT_ENOUGH_MEM", "kAlertStopAlert", 1);
+        showAlert("The emulator cannot reserve enough memory", "Reduce Atari memory size in configuration file", 1);
         return(1);
     }
 
@@ -819,7 +819,7 @@ The file "MagicMacX.OS" seems to be corrupted or belongs to a different (newer o
 Reinstall the application.
 [Quit program]
 */
-        showAlert("ALRT_INVALID_MAGICMAC_OS", "kAlertStopAlert", 1);
+        showAlert("The kernel file MAGICLIN.OS is invalid or outdated", "Review your configuration", 1);
         return(1);
     }
 
@@ -1152,8 +1152,6 @@ int CMagiC::CreateThread( void )
 
 void CMagiC::StartExec( void )
 {
-    m_bAtariWasRun = true;
-
     m_bCanRun = true;        // darf laufen
     m_AtariKbData[0] = 0;        // kbshift löschen
     m_AtariKbData[1] = 0;        // kbrepeat löschen
@@ -1409,7 +1407,7 @@ int CMagiC::EmuThread( void )
   end_of_thread:
 
     // Main Task mitteilen, daß der Emulator-Thread beendet wurde
-    pTheMagiC->m_bAtariWasRun = false;
+    pTheMagiC->m_bEmulatorHasEnded = true;
 //    SendMessageToMainThread(true, kHICommandQuit);        // veraltet?
 
     m_bEmulatorIsRunning = false;
@@ -2579,7 +2577,7 @@ uint32_t CMagiC::AtariError(uint32_t params, uint8_t *addrOffset68k)
      Install a driver, or change the monitor resolution resp. colour depth using the system's control panel. Finally, restart  MagiCMacX.
      [Quit MagiCMacX]
      */
-    showAlert("ALRT_NO_VIDEO_DRIVER", "kAlertStopAlert", 1);
+    showAlert("The emulated system could not find a suitable video driver", "Review you configuration", 1);
     pTheMagiC->StopExec();    // fatal error for execution thread
     return 0;
 }

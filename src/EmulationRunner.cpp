@@ -24,6 +24,7 @@
  #include "config.h"
 
 #include <assert.h>
+#include "gui.h"
 #include "EmulationRunner.h"
 #include "emulation_globals.h"
 
@@ -841,7 +842,7 @@ void EmulationRunner::_OpenWindow(void)
  * @note Triggers host screen update with 25 Hz, if <gbAtariVideoBufChanged>  is set
  *
  ************************************************************************************************/
-Uint32 EmulationRunner::LoopTimer(Uint32 interval, void *param)
+uint32_t EmulationRunner::LoopTimer(Uint32 interval, void *param)
 {
     // too often DebugInfo("%s()", __func__);
     EmulationRunner *p = (EmulationRunner *) param;
@@ -870,6 +871,12 @@ Uint32 EmulationRunner::LoopTimer(Uint32 interval, void *param)
 
             SDL_PushEvent(&event);
         }
+    }
+
+    if ((p->m_Emulator.m_bEmulatorHasEnded) && !p->m_bQuitLoop)
+    {
+        (void) showAlert("The virtual machine has ended", "The application window will be closed", 1);
+        p->m_bQuitLoop = true;
     }
 
     return interval;

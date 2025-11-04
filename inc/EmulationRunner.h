@@ -57,7 +57,7 @@ class EmulationRunner
         void ChangeAtariDrive(unsigned drvnr, const char *path);
 
     private:
-        static Uint32 LoopTimer(Uint32 interval, void* param);
+        static uint32_t LoopTimer(Uint32 interval, void* param);
 
         void HandleUserEvents(SDL_Event* event);
 

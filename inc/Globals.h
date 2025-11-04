@@ -41,8 +41,6 @@ extern "C" {
 #endif
 
 
-// Schalter
-
 // compile time switches
 
 #ifdef _DEBUG

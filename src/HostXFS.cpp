@@ -2729,6 +2729,29 @@ INT32 CHostXFS::xfs_dcntl
             statbuf2xattr((XATTR *) pArg, &statbuf);
             return E_OK;
 
+        case DCNTL_VFAT_CNFFLN:
+            return EINVFN;      // only relevant for (V)FAT
+
+        case DCNTL_MX_KER_DRVSTAT:
+        {
+            INT16_BE *args = (INT16_BE *) pArg;
+            uint16_t arg0 = be16toh(args[0]);
+            uint16_t arg1 = be16toh(args[1]);
+            if (arg0 == 0)
+            {
+                return ((arg1 < NDRIVES) && drv_host_path[arg1] != nullptr) ? E_OK : EDRIVE;
+            }
+            else
+            {
+                return EINVFN;
+            }
+            break;
+        }
+
+        case DCNTL_MX_KER_XFSNAME:
+            strcpy((char *) pArg, "HOST_XFS");
+            return E_OK;
+
         default:
             DebugWarning2("() : unsupported command 0x%04x for \"%s\"", cmd, name);
             return EINVFN;

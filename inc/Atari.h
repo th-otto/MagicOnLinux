@@ -73,13 +73,17 @@ typedef uint32_t PTR32x4_HOST[4];   // might be used as 64 bit function pointer 
 #define _ATARI_O_EXCL      0x800
 
 /* supported Dcntl modes (Mag!X specific!) */
-#define KER_GETINFO 	   0x0100
-#define KER_INSTXFS        0x0200
-#define KER_SETWBACK       0x0300
-#define DFS_GETINFO        0x1100
-#define DFS_INSTDFS        0x1200
-#define DEV_M_INSTALL      0xcd00
-#define CDROMEJECT         0x4309   // supported by MagicMac
+#define KER_GETINFO 	        0x0100
+#define KER_INSTXFS             0x0200
+#define KER_SETWBACK            0x0300
+#define DFS_GETINFO             0x1100
+#define DFS_INSTDFS             0x1200
+#define DEV_M_INSTALL           0xcd00
+#define CDROMEJECT              0x4309      // supported by MagicMac
+#define DCNTL_VFAT_CNFDFLN      0x5600      // activate long VFAT names when mounted in future
+#define DCNTL_VFAT_CNFFLN       0x5601      // activate long VFAT names when already mounted
+#define DCNTL_MX_KER_DRVSTAT    0x6d04
+#define DCNTL_MX_KER_XFSNAME    0x6d05
 
 /* supported Fcntl modes */
 #define FSTAT              0x4600

@@ -12,3 +12,5 @@ system info control panel shows 29.12.2003 as kernel build date. Update!
 Prevent volume image from being mounted twice.
 
 Eject of host volumes or image should tidy-up something? But what? Filesystem has already been closed before.
+
+Add command line option to convert Atari text files to UTF-8 and vice-versa, including line endings between CR/LF and LF.

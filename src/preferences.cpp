@@ -675,7 +675,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
                     if (drv == 'U' - 'A')
                     {
                         // drive U: is taboo
-                        num_errors++
+                        num_errors++;
                     }
                     else
                     {

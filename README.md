@@ -67,7 +67,6 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Support partition tables, i.e. disk images, not only volume images.
 * Musashi emulator sources should be synchronised with latest version (see below).
 * Atari root file system (like MAGIC_C) folder should be automatically created and localised.
-* Clean shutdown of emulated system.
 * Add support for compilation on macOS.
 
 # License

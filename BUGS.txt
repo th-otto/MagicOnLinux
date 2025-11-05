@@ -9,8 +9,6 @@ file system driver, supports this to get information about a storage volume.
 
 system info control panel shows 29.12.2003 as kernel build date. Update!
 
-Prevent U: to be assigned in configuration file.
-
 Prevent volume image from being mounted twice.
 
 Eject of host volumes or image should tidy-up something? But what? Filesystem has already been closed before.

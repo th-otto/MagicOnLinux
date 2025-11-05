@@ -37,6 +37,8 @@ class CVolumeImages
     static uint32_t AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb);
     static uint32_t AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count, uint32_t lrecno, uint8_t *buf);
+    static bool isDrvValid(uint16_t drv) { return ((drv < NDRIVES) && (drv_image_host_path[drv] != nullptr)); }
+    static void eject(uint16_t drv);
 
     // Atari volume images
     static const char *drv_image_host_path[NDRIVES];       // nullptr, if not valid

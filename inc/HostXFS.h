@@ -69,10 +69,12 @@ class CHostXFS
 
     INT32 XFSFunctions(uint32_t params, uint8_t *addrOffset68k);
     INT32 XFSDevFunctions(uint32_t params, uint8_t *addrOffset68k);
-    INT32 Drv2DevCode(uint32_t params, uint8_t *addrOffset68k);
-    INT32 RawDrvr(uint32_t params, uint8_t *addrOffset68k);
     void activateXfsDrives(uint8_t *addrOffset68k);
     void setActPdAddr(uint32_t * addr) {m_pAtariActPd = addr;}
+    bool isDrvValid(uint16_t drv) { return ((drv < NDRIVES) && (drv_host_path[drv] != nullptr)); }
+    // range check has been done before. TODO: any actions necessary here?
+    // drv_close() already has been called.
+    void eject(uint16_t drv) { drv_host_path[drv] = nullptr; }
 
    private:
 

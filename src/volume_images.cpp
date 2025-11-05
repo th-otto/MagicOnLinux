@@ -585,3 +585,23 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
 
     return aerr;
 }
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: eject
+ *
+ * @param[in] drv       drive number 0..25
+ *
+ ************************************************************************************************/
+void CVolumeImages::eject(uint16_t drv)
+{
+    if (drv < NDRIVES)
+    {
+        if (drv_image_fd[drv] >= 0)
+        {
+            close(drv_image_fd[drv]);
+            drv_image_fd[drv] = -1;
+        }
+    }
+}

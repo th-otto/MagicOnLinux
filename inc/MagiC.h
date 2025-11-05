@@ -119,6 +119,9 @@ class CMagiC
 #endif
     static uint32_t AtariYield(uint32_t params, uint8_t *addrOffset68k);
 
+    uint32_t Drv2DevCode(uint32_t params, uint8_t *addrOffset68k);
+    uint32_t RawDrvr(uint32_t params, uint8_t *addrOffset68k);
+
     // private attributes
     CMagiCScreen *m_pMagiCScreen;   // data for emulated screen
     uint8_t *m_AtariKbData;         // [0] = kbshift, [1] = kbrepeat

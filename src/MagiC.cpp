@@ -866,8 +866,8 @@ Reinstall the application.
     setHostCallback(&pMacXSysHdr->MacSys_dos_macfn, AtariDOSFn);
     setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs, &CHostXFS::XFSFunctions, &m_HostXFS);
     setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs_dev, &CHostXFS::XFSDevFunctions, &m_HostXFS);
-    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_drv2devcode, &CHostXFS::Drv2DevCode, &m_HostXFS);
-    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_rawdrvr, &CHostXFS::RawDrvr, &m_HostXFS);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_drv2devcode, &CMagiC::Drv2DevCode, this);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_rawdrvr, &CMagiC::RawDrvr, this);
 #if defined(MAGICLIN)
     setHostCallback(&pMacXSysHdr->MacSys_Daemon, MmxDaemon);
     setHostCallback(&pMacXSysHdr->MacSys_BlockDevice, CVolumeImages::AtariBlockDevice);
@@ -2337,6 +2337,106 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
     }
 
     return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Convert Atari drive to device code TODO: This is not part of XFS, move to CMagiC!
+ *
+ * @param[in] params            68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return zero or non-negative device code
+ *
+ * @note Used by the Atari to eject the correct medium for the respective virtual drive.
+ *       Not really useful for Linux host.
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::Drv2DevCode(uint32_t params, uint8_t *addrOffset68k)
+{
+    uint16_t drv = getAtariBE16(addrOffset68k + params);
+    uint32_t aret;
+
+    if (m_HostXFS.isDrvValid(drv))
+    {
+        aret = (uint32_t) 0x00010000 | (drv + 1);
+    }
+    else
+    if (CVolumeImages::isDrvValid(drv))
+    {
+        aret = (uint32_t) 0x00020000 | (drv + 1);
+    }
+    else
+    {
+        aret = 0;
+    }
+
+    DebugInfo2("(drv = %u) => 0x%08x", drv, aret);
+    return aret;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Device operations. TODO: This is not part of XFS, move to CMagiC!
+ *
+ * @param[in] params            68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return zero or negative error code
+ *
+ * @note Used by the Atari to eject a medium. Not really useful for Linux host.
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::RawDrvr(uint32_t param, uint8_t *addrOffset68k)
+{
+    struct sparams
+    {
+        UINT16 opcode;
+        UINT32 device;
+    } __attribute__((packed));
+
+    sparams *params = (sparams *) (addrOffset68k + param);
+    uint16_t opcode = be16toh(params->opcode);
+    uint32_t device = be32toh(params->device);
+
+    DebugInfo2("(cmd = %u, device = 0x%08x)", opcode, device);
+
+    if (opcode != 0)
+    {
+        DebugError2("() -- unsupported opcode %u", opcode);
+        return EINVFN;
+    }
+
+    uint16_t type = (device >> 16);
+    uint16_t drv = (device & 0xffff) - 1;
+
+    if (drv < NDRIVES)
+    {
+        if (type == 1)
+        {
+            //
+            // Host XFS
+            //
+
+            m_HostXFS.eject(drv);
+            return E_OK;
+        }
+        else
+        if (type == 2)
+        {
+            //
+            // Volume image
+            //
+
+            CVolumeImages::eject(drv);
+            return E_OK;
+        }
+    }
+
+    DebugError2("() -- invalid host device 0x%08x", device);
+    return EDRIVE;
 }
 
 

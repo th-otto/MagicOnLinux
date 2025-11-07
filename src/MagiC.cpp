@@ -2485,6 +2485,37 @@ void CMagiC::SendMessageToMainThread(bool bAsync, uint32_t command)
 }
 
 
+// try to mount image as drive A:
+// called from main thread
+// TODO: add semaphore
+bool CMagiC::sendDragAndDropFile(const char *allocated_path)
+{
+    uint16_t drv = 'A' - 'A';
+    if (!m_HostXFS.isDrvValid(drv) && !CVolumeImages::isDrvValid(drv))
+    {
+        // drive A: currently unused. Mount image or path.
+        struct stat statbuf;
+        if (stat(allocated_path, &statbuf) == 0)
+        {
+            mode_t ftype = (statbuf.st_mode & S_IFMT);
+            if (ftype == S_IFDIR)
+            {
+                showAlert("Host directory mounted as A:", allocated_path, 1);
+                m_HostXFS.setNewDrv(drv, allocated_path, true, true);
+                return true;
+            }
+            else
+            if (ftype == S_IFREG)
+            {
+                showAlert("Volume image (hopefully) mounted as A:", allocated_path, 1);
+                CVolumeImages::setNewDrv(drv, allocated_path, true, true, statbuf.st_size);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 /**********************************************************************
 *
 * Callback des Emulators: System aufgrund eines fatalen Fehlers anhalten

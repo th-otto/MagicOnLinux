@@ -59,6 +59,7 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Zoom, helpful for original 640x400 or 640x200 resolution
 * Full access to host file system, up to root
 * Mounts Atari volume or floppy disk images
+* Mount file systems, folder or image, via Drag&Drop
 
 # Bugs and Agenda
 

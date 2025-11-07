@@ -63,6 +63,7 @@ class CMagiC
     int SendVBL(void);
     void SendBusError(uint32_t addr, const char *AccessMode);
     //void SendAtariFile(const char *pBuf); // remnant from MagicMac(X) and AtariX
+    bool sendDragAndDropFile(const char *allocated_path);
     void SendShutdown(void);
     //void ChangeXFSDrive(short drvNr);
     static void GetActAtariPrg(const char **pName, uint32_t *pact_pd);

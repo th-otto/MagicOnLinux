@@ -674,7 +674,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
                 {
                     if (drv == 'U' - 'A')
                     {
-                        // drive U: is taboo
+                        // Drive U: is taboo, this rhymes and is true.
                         num_errors++;
                     }
                     else

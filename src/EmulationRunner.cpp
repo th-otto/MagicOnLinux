@@ -1027,7 +1027,7 @@ void EmulationRunner::EventLoop(void)
             case SDL_KEYDOWN:
             case SDL_KEYUP:
                 {
-                    const SDL_KeyboardEvent *ev = (SDL_KeyboardEvent *) &event;
+                    const SDL_KeyboardEvent *ev = &event.key;
                     DebugInfo2("() - type %s", ev->type == SDL_KEYUP ? "up" : "down");
                     DebugInfo2("() - state %s", ev->state == SDL_PRESSED ? "pressed" : "released");
                     DebugInfo2("() - scancode = %08x (%d), keycode = %08x, mod = %04x", ev->keysym.scancode, ev->keysym.scancode, ev->keysym.sym, ev->keysym.mod);
@@ -1040,7 +1040,7 @@ void EmulationRunner::EventLoop(void)
 
             case SDL_MOUSEMOTION:
                 {
-                    const SDL_MouseMotionEvent *ev = (SDL_MouseMotionEvent *) &event;
+                    const SDL_MouseMotionEvent *ev = &event.motion;
                     // TOO OFTEN DebugInfo2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
                     int x = ev->x;
                     int y = ev->y;
@@ -1062,7 +1062,7 @@ void EmulationRunner::EventLoop(void)
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
                 {
-                    const SDL_MouseButtonEvent *ev = (SDL_MouseButtonEvent *) &event;
+                    const SDL_MouseButtonEvent *ev = &event.button;
                     DebugInfo2("() - mouse button %s: x = %d, y = %d, button = %d",
                             ev->type == SDL_MOUSEBUTTONUP ? "up" : "down", ev->x, ev->y, ev->button);
                     int atariMouseButton = -1;
@@ -1081,7 +1081,7 @@ void EmulationRunner::EventLoop(void)
 
             case SDL_MOUSEWHEEL:
                 {
-                    const SDL_MouseWheelEvent *ev = (SDL_MouseWheelEvent *) &event;
+                    const SDL_MouseWheelEvent *ev = &event.wheel;
                     (void) ev;
                     DebugInfo2("() - mouse wheel: x = %d, y = %d", ev->x, ev->y);
                 }
@@ -1102,9 +1102,43 @@ void EmulationRunner::EventLoop(void)
                 break;
 
             case SDL_CLIPBOARDUPDATE:
+                DebugWarning2("() - SDL_CLIPBOARDUPDATE currently unhandled");
                 // The clipboard or primary selection changed
                 // TODO: support
                 break;
+
+            case SDL_DROPFILE:
+            {
+                SDL_DropEvent *ev = &event.drop;
+                if ((ev->file != nullptr) && !m_Emulator.sendDragAndDropFile(ev->file))
+                {
+                    DebugWarning2("() - SDL_DROPFILE \"%s\" unhandled", ev->file);
+                    free(ev->file);
+                    ev->file = nullptr;
+                }
+                break;
+            }
+
+            case SDL_DROPTEXT:
+            {
+                SDL_DropEvent *ev = &event.drop;
+                DebugWarning2("() - SDL_DROPTEXT \"%s\" currently unhandled", (ev->file != nullptr) ? ev->file : "null");
+                break;
+            }
+
+            case SDL_DROPBEGIN:
+            {
+                SDL_DropEvent *ev = &event.drop;
+                DebugWarning2("() - SDL_DROPBEGIN \"%s\" currently unhandled", (ev->file != nullptr) ? ev->file : "null");
+                break;
+            }
+
+            case SDL_DROPCOMPLETE:
+            {
+                SDL_DropEvent *ev = &event.drop;
+                DebugWarning2("() - SDL_DROPCOMPLETE \"%s\" currently unhandled", (ev->file != nullptr) ? ev->file : "null");
+                break;
+            }
 
             default:
                 DebugWarning2("() - unhandled SDL event %u", event.type);

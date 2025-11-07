@@ -77,16 +77,6 @@ void CVolumeImages::init(uint32_t *new_drvbits)
 
         if (path != nullptr)
         {
-            drv_image_fd[i] = open(path, (flags & DRV_FLAG_RDONLY) ? O_RDONLY : O_RDWR);
-            if (drv_image_fd[i] < 0)
-            {
-                (void) showAlert("Cannot open Atari volume image:", path, 1);
-                path = nullptr;
-            }
-        }
-
-        if (path != nullptr)
-        {
             drv_image_host_path[i] = path;
             drv_image_size[i] = statbuf.st_size;
             drv_longNames[i] = (flags & DRV_FLAG_8p3) == 0;
@@ -98,9 +88,11 @@ void CVolumeImages::init(uint32_t *new_drvbits)
             drv_image_host_path[i] = nullptr;    // invalid
             drv_longNames[i] = false;
             drv_readOnly[i] = false;
-            drv_image_fd[i] = -1;   // not open
             drv_image_size[i] = 0;
         }
+
+        drv_image_fd[i] = -1;   // not open
+
     }
 
     *new_drvbits = m_diskimages_drvbits;
@@ -406,50 +398,64 @@ uint32_t CVolumeImages::AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count,
     DebugInfo2("() - hdv_rawbs(flags = 0x%04x, buf = 0x%08x, count = %u, dev = %u, lrecno = %u)",
                     flags, buf, count, drv, lrecno);
 
-    int fd;
-    if ((drv < NDRIVES) && ((fd = drv_image_fd[drv]) >= 0))
+    if ((drv < NDRIVES) && ((drv_image_host_path[drv]) != nullptr))
     {
-        uint64_t fsize = drv_image_size[drv];
-        uint64_t secsize = 512;     // force 64-bit multiply
-
-        uint64_t new_offset = lrecno * secsize;
-        uint64_t new_count = count * secsize;
-
-        if ((new_offset < fsize) && (new_offset + new_count <= fsize))
+        if (drv_image_fd[drv] == -1)
         {
-            off_t offs = lseek(fd, new_offset, SEEK_SET);
-            if (offs == (long) new_offset)
+            // not open, yet, or cannot be opend
+            drv_image_fd[drv] = open(drv_image_host_path[drv], (flags & DRV_FLAG_RDONLY) ? O_RDONLY : O_RDWR);
+            if (drv_image_fd[drv] < 0)
             {
-                ssize_t transferred;
+                (void) showAlert("Cannot open Atari volume image:", drv_image_host_path[drv], 1);
+                drv_image_host_path[drv] = nullptr;
+            }
+        }
 
-                if (flags & 1)
+        int fd = drv_image_fd[drv];
+        if (fd >= 0)
+        {
+            uint64_t fsize = drv_image_size[drv];
+            uint64_t secsize = 512;     // force 64-bit multiply
+
+            uint64_t new_offset = lrecno * secsize;
+            uint64_t new_count = count * secsize;
+
+            if ((new_offset < fsize) && (new_offset + new_count <= fsize))
+            {
+                off_t offs = lseek(fd, new_offset, SEEK_SET);
+                if (offs == (long) new_offset)
                 {
-                    transferred = write(fd, buf, new_count);
+                    ssize_t transferred;
+
+                    if (flags & 1)
+                    {
+                        transferred = write(fd, buf, new_count);
+                    }
+                    else
+                    {
+                        transferred = read(fd, buf, new_count);
+                    }
+
+                    if (transferred == (long) new_count)
+                    {
+                        return E_OK;
+                    }
+                    else
+                    {
+                        return (flags & 1) ? EWRITF : EREADF;
+                    }
                 }
                 else
                 {
-                    transferred = read(fd, buf, new_count);
-                }
-
-                if (transferred == (long) new_count)
-                {
-                    return E_OK;
-                }
-                else
-                {
-                    return (flags & 1) ? EWRITF : EREADF;
+                    DebugError2("() - lseek() failure");
+                    return ATARIERR_ERANGE;
                 }
             }
             else
             {
-                DebugError2("() - lseek() failure");
+                DebugError2("() - pos %u out of size %u", (unsigned) new_offset, (unsigned) drv_image_size[drv]);
                 return ATARIERR_ERANGE;
             }
-        }
-        else
-        {
-            DebugError2("() - pos %u out of size %u", (unsigned) new_offset, (unsigned) drv_image_size[drv]);
-            return ATARIERR_ERANGE;
         }
     }
 
@@ -602,6 +608,12 @@ void CVolumeImages::eject(uint16_t drv)
         {
             close(drv_image_fd[drv]);
             drv_image_fd[drv] = -1;
+        }
+
+        if (drv_image_host_path[drv] != nullptr)
+        {
+            // free(drv_image_host_path[drv]) TODO: check
+            drv_image_host_path[drv] = nullptr;     // maybe memory leak here
         }
     }
 }

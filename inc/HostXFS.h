@@ -74,7 +74,19 @@ class CHostXFS
     bool isDrvValid(uint16_t drv) { return ((drv < NDRIVES) && (drv_host_path[drv] != nullptr)); }
     // range check has been done before. TODO: any actions necessary here?
     // drv_close() already has been called.
-    void eject(uint16_t drv) { drv_host_path[drv] = nullptr; }
+    void eject(uint16_t drv) { drv_host_path[drv] = nullptr; /*TODO:maybe memory leak*/ }
+
+    // called from main thread. TODO: add semaphore
+    void setNewDrv(uint16_t drv, const char *allocated_path, bool longnames, bool readonly)
+    {
+        if (drv < NDRIVES)
+        {
+            drv_host_path[drv] = allocated_path;
+            drv_longNames[drv] = longnames;
+            drv_caseInsens[drv] = false;
+            drv_readOnly[drv] = readonly;
+        }
+    }
 
    private:
 

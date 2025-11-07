@@ -507,7 +507,7 @@ uint32_t CVolumeImages::AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb)
     {
         aerr = vbr2Bpb(dskbuf, bpb);
     }
-    return EUNDEV;
+    return aerr;
 }
 
 
@@ -710,7 +710,7 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
             uint16_t recno = be16toh(theParams->recno);
             drv = be16toh(theParams->dev);
             uint32_t lrecno = be32toh(theParams->lrecno);
-            DebugInfo2("(drv = %c:) - hdv_rawbs(flags = 0x%04x, buf = 0x%08x, count = %u, recno = %u, lrecno = %u)",
+            DebugInfo2("(drv = %c:) - hdv_rwabs(flags = 0x%04x, buf = 0x%08x, count = %u, recno = %u, lrecno = %u)",
                          'A' + drv, flags, buf, count, recno, drv, lrecno);
 
             if (recno != 0xffff)

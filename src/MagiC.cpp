@@ -2490,20 +2490,67 @@ void CMagiC::SendMessageToMainThread(bool bAsync, uint32_t command)
 // TODO: add semaphore
 bool CMagiC::sendDragAndDropFile(const char *allocated_path)
 {
-    uint16_t drv = 'A' - 'A';
-    if (!m_HostXFS.isDrvValid(drv) && !CVolumeImages::isDrvValid(drv))
+    // note that colons in buttons must be quoted
+    static const char *mount_buttons_a = "A\\:, A\\: Read-Only, Cancel";
+    static const char *mount_buttons_b = "B\\:, B\\: Read-Only, Cancel";
+    static const char *mount_buttons_ab = "A\\:, B\\:, A\\: Read-Only, B\\: Read-Only, Cancel";
+
+    bool availA = (!m_HostXFS.isDrvValid('A' - 'A') && !CVolumeImages::isDrvValid('A' - 'A'));
+    bool availB = (!m_HostXFS.isDrvValid('B' - 'A') && !CVolumeImages::isDrvValid('B' - 'A'));
+
+    if (availA || availB)
     {
-        // drive A: currently unused. Mount image or path.
+        uint16_t drv = 0xffff;
+        const char *mount_buttons;
+        int answerA = 1000;         // initialise as invalid
+        int answerB = 1000;
+        int answerA_ro = 1000;
+        int answerB_ro = 1000;
+
+        if (availA && availB)
+        {
+            mount_buttons = mount_buttons_ab;
+            answerA = 101;
+            answerA_ro = 102;
+            answerB = 103;
+            answerB_ro = 104;
+        }
+        else
+        if (availA)
+        {
+            mount_buttons = mount_buttons_a;
+            answerA = 101;
+            answerA_ro = 102;
+        }
+        else
+        if (availB)
+        {
+            mount_buttons = mount_buttons_b;
+            answerB = 101;
+            answerB_ro = 102;
+        }
+
+        // drive A: or B: currently unused. Mount image or path.
         struct stat statbuf;
         if (stat(allocated_path, &statbuf) == 0)
         {
             mode_t ftype = (statbuf.st_mode & S_IFMT);
             if (ftype == S_IFDIR)
             {
-                int answer = showDialogue("Mount directory as A:?", allocated_path, "OK,Read-Only,Cancel");
-                if ((answer == 101) || (answer == 102))
+                int answer = showDialogue("Mount directory?", allocated_path, mount_buttons);
+                if ((answer == answerA) || (answer == answerA_ro))
                 {
-                    bool bReadOnly = (answer == 102);
+                    drv = 'A' - 'A';
+                }
+                else
+                if ((answer == answerB) || (answer == answerB_ro))
+                {
+                    drv = 'B' - 'A';
+                }
+                bool bReadOnly = ((answer == answerA_ro) || (answer == answerB_ro));
+
+                if (drv < NDRIVES)
+                {
                     m_HostXFS.setNewDrv(drv, allocated_path, true, bReadOnly);
                     return true;
                 }
@@ -2514,10 +2561,20 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
                 int volume_type = CVolumeImages::checkFatVolume(allocated_path);
                 if (volume_type > 0)
                 {
-                    int answer = showDialogue("Mount volume image as A:?", allocated_path, "OK,Read-Only,Cancel");
-                    if ((answer == 101) || (answer == 102))
+                    int answer = showDialogue("Mount volume image?", allocated_path, mount_buttons);
+                    if ((answer == answerA) || (answer == answerA_ro))
                     {
-                        bool bReadOnly = (answer == 102);
+                        drv = 'A' - 'A';
+                    }
+                    else
+                    if ((answer == answerB) || (answer == answerB_ro))
+                    {
+                        drv = 'B' - 'A';
+                    }
+                    bool bReadOnly = ((answer == answerA_ro) || (answer == answerB_ro));
+
+                    if (drv < NDRIVES)
+                    {
                         CVolumeImages::setNewDrv(drv, allocated_path, true, bReadOnly, statbuf.st_size);
                         return true;
                     }
@@ -2528,6 +2585,10 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
                 }
             }
         }
+    }
+    else
+    {
+        (void) showDialogue("Eject A: or B: before reassign them!", allocated_path, "Cancel");
     }
     return false;
 }

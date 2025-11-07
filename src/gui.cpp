@@ -25,6 +25,7 @@
 #include "config.h"
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "Debug.h"
 #include "gui.h"
@@ -40,7 +41,6 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
     // TODO: find some reasonable unicode long space
     const char *spaces = "                                                                                                    ";
     char text[512];
-    char text_buttons[64] = "";
 
     FILE *f = nullptr;
     char *fname = tempnam(nullptr, "magic-on-linux");
@@ -59,13 +59,13 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
         sprintf(text, "%s\n\n%s\n", msg_text, info_txt);
     }
 
-    sprintf(text_buttons, "-buttons \"%s\"", buttons);
-
     char command[1024];
-    sprintf(command, "gxmessage -nearmouse -wrap -title \"%s\" %s %s", title, text_buttons, text);
+    sprintf(command, "gxmessage -nearmouse -wrap -title \"%s\" -buttons \"%s\" %s", title, buttons, text);
     // Contrary to man page, we do not get 101, 102, 103 for the buttons, but the value is
     // shifted by 8, so that we receive 0x6500, 0x6600 and 0x6700 for buttons and 0x0100 for window close.
+    fprintf(stderr, "%s\n", command);
     int result = system(command);
+    unlink(fname);
     fprintf(stderr, "-> %d (0x%08x)\n", result, result);
 
     return result >> 8;
@@ -123,6 +123,7 @@ int showAlert(const char *msg_text, const char *info_txt, int nButtons)
     // Contrary to man page, we do not get 101, 102, 103 for the buttons, but the value is
     // shifted by 8, so that we receive 0x6500, 0x6600 and 0x6700 for buttons and 0x0100 for window close.
     int result = system(command);
+    unlink(fname);
     fprintf(stderr, "-> %d (0x%08x)\n", result, result);
 
     return result >> 8;

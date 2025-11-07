@@ -217,6 +217,276 @@ struct FAT_BOOT_SEC_16_12
 
 /** **********************************************************************************************
  *
+ * @brief Converts boot sector an image to BPB (FAT12 or FAT16), if any
+ *
+ * @param[out] vbr      boot sector
+ * @param[out] bpb      buffer for BPB (inside Atari memory)
+ *
+ * @return E_OK or negative error code
+ *
+ * @note Only handles FAT12 and FAT16.
+ *
+ ************************************************************************************************/
+uint32_t CVolumeImages::vbr2Bpb(const uint8_t *sector, BPB *bpb)
+{
+    const FAT_BOOT_SEC_16_12 *vbr = (const FAT_BOOT_SEC_16_12 *) sector;
+
+    uint16_t reserved_sectors;
+    uint16_t sec_size;
+    uint16_t cl_sectors;
+    uint16_t root_dir_size;
+    uint16_t fat_sectors;
+    uint16_t fat2_sectors;
+    uint16_t fat2_secno;
+    uint16_t data_secno;
+    uint32_t num_sectors;
+    uint32_t num_clusters;
+    uint8_t nfats;
+    uint16_t flags0 = 0;
+
+    // sector size in bytes (little-endian)
+    sec_size = vbr->bs_sec_size[0];
+    sec_size += (vbr->bs_sec_size[1] << 8);
+    if (sec_size < 512)
+    {
+        DebugWarning2("() -- Invalid sector size %u", sec_size);
+        return EUNDEV;
+    }
+    bpb->b_recsiz = htobe16(sec_size);
+
+    // sectors per cluster
+    cl_sectors = vbr->bs_clu_size;
+    if (cl_sectors < 1)
+    {
+        DebugWarning2("() -- Invalid cluster size %u sectors", cl_sectors);
+        return EUNDEV;
+    }
+    bpb->b_clsiz = htobe16(cl_sectors);
+
+    // bytes per cluster
+    bpb->b_clsizb = htobe16(sec_size * cl_sectors);
+
+    // sectors for root directory
+    root_dir_size = vbr->bs_dir_entr[0];
+    root_dir_size += (vbr->bs_dir_entr[1] << 8);
+    if (root_dir_size == 0)
+    {
+        DebugWarning2("() -- bs_dir_entr = 0, seems to be FAT32, handled by MagiC kernel");
+        return EUNDEV;
+    }
+    root_dir_size <<= 5;    // 32 bytes per entry
+    if (root_dir_size % sec_size != 0)
+    {
+        DebugWarning2("() -- Root directory size mismatch. Ignored.");
+    }
+    root_dir_size /= sec_size;
+    bpb->b_rdlen = htobe16(root_dir_size);
+
+    // sectors per FAT
+    fat_sectors = le16toh(vbr->bs_fatlen);
+    if (fat_sectors == 0)
+    {
+        DebugWarning2("() -- bs_fatlen = 0, seems to be FAT32, handled by MagiC kernel");
+        return EUNDEV;
+    }
+    bpb->b_fsiz = htobe16(fat_sectors);
+
+    // number or reserved sectors, including boot sector, should be 1
+    reserved_sectors = le16toh(vbr->bs_sec_resvd);
+    if (reserved_sectors != 1)
+    {
+        DebugWarning2("() -- %u reserved sectors, should be 1. Continue.", reserved_sectors);
+    }
+
+    // sector number of second FAT
+    fat2_secno = reserved_sectors + fat_sectors;
+    bpb->b_fatrec = htobe16(fat2_secno);
+
+    // number of FATs
+    nfats = vbr->bs_nfats;
+    if ((nfats < 1) || (nfats > 2))
+    {
+        DebugWarning2("() -- num_fats = %u is not supported", nfats);
+        return EUNDEV;
+    }
+    if (nfats == 1)
+    {
+        flags0 |= 2;    // bit 1: only one FAT
+        fat2_sectors = 0;
+    }
+    else
+    {
+        fat2_sectors = fat_sectors;
+    }
+
+    // sector number of first data cluster
+    data_secno = fat2_secno + fat2_sectors + root_dir_size;
+    bpb->b_datrec = htobe16(data_secno);
+
+    // total number of sectors
+    num_sectors = vbr->bs_nsectors[0];
+    num_sectors += (vbr->bs_nsectors[1] << 8);
+    if (num_sectors == 0)
+    {
+        num_sectors = le32toh(vbr->bs_total_sect);
+    }
+    if (num_sectors < data_secno)
+    {
+        DebugWarning2("() -- num_sectors = %u is inconsistant", num_sectors);
+        return EUNDEV;
+    }
+
+    // number of data clusters: subtract reserved, FATs, root, then convert to clusters
+    // 65525 from Microsoft documentation
+    num_clusters = (num_sectors - data_secno) / cl_sectors;
+    if (num_clusters >= 65525)
+    {
+        DebugWarning2("() -- num_clusters = %u is too much for FAT12/16", num_clusters);
+        return EUNDEV;
+    }
+    bpb->b_numcl = htobe16((uint16_t) num_clusters);
+
+    // FAT12 or FAT16
+    // 65525 from Microsoft documentation
+    if (num_clusters >= 4085)
+    {
+        flags0 |= 1;    // bit 0: FAT16
+    }
+    bpb->b_flags[0] = htobe16(flags0);
+
+    // Set unused flags to zero. Note that the MagiC kernel reserves
+    // four additional bytes, in total 36 bytes for internal BPB.
+    bpb->b_flags[1] = 0;
+    bpb->b_flags[2] = 0;
+    bpb->b_flags[3] = 0;
+    bpb->b_flags[4] = 0;
+    bpb->b_flags[5] = 0;
+    bpb->b_flags[6] = 0;
+    bpb->b_flags[7] = 0;
+
+    return E_OK;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Check if boot sector an image of FAT32
+ *
+ * @param[out] vbr      boot sector
+ *
+ * @return E_OK or negative error code
+ *
+ * @note Only handles FAT32
+ *
+ ************************************************************************************************/
+uint32_t CVolumeImages::vbr2Fat32(const uint8_t *sector)
+{
+    const FAT_BOOT_SEC_32 *vbr = (const FAT_BOOT_SEC_32 *) sector;
+
+    uint16_t reserved_sectors;
+    uint16_t sec_size;
+    uint16_t cl_sectors;
+    uint16_t root_dir_size;
+    uint32_t fat_sectors;
+    uint32_t fat2_sectors;
+    uint32_t fat2_secno;
+    uint32_t data_secno;
+    uint32_t num_sectors;
+    uint32_t num_clusters;
+    uint8_t nfats;
+    uint16_t flags0 = 0;
+
+    // sector size in bytes (little-endian)
+    sec_size = vbr->bs_sec_size[0];
+    sec_size += (vbr->bs_sec_size[1] << 8);
+    if (sec_size < 512)
+    {
+        DebugWarning2("() -- Invalid sector size %u", sec_size);
+        return EUNDEV;
+    }
+
+    // sectors per cluster
+    cl_sectors = vbr->bs_clu_size;
+    if (cl_sectors < 1)
+    {
+        DebugWarning2("() -- Invalid cluster size %u sectors", cl_sectors);
+        return EUNDEV;
+    }
+
+    // sectors for root directory
+    root_dir_size = vbr->bs_dir_entr[0];
+    root_dir_size += (vbr->bs_dir_entr[1] << 8);
+    if (root_dir_size > 0)
+    {
+        // FAT16 or FAT32
+        return EUNDEV;
+    }
+
+    // sectors per FAT
+    fat_sectors = le16toh(vbr->bs_fatlen);
+    if (fat_sectors > 0)
+    {
+        // FAT16 or FAT32
+        return EUNDEV;
+    }
+    fat_sectors = le16toh(vbr->bs_fatlen32);
+
+    // number or reserved sectors, including boot sector, should be 32 für FAT32
+    reserved_sectors = le16toh(vbr->bs_sec_resvd);
+    if (reserved_sectors != 32)
+    {
+        DebugWarning2("() -- %u reserved sectors, should be 32. Continue.", reserved_sectors);
+    }
+
+    // sector number of second FAT
+    fat2_secno = reserved_sectors + fat_sectors;
+
+    // number of FATs
+    nfats = vbr->bs_nfats;
+    if ((nfats < 1) || (nfats > 2))
+    {
+        DebugWarning2("() -- num_fats = %u is not supported", nfats);
+        return EUNDEV;
+    }
+    if (nfats == 1)
+    {
+        flags0 |= 2;    // bit 1: only one FAT
+        fat2_sectors = 0;
+    }
+    else
+    {
+        fat2_sectors = fat_sectors;
+    }
+
+    // sector number of first data cluster
+    data_secno = fat2_secno + fat2_sectors + root_dir_size;
+
+    // total number of sectors
+    num_sectors = vbr->bs_nsectors[0];
+    num_sectors += (vbr->bs_nsectors[1] << 8);
+    if (num_sectors == 0)
+    {
+        num_sectors = le32toh(vbr->bs_total_sect);
+    }
+    if (num_sectors < data_secno)
+    {
+        DebugWarning2("() -- num_sectors = %u is inconsistant", num_sectors);
+        return EUNDEV;
+    }
+
+    num_clusters = (num_sectors - data_secno) / cl_sectors;
+    if (vbr->bs_rootclust >= num_clusters)
+    {
+        DebugWarning2("() -- bs_rootclust %u inconsistant with %u clusters", vbr->bs_rootclust, num_clusters);
+        return EUNDEV;
+    }
+
+    return E_OK;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Handle hdv_getbpb
  *
  * @param[in]  drv       Atari drive number 0..31
@@ -235,144 +505,53 @@ uint32_t CVolumeImages::AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb)
     INT32 aerr = AtariRwabs(drv, 0,  1, 0, dskbuf);
     if (aerr == E_OK)
     {
-        const FAT_BOOT_SEC_16_12 *vbr = (const FAT_BOOT_SEC_16_12 *) dskbuf;
-
-        uint16_t reserved_sectors;
-        uint16_t sec_size;
-        uint16_t cl_sectors;
-        uint16_t root_dir_size;
-        uint16_t fat_sectors;
-        uint16_t fat2_sectors;
-        uint16_t fat2_secno;
-        uint16_t data_secno;
-        uint32_t num_sectors;
-        uint32_t num_clusters;
-        uint8_t nfats;
-        uint16_t flags0 = 0;
-
-        // sector size in bytes (little-endian)
-        sec_size = vbr->bs_sec_size[0];
-        sec_size += (vbr->bs_sec_size[1] << 8);
-        if (sec_size < 512)
-        {
-            DebugWarning2("() -- Invalid sector size %u", sec_size);
-            return EUNDEV;
-        }
-        bpb->b_recsiz = htobe16(sec_size);
-
-        // sectors per cluster
-        cl_sectors = vbr->bs_clu_size;
-        if (cl_sectors < 1)
-        {
-            DebugWarning2("() -- Invalid cluster size %u sectors", cl_sectors);
-            return EUNDEV;
-        }
-        bpb->b_clsiz = htobe16(cl_sectors);
-
-        // bytes per cluster
-        bpb->b_clsizb = htobe16(sec_size * cl_sectors);
-
-        // sectors for root directory
-        root_dir_size = vbr->bs_dir_entr[0];
-        root_dir_size += (vbr->bs_dir_entr[1] << 8);
-        if (root_dir_size == 0)
-        {
-            DebugWarning2("() -- bs_dir_entr = 0, seems to be FAT32, handled by MagiC kernel");
-            return EUNDEV;
-        }
-        root_dir_size <<= 5;    // 32 bytes per entry
-        if (root_dir_size % sec_size != 0)
-        {
-            DebugWarning2("() -- Root directory size mismatch. Ignored.");
-        }
-        root_dir_size /= sec_size;
-        bpb->b_rdlen = htobe16(root_dir_size);
-
-        // sectors per FAT
-        fat_sectors = le16toh(vbr->bs_fatlen);
-        if (fat_sectors == 0)
-        {
-            DebugWarning2("() -- bs_fatlen = 0, seems to be FAT32, handled by MagiC kernel");
-            return EUNDEV;
-        }
-        bpb->b_fsiz = htobe16(fat_sectors);
-
-        // number or reserved sectors, including boot sector, should be 1
-        reserved_sectors = le16toh(vbr->bs_sec_resvd);
-        if (reserved_sectors != 1)
-        {
-            DebugWarning2("() -- %u reserved sectors, should be 1. Continue.", reserved_sectors);
-        }
-
-        // sector number of second FAT
-        fat2_secno = reserved_sectors + fat_sectors;
-        bpb->b_fatrec = htobe16(fat2_secno);
-
-        // number of FATs
-        nfats = vbr->bs_nfats;
-        if ((nfats < 1) || (nfats > 2))
-        {
-            DebugWarning2("() -- num_fats = %u is not supported", nfats);
-            return EUNDEV;
-        }
-        if (nfats == 1)
-        {
-            flags0 |= 2;    // bit 1: only one FAT
-            fat2_sectors = 0;
-        }
-        else
-        {
-            fat2_sectors = fat_sectors;
-        }
-
-        // sector number of first data cluster
-        data_secno = fat2_secno + fat2_sectors + root_dir_size;
-        bpb->b_datrec = htobe16(data_secno);
-
-        // total number of sectors
-        num_sectors = vbr->bs_nsectors[0];
-        num_sectors += (vbr->bs_nsectors[1] << 8);
-        if (num_sectors == 0)
-        {
-            num_sectors = le32toh(vbr->bs_total_sect);
-        }
-        if (num_sectors < data_secno)
-        {
-            DebugWarning2("() -- num_sectors = %u is inconsistant", num_sectors);
-            return EUNDEV;
-        }
-
-        // number of data clusters: subtract reserved, FATs, root, then convert to clusters
-        // 65525 from Microsoft documentation
-        num_clusters = (num_sectors - data_secno) / cl_sectors;
-        if (num_clusters >= 65525)
-        {
-            DebugWarning2("() -- num_clusters = %u is too much for FAT12/16", num_clusters);
-            return EUNDEV;
-        }
-        bpb->b_numcl = htobe16((uint16_t) num_clusters);
-
-        // FAT12 or FAT16
-        // 65525 from Microsoft documentation
-        if (num_clusters >= 4085)
-        {
-            flags0 |= 1;    // bit 0: FAT16
-        }
-        bpb->b_flags[0] = htobe16(flags0);
-
-        // Set unused flags to zero. Note that the MagiC kernel reserves
-        // four additional bytes, in total 36 bytes for internal BPB.
-        bpb->b_flags[1] = 0;
-        bpb->b_flags[2] = 0;
-        bpb->b_flags[3] = 0;
-        bpb->b_flags[4] = 0;
-        bpb->b_flags[5] = 0;
-        bpb->b_flags[6] = 0;
-        bpb->b_flags[7] = 0;
-
-        return E_OK;
+        aerr = vbr2Bpb(dskbuf, bpb);
     }
     return EUNDEV;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Handle hdv_rwabs Atari callback, read or write sectors
+ *
+ * @param[in]  path     path to image file
+ *
+ * @return 12 for FAT12, 16 for FAT16, 32 for FAT32, -2 for format error and -1 for file error
+ *
+ ************************************************************************************************/
+int CVolumeImages::checkFatVolume(const char *path)
+{
+    int fd = open(path, O_RDONLY);
+    if (fd < 0)
+    {
+        return -1;      // file not accessible
+    }
+    uint8_t *dskbuf = (uint8_t *) malloc(512);
+    ssize_t bytes = read(fd, dskbuf, 512);
+    close(fd);
+    if (bytes != 512)
+    {
+        free(dskbuf);
+        return -2;      // file too small
+    }
+
+    // 1. Try FAT12 and 16
+
+    BPB bpb;
+    INT32 aerr = vbr2Bpb(dskbuf, &bpb);
+    if (aerr == E_OK)
+    {
+        free(dskbuf);
+        return (bpb.b_flags[0] & 1) ? 16 : 12;
+    }
+
+    // 2. Try FAT32
+
+    aerr = vbr2Fat32(dskbuf);
+    free(dskbuf);
+
+    return (aerr == E_OK) ? 32 : -2;
 }
 
 
@@ -403,7 +582,7 @@ uint32_t CVolumeImages::AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count,
         if (drv_image_fd[drv] == -1)
         {
             // not open, yet, or cannot be opend
-            drv_image_fd[drv] = open(drv_image_host_path[drv], (flags & DRV_FLAG_RDONLY) ? O_RDONLY : O_RDWR);
+            drv_image_fd[drv] = open(drv_image_host_path[drv], drv_readOnly[drv] ? O_RDONLY : O_RDWR);
             if (drv_image_fd[drv] < 0)
             {
                 (void) showAlert("Cannot open Atari volume image:", drv_image_host_path[drv], 1);
@@ -429,6 +608,10 @@ uint32_t CVolumeImages::AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count,
 
                     if (flags & 1)
                     {
+                        if (drv_readOnly[drv])
+                        {
+                            return EWRPRO;
+                        }
                         transferred = write(fd, buf, new_count);
                     }
                     else

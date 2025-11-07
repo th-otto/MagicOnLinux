@@ -29,6 +29,49 @@
 #include "Debug.h"
 #include "gui.h"
 
+
+// We need a temporary file, because otherwise we get a syntax
+// error for the long exception error message.
+// To make sure that the message window will not get too small horizontally,
+// send some space characters.
+int showDialogue(const char *msg_text, const char *info_txt, const char *buttons)
+{
+    const char *title = "MagicOnLinux";
+    // TODO: find some reasonable unicode long space
+    const char *spaces = "                                                                                                    ";
+    char text[512];
+    char text_buttons[64] = "";
+
+    FILE *f = nullptr;
+    char *fname = tempnam(nullptr, "magic-on-linux");
+    if (fname != nullptr)
+    {
+        f = fopen(fname, "wt");
+    }
+    if (f != nullptr)
+    {
+        fprintf(f, "%s\n\n%s\n%s\n",msg_text, info_txt, spaces);
+        sprintf(text, "-file \"%s\"", fname);
+        fclose(f);
+    }
+    else
+    {
+        sprintf(text, "%s\n\n%s\n", msg_text, info_txt);
+    }
+
+    sprintf(text_buttons, "-buttons \"%s\"", buttons);
+
+    char command[1024];
+    sprintf(command, "gxmessage -nearmouse -wrap -title \"%s\" %s %s", title, text_buttons, text);
+    // Contrary to man page, we do not get 101, 102, 103 for the buttons, but the value is
+    // shifted by 8, so that we receive 0x6500, 0x6600 and 0x6700 for buttons and 0x0100 for window close.
+    int result = system(command);
+    fprintf(stderr, "-> %d (0x%08x)\n", result, result);
+
+    return result >> 8;
+}
+
+
 // We need a temporary file, because otherwise we get a syntax
 // error for the long exception error message.
 // To make sure that the message window will not get too small horizontally,
@@ -53,7 +96,7 @@ int showAlert(const char *msg_text, const char *info_txt, int nButtons)
     }
     if (f != nullptr)
     {
-        fprintf(f, "%s\n%s\n\n%s\n", spaces, msg_text, info_txt);
+        fprintf(f, "%s\n\n%s\n%s\n",msg_text, info_txt, spaces);
         sprintf(text, "-file \"%s\"", fname);
         fclose(f);
     }

@@ -2500,21 +2500,38 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
             mode_t ftype = (statbuf.st_mode & S_IFMT);
             if (ftype == S_IFDIR)
             {
-                showAlert("Host directory mounted as A:", allocated_path, 1);
-                m_HostXFS.setNewDrv(drv, allocated_path, true, true);
-                return true;
+                int answer = showDialogue("Mount directory as A:?", allocated_path, "OK,Read-Only,Cancel");
+                if ((answer == 101) || (answer == 102))
+                {
+                    bool bReadOnly = (answer == 102);
+                    m_HostXFS.setNewDrv(drv, allocated_path, true, bReadOnly);
+                    return true;
+                }
             }
             else
             if (ftype == S_IFREG)
             {
-                showAlert("Volume image (hopefully) mounted as A:", allocated_path, 1);
-                CVolumeImages::setNewDrv(drv, allocated_path, true, true, statbuf.st_size);
-                return true;
+                int volume_type = CVolumeImages::checkFatVolume(allocated_path);
+                if (volume_type > 0)
+                {
+                    int answer = showDialogue("Mount volume image as A:?", allocated_path, "OK,Read-Only,Cancel");
+                    if ((answer == 101) || (answer == 102))
+                    {
+                        bool bReadOnly = (answer == 102);
+                        CVolumeImages::setNewDrv(drv, allocated_path, true, bReadOnly, statbuf.st_size);
+                        return true;
+                    }
+                }
+                else
+                {
+                    showAlert("This file seems not to be a FAT12/16/32 volume:", allocated_path, 1);
+                }
             }
         }
     }
     return false;
 }
+
 
 /**********************************************************************
 *

@@ -49,4 +49,5 @@ class CConversion
 	static int host2AtariError(int error);
 	static void hostDateToDosDate(time_t host_time, uint16_t *time, uint16_t *date);
 	static void dosDateToHostDate(uint16_t time, uint16_t date, time_t *host_time);
+    static char *copyString(const char *s);
 };

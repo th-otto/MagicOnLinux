@@ -15,4 +15,5 @@ Eject of host volumes or image should tidy-up something? But what? Filesystem ha
 
 Add command line option to convert Atari text files to UTF-8 and vice-versa, including line endings between CR/LF and LF.
 
-Drag & Drop file systems is dumb and treats every file as image, also it only uses A:
+Drag & Drop file systems is dumb and treats every file as image, also it only uses A:. If one image is invalid,
+not further images can be mounted.

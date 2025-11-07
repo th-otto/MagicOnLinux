@@ -23,6 +23,7 @@
 */
 
 #include <string.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <errno.h>
 #include <time.h>
@@ -339,4 +340,22 @@ void CConversion::dosDateToHostDate(uint16_t time, uint16_t date, time_t *host_t
     dt.tm_isdst = -1;   // auto
 
     *host_time = mktime(&dt);
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief [static] Create an allocated copy of a string
+ *
+ * @param[in]  s        string
+ *
+ * @return allocated copy of the string
+ *
+ ************************************************************************************************/
+char *CConversion::copyString(const char *s)
+{
+    unsigned len = strlen(s);
+    char *out = (char *) malloc(len + 1);
+    memcpy(out, s, len + 1);
+    return out;
 }

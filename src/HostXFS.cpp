@@ -4121,7 +4121,7 @@ void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
         if (path != nullptr)
         {
             drv_type[i] = eHostDir;
-            drv_host_path[i] = path;
+            drv_host_path[i] = CConversion::copyString(path);
             drv_longNames[i] = (flags & DRV_FLAG_8p3) == 0;
             drv_readOnly[i] = (flags & DRV_FLAG_RDONLY);
             drv_caseInsens[i] = (flags & DRV_FLAG_CASE_INSENS);
@@ -4146,4 +4146,22 @@ void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
     drv_atari_name['M' - 'A'] = "ROOT";
 
     setDrivebits(xfs_drvbits, addrOffset68k);
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Remove a host directory drive so that it can be re-assigned
+ *
+ * @param[in] drv        Atari drive number 0..25
+ *
+ ************************************************************************************************/
+
+void CHostXFS::eject(uint16_t drv)
+{
+    if ((drv < NDRIVES) && (drv_host_path[drv] != nullptr))
+    {
+        free((void *) drv_host_path[drv]);
+        drv_host_path[drv] = nullptr;
+    }
 }

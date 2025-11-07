@@ -77,7 +77,7 @@ void CVolumeImages::init(uint32_t *new_drvbits)
 
         if (path != nullptr)
         {
-            drv_image_host_path[i] = path;
+            drv_image_host_path[i] = CConversion::copyString(path);
             drv_image_size[i] = statbuf.st_size;
             drv_longNames[i] = (flags & DRV_FLAG_8p3) == 0;
             drv_readOnly[i] = (flags & DRV_FLAG_RDONLY);
@@ -612,7 +612,7 @@ void CVolumeImages::eject(uint16_t drv)
 
         if (drv_image_host_path[drv] != nullptr)
         {
-            // free(drv_image_host_path[drv]) TODO: check
+            free((void *) drv_image_host_path[drv]);
             drv_image_host_path[drv] = nullptr;     // maybe memory leak here
         }
     }

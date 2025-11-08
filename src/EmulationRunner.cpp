@@ -90,19 +90,26 @@ EmulationRunner::~EmulationRunner(void)
  * Does some default initialisations that are independent from the current setting/configuration.
  *
  ************************************************************************************************/
-void EmulationRunner::Init(void)
+int EmulationRunner::Init(void)
 {
     DebugInfo("%s()", __func__);
-    int ret;
-
     m_counter = 0;
 
     // we do not want SDL to catch events like SIGSEGV
-    ret = SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
-    assert(!ret);
+    int ret = SDL_Init(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_NOPARACHUTE);
+    if (ret != 0)
+    {
+        const char *errmsg = SDL_GetError();
+        fprintf(stderr, "SDL error \"%s\"\n", errmsg);
+    }
+    else
+    {
+        assert(!ret);
+        // For whatever reason we need this to make non-US-keys working in X11.
+        SDL_StopTextInput();
+    }
 
-    // For whatever reason we need this to make non-US-keys working in X11.
-    SDL_StopTextInput();
+    return ret;
 }
 
 
@@ -670,7 +677,7 @@ void EmulationRunner::_OpenWindow(void)
             break;
     }
 
-    sprintf(m_window_title, "Atari Emulation (%ux%ux%u%s)",
+    sprintf(m_window_title, PGM_NAME " (%ux%ux%u%s)",
                             Preferences::AtariScreenWidth, Preferences::AtariScreenHeight,
                             screenbitsperpixel, (planeBytes == 2) ? "ip" : "");
     m_visible = false;
@@ -875,7 +882,7 @@ uint32_t EmulationRunner::LoopTimer(Uint32 interval, void *param)
 
     if ((p->m_Emulator.m_bEmulatorHasEnded) && !p->m_bQuitLoop)
     {
-        (void) showAlert("The virtual machine has ended", "The application window will be closed", 1);
+        (void) showAlert("The virtual machine has ended", "The application window will be closed");
         p->m_bQuitLoop = true;
     }
 
@@ -1123,6 +1130,7 @@ void EmulationRunner::EventLoop(void)
             {
                 SDL_DropEvent *ev = &event.drop;
                 DebugWarning2("() - SDL_DROPTEXT \"%s\" currently unhandled", (ev->file != nullptr) ? ev->file : "null");
+                (void) ev;
                 break;
             }
 
@@ -1130,6 +1138,7 @@ void EmulationRunner::EventLoop(void)
             {
                 SDL_DropEvent *ev = &event.drop;
                 DebugWarning2("() - SDL_DROPBEGIN \"%s\" currently unhandled", (ev->file != nullptr) ? ev->file : "null");
+                (void) ev;
                 break;
             }
 
@@ -1137,6 +1146,7 @@ void EmulationRunner::EventLoop(void)
             {
                 SDL_DropEvent *ev = &event.drop;
                 DebugWarning2("() - SDL_DROPCOMPLETE \"%s\" currently unhandled", (ev->file != nullptr) ? ev->file : "null");
+                (void) ev;
                 break;
             }
 

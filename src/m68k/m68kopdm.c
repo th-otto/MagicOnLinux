@@ -4247,7 +4247,9 @@ void m68k_op_jmp_32_ai(void)
 	m68ki_jump(EA_AY_AI_32());
 	m68ki_trace_t0();				   /* auto-disable (see m68kcpu.h) */
 	if(REG_PC == REG_PPC)
+    {
 		USE_ALL_CYCLES();
+    }
 }
 
 
@@ -4256,7 +4258,9 @@ void m68k_op_jmp_32_di(void)
 	m68ki_jump(EA_AY_DI_32());
 	m68ki_trace_t0();				   /* auto-disable (see m68kcpu.h) */
 	if(REG_PC == REG_PPC)
+    {
 		USE_ALL_CYCLES();
+    }
 }
 
 
@@ -4265,7 +4269,9 @@ void m68k_op_jmp_32_ix(void)
 	m68ki_jump(EA_AY_IX_32());
 	m68ki_trace_t0();				   /* auto-disable (see m68kcpu.h) */
 	if(REG_PC == REG_PPC)
+    {
 		USE_ALL_CYCLES();
+    }
 }
 
 
@@ -4274,7 +4280,9 @@ void m68k_op_jmp_32_aw(void)
 	m68ki_jump(EA_AW_32());
 	m68ki_trace_t0();				   /* auto-disable (see m68kcpu.h) */
 	if(REG_PC == REG_PPC)
+    {
 		USE_ALL_CYCLES();
+    }
 }
 
 
@@ -4283,7 +4291,9 @@ void m68k_op_jmp_32_al(void)
 	m68ki_jump(EA_AL_32());
 	m68ki_trace_t0();				   /* auto-disable (see m68kcpu.h) */
 	if(REG_PC == REG_PPC)
+    {
 		USE_ALL_CYCLES();
+    }
 }
 
 
@@ -4292,7 +4302,9 @@ void m68k_op_jmp_32_pcdi(void)
 	m68ki_jump(EA_PCDI_32());
 	m68ki_trace_t0();				   /* auto-disable (see m68kcpu.h) */
 	if(REG_PC == REG_PPC)
+    {
 		USE_ALL_CYCLES();
+    }
 }
 
 
@@ -4301,7 +4313,9 @@ void m68k_op_jmp_32_pcix(void)
 	m68ki_jump(EA_PCIX_32());
 	m68ki_trace_t0();				   /* auto-disable (see m68kcpu.h) */
 	if(REG_PC == REG_PPC)
+    {
 		USE_ALL_CYCLES();
+    }
 }
 
 
@@ -4465,7 +4479,9 @@ void m68k_op_lsr_8_s(void)
 	uint res = src >> shift;
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	*r_dst = MASK_OUT_BELOW_8(*r_dst) | res;
 
@@ -4484,7 +4500,9 @@ void m68k_op_lsr_16_s(void)
 	uint res = src >> shift;
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	*r_dst = MASK_OUT_BELOW_16(*r_dst) | res;
 
@@ -4503,7 +4521,9 @@ void m68k_op_lsr_32_s(void)
 	uint res = src >> shift;
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	*r_dst = res;
 
@@ -4737,7 +4757,9 @@ void m68k_op_lsl_8_s(void)
 	uint res = MASK_OUT_ABOVE_8(src << shift);
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	*r_dst = MASK_OUT_BELOW_8(*r_dst) | res;
 
@@ -4757,7 +4779,9 @@ void m68k_op_lsl_16_s(void)
 	uint res = MASK_OUT_ABOVE_16(src << shift);
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	*r_dst = MASK_OUT_BELOW_16(*r_dst) | res;
 
@@ -4776,7 +4800,9 @@ void m68k_op_lsl_32_s(void)
 	uint res = MASK_OUT_ABOVE_32(src << shift);
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	*r_dst = res;
 
@@ -10943,13 +10969,17 @@ void m68k_op_moves_8_ai(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_8(m68ki_read_8_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_8(REG_D[(word2 >> 12) & 7]) | m68ki_read_8_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -10978,13 +11008,17 @@ void m68k_op_moves_8_pi(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_8(m68ki_read_8_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_8(REG_D[(word2 >> 12) & 7]) | m68ki_read_8_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11013,13 +11047,17 @@ void m68k_op_moves_8_pi7(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_8(m68ki_read_8_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_8(REG_D[(word2 >> 12) & 7]) | m68ki_read_8_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11048,13 +11086,17 @@ void m68k_op_moves_8_pd(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_8(m68ki_read_8_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_8(REG_D[(word2 >> 12) & 7]) | m68ki_read_8_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11083,13 +11125,17 @@ void m68k_op_moves_8_pd7(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_8(m68ki_read_8_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_8(REG_D[(word2 >> 12) & 7]) | m68ki_read_8_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11118,13 +11164,17 @@ void m68k_op_moves_8_di(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_8(m68ki_read_8_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_8(REG_D[(word2 >> 12) & 7]) | m68ki_read_8_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11153,13 +11203,17 @@ void m68k_op_moves_8_ix(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_8(m68ki_read_8_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_8(REG_D[(word2 >> 12) & 7]) | m68ki_read_8_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11188,13 +11242,17 @@ void m68k_op_moves_8_aw(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_8(m68ki_read_8_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_8(REG_D[(word2 >> 12) & 7]) | m68ki_read_8_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11223,13 +11281,17 @@ void m68k_op_moves_8_al(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_8(m68ki_read_8_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_8(REG_D[(word2 >> 12) & 7]) | m68ki_read_8_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11258,13 +11320,17 @@ void m68k_op_moves_16_ai(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_16(m68ki_read_16_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_16(REG_D[(word2 >> 12) & 7]) | m68ki_read_16_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11293,13 +11359,17 @@ void m68k_op_moves_16_pi(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_16(m68ki_read_16_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_16(REG_D[(word2 >> 12) & 7]) | m68ki_read_16_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11328,13 +11398,17 @@ void m68k_op_moves_16_pd(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_16(m68ki_read_16_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_16(REG_D[(word2 >> 12) & 7]) | m68ki_read_16_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11363,13 +11437,17 @@ void m68k_op_moves_16_di(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_16(m68ki_read_16_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_16(REG_D[(word2 >> 12) & 7]) | m68ki_read_16_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11398,13 +11476,17 @@ void m68k_op_moves_16_ix(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_16(m68ki_read_16_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_16(REG_D[(word2 >> 12) & 7]) | m68ki_read_16_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11433,13 +11515,17 @@ void m68k_op_moves_16_aw(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_16(m68ki_read_16_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_16(REG_D[(word2 >> 12) & 7]) | m68ki_read_16_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11468,13 +11554,17 @@ void m68k_op_moves_16_al(void)
 			{
 				REG_A[(word2 >> 12) & 7] = MAKE_INT_16(m68ki_read_16_fc(ea, REG_SFC));
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to data register */
 			REG_D[(word2 >> 12) & 7] = MASK_OUT_BELOW_16(REG_D[(word2 >> 12) & 7]) | m68ki_read_16_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11498,13 +11588,17 @@ void m68k_op_moves_32_ai(void)
 			{
 				m68ki_write_32_fc(ea, REG_DFC, REG_DA[(word2 >> 12) & 15]);
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to register */
 			REG_DA[(word2 >> 12) & 15] = m68ki_read_32_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11528,13 +11622,17 @@ void m68k_op_moves_32_pi(void)
 			{
 				m68ki_write_32_fc(ea, REG_DFC, REG_DA[(word2 >> 12) & 15]);
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to register */
 			REG_DA[(word2 >> 12) & 15] = m68ki_read_32_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11558,13 +11656,17 @@ void m68k_op_moves_32_pd(void)
 			{
 				m68ki_write_32_fc(ea, REG_DFC, REG_DA[(word2 >> 12) & 15]);
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to register */
 			REG_DA[(word2 >> 12) & 15] = m68ki_read_32_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11588,13 +11690,17 @@ void m68k_op_moves_32_di(void)
 			{
 				m68ki_write_32_fc(ea, REG_DFC, REG_DA[(word2 >> 12) & 15]);
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to register */
 			REG_DA[(word2 >> 12) & 15] = m68ki_read_32_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11618,13 +11724,17 @@ void m68k_op_moves_32_ix(void)
 			{
 				m68ki_write_32_fc(ea, REG_DFC, REG_DA[(word2 >> 12) & 15]);
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to register */
 			REG_DA[(word2 >> 12) & 15] = m68ki_read_32_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11648,13 +11758,17 @@ void m68k_op_moves_32_aw(void)
 			{
 				m68ki_write_32_fc(ea, REG_DFC, REG_DA[(word2 >> 12) & 15]);
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to register */
 			REG_DA[(word2 >> 12) & 15] = m68ki_read_32_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();
@@ -11678,13 +11792,17 @@ void m68k_op_moves_32_al(void)
 			{
 				m68ki_write_32_fc(ea, REG_DFC, REG_DA[(word2 >> 12) & 15]);
 				if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+                {
 					USE_CYCLES(2);
+                }
 				return;
 			}
 			/* Memory to register */
 			REG_DA[(word2 >> 12) & 15] = m68ki_read_32_fc(ea, REG_SFC);
 			if(CPU_TYPE_IS_020_VARIANT(CPU_TYPE))
+            {
 				USE_CYCLES(2);
+            }
 			return;
 		}
 		m68ki_exception_privilege_violation();

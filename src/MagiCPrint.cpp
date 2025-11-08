@@ -197,7 +197,9 @@ uint32_t CMagiCPrint::ClosePrinterFile(void)
     DebugInfo2("() -- run command: %s", command);
     ierr = system(command);
     if (ierr)
+    {
         DebugError2("() -- error %d during printing", ierr);
+    }
 
     return ierr;
 }

@@ -840,6 +840,7 @@ uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
                 //set terminal process group
                 grp = be32toh(*((uint32_t *) (addrOffset68k + be32toh(theSerConfParm->parm))));
                 DebugInfo("CMagiC::AtariSerConf() -- Fcntl(TIOCSPGRP, %d)", (uint32_t) grp);
+                (void) grp;     // TODO: really unused?
                 ret = (uint32_t) EINVFN;
                 break;
 
@@ -1446,6 +1447,7 @@ uint32_t CMagiCSerial::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
             //set terminal process group
             grp = be32toh(*((uint32_t *) (addrOffset68k + be32toh(theSerIoctlParm->parm))));
             DebugInfo("CMagiC::AtariSerIoctl() -- Fcntl(TIOCSPGRP, %d)", (uint32_t) grp);
+            (void) grp;     // TODO: really unused?
             ret = (uint32_t) EINVFN;
             break;
 

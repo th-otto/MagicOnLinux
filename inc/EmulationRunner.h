@@ -51,7 +51,7 @@ class EmulationRunner
 
         int StartEmulatorThread(void);
         void EventLoop(void);
-        void Init(void);
+        int Init(void);
         int OpenWindow(void);
         void Cleanup(void);
         void ChangeAtariDrive(unsigned drvnr, const char *path);

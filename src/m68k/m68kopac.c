@@ -3418,10 +3418,14 @@ void m68k_op_asr_8_s(void)
 	uint res = src >> shift;
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	if(GET_MSB_8(src))
+    {
 		res |= m68ki_shift_8_table[shift];
+    }
 
 	*r_dst = MASK_OUT_BELOW_8(*r_dst) | res;
 
@@ -3440,10 +3444,14 @@ void m68k_op_asr_16_s(void)
 	uint res = src >> shift;
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	if(GET_MSB_16(src))
+    {
 		res |= m68ki_shift_16_table[shift];
+    }
 
 	*r_dst = MASK_OUT_BELOW_16(*r_dst) | res;
 
@@ -3462,10 +3470,14 @@ void m68k_op_asr_32_s(void)
 	uint res = src >> shift;
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	if(GET_MSB_32(src))
+    {
 		res |= m68ki_shift_32_table[shift];
+    }
 
 	*r_dst = res;
 
@@ -3766,7 +3778,9 @@ void m68k_op_asl_8_s(void)
 	uint res = MASK_OUT_ABOVE_8(src << shift);
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	*r_dst = MASK_OUT_BELOW_8(*r_dst) | res;
 
@@ -3786,7 +3800,9 @@ void m68k_op_asl_16_s(void)
 	uint res = MASK_OUT_ABOVE_16(src << shift);
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	*r_dst = MASK_OUT_BELOW_16(*r_dst) | res;
 
@@ -3806,7 +3822,9 @@ void m68k_op_asl_32_s(void)
 	uint res = MASK_OUT_ABOVE_32(src << shift);
 
 	if(shift != 0)
+    {
 		USE_CYCLES(shift<<CYC_SHIFT);
+    }
 
 	*r_dst = res;
 
@@ -8061,7 +8079,9 @@ void m68k_op_bra_8(void)
 	m68ki_trace_t0();				   /* auto-disable (see m68kcpu.h) */
 	m68ki_branch_8(MASK_OUT_ABOVE_8(REG_IR));
 	if(REG_PC == REG_PPC)
+    {
 		USE_ALL_CYCLES();
+    }
 }
 
 
@@ -8072,7 +8092,9 @@ void m68k_op_bra_16(void)
 	m68ki_trace_t0();			   /* auto-disable (see m68kcpu.h) */
 	m68ki_branch_16(offset);
 	if(REG_PC == REG_PPC)
+    {
 		USE_ALL_CYCLES();
+    }
 }
 
 
@@ -8085,7 +8107,9 @@ void m68k_op_bra_32(void)
 		m68ki_trace_t0();			   /* auto-disable (see m68kcpu.h) */
 		m68ki_branch_32(offset);
 		if(REG_PC == REG_PPC)
+        {
 			USE_ALL_CYCLES();
+        }
 		return;
 	}
 	else
@@ -8093,7 +8117,9 @@ void m68k_op_bra_32(void)
 		m68ki_trace_t0();				   /* auto-disable (see m68kcpu.h) */
 		m68ki_branch_8(MASK_OUT_ABOVE_8(REG_IR));
 		if(REG_PC == REG_PPC)
+        {
 			USE_ALL_CYCLES();
+        }
 	}
 }
 

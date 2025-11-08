@@ -520,8 +520,11 @@ void CClipboard::Mac2Atari(const uint8_t *pData)
 
 	// letzte Zeile schreiben
 	int32_t  wrcount = wrPtr - ScrapBuffer;
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wunused-result"
 	(void) write(fd, ScrapBuffer, wrcount);
 	(void) close(fd);
+    #pragma GCC diagnostic pop
 
 	free(ScrapBuffer);
 }

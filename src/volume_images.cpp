@@ -585,7 +585,7 @@ uint32_t CVolumeImages::AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count,
             drv_image_fd[drv] = open(drv_image_host_path[drv], drv_readOnly[drv] ? O_RDONLY : O_RDWR);
             if (drv_image_fd[drv] < 0)
             {
-                (void) showAlert("Cannot open Atari volume image:", drv_image_host_path[drv], 1);
+                (void) showAlert("Cannot open Atari volume image:", drv_image_host_path[drv]);
                 drv_image_host_path[drv] = nullptr;
             }
         }

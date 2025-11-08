@@ -4106,7 +4106,7 @@ void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
             int res = stat(path, &statbuf);
             if (res < 0)
             {
-                (void) showAlert("Invalid Atari drive path:", path, 1);
+                (void) showAlert("Invalid Atari drive path:", path);
                 continue;
             }
             // we should not get symbolic links here, because of stat, not lstat...

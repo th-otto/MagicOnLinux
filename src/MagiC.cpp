@@ -347,7 +347,7 @@ int CMagiC::LoadReloc
     int err = 0;
     size_t len, codlen;
     ExeHeader exehead;
-    BasePage *bp;
+    BasePage *bp = nullptr;
     unsigned char *relp;
     unsigned char relb;
     unsigned char *tpaStart, *relBuf = NULL, *reloff, *tbase, *bbase;
@@ -378,7 +378,7 @@ MagicMacX could not find the MagiC kernel file "MagicMacX.OS".
 Reinstall the application.
 [Quit program]
 */
-        (void) showAlert("The emulator cannot find the kernel file MAGICLIN.OS", "Repair configuration file!", 1);
+        (void) showAlert("The emulator cannot find the kernel file MAGICLIN.OS", "Repair configuration file!");
         return -1;
     }
 
@@ -738,7 +738,7 @@ The application ran out of memory.
 Assign more memory to the application using the Finder dialogue "Information"!
 [Cancel]
 */
-        showAlert("The emulator cannot reserve enough memory", "Reduce Atari memory size in configuration file", 1);
+        showAlert("The emulator cannot reserve enough memory", "Reduce Atari memory size in configuration file");
         return(1);
     }
 
@@ -796,9 +796,11 @@ Assign more memory to the application using the Finder dialogue "Information"!
         goto err_inv_os;
     }
 
+#ifndef NDEBUG
     DebugInfo("CMagiC::Init() - sizeof(CMagiC_CPPCCallback) = %u", (unsigned) sizeof(CMagiC_CPPCCallback));
     typedef UINT32 (CMagiC::*CMagiC_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
     DebugInfo("CMagiC::Init() - sizeof(CMagiC_PPCCallback) = %u", (unsigned) sizeof(CMagiC_PPCCallback));
+#endif
 
     assert(sizeof(CMagiC_CPPCCallback) == 16);
 
@@ -817,7 +819,7 @@ The file "MagicMacX.OS" seems to be corrupted or belongs to a different (newer o
 Reinstall the application.
 [Quit program]
 */
-        showAlert("The kernel file MAGICLIN.OS is invalid or outdated", "Review your configuration", 1);
+        showAlert("The kernel file MAGICLIN.OS is invalid or outdated", "Review your configuration");
         return(1);
     }
 
@@ -2155,6 +2157,8 @@ uint32_t CMagiC::AtariDOSFn(uint32_t params, uint8_t *addrOffset68k)
         uint32_t parms;
     } __attribute__((packed));
 
+    (void) params;
+    (void) addrOffset68k;
 #if defined(_DEBUG)
     AtariDOSFnParm *theAtariDOSFnParm = (AtariDOSFnParm *) (addrOffset68k + params);
     DebugInfo("CMagiC::AtariDOSFn(fn = 0x%x)", be16toh(theAtariDOSFnParm->dos_fnr));
@@ -2581,7 +2585,7 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
                 }
                 else
                 {
-                    showAlert("This file seems not to be a FAT12/16/32 volume:", allocated_path, 1);
+                    showAlert("This file seems not to be a FAT12/16/32 volume:", allocated_path);
                 }
             }
         }
@@ -2608,7 +2612,7 @@ uint32_t CMagiC::AtariSysHalt(uint32_t params, uint8_t *addrOffset68k)
 
 // Daten werden getrennt von der Nachricht geliefert
 
-    showAlert("The emulator was halted", errMsg, 1);
+    showAlert("The emulator was halted", errMsg);
     pTheMagiC->StopExec();
     return 0;
 }
@@ -2753,9 +2757,14 @@ uint32_t CMagiC::AtariExit(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
 {
+#ifndef NDEBUG
     const unsigned char *text = addrOffset68k + params;
     //printf((char *) text);
     DebugInfo2("(%s)", CConversion::textAtari2Host(text));
+#else
+    (void) params;
+    (void) addrOffset68k;
+#endif
     return 0;
 }
 
@@ -2771,8 +2780,10 @@ uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
 uint32_t CMagiC::AtariError(uint32_t params, uint8_t *addrOffset68k)
 {
     uint16_t errorCode = be16toh(*((uint16_t *) (addrOffset68k + params)));
-
     DebugInfo2("(%hd)", errorCode);
+    (void) errorCode;
+    (void) params;
+    (void) addrOffset68k;
     /*
      Das System kann keinen passenden Grafiktreiber finden.
 
@@ -2784,7 +2795,7 @@ uint32_t CMagiC::AtariError(uint32_t params, uint8_t *addrOffset68k)
      Install a driver, or change the monitor resolution resp. colour depth using the system's control panel. Finally, restart  MagiCMacX.
      [Quit MagiCMacX]
      */
-    showAlert("The emulated system could not find a suitable video driver", "Review configuration file!", 1);
+    showAlert("The emulated system could not find a suitable video driver", "Review configuration file!");
     pTheMagiC->StopExec();    // fatal error for execution thread
     return 0;
 }
@@ -2943,6 +2954,8 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
             else
                 ret = (uint32_t) EFILNF;
             OS_ExitCriticalRegion(&m_AECriticalRegionId);
+#else
+            ret = (uint32_t) EFILNF;
 #endif
             break;
 

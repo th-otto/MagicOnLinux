@@ -38,15 +38,16 @@
 int showDialogue(const char *msg_text, const char *info_txt, const char *buttons)
 {
     const char *title = "MagicOnLinux";
+    char fname[] = "magic-on-linux_XXXXXX";
     // TODO: find some reasonable unicode long space
     const char *spaces = "                                                                                                    ";
     char text[512];
 
     FILE *f = nullptr;
-    char *fname = tempnam(nullptr, "magic-on-linux");
-    if (fname != nullptr)
+    int fd = mkstemp(fname);
+    if (fd >= 0)
     {
-        f = fopen(fname, "wt");
+        f = fdopen(fd, "wt");
     }
     if (f != nullptr)
     {
@@ -76,57 +77,9 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
 // error for the long exception error message.
 // To make sure that the message window will not get too small horizontally,
 // send some space characters.
-int showAlert(const char *msg_text, const char *info_txt, int nButtons)
+int showAlert(const char *msg_text, const char *info_txt)
 {
-    const char *title = "MagicOnLinux";
-    // TODO: find some reasonable unicode long space
-    const char *spaces = "                                                                                                    ";
-    char text[512];
-    char buttons[64] = "";
-
-    fprintf(stderr, "Alert (%d buttons):\n", nButtons);
-    fprintf(stderr, "  MSG  %s\n", msg_text);
-    fprintf(stderr, "  INFO %s\n", info_txt);
-
-    FILE *f = nullptr;
-    char *fname = tempnam(nullptr, "magic-on-linux");
-    if (fname != nullptr)
-    {
-        f = fopen(fname, "wt");
-    }
-    if (f != nullptr)
-    {
-        fprintf(f, "%s\n\n%s\n%s\n",msg_text, info_txt, spaces);
-        sprintf(text, "-file \"%s\"", fname);
-        fclose(f);
-    }
-    else
-    {
-        sprintf(text, "%s\n\n%s\n", msg_text, info_txt);
-    }
-
-    switch(nButtons)
-    {
-        case 1:
-            sprintf(buttons, "-buttons \"OK\"");
-            break;
-        case 2:
-            sprintf(buttons, "-buttons \"OK,CANCEL\"");
-            break;
-        case 3:
-            sprintf(buttons, "-buttons \"OK,CANCEL,IGNORE\"");
-            break;
-    }
-
-    char command[1024];
-    sprintf(command, "gxmessage -nearmouse -wrap -title \"%s\" %s %s", title, buttons, text);
-    // Contrary to man page, we do not get 101, 102, 103 for the buttons, but the value is
-    // shifted by 8, so that we receive 0x6500, 0x6600 and 0x6700 for buttons and 0x0100 for window close.
-    int result = system(command);
-    unlink(fname);
-    fprintf(stderr, "-> %d (0x%08x)\n", result, result);
-
-    return result >> 8;
+    return showDialogue(msg_text, info_txt, "OK");
 }
 
 static void GuiAtariCrash
@@ -160,7 +113,7 @@ static void GuiAtariCrash
     }
     sprintf(text + strlen(text), "    ProcPath = %s\n", ProcPath);
     sprintf(text + strlen(text), "    pd = 0x%08x\n", pd);
-    (void) showAlert("Atari crash", text, 1);
+    (void) showAlert("Atari crash", text);
 }
 
 

@@ -56,14 +56,16 @@ int EmulationIsRunning(void)
 
 int EmulationInit(void)
 {
+    int ret = 0;
+
     if (!s_EmulationIsInit)
     {
         m68k_init();
-        theEmulation.Init();
+        ret = theEmulation.Init();
         s_EmulationIsInit = 1;
     }
 
-    return 0;
+    return ret;
 }
 
 int EmulationOpenWindow()

@@ -508,7 +508,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
     unsigned var;
     const char *key;
     int num_errors = 0;
-    unsigned drv;
+    unsigned drv = 0xffff;
 
     for (var = 0; var < VAR_NUMBER; var++)
     {
@@ -620,6 +620,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
             break;
 
         case VAR_ATARI_SCREEN_COLOUR_MODE:
+            vu = 0xffff;    // invalid
             num_errors += eval_unsigned(&vu, 6, &line);
             atariScreenColourMode = (enAtariScreenColourMode) vu;
             break;
@@ -672,7 +673,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
                 num_errors += eval_quotated_str_path(pathbuf, sizeof(pathbuf), &line);
                 if (num_errors == 0)
                 {
-                    if (drv == 'U' - 'A')
+                    if ((drv >= NDRIVES) || (drv == 'U' - 'A'))
                     {
                         // Drive U: is taboo, this rhymes and is true.
                         num_errors++;

@@ -149,7 +149,10 @@ int main(int argc, char *argv[])
     {
         char command[1024];
         sprintf(command, "%s %s", editor, config);
+        #pragma GCC diagnostic push
+        #pragma GCC diagnostic ignored "-Wunused-result"
         (void) system(command);
+        #pragma GCC diagnostic pop
         return 0;
     }
 
@@ -176,7 +179,10 @@ int main(int argc, char *argv[])
     CConversion::init();
     CMagiCPrint::init();
     CMagiCSerial::init();
-    EmulationInit();
+    if (EmulationInit())
+    {
+        return -1;
+    }
     EmulationOpenWindow();
     EmulationRun();
     EmulationRunSdl();

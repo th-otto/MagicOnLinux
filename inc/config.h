@@ -32,6 +32,9 @@
 #ifndef SDLOpenGLIntro_config_h
 #define SDLOpenGLIntro_config_h
 
+#define PGM_NAME "MagicOnLinux v0.3"
+#define PGMVER_MAJOR 0
+#define PGMVER_MINOR 3
 
 #define EVENT_MOUSE 1
 

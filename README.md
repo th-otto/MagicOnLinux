@@ -80,8 +80,8 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * verbose
 * name "FAT32_1M"
 
-> dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
-> mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
+* dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
+* mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
 
 # License
 

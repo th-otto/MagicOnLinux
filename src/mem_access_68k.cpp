@@ -65,7 +65,7 @@ void TellDebugCurrentPC(uint32_t pc)
 
 //static unsigned char *HostVideo2Addr;		// Beginn Bildschirmspeicher Host (Hintergrundpuffer)
 
-static const char *AtariAddr2Description(uint32_t addr);
+//static const char *AtariAddr2Description(uint32_t addr);
 
 #if defined(MAGICMACX_DEBUG_SCREEN_ACCESS) || defined(PATCH_VDI_PPC)
 static uint32_t p68k_OffscreenDriver = 0;
@@ -79,6 +79,7 @@ static uint32_t p68k_ScreenDriver = 0;
 #endif
 
 
+#ifndef NDEBUG
 /** **********************************************************************************************
  *
  * @brief Debug helper to get the name of the addressed Atari chip from 68k address
@@ -121,6 +122,7 @@ static const char *AtariAddr2Description(uint32_t addr)
 
 	return("?");
 }
+#endif
 
 
 /** **********************************************************************************************

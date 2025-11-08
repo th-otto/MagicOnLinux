@@ -28,7 +28,7 @@
 #include <stdint.h>
 
 
-extern int showAlert(const char *msg_text, const char *info_txt, int nButtons);
+extern int showAlert(const char *msg_text, const char *info_txt);
 extern int showDialogue(const char *msg_text, const char *info_txt, const char *buttons);
 
 // global function used by CMagiC to report 68k exceptions

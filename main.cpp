@@ -6,7 +6,7 @@
 #include "preferences.h"
 #include "MagiCPrint.h"
 #include "MagiCSerial.h"
-#include "EmulationMain.h"
+#include "EmulationRunner.h"
 
 
 const char *argnames[] =
@@ -179,13 +179,17 @@ int main(int argc, char *argv[])
     CConversion::init();
     CMagiCPrint::init();
     CMagiCSerial::init();
-    if (EmulationInit())
+    m68k_init();
+    if (EmulationRunner::init())
     {
         return -1;
     }
-    EmulationOpenWindow();
-    EmulationRun();
-    EmulationRunSdl();
+    if (EmulationRunner::OpenWindow())
+    {
+        return -1;
+    }
+    EmulationRunner::StartEmulatorThread();
+    EmulationRunner::EventLoop();
     CMagiCPrint::exit();
     CMagiCSerial::exit();
 

@@ -24,6 +24,8 @@
  #include "config.h"
 
 #include <assert.h>
+#include "Debug.h"
+#include "Clipboard.h"        // MagiC clipboad handling
 #include "gui.h"
 #include "EmulationRunner.h"
 #include "emulation_globals.h"
@@ -52,35 +54,31 @@ uint8_t *hostVideoAddr;				// start of host video memory (host address)
 std::atomic_bool gbAtariVideoBufChanged;
 
 
-/** **********************************************************************************************
- *
- * @brief Constructor
- *
- ************************************************************************************************/
-EmulationRunner::EmulationRunner(void)
-{
-    //DebugInfo2("%s()");
-    m_bQuitLoop = false;
-    //drawContext = NULL;
-    m_EmulatorThread = nullptr;
-    m_200HzCnt = 0;
-    m_EmulatorRunning = false;
 
-    // default values
+unsigned EmulationRunner::m_hostScreenW;
+unsigned EmulationRunner::m_hostScreenH;
+double EmulationRunner::m_hostScreenStretchX;
+double EmulationRunner::m_hostScreenStretchY;
 
-    screenbitsperpixel = 32;
-}
+unsigned EmulationRunner::screenbitsperpixel = 32;
+char EmulationRunner::m_window_title[256];
+uint32_t EmulationRunner::m_counter;
+bool EmulationRunner::m_visible;
 
+SDL_Surface *EmulationRunner::m_sdl_atari_surface;        // surface in Atari native pixel format or NULL
+SDL_Surface *EmulationRunner::m_sdl_surface;                // surface in host native pixel format
+SDL_Window  *EmulationRunner::m_sdl_window;
+SDL_Renderer *EmulationRunner::m_sdl_renderer;
+SDL_Texture *EmulationRunner::m_sdl_texture;
+CMagiCScreen EmulationRunner::m_EmulatorScreen;
+CXCmd EmulationRunner::m_EmulatorXcmd;
+CMagiC EmulationRunner::m_Emulator;
+SDL_Thread *EmulationRunner::m_EmulatorThread = nullptr;
+bool EmulationRunner::m_EmulatorRunning = false;
 
-/** **********************************************************************************************
- *
- * @brief Destructor
- *
- ************************************************************************************************/
-EmulationRunner::~EmulationRunner(void)
-{
-    //DebugInfo2("()");
-}
+SDL_TimerID EmulationRunner::m_timer;
+bool EmulationRunner::m_bQuitLoop = false;
+unsigned EmulationRunner::m_200HzCnt = 0;
 
 
 /** **********************************************************************************************
@@ -90,7 +88,7 @@ EmulationRunner::~EmulationRunner(void)
  * Does some default initialisations that are independent from the current setting/configuration.
  *
  ************************************************************************************************/
-int EmulationRunner::Init(void)
+int EmulationRunner::init(void)
 {
     DebugInfo("%s()", __func__);
     m_counter = 0;
@@ -573,10 +571,10 @@ static void ConvertAtari2HostSurface
  ************************************************************************************************/
 void EmulationRunner::_StartEmulatorThread(void)
 {
-    m_timer = SDL_AddTimer(5 /* 5 milliseconds, 200 Hz */, LoopTimer, this);
+    m_timer = SDL_AddTimer(5 /* 5 milliseconds, 200 Hz */, LoopTimer, nullptr);
     // create a short-life helper thread that will later start the CMagiC
     // thread. TODO: Why?
-    m_EmulatorThread = SDL_CreateThread(_EmulatorThread, "EmulatorThread", this);
+    m_EmulatorThread = SDL_CreateThread(EmulatorThread, "EmulatorThread", nullptr);
 }
 
 
@@ -1248,22 +1246,6 @@ void EmulationRunner::EmulatorWindowUpdate(void)
 
 /** **********************************************************************************************
  *
- * @brief Thread starter helper
- *
- * @param[in]  ptr      "this" pointer
- *
- * @return The return value is always zero
- *
- ************************************************************************************************/
-/* static */ int EmulationRunner::_EmulatorThread(void *ptr)
-{
-    EmulationRunner *pThis = (EmulationRunner *) ptr;
-    return pThis->EmulatorThread();
-}
-
-
-/** **********************************************************************************************
- *
  * @brief Short-life thread to create and start emulator thread in CMagiC object
  *
  * @return The return value is always zero
@@ -1273,8 +1255,9 @@ void EmulationRunner::EmulatorWindowUpdate(void)
  *       Afterwards the EmulatorThread() automatically ends.
  *
  ************************************************************************************************/
-int EmulationRunner::EmulatorThread()
+int EmulationRunner::EmulatorThread(void *param)
 {
+    (void) param;
     DebugInfo2("()");
     int err;
 

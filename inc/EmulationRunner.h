@@ -29,68 +29,55 @@
 //#include <OpenGL/gl.h>        // needed?
 //#include <OpenGL/glu.h>        // needed?
 // user headers
-#include "Debug.h"
-#include "Globals.h"
 #include "MagiC.h"
 #include "MagiCScreen.h"
 #include "XCmd.h"
-#include "Clipboard.h"        // MagiC clipboad handling
 
-
+// static class
 class EmulationRunner
 {
-    protected:
-        SDL_TimerID m_timer;
-        bool m_bQuitLoop;
-        unsigned m_200HzCnt;
+  public:
 
-    public:
-        // Constructor and destructor
-        EmulationRunner(void);
-        ~EmulationRunner(void);
+    static int StartEmulatorThread(void);
+    static void EventLoop(void);
+    static int init(void);
+    static int OpenWindow(void);
+    static void Cleanup(void);
+    static void ChangeAtariDrive(unsigned drvnr, const char *path);
 
-        int StartEmulatorThread(void);
-        void EventLoop(void);
-        int Init(void);
-        int OpenWindow(void);
-        void Cleanup(void);
-        void ChangeAtariDrive(unsigned drvnr, const char *path);
+  private:
 
-    private:
-        static uint32_t LoopTimer(Uint32 interval, void* param);
+    static uint32_t LoopTimer(Uint32 interval, void* param);
+    static void HandleUserEvents(SDL_Event* event);
+    static void EmulatorWindowUpdate(void);
+    static void _OpenWindow(void);
+    static void _StartEmulatorThread(void);
+    static int EmulatorThread(void *param);
 
-        void HandleUserEvents(SDL_Event* event);
+    static unsigned m_hostScreenW;
+    static unsigned m_hostScreenH;
+    static double m_hostScreenStretchX;
+    static double m_hostScreenStretchY;
 
-        // Game related functions
-        void EmulatorWindowUpdate(void);
+    static unsigned screenbitsperpixel;
+    static char m_window_title[256];
+    static uint32_t m_counter;
+    static bool m_visible;
 
-        void _OpenWindow(void);
-        void _StartEmulatorThread(void);
+    static SDL_Surface *m_sdl_atari_surface;        // surface in Atari native pixel format or NULL
+    static SDL_Surface *m_sdl_surface;                // surface in host native pixel format
+    static SDL_Window  *m_sdl_window;
+    static SDL_Renderer *m_sdl_renderer;
+    static SDL_Texture *m_sdl_texture;
+    static CMagiCScreen m_EmulatorScreen;
+    static CXCmd m_EmulatorXcmd;
+    static CMagiC m_Emulator;
+    static SDL_Thread *m_EmulatorThread;
+    static bool m_EmulatorRunning;
 
-    unsigned m_hostScreenW;
-    unsigned m_hostScreenH;
-    double m_hostScreenStretchX;
-    double m_hostScreenStretchY;
-
-    unsigned screenbitsperpixel;
-    char m_window_title[256];
-    uint32_t m_counter;
-    bool m_visible;
-
-    SDL_Surface *m_sdl_atari_surface;        // surface in Atari native pixel format or NULL
-    SDL_Surface *m_sdl_surface;                // surface in host native pixel format
-    SDL_Window  *m_sdl_window;
-    SDL_Renderer *m_sdl_renderer;
-    SDL_Texture *m_sdl_texture;
-    CMagiCScreen m_EmulatorScreen;
-    CXCmd m_EmulatorXcmd;
-    CMagiC m_Emulator;
-    SDL_Thread *m_EmulatorThread;
-    bool m_EmulatorRunning;
-
-private:
-    int EmulatorThread();
-    static int _EmulatorThread(void *ptr);
+    static SDL_TimerID m_timer;
+    static bool m_bQuitLoop;
+    static unsigned m_200HzCnt;
 };
 
 const int RUN_EMULATOR_WINDOW_UPDATE = 1;

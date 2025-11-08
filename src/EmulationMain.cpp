@@ -22,6 +22,7 @@
  *
  */
 
+#include "Debug.h"
 #include "EmulationMain.h"
 #include "EmulationRunner.h"
 extern "C"
@@ -45,7 +46,6 @@ extern "C"
 
 static int s_EmulationIsInit = 0;
 static int s_EmulationIsRunning = 0;
-static EmulationRunner theEmulation;
 
 
 
@@ -61,7 +61,7 @@ int EmulationInit(void)
     if (!s_EmulationIsInit)
     {
         m68k_init();
-        ret = theEmulation.Init();
+        ret = EmulationRunner::init();
         s_EmulationIsInit = 1;
     }
 
@@ -70,7 +70,7 @@ int EmulationInit(void)
 
 int EmulationOpenWindow()
 {
-    return theEmulation.OpenWindow();
+    return EmulationRunner::OpenWindow();
 }
 
 void EmulationRun(void)
@@ -78,7 +78,7 @@ void EmulationRun(void)
     DebugInfo("%s()", __func__);
     if (s_EmulationIsInit && !s_EmulationIsRunning)
     {
-        theEmulation.StartEmulatorThread();
+        EmulationRunner::StartEmulatorThread();
         s_EmulationIsRunning = 1;
     }
     DebugInfo("%s() =>", __func__);
@@ -86,7 +86,7 @@ void EmulationRun(void)
 
 void EmulationRunSdl(void)
 {
-    theEmulation.EventLoop();
+    EmulationRunner::EventLoop();
 }
 
 void EmulationExit(void)
@@ -97,7 +97,7 @@ void EmulationExit(void)
 
     if (s_EmulationIsInit)
     {
-        theEmulation.Cleanup();
+        EmulationRunner::Cleanup();
         s_EmulationIsRunning = 0;
         s_EmulationIsInit = 0;
     }
@@ -105,7 +105,7 @@ void EmulationExit(void)
 
 void EmulationChangeAtariDrive(unsigned drvnr, const char *path)
 {
-    theEmulation.ChangeAtariDrive(drvnr, path);
+    EmulationRunner::ChangeAtariDrive(drvnr, path);
 }
 
 

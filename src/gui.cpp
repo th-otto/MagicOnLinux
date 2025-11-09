@@ -87,13 +87,13 @@ static void GuiAtariCrash
     uint16_t exc,
     uint32_t ErrAddr,
     const char *AccessMode,
-    uint32_t pc,
-    uint16_t sr,
-    uint32_t usp,
-    const uint32_t *pDx,        // TODO: Is this big endian or host endian?
-    const uint32_t *pAx,
+    uint32_t pc,                // host-endian
+    uint16_t sr,                // host-endian
+    uint32_t usp,               // host-endian
+    const uint32_t *pDx,        // big-endian
+    const uint32_t *pAx,        // big-endian
     const char *ProcPath,
-    uint32_t pd
+    uint32_t pd                 // host-endian
 )
 {
     char text[1024] = "";

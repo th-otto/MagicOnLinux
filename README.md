@@ -61,6 +61,10 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Mounts Atari volume or floppy disk images
 * Mount file systems, folder or image, via Drag&Drop, readable or read-only
 
+# Remarks
+
+* The MagiC task manager is activated via Ctrl-Alt-^ (the key below Esc) on German keyboards, because Ctrl-Alt-Esc is reserved in Linux.
+
 # Bugs and Agenda
 
 * Include German, French and English localisation of emulator and emulated system without needing to clone AtariX repository.

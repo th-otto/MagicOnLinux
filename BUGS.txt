@@ -29,10 +29,8 @@ Create disk image:
 dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
 mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
 
-
-Wo ist die Atari-Entf-Taste?
-Wie kommt man in den MagiC-Taskmanager? Welcher Hotkey?
-Das sollte eigentlich Ctrl-Alt-Esc sein. Warum geht das nicht?
+Modifier keys, especially CapsLock must be re-synchronised after host window change.
 
 Wenn Gembench abstürzt, kommt noch eine gmessage, dann ein Alert vom Atari, und dann geht nichts mehr.
 Ist da ein deadlock?
+

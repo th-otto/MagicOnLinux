@@ -47,7 +47,7 @@
 //#define _DEBUG_BASEPAGE
 //#define _DEBUG_KBD_AND_MOUSE
 //#define _DEBUG_KB_CRITICAL_REGION
-//#define _DEBUG_EVENTS
+#define _DEBUG_EVENTS
 //#define _DEBUG_XFS
 //#define _DEBUG_HOST_HANDLES 1
 #define EMULATE_68K_TRACE 1

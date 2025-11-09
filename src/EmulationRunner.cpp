@@ -952,9 +952,6 @@ void EmulationRunner::EventLoop(void)
     DebugInfo2("()");
     SDL_Event event;
 
-    // Do not catch keyboard events, leave them for dialogue windows
-    //SDL_KeyboardActivate(0);        // TODO: Find better hack, this one was for macOS
-
     while((!m_bQuitLoop) && (SDL_WaitEvent(&event)))
     {
         switch(event.type)

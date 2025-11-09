@@ -1577,6 +1577,15 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
             return 1;
         }
 
+        // Special handling of Ctrl-Alt-SDL_SCANCODE_GRAVE
+
+        static const uint8_t kbshift_sh_ctrl_alt_mask = (KBSHIFT_SHIFT_RIGHT + KBSHIFT_SHIFT_LEFT + KBSHIFT_CTRL + KBSHIFT_ALT + KBSHIFT_ALTGR);
+        uint8_t kbshift_masked = m_AtariKbData[0] & kbshift_sh_ctrl_alt_mask;
+        if ((sdlScanCode == 0x35) &&  (kbshift_masked == KBSHIFT_CTRL + KBSHIFT_ALT))
+        {
+            sdlScanCode = 0x29;     // SDL_SCANCODE_ESCAPE
+        }
+
         // Convert from SDL to Atari scancode
 
         val = CMagiCKeyboard::SdlScanCode2AtariScanCode(sdlScanCode);

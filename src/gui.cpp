@@ -38,7 +38,7 @@
 int showDialogue(const char *msg_text, const char *info_txt, const char *buttons)
 {
     const char *title = "MagicOnLinux";
-    char fname[] = "magic-on-linux_XXXXXX";
+    char fname[] = "/tmp/magic-on-linux_XXXXXX";
     // TODO: find some reasonable unicode long space
     const char *spaces = "                                                                                                    ";
     char text[512];

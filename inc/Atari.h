@@ -264,6 +264,17 @@ struct BPB
 };
 
 
+/// kbshift bits
+#define KBSHIFT_SHIFT_RIGHT     0x01
+#define KBSHIFT_SHIFT_LEFT      0x02
+#define KBSHIFT_CTRL            0x04
+#define KBSHIFT_ALT             0x08
+#define KBSHIFT_CAPS_LOCK       0x10
+#define KBSHIFT_MBUTTON_RIGHT   0x20
+#define KBSHIFT_MBUTTON_LEFT    0x40
+#define KBSHIFT_ALTGR           0x80    // Milan TOS 4.06
+
+
 /// The system variable _sysbase (0x4F2L) points to this structure,
 /// which is not MagiC specific.
 struct SYSHDR
@@ -282,45 +293,45 @@ struct SYSHDR
      * These members were added with TOS 1.2:
     */
     UINT32_BE _root;        /* $20 -> base of OS pool               */
-    UINT32_BE kbshift;      /* $24 -> 68-Adresse der Atari-Variablen "kbshift" und "kbrepeat" */
+    UINT32_BE kbshift;      /* $24 -> 68 address of Atari system variable "kbshift" and "kbrepeat" */
     UINT32_BE _run;         /* $28 -> GEMDOS PID of current process */
     UINT32_BE p_rsv2;       /* $2c << unused, reserved >>           */
 } __attribute__((packed));
 
 /* interrupt vectors */
 
-#define INTV_0_RESET_SSP        0x000    /* ssp bei Reset */
-#define INTV_1_RESET_PC         0x004    /* pc bei Reset */
-#define INTV_2_BUS_ERROR        0x008    /* Busfehler */
-#define INTV_3_ADDRESS_ERROR    0x00c    /* Adre�fehler */
-#define INTV_4_ILLEGAL          0x010    /* Illegaler Opcode */
-#define INTV_5_DIV_BY_ZERO      0x014    /* Division durch 0 */
-#define INTV_6_CHK              0x018    /* chk Opcode */
-#define INTV_7_TRAPV            0x01c    /* trapv Befehl */
-#define INTV_8_PRIV_VIOL        0x020    /* Privilegverletzung */
+#define INTV_0_RESET_SSP        0x000    /* ssp on reset */
+#define INTV_1_RESET_PC         0x004    /* pc on reset */
+#define INTV_2_BUS_ERROR        0x008    /* bus fault */
+#define INTV_3_ADDRESS_ERROR    0x00c    /* address fault */
+#define INTV_4_ILLEGAL          0x010    /* invalid CPU opcode */
+#define INTV_5_DIV_BY_ZERO      0x014    /* integer division by zero */
+#define INTV_6_CHK              0x018    /* chk opcode */
+#define INTV_7_TRAPV            0x01c    /* trapv instruction */
+#define INTV_8_PRIV_VIOL        0x020    /* privilege violation */
 #define INTV_9_TRACE            0x024    /* trace */
-#define INTV_10_LINE_A          0x028    /* LineA-Opcode */
-#define INTV_11_LINE_F          0x02c    /* LineF-Opcode */
-#define INTV_12                 0x030    /* reserviert */
-#define INTV_13                 0x034    /* reserviert */
-#define INTV_14                 0x038    /* reserviert */
-#define INTV_15                 0x03c    /* reserviert */
-#define INTV_16                 0x040    /* reserviert */
-#define INTV_17                 0x044    /* reserviert */
-#define INTV_18                 0x048    /* reserviert */
-#define INTV_19                 0x04c    /* reserviert */
-#define INTV_20                 0x050    /* reserviert */
-#define INTV_21                 0x054    /* reserviert */
-#define INTV_22                 0x058    /* reserviert */
-#define INTV_23                 0x05c    /* reserviert */
-#define INTV_24_SPURIOUS        0x060    /* Interrupt unbekannter Herkunft */
-#define INTV_25_AUTV_1          0x064    /* beim ST unbenutzt */
+#define INTV_10_LINE_A          0x028    /* LineA opcode */
+#define INTV_11_LINE_F          0x02c    /* LineF opcode */
+#define INTV_12                 0x030    /* reserved */
+#define INTV_13                 0x034    /* reserved */
+#define INTV_14                 0x038    /* reserved */
+#define INTV_15                 0x03c    /* reserved */
+#define INTV_16                 0x040    /* reserved */
+#define INTV_17                 0x044    /* reserved */
+#define INTV_18                 0x048    /* reserved */
+#define INTV_19                 0x04c    /* reserved */
+#define INTV_20                 0x050    /* reserved */
+#define INTV_21                 0x054    /* reserved */
+#define INTV_22                 0x058    /* reserved */
+#define INTV_23                 0x05c    /* reserved */
+#define INTV_24_SPURIOUS        0x060    /* interrupt of unknown reason */
+#define INTV_25_AUTV_1          0x064    /* not used by Atari */
 #define INTV_26_AUTV_2          0x068    /* ST: Hblank */
-#define INTV_27_AUTV_3          0x06c    /* beim ST unbenutzt */
+#define INTV_27_AUTV_3          0x06c    /* not used by Atari */
 #define INTV_28_AUTV_4          0x070    /* ST: VBlank */
-#define INTV_29_AUTV_5          0x074    /* beim ST unbenutzt */
-#define INTV_30_AUTV_6          0x078    /* beim ST unbenutzt */
-#define INTV_31_AUTV_7          0x07c    /* beim ST unbenutzt */
+#define INTV_29_AUTV_5          0x074    /* not used by Atari */
+#define INTV_30_AUTV_6          0x078    /* not used by Atari */
+#define INTV_31_AUTV_7          0x07c    /* not used by Atari */
 #define INTV_32_TRAP_0          0x080    /* Trap #0 */
 #define INTV_33_TRAP_1          0x084    /* Trap #1 */
 #define INTV_34_TRAP_2          0x088    /* Trap #2 */
@@ -337,37 +348,37 @@ struct SYSHDR
 #define INTV_45_TRAP_13         0x0b4    /* Trap #13 */
 #define INTV_46_TRAP_14         0x0b8    /* Trap #14 */
 #define INTV_47_TRAP_15         0x0bc    /* Trap #15 */
-#define INTV_48                 0x0c0    /* reserviert */
-#define INTV_49                 0x0c4    /* reserviert */
-#define INTV_50                 0x0c8    /* reserviert */
-#define INTV_51                 0x0cc    /* reserviert */
-#define INTV_52                 0x0d0    /* reserviert */
-#define INTV_53                 0x0d4    /* reserviert */
-#define INTV_54                 0x0d8    /* reserviert */
-#define INTV_55                 0x0dc    /* reserviert */
-#define INTV_56                 0x0e0    /* reserviert */
-#define INTV_57                 0x0e4    /* reserviert */
-#define INTV_58                 0x0e8    /* reserviert */
-#define INTV_59                 0x0ec    /* reserviert */
-#define INTV_60                 0x0f0    /* reserviert */
-#define INTV_61                 0x0f4    /* reserviert */
-#define INTV_62                 0x0f8    /* reserviert */
-#define INTV_63                 0x0fc    /* reserviert */
+#define INTV_48                 0x0c0    /* reserved */
+#define INTV_49                 0x0c4    /* reserved */
+#define INTV_50                 0x0c8    /* reserved */
+#define INTV_51                 0x0cc    /* reserved */
+#define INTV_52                 0x0d0    /* reserved */
+#define INTV_53                 0x0d4    /* reserved */
+#define INTV_54                 0x0d8    /* reserved */
+#define INTV_55                 0x0dc    /* reserved */
+#define INTV_56                 0x0e0    /* reserved */
+#define INTV_57                 0x0e4    /* reserved */
+#define INTV_58                 0x0e8    /* reserved */
+#define INTV_59                 0x0ec    /* reserved */
+#define INTV_60                 0x0f0    /* reserved */
+#define INTV_61                 0x0f4    /* reserved */
+#define INTV_62                 0x0f8    /* reserved */
+#define INTV_63                 0x0fc    /* reserved */
 #define INTV_MFP0_CENTBUSY      0x100    /* centronics busy */
 #define INTV_MFP1_DCD           0x104    /* rs232 carrier detect */
 #define INTV_MFP2_CTS           0x108    /* rs232 clear to send */
 #define INTV_MFP3_GPU_DONE      0x10c    /* blitter */
-#define INTV_MFP4_BAUDGEN       0x110    /* Baudratengenerator */
-#define INTV_MFP5_HZ200         0x114    /* 200Hz Timer */
+#define INTV_MFP4_BAUDGEN       0x110    /* baud rate generator */
+#define INTV_MFP5_HZ200         0x114    /* 200Hz timer */
 #define INTV_MFP6_IKBD_MIDI     0x118    /* IKBD/MIDI */
 #define INTV_MFP7_FDC_ACSI      0x11c    /* FDC/ACSI */
 #define INTV_MFP8               0x120    /* display enable (?) */
-#define INTV_MFP9_TX_ERR        0x124    /* Sendefehler RS232 */
-#define INTV_MFP10_SND_EMPT     0x128    /* RS232 Sendepuffer leer*/
-#define INTV_MFP11_RX_ERR       0x12c    /* Empfangsfehler RS232 */
-#define INTV_MFP12_RCV_FULL     0x130    /* RS232 Empfangspuffer voll */
-#define INTV_MFP13              0x134    /* unbenutzt */
-#define INTV_MFP14_RING_IND     0x138    /* RS232: ankommender Anruf */
+#define INTV_MFP9_TX_ERR        0x124    /* transmission fault RS232 */
+#define INTV_MFP10_SND_EMPT     0x128    /* RS232 transmission buffer empty */
+#define INTV_MFP11_RX_ERR       0x12c    /* receive fault RS232 */
+#define INTV_MFP12_RCV_FULL     0x130    /* RS232 receive buffer full */
+#define INTV_MFP13              0x134    /* unused */
+#define INTV_MFP14_RING_IND     0x138    /* RS232: incoming call */
 #define INTV_MFP15_MNCHR        0x13c    /* monochrome monitor detect */
 
 /* System variables */

@@ -83,6 +83,10 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
 * mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
 
+# Example Command to Create a 720k Floppy Disk Image
+
+* mkfs.msdos -C floppy720k.img 720
+
 # License
 
 The MagicOnLinux emulator is licensed according to GPLv3, see LICENSE file.

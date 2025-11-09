@@ -89,7 +89,7 @@ mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" -C vol-fat32-1M.img 1024
 
 # Example Command to Create a 720k Floppy Disk Image
 
-* mkfs.msdos -C floppy720k.img 720
+mkfs.msdos -C floppy720k.img 720
 
 # License
 

@@ -32,8 +32,8 @@ extern int showAlert(const char *msg_text, const char *info_txt);
 extern int showDialogue(const char *msg_text, const char *info_txt, const char *buttons);
 
 // global function used by CMagiC to report 68k exceptions
-extern void Send68kExceptionData(
-                uint16_t exc,
+extern void send68kExceptionData(
+                unsigned exception_no,
                 uint32_t ErrAddr,
                 char *AccessMode,
                 uint32_t pc,

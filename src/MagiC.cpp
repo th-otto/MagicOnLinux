@@ -2704,15 +2704,16 @@ uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
     }
 #endif
 
-    Send68kExceptionData(
-                (uint16_t) (addrOffset68k[proc_pc /*0x3c4*/]),        // Exception-Nummer
+    // Note that the first byte (in big-endian: the uppermost byte) of proc_pc holds the exception vector number
+    send68kExceptionData(
+                addrOffset68k[proc_pc /*0x3c4*/],           // exception vector number
                 pTheMagiC->m_BusErrorAddress,
                 pTheMagiC->m_BusErrorAccessMode,
-                m68k_pc,                                                            // pc
+                m68k_pc,                                                    // pc
                 be16toh(*((uint16_t *) (addrOffset68k + proc_stk))),        // sr
                 be32toh(*((uint32_t *) (addrOffset68k + proc_usp))),        // usp
-                (uint32_t *) (addrOffset68k + proc_regs /*0x384*/),                    // Dx (big endian)
-                (uint32_t *) (addrOffset68k + proc_regs + 32),                            // Ax (big endian)
+                (uint32_t *) (addrOffset68k + proc_regs /*0x384*/),         // Dx (big-endian)
+                (uint32_t *) (addrOffset68k + proc_regs + 32),              // Ax (big-endian)
                 AtariPrgFname,
                 act_pd);
 

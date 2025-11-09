@@ -30,3 +30,5 @@ dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
 mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
 
 GEMBENCH crashes (why?) and corrupts the whole emulated system. Why? Is there a deadlock in the emulator?
+
+MGEDIT should be killable via MagiC task manager, but in most time this leads to a total system crash.

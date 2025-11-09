@@ -383,83 +383,83 @@ struct SYSHDR
 
 /* System variables */
 
-#define proc_lives              0x380
-#define proc_regs               0x384
-#define proc_pc                 0x3c4
-#define proc_usp                0x3c8
-#define proc_stk                0x3cc
-#define etv_timer               0x400
-#define etv_critic              0x404
-#define etv_term                0x408
-#define etv_xtra                0x40c
-#define memvalid                0x420
-#define memctrl                 0x424
-#define resvalid                0x426
-#define resvector               0x42a
-#define phystop                 0x42e
-#define _membot                 0x432
-#define _memtop                 0x436
-#define memval2                 0x43a
-#define flock                   0x43e
-#define seekrate                0x440
-#define _timer_ms               0x442
-#define _fverify                0x444
-#define _bootdev                0x446
-#define palmode                 0x448    // unused
-#define defshiftmd              0x44a
-#define sshiftmd                0x44c
-#define _v_bas_ad               0x44e
-#define vblsem                  0x452
-#define nvbls                   0x454
-#define _vblqueue               0x456
-#define colorptr                0x45a
-#define screenpt                0x45e
-#define _vbclock                0x462
-#define _frclock                0x466
-#define hdv_init                0x46a
-#define swv_vec                 0x46e
-#define hdv_bpb                 0x472
-#define hdv_rw                  0x476
-#define hdv_boot                0x47a
-#define hdv_mediach             0x47e
-#define _cmdload                0x482
-#define conterm                 0x484
-#define trp14ret                0x486       // here unused
+#define proc_lives              0x380       // Validates System Crash Page if 0x12345678
+#define proc_regs               0x384       // Saved 68k registers d0-d7,a0-a7
+#define proc_pc                 0x3c4       // Vector number of crash exception
+#define proc_usp                0x3c8       // Save USP
+#define proc_stk                0x3cc       // Saved 16 16-bit words from exception stack
+#define etv_timer               0x400       // GEM Event timer vector
+#define etv_critic              0x404       // GEM Critical error handler
+#define etv_term                0x408       // GEM Program termination vector
+#define etv_xtra                0x40c       // 5 GEM Additional vectors (unused)
+#define memvalid                0x420       // Validates memory configuration if 0x752019F3
+#define memctrl                 0x424       // Copy of contents of 0xFF8001
+#define resvalid                0x426       // Validates resvector if $31415926
+#define resvector               0x42a       // Reset vector
+#define phystop                 0x42e       // Physical top of RAM
+#define _membot                 0x432       // Start of TPA (user memory)
+#define _memtop                 0x436       // End of TPA (user memory)
+#define memval2                 0x43a       // Validates memcntrl and memconf if 0x237698AA
+#define flock                   0x43e       // If nonzero, floppy disk VBL routine is disabled
+#define seekrate                0x440       // Floppy Seek rate - 0:6ms, 1:12ms, 2:2ms, 3:3ms
+#define _timer_ms               0x442       // Time between two timer calls (in milliseconds)
+#define _fverify                0x444       // If not zero, verify floppy disk writes
+#define _bootdev                0x446       // Default boot device
+#define palmode                 0x448       // 0 - NTSC (60hz), <>0 - PAL (50hz) (unused in emulator)
+#define defshiftmd              0x44a       // Default video resolution
+#define sshiftmd                0x44c       // Copy of contents of 0xFF8260
+#define _v_bas_ad               0x44e       // Pointer to video RAM (logical screen base)
+#define vblsem                  0x452       // If not zero, VBL routine is not executed
+#define nvbls                   0x454       // Number of vertical blank routines
+#define _vblqueue               0x456       // Pointer to list of vertical blank routines
+#define colorptr                0x45a       // If not zero, points to color palette to be loaded
+#define screenpt                0x45e       // If not zero, points to video ram for next VBL
+#define _vbclock                0x462       // Counter for number of VBLs
+#define _frclock                0x466       // Number of VBL routines executed
+#define hdv_init                0x46a       // Vector for hard disk initialisation
+#define swv_vec                 0x46e       // Vector for resolution change
+#define hdv_bpb                 0x472       // Vector for getbpb for hard disk
+#define hdv_rw                  0x476       // Vector for read/write routine for hard disk
+#define hdv_boot                0x47a       // Vector for hard disk boot
+#define hdv_mediach             0x47e       // Vector for hard disk media change
+#define _cmdload                0x482       // If not zero, attempt to load "COMMAND.PRG" on boot
+#define conterm                 0x484       // Attribute vector for console output (bit 0: click, bit 1: repeat, bit 2: bell, 3: return kbshift on BIOS conin)
+#define trp14ret                0x486       // Return address for TRAP #14 (unused)
 #define os_chksum               trp14ret    // Mag!X: checksum over system
 #define criticret               0x48a       // MagiC 6.01: DOS-Event-Critic is active
-#define themd                   0x48e
-#define ____md                  0x49e       // here unusec
+#define themd                   0x48e       // Memory descriptor block
+#define ____md                  0x49e       // Space for additional memory descriptors (unused)
 #define fstrm_beg               ____md      // Mag!X: begin of TT RAM
-#define savptr                  0x4a2
-#define _nflops                 0x4a6
-#define con_state               0x4a8       // here unused
-#define save_row                0x4ac       // here unused
-#define sav_context             0x4ae       // here unused
-#define _bufl                   0x4b2       // here unused
-#define _hz_200                 0x4ba
-#define the_env                 0x4be       // here unused
-#define _drvbits                0x4c2
-#define _dskbufp                0x4c6       // pointer to a 4096 byte disk buffer, used by BIOS GetBpb()
-#define _autopath               0x4ca       // here unused
-#define _vbl_list               0x4ce
-#define _dumpflg                0x4ee
-#define _prtabt                 0x4f0       // here unused
-#define _sysbase                0x4f2
-#define _shell_p                0x4f6       // here unused
-#define end_os                  0x4fa
-#define exec_os                 0x4fe
-#define scr_dump                0x502
-#define prv_lsto                0x506
-#define prv_lst                 0x50a
-#define prv_auxo                0x50e
-#define prv_aux                 0x512
-#define pun_ptr                 0x516       // here unused
-#define memval3                 0x51a
-#define dev_vecs                0x51e       // UINT32_BE dev_vecs[8*4]
-#define cpu_typ                 0x59e       // UINT16_BE cpu_typ
+#define savptr                  0x4a2       // Pointer to BIOS save registers block
+#define _nflops                 0x4a6       // Number of connected floppy drives
+#define con_state               0x4a8       // Vector for screen output (here unused)
+#define save_row                0x4ac       // Temporary storage for cursor line position (here unused)
+#define sav_context             0x4ae       // Pointer to save area for exception processing (here unused)
+#define _bufl                   0x4b2       // 2 Pointers to buffer control block for GEMDOS data and fat/dir (here unused)
+#define _hz_200                 0x4ba       // Counter for 200hz system clock
+#define the_env                 0x4be       // Pointer to default environment string (here unused)
+#define _drvbits                0x4c2       // Bit allocation for physical drives (bit 0=A, 1=B..)
+#define _dskbufp                0x4c6       // pointer to a 4096-byte (TOS: 1024-byte) disk buffer, used by BIOS GetBpb()
+#define _autopath               0x4ca       // Pointer to autoexecute path (here unused)
+#define _vbl_list               0x4ce       // 8 Pointers to VBL routines
+#define _dumpflg                0x4ee       // Flag for screen -> printer dump
+#define _prtabt                 0x4f0       // Printer abort flag (here unused)
+#define _sysbase                0x4f2       // Pointer to start of OS
+#define _shell_p                0x4f6       // Global shell pointer (here unused)
+#define end_os                  0x4fa       // Pointer to end of OS
+#define exec_os                 0x4fe       // Pointer to entry point of OS
+#define scr_dump                0x502       // Pointer to screen dump routine
+#define prv_lsto                0x506       // Pointer to _lstostat()
+#define prv_lst                 0x50a       // Pointer to _lstout()
+#define prv_auxo                0x50e       // Pointer to _auxostat()
+#define prv_aux                 0x512       // Pointer to _auxout()
+#define pun_ptr                 0x516       // If AHDI, pointer to pun_info (here unused)
+#define memval3                 0x51a       // If $5555AAAA, reset
+#define dev_vecs                0x51e       // UINT32_BE dev_vecs[8*4], 4*8 Pointers to input/output/status routines
+#define cpu_typ                 0x59e       // UINT16_BE cpu_typ, If not 0, then not 68000 - use long stack frames
 #define _p_cookies              0x5a0       // PTR32_BE, Atari pointer to cookie
-#define fstrm_top               0x5a4
-#define fstrm_valid             0x5a8
+#define fstrm_top               0x5a4       // Pointer to end of FastRam
+#define fstrm_valid             0x5a8       // Validates ramtop if 0x1357BD13
 #define bell_hook               0x5ac       // PTR32_BE, Atari pointer to pling
 #define kcl_hook                0x5b0       // PTR32_BE, Atari pointer to key-klick
 

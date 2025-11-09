@@ -28,6 +28,7 @@
 #include <unistd.h>
 
 #include "Debug.h"
+#include "Atari.h"
 #include "gui.h"
 
 
@@ -82,9 +83,43 @@ int showAlert(const char *msg_text, const char *info_txt)
     return showDialogue(msg_text, info_txt, "OK");
 }
 
+
+const char *exception68kToName(unsigned exception_no)
+{
+    static char buf[32];
+
+    exception_no <<= 2;     // convert from exception number to exception vector
+
+    if ((exception_no >= INTV_32_TRAP_0) && (exception_no <= INTV_47_TRAP_15))
+    {
+        sprintf(buf, "Trap %u", (exception_no - INTV_32_TRAP_0) >> 2);
+    }
+    else
+    switch (exception_no)
+    {
+        case INTV_2_BUS_ERROR:      strcpy(buf, "bus error"); break;
+        case INTV_3_ADDRESS_ERROR:  strcpy(buf, "address error"); break;
+        case INTV_4_ILLEGAL:        strcpy(buf, "illegal instruction"); break;
+        case INTV_5_DIV_BY_ZERO:    strcpy(buf, "division by zero"); break;
+        case INTV_6_CHK:            strcpy(buf, "CHK"); break;
+        case INTV_7_TRAPV:          strcpy(buf, "TRAPV"); break;
+        case INTV_8_PRIV_VIOL:      strcpy(buf, "privilege violation"); break;
+        case INTV_9_TRACE:          strcpy(buf, "TRACE"); break;
+        case INTV_10_LINE_A:        strcpy(buf, "Line A"); break;
+        case INTV_11_LINE_F:        strcpy(buf, "Line F"); break;
+        case INTV_13:               strcpy(buf, "co-proc protocol (68030)"); break;
+        case INTV_14:               strcpy(buf, "format (68030)"); break;
+        case INTV_56:               strcpy(buf, "MMU configuration"); break;
+        default:                    strcpy(buf, "(other)"); break;
+    }
+
+    return buf;
+}
+
+
 static void GuiAtariCrash
 (
-    uint16_t exc,
+    unsigned exception_no,
     uint32_t ErrAddr,
     const char *AccessMode,
     uint32_t pc,                // host-endian
@@ -97,11 +132,43 @@ static void GuiAtariCrash
 )
 {
     char text[1024] = "";
-    sprintf(text + strlen(text), "    exc = %u\n", exc);
+    char srbits[32] = "";
+    if (sr & 0x8000)
+    {
+        strcat(srbits, "TRC ");
+    }
+    if (sr & 0x2000)
+    {
+        strcat(srbits, "SUP ");
+    }
+    if (sr & 0x0010)
+    {
+        strcat(srbits, "EXT");
+    }
+    if (sr & 0x0008)
+    {
+        strcat(srbits, "NEG ");
+    }
+    if (sr & 0x0004)
+    {
+        strcat(srbits, "ZER ");
+    }
+    if (sr & 0x0002)
+    {
+        strcat(srbits, "OVF ");
+    }
+    if (sr & 0x0001)
+    {
+        strcat(srbits, "CRY ");
+    }
+    sprintf(srbits + strlen(srbits), "INT=%u", (sr >> 8) & 7);
+
+
+    sprintf(text + strlen(text), "    exc = %s (%u)\n", exception68kToName(exception_no), exception_no);
     sprintf(text + strlen(text), "    ErrAddr = 0x%08x\n", ErrAddr);
     sprintf(text + strlen(text), "    AccessMode = %s\n", AccessMode);
     sprintf(text + strlen(text), "    pc = 0x%08x\n", pc);
-    sprintf(text + strlen(text), "    sr = 0x%04x\n", sr);
+    sprintf(text + strlen(text), "    sr = 0x%04x (%s)\n", sr, srbits);
     sprintf(text + strlen(text), "    usp = 0x%08x\n", usp);
     for (int i = 0; i < 8; i++)
     {
@@ -117,8 +184,8 @@ static void GuiAtariCrash
 }
 
 
-void Send68kExceptionData(
-                         uint16_t exc,
+void send68kExceptionData(
+                         unsigned exception_no,
                          uint32_t ErrAddr,
                          char *AccessMode,
                          uint32_t pc,
@@ -129,5 +196,5 @@ void Send68kExceptionData(
                          const char *ProcPath,
                          uint32_t pd)
 {
-    GuiAtariCrash(exc, ErrAddr, AccessMode, pc, sr, usp, pDx, pAx, ProcPath, pd);
+    GuiAtariCrash(exception_no, ErrAddr, AccessMode, pc, sr, usp, pDx, pAx, ProcPath, pd);
 }

@@ -1629,6 +1629,27 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Update Atari kbshift system variable from host
+ *
+ * @param[in]  atari_kbshift    desired state of the Atari system variable kbshift
+ *
+ * @note Called from main event loop, after window focus has been regained, to make sure
+ *       that modifier keys and mouse button states do not diverge between host and emulator,
+ *       especially CapsLock state of host shall match that of emulated system.
+ *
+ ************************************************************************************************/
+void CMagiC::sendKbshift(uint8_t atari_kbshift)
+{
+    if (m_bEmulatorIsRunning && (m_AtariKbData[0] != atari_kbshift))
+    {
+        CDebug::DebugInfo2("() -- re-synchronise Atari kbshift 0x%02x -> 0x%02x", m_AtariKbData[0], atari_kbshift);
+        m_AtariKbData[0] = atari_kbshift;
+    }
+}
+
+
 #if 0
 /**********************************************************************
 *

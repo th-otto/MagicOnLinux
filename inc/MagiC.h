@@ -54,6 +54,7 @@ class CMagiC
     void TerminateThread(void);     // terminate it
 
     int SendSdlKeyboard(int sdlScanCode, bool KeyUp);
+    void sendKbshift(uint8_t atari_kbshift);
     #if 0
     int SendKeyboardShift(uint32_t modifiers);
     #endif

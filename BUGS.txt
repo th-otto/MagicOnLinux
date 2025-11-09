@@ -11,12 +11,12 @@ system info control panel shows 29.12.2003 as kernel build date. Update!
 
 Prevent volume image from being mounted twice.
 
-Eject of host volumes or image should tidy-up something? But what? Filesystem has already been closed before.
-
 Add command line option to convert Atari text files to UTF-8 and vice-versa, including line endings between CR/LF and LF.
 
-Drag & Drop file systems is dumb and treats every file as image, also it only uses A:. If one image is invalid,
-not further images can be mounted.
+Drag & Drop file systems treats every file as image. If one image is invalid, no further images can be mounted.
+Maybe provide a list of supported file names extensions (.st, .image, .diskimage).
+
+Atari/UTF-8 conversion is multiple times in the source code, for filenames and clipboard.
 
 
 Create disk image:
@@ -29,8 +29,4 @@ Create disk image:
 dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
 mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
 
-Modifier keys, especially CapsLock must be re-synchronised after host window change.
-
-Wenn Gembench abstürzt, kommt noch eine gmessage, dann ein Alert vom Atari, und dann geht nichts mehr.
-Ist da ein deadlock?
-
+GEMBENCH crashes (why?) and corrupts the whole emulated system. Why? Is there a deadlock in the emulator?

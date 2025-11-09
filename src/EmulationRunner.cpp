@@ -972,7 +972,25 @@ void EmulationRunner::EventLoop(void)
                             break;
 
                         case SDL_WINDOWEVENT_FOCUS_GAINED:
-                            // TODO: Copy Mac Clipboard to Atari Clipboard
+                        {
+                            // Synchronise modifier keys
+                            // Note that Cmd key KMOD_LGUI/RGUI is not passed to the emulated system.
+                            SDL_Keymod mod_state = SDL_GetModState();
+                            uint32_t button_state = SDL_GetMouseState(nullptr, nullptr);
+                            uint8_t atari_kbshift = 0;
+                            if (mod_state & KMOD_LSHIFT) atari_kbshift |= KBSHIFT_SHIFT_LEFT;
+                            if (mod_state & KMOD_RSHIFT) atari_kbshift |= KBSHIFT_SHIFT_RIGHT;
+                            if (mod_state & KMOD_LCTRL) atari_kbshift |= KBSHIFT_CTRL;
+                            if (mod_state & KMOD_RCTRL) atari_kbshift |= KBSHIFT_CTRL;
+                            if (mod_state & KMOD_LALT) atari_kbshift |= KBSHIFT_ALT;
+                            if (mod_state & KMOD_RALT) atari_kbshift |= KBSHIFT_ALT;
+                            if (mod_state & KMOD_CAPS) atari_kbshift |= KBSHIFT_CAPS_LOCK;
+                            if (mod_state & KMOD_MODE) atari_kbshift |= KBSHIFT_ALTGR;
+                            if (button_state & SDL_BUTTON_LMASK)  atari_kbshift |= KBSHIFT_MBUTTON_LEFT;
+                            if (button_state & SDL_BUTTON_RMASK)  atari_kbshift |= KBSHIFT_MBUTTON_RIGHT;
+                            m_Emulator.sendKbshift(atari_kbshift);
+
+                            // Copy host Clipboard to Atari Clipboard
                             if (SDL_HasClipboardText())
                             {
                                 // get clipboard text from SDL, hopefully in UTF-8
@@ -983,28 +1001,28 @@ void EmulationRunner::EventLoop(void)
                                     SDL_free(clipboardData);
                                 }
                             }
-                            // Now catch keyboard events
-                            //SDL_KeyboardActivate(1);    TODO: Hack was for macOS
+
+                            // hide mouse cursor in emulation window, if configured
                             if (Preferences::bHideHostMouse)
                             {
                                 SDL_ShowCursor(SDL_DISABLE);
                             }
                             break;
+                        }
 
                         case SDL_WINDOWEVENT_FOCUS_LOST:
-                            // TODO: Copy Atari Clipboard to Mac Clipboard
-                            clipboardData = NULL;
+                            // Copy Atari Clipboard to host Clipboard
+                            clipboardData = nullptr;
                             CClipboard::Atari2Mac(&clipboardData);
                             if (clipboardData)
                             {
                                 SDL_SetClipboardText((const char *) clipboardData);
                                 free(clipboardData);
                             }
-                            // No longer catch keyboard events
-                            //SDL_KeyboardActivate(0);   TODO: this was for macOS
+
+                            // un-hide mouse cursor outside of emulation window, if configured
                             if (Preferences::bHideHostMouse)
                             {
-                                // show mouse pointer
                                 SDL_ShowCursor(SDL_ENABLE);
                             }
                             break;
@@ -1033,6 +1051,7 @@ void EmulationRunner::EventLoop(void)
                     DebugInfo2("() - type %s", ev->type == SDL_KEYUP ? "up" : "down");
                     DebugInfo2("() - state %s", ev->state == SDL_PRESSED ? "pressed" : "released");
                     DebugInfo2("() - scancode = %08x (%d), keycode = %08x, mod = %04x", ev->keysym.scancode, ev->keysym.scancode, ev->keysym.sym, ev->keysym.mod);
+
                     (void) m_Emulator.SendSdlKeyboard(ev->keysym.scancode, ev->type == SDL_KEYUP);
                 }
                 // Quit when user presses a key.

@@ -59,6 +59,7 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Zoom, helpful for original 640x400 or 640x200 resolution
 * Full access to host file system, up to root
 * Mounts Atari volume or floppy disk images
+* Copy/paste clipboard text between host and emulated system.
 * Mount file systems, folder or image, via Drag&Drop, readable or read-only
 
 # Remarks
@@ -76,16 +77,15 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 
 # Example Command to Create a Volume Image:
 
-* filename "vol-fat32-1M.img"
-* 1 MB
-* 512 bytes per sector
-* 2 sectors per cluster
-* FAT32
-* verbose
-* name "FAT32_1M"
+* "-S 512" for 512 bytes per sector
+* "-s 2" for 2 sectors per cluster
+* "-F 32" for FAT32, FAT16 and FAT12
+* Specify "-v" for verbose output
+* Name written to boot sector is "FAT32_1M"
+* Filename is "vol-fat32-1M.img"
+* Volume size is 1024 kB (1 MB)
 
-* dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
-* mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
+mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" -C vol-fat32-1M.img 1024
 
 # Example Command to Create a 720k Floppy Disk Image
 

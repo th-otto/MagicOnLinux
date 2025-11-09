@@ -105,11 +105,11 @@ static void GuiAtariCrash
     sprintf(text + strlen(text), "    usp = 0x%08x\n", usp);
     for (int i = 0; i < 8; i++)
     {
-        sprintf(text + strlen(text), "     d%i = 0x%08x\n", i, pDx[i]);
+        sprintf(text + strlen(text), "     d%i = 0x%08x\n", i, be32toh(pDx[i]));
     }
     for (int i = 0; i < 8; i++)
     {
-        sprintf(text + strlen(text), "     a%i = 0x%08x\n", i, pAx[i]);
+        sprintf(text + strlen(text), "     a%i = 0x%08x\n", i, be32toh(pAx[i]));
     }
     sprintf(text + strlen(text), "    ProcPath = %s\n", ProcPath);
     sprintf(text + strlen(text), "    pd = 0x%08x\n", pd);

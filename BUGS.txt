@@ -1,4 +1,7 @@
-Recursive delete of diretory tree leads to an assertion.
+640x400x2ip crashes
+640x200x2ip crashes
+
+TODO: add --geometry command line switch with widthxheightxdepth[ip]
 
 Due to a bug in MVDI and NVDI, the VT52 emulator draws graphics artifacts e.g. with CLR SCREEN,
 visible in the MagiC task manager or if VT52.PRG is missing, when the screen width and
@@ -10,10 +13,6 @@ here nine seconds. Why?
 NVDI seems to freeze during start when ASSIGN.SYS is missing?
 
 
-640x400x2ip crashes
-640x200x2ip crashes
-
-TODO: add --geometry command line switch with widthxheightxdepth[ip]
 
 mcmd shows "0 bytes free"
 

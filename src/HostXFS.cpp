@@ -2012,6 +2012,7 @@ INT32 CHostXFS::xfs_dcreate(uint16_t drv, MXFSDD *dd, const unsigned char *name)
  * @return E_OK or 32-bit negative error code
  *
  * @note If the directory is an alias, the alias should be removed, not the directory
+ * @note The DD will be released by a following xfs_freeDD().
  *
  ************************************************************************************************/
 INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
@@ -2021,7 +2022,6 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     // We cannot remove the directory via its DD or fd, instead we need a path
-    // TODO: we might need the parent directory
     char pathbuf[1024];
     INT32 aret = xfs_DD2hostPath(dd, pathbuf, 1023);
     if (aret != E_OK)
@@ -2030,14 +2030,9 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
         return aret;
     }
 
-    // TODO: Change concept and keep track of parent and siblings, then
-    // use unlinkat().
+    // Note that we shall not try to free the hostFD here, instead we
+    // expect an xfs_freeDD() call from the MagiC DOS kernel.
 
-    if (hostFD->ref_cnt != 1)
-    {
-        DebugWarning2("() -- set dd.refcnt from %d to 1", hostFD->ref_cnt);
-    }
-    freeHostFD(hostFD);
     if (rmdir(pathbuf))
     {
         DebugWarning2("() : rmdir(\"%s\") -> %s", pathbuf, strerror(errno));

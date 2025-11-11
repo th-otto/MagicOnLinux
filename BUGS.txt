@@ -1,3 +1,5 @@
+recursive delete of try leads to crash
+
 mcmd shows "0 bytes free"
 
 Keep aspect ratio during window resize?
@@ -31,4 +33,77 @@ mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
 
 GEMBENCH crashes (why?) and corrupts the whole emulated system. Why? Is there a deadlock in the emulator?
 
+MagiC task manager shows artifacts in b/w mode.
+
 MGEDIT should be killable via MagiC task manager, but in most time this leads to a total system crash.
+
+The MagiC message "System was overwritten" shall be passed to emulator.
+
+Crash
+01:04:39) DBG-ERR AtariGetKeyboardOrMouseData() --- Keine Daten
+magic-on-linux: /home/and/Documents/magiclinux/src/HostHandles.cpp:136: void freeHostFD(HostFD*): Assertion `fd->ref_cnt > 0' failed.
+Aborted (core dumped)
+after copying "Techobox.CAD" to C:\ṪEMP and deleting target
+Maybe recursive deleting of directory?
+
+
+APPLICATIONS
+
+To test:
+- TWORD
+- CAB
+- Highwire
+- Prolist (missing GDOS)
+
+Works:
+
+- Chagall v01.00
+- Gempaint 1.3B2
+- GSTFRAKT (single-app mode)
+- MAPS (8+3 case-insensitive drive)
+- Papillon 2.2
+- Artworx v1.42 (complains about missing GDOS, needs case-insensitive drive)
+- Cypress v1.50
+- LDW Power Calc 1.03
+- Papyrus 4 (complains about missing fonts, needs case-insensitive drive)
+- Papyrus 7 (complains about missing fonts)
+- Script (complains about missing fonts, needs case-insensitive drive)
+- Script 2 (complains about missing fonts, needs case-insensitive drive)
+- Technobox CAD/2 (needs case-insensitive drive)
+- Texel 2.10
+- Pure C
+- RCS28K (patched by Andreas Kromke)
+- Getinfo v1.1
+- Prgflags
+- Intrface v2.29beta
+- Kobold?
+- Olga?
+
+
+
+
+Works partially:
+
+- DR Doodle (corrupts memory blocks, repairable)
+- Logo (corrupts memory blocks, repairable)
+- Easydraw (complains about missing GDOS)
+- Scigraph (complains about missing GDOS)
+- Font Expert, FONTEX.PRG (might run in single application mode)
+- Pure Pascal (direct video memory acces, might work with 640x400)
+- RSCTEXT (direct video memory acces, might work with 640x400)
+- ST-Pascal (direct memory access, then bus error)
+
+Works not:
+
+- CAD 3D
+- CAMCAD
+- CAMPUS
+- SWFŔAK.PRG (system was overwritten)
+- PERSYS (draws artifacts like task manager in B/W)
+- PLOT_IT.PRG (draws artifacts like task manager in B/W, then crashes)
+- STAD_1_3.PRG (accesses video base register, needs case-insensitive drive, freezes system after crash)
+- DBASE (why?)
+- PHOENIX 4.2 (strange file selector recursion)     <<<=== needs debugging
+- SIGNUM2 (trap #9 or memory mapped access to 68881)
+- Wordplus (bus error. Why?)
+- Wordplus 2 (bus error)

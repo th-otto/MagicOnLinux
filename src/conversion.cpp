@@ -135,6 +135,8 @@ void CConversion::init(void)
  *
  * @return length of detected utf-8 character in bytes
  *
+ * @note Utf-8 characters with no Atari pendant are stored as '_'.
+ *
  ************************************************************************************************/
 unsigned CConversion::charHost2Atari(const char *utf8, unsigned char *dst)
 {

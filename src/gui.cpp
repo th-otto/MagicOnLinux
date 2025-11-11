@@ -29,6 +29,7 @@
 
 #include "Debug.h"
 #include "Atari.h"
+#include "emulation_globals.h"
 #include "gui.h"
 
 
@@ -120,14 +121,14 @@ const char *exception68kToName(unsigned exception_no)
 static void GuiAtariCrash
 (
     unsigned exception_no,
-    uint32_t ErrAddr,
-    const char *AccessMode,
+    uint32_t err_addr,
+    const char *access_mode,
     uint32_t pc,                // host-endian
     uint16_t sr,                // host-endian
     uint32_t usp,               // host-endian
     const uint32_t *pDx,        // big-endian
     const uint32_t *pAx,        // big-endian
-    const char *ProcPath,
+    const char *proc_path,
     uint32_t pd                 // host-endian
 )
 {
@@ -165,8 +166,8 @@ static void GuiAtariCrash
 
 
     sprintf(text + strlen(text), "    exc = %s (%u)\n", exception68kToName(exception_no), exception_no);
-    sprintf(text + strlen(text), "    ErrAddr = 0x%08x\n", ErrAddr);
-    sprintf(text + strlen(text), "    AccessMode = %s\n", AccessMode);
+    sprintf(text + strlen(text), "    exception address = 0x%08x (%s)\n", err_addr, AtariAddr2Description(err_addr));
+    sprintf(text + strlen(text), "    AccessMode = %s\n", access_mode);
     sprintf(text + strlen(text), "    pc = 0x%08x\n", pc);
     sprintf(text + strlen(text), "    sr = 0x%04x (%s)\n", sr, srbits);
     sprintf(text + strlen(text), "    usp = 0x%08x\n", usp);
@@ -178,7 +179,7 @@ static void GuiAtariCrash
     {
         sprintf(text + strlen(text), "     a%i = 0x%08x\n", i, be32toh(pAx[i]));
     }
-    sprintf(text + strlen(text), "    ProcPath = %s\n", ProcPath);
+    sprintf(text + strlen(text), "    ProcPath = %s\n", proc_path);
     sprintf(text + strlen(text), "    pd = 0x%08x\n", pd);
     (void) showAlert("Atari crash", text);
 }

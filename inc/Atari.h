@@ -806,13 +806,13 @@ typedef struct
     PTR32_BE  baseAddr;         // pointer to pixels
     UINT16_BE rowBytes;         // offset to next line
 //  Rect      bounds;           // encloses bitmap
-    UINT16_BE bounds_top;       // first row
-    UINT16_BE bounds_left;      // first column
-    UINT16_BE bounds_bottom;    // last row
-    UINT16_BE bounds_right;     // last column
+    UINT16_BE bounds_top;       // seems to be ignored, set to zero
+    UINT16_BE bounds_left;      // seems to be ignored, set to zero
+    UINT16_BE bounds_bottom;    // set to number of pixel rows
+    UINT16_BE bounds_right;     // set to number of pixel columns
     UINT16_BE pmVersion;        // pixMap version number
     UINT16_BE packType;         // defines packing format
-    UINT32_BE packSize;         // length of pixel data */
+    UINT32_BE packSize;         // length of pixel data, seems to be ignored
     INT32_BE  hRes;             // horiz. resolution (ppi), in fact of type "Fixed"
     INT32_BE  vRes;             // vert. resolution (ppi), in fact of type "Fixed"
     UINT16_BE pixelType;        // defines pixel type
@@ -820,7 +820,7 @@ typedef struct
     UINT16_BE cmpCount;         // # components in pixel
     UINT16_BE cmpSize;          // # bits per component
     UINT32_BE planeBytes;       // offset to next plane
-    PTR32_BE  pmTable;          // color map for this pixMap (definiert CtabHandle), in fact of type CTabHandle
+    PTR32_BE  pmTable;          // colour map for this pixMap, in fact of type CTabHandle
     UINT32_BE pmReserved;       // for future use. MUST BE 0
 } __attribute__((packed)) MXVDI_PIXMAP;
 

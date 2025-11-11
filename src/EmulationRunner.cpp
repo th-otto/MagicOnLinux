@@ -778,7 +778,7 @@ void EmulationRunner::_OpenWindow(void)
 
 #if 1
     /*
-    * Draw test:  draws a grey square
+    * Draw test:  draws a grey square, only visible in native mode (true colour)
     */
 
     SDL_Rect r = { 1, 1, 256, 256 };
@@ -818,8 +818,8 @@ void EmulationRunner::_OpenWindow(void)
     pixmap->rowBytes      = m_sdl_atari_surface->pitch | 0x8000;    // 0x4000 and 0x8000 are flags
     pixmap->bounds_top    = 0;
     pixmap->bounds_left   = 0;
-    pixmap->bounds_bottom = m_sdl_atari_surface->h - 1;
-    pixmap->bounds_right  = m_sdl_atari_surface->w - 1;
+    pixmap->bounds_bottom = m_sdl_atari_surface->h;
+    pixmap->bounds_right  = m_sdl_atari_surface->w;
     pixmap->pmVersion     = 4;                            // should mean: pixmap base address is 32-bit address
     pixmap->packType      = 0;                            // unpacked?
     pixmap->packSize      = 0;                            // unimportant?

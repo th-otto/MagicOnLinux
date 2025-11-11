@@ -182,6 +182,37 @@ int Preferences::init(const char *config_file, bool rewrite_conf)
     }
     int num_errors = getPreferences(config_file, rewrite_conf);
 
+    //
+    // Screen parameters consistency.
+    // There are bugs in the MVDI and NVDI VT52 emulator
+    // causing graphics artifacts with unaligned sizes.
+    //
+    // For 4IP mode, ST medium graphics mode, we assume that
+    // the 8x8 system font is used instead of 8x16.
+    //
+
+    if (AtariScreenWidth & 7)
+    {
+        AtariScreenWidth &= ~7;
+        fprintf(stderr, "Atari screen width justified to %u (multiple of 8)\n", AtariScreenWidth);
+    }
+    if (atariScreenColourMode == atariScreenMode4ip)
+    {
+        if (AtariScreenHeight & 7)
+        {
+            AtariScreenHeight &= ~7;
+            fprintf(stderr, "Atari screen height justified to %u (multiple of 8)\n", AtariScreenHeight);
+        }
+    }
+    else
+    {
+        if (AtariScreenHeight & 15)
+        {
+            AtariScreenHeight &= ~15;
+            fprintf(stderr, "Atari screen height justified to %u (multiple of 16)\n", AtariScreenHeight);
+        }
+    }
+
     // drive C: is root FS with 8+3 name scheme
     drvFlags['C'-'A'] = DRV_FLAG_8p3 + DRV_FLAG_CASE_INSENS;        // C: drive has 8+3 name scheme
     setDrvPath('C'-'A', AtariRootfsPath);

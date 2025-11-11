@@ -720,8 +720,8 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 
     mem68kSize = Preferences::AtariMemSize;
     numVideoLines = m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top + 1;
-    m_FgBufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
-    memVideo68kSize = m_FgBufferLineLenInBytes * numVideoLines;
+    unsigned bufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
+    memVideo68kSize = bufferLineLenInBytes * numVideoLines;
     // get Atari memory
     // TODO: In fact we do not have to add m_Video68ksize here, because video memory
     //       is allocated separately as SDL surface in EmulatorRunner.
@@ -770,8 +770,8 @@ Assign more memory to the application using the Finder dialogue "Information"!
 
     // Atari-68k-Daten setzen
 
-    pAtari68kData = (Atari68kData *) (mem68k + AtariMemtop);
-    pAtari68kData->m_PixMap = m_pMagiCScreen->m_PixMap;
+    pAtari68kData = (Atari68kData *) (mem68k + AtariMemtop);        // Pixmap inside Atari memory
+    pAtari68kData->m_PixMap = m_pMagiCScreen->m_PixMap;             // copy host Pixmap to Atari memory
     // left and top seem to be ignored, i.e. only  right and bottom are relevant
     pAtari68kData->m_PixMap.baseAddr = (PTR32_BE) addr68kVideo;        // virtual 68k address
 

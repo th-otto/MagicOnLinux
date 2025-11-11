@@ -1,12 +1,14 @@
 # MagicOnLinuX
 <img alt="Logo" src="assets/Logo.png" width="80">
 
-An Atari ST/TT emulator for Linux, SDL2 based, running MagiC OS only.
+An Atari ST/TT High Level Emulator for Linux, SDL2 based, running MagiC OS only.
 
 This is kind of successor of:
 
+* *KAOS 1.2* for Atari,
+* *KAOS 1.4.2* for Atari,
 * *MagiC* for Atari,
-* *MagicMac* for Classic Mac OS,
+* *MagicMac* for Classic Mac OS (68k and PPC),
 * *MagicMac X* for MacOS X on PPC (32-bit application) and
 * *AtariX* for macOS up to 10.13 "High Sierra" (32-bit application).
 

@@ -174,7 +174,7 @@ class CMagiC
     // Screen data
     bool m_bScreenBufferChanged;
     //unsigned char *m_pFgBuffer;                // foreground buffer
-    unsigned long m_FgBufferLineLenInBytes;
+    //unsigned long m_FgBufferLineLenInBytes;
 //    unsigned char *m_pBgBuffer;                // do we need a background buffer?
 //    unsigned long m_BgBufferLineLenInBytes;
     pthread_mutex_t m_ScrCriticalRegionId;

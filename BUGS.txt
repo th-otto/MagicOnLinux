@@ -1,4 +1,19 @@
-recursive delete of try leads to crash
+Recursive delete of diretory tree leads to an assertion.
+
+Due to a bug in MVDI and NVDI, the VT52 emulator draws graphics artifacts e.g. with CLR SCREEN,
+visible in the MagiC task manager or if VT52.PRG is missing, when the screen width and
+height are not dividable by the system character size (8x8 or 8x16).
+
+Which no VT52.PRG, if starting MCMD, it takes forever until screen gets white,
+here nine seconds. Why?
+
+NVDI seems to freeze during start when ASSIGN.SYS is missing?
+
+
+640x400x2ip crashes
+640x200x2ip crashes
+
+TODO: add --geometry command line switch with widthxheightxdepth[ip]
 
 mcmd shows "0 bytes free"
 
@@ -32,8 +47,6 @@ dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
 mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
 
 GEMBENCH crashes (why?) and corrupts the whole emulated system. Why? Is there a deadlock in the emulator?
-
-MagiC task manager shows artifacts in b/w mode.
 
 MGEDIT should be killable via MagiC task manager, but in most time this leads to a total system crash.
 
@@ -107,3 +120,33 @@ Works not:
 - SIGNUM2 (trap #9 or memory mapped access to 68881)
 - Wordplus (bus error. Why?)
 - Wordplus 2 (bus error)
+
+VDI drivers:
+
+- *.OSD are offscreen drivers and not hardware related
+-  *.NOD come from NVDI, they are faster than their OSD pendants.
+   They are preferably loaded during boot process if they are found.
+- MFA*.SYS are Atari hardware related and not used by MagicOnLinux or predecessors.
+- MFM*.SYS are used by MagicOnLinux
+-  NFM*.SYS come from NVDI, they are faster than their MFM pendants.
+   They are not automatically loaded during boot, as the internal VDI
+   explicitly opens e.g. MFM2.SYS in monochrome mode.
+   It also seems that they are incompatible.
+
+in particular:
+
+- MFM2.SYS/NFM2.SYS: monochrome mode (black/white)
+- MFM4IP.SYS:   4     colours in 2 interleaved planes
+- MFM16.SYS:   16     colours in 4 consecutive (?) planes
+- MFM16IP.SYS: 16     colours in 4 interlaved planes
+- MFM16M.SYS:  16 mio colours, 32-bit pixel packed, 24 from which are used
+- MFM32K.SYS:  32768  colours, 16-bit pixel packed
+- MFM256.SYS:  256    colours, 8-bit pixel packed
+
+Note that the 16M and 32K graphics formats are direct, i.e. no colour palettes.
+All other modes are indirect, with a colour palette.
+
+Note that 16M is recommended for MagicOnLinux. It is similar to the host
+graphics format and thus leads to the best performance.
+The IP formats are impractical for any kind of software and thus
+are really slow.

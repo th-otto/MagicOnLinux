@@ -92,25 +92,25 @@ Works:
 - Intrface v2.29beta
 - Kobold?
 - Olga?
+- Pure Pascal: run in single mode (hold Alt key during start)
 
 
 
 
 Works partially:
 
+- CAMCAD (works at least in 640x400 monochrome, should run in single-application mode)
 - DR Doodle (corrupts memory blocks, repairable)
 - Logo (corrupts memory blocks, repairable)
 - Easydraw (complains about missing GDOS)
 - Scigraph (complains about missing GDOS)
 - Font Expert, FONTEX.PRG (might run in single application mode)
-- Pure Pascal (direct video memory acces, might work with 640x400)
 - RSCTEXT (direct video memory acces, might work with 640x400)
 - ST-Pascal (direct memory access, then bus error)
 
 Works not:
 
 - CAD 3D
-- CAMCAD
 - CAMPUS
 - SWFŔAK.PRG (system was overwritten)
 - PERSYS (draws artifacts like task manager in B/W)
@@ -121,6 +121,7 @@ Works not:
 - SIGNUM2 (trap #9 or memory mapped access to 68881)
 - Wordplus (bus error. Why?)
 - Wordplus 2 (bus error)
+- SED_440
 
 VDI drivers:
 

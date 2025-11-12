@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    //geometry = "800x600x16";
+    //geometry = "800x600x1";
     if (geometry != nullptr)
     {
         unsigned w, h, b;
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
             mode = atariScreenMode4ip;       // 2-bit interleaved plane
         }
         else
-        if ((b == 1) && ip)
+        if ((b == 1) && !ip)
         {
             mode = atariScreenMode2;       // monochrome
         }

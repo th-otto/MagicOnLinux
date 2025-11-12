@@ -4,8 +4,7 @@
 32k-colour mode works
 problem with palette?
 
-add command line switch for stretch factor(s) or add to --geometry like 640x400x2x2x1
-
+The Atari memory size is given in bytes and excludes video memory which is handled separately.
 
 Due to a bug in MVDI and NVDI, the VT52 emulator draws graphics artifacts e.g. with CLR SCREEN,
 visible in the MagiC task manager or if VT52.PRG is missing, when the screen width and

@@ -411,7 +411,7 @@ static int eval_unsigned(unsigned *outval, unsigned minval, unsigned maxval, con
     unsigned long value = strtoul(*in, &endptr, 0 /*auto base*/);
     if (endptr > *in)
     {
-        if ((value > minval) && (value <= maxval))
+        if ((value >= minval) && (value <= maxval))
         {
             *outval = (unsigned) value;
             *in = endptr;

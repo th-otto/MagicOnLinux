@@ -719,7 +719,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     (void) CMagiCKeyboard::init();
 
     mem68kSize = Preferences::AtariMemSize;
-    numVideoLines = m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top + 1;
+    numVideoLines = m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top;
     unsigned bufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
     memVideo68kSize = bufferLineLenInBytes * numVideoLines;
     // get Atari memory

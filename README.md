@@ -47,6 +47,8 @@ Use parameter "-h" or "--help" for an explanation of the parameters.
 
 Especially helpful: parameter "-e" to open the configuration file in a text editor.
 
+Atari RAM size is given in bytes and excludes video memory, which is managed separately.
+
 Source files for the Atari code (MagiC kernel and applications) are also available in their respective repository, see below.
 
 # Screenshots

@@ -66,10 +66,10 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
     sprintf(command, "gxmessage -nearmouse -wrap -title \"%s\" -buttons \"%s\" %s", title, buttons, text);
     // Contrary to man page, we do not get 101, 102, 103 for the buttons, but the value is
     // shifted by 8, so that we receive 0x6500, 0x6600 and 0x6700 for buttons and 0x0100 for window close.
-    fprintf(stderr, "%s\n", command);
+    //fprintf(stderr, "%s\n", command);
     int result = system(command);
     unlink(fname);
-    fprintf(stderr, "-> %d (0x%08x)\n", result, result);
+    //fprintf(stderr, "-> %d (0x%08x)\n", result, result);
 
     return result >> 8;
 }

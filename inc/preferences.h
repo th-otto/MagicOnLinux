@@ -28,11 +28,17 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define PROGRAM_VERSION_MAJOR 0
-#define PROGRAM_VERSION_MINOR 1
-
 #define NDRIVES ('Z'-'A' + 1)
 #define ATARIDRIVEISMAPPABLE(d)    ((d != 'C'-'A') && (d != 'M'-'A') && (d != 'U'-'A'))
+
+#define ATARI_SCREEN_WIDTH_MIN      320
+#define ATARI_SCREEN_WIDTH_MAX      4096
+#define ATARI_SCREEN_HEIGHT_MIN     200
+#define ATARI_SCREEN_HEIGHT_MAX     2048
+
+#define ATARI_RAM_SIZE_MIN          (512*1024)          // 512 KiB ..
+#define ATARI_RAM_SIZE_MAX          (2U*1024*1024*1024)  // .. 2 GiB
+
 
 // Atari screen colour mode
 typedef enum
@@ -57,8 +63,11 @@ typedef enum
 class Preferences
 {
    public:
-    static int init(const char *config_file, int mode_override, int width_override,
-                    int height_override,bool rewrite_conf);
+    static int init(const char *config_file,
+                    int mode_override,
+                    int width_override, int height_override,
+                    int stretch_x_override, int stretch_y_override,
+                    bool rewrite_conf);
     static int getPreferences(const char *cfgfile, bool rewrite_conf);
     static int writePreferences(const char *cfgfile);
     static int evaluatePreferencesLine(const char *line);

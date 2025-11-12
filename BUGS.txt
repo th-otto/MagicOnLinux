@@ -4,12 +4,14 @@
 32k-colour mode works
 problem with palette?
 
+add command line switch for stretch factor(s) or add to --geometry like 640x400x2x2x1
+
 
 Due to a bug in MVDI and NVDI, the VT52 emulator draws graphics artifacts e.g. with CLR SCREEN,
 visible in the MagiC task manager or if VT52.PRG is missing, when the screen width and
 height are not dividable by the system character size (8x8 or 8x16).
 
-Which no VT52.PRG, if starting MCMD, it takes forever until screen gets white,
+With no VT52.PRG, if starting MCMD, it takes forever until screen gets white,
 here nine seconds. Why?
 
 NVDI seems to freeze during start when ASSIGN.SYS is missing?

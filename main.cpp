@@ -16,17 +16,19 @@ const char *argnames[] =
     nullptr,
     nullptr,
     "wxh[xb][ip]",
+    "w[xh]",
     "program"
 };
 
 const char *descriptions[] =
 {
-    "                 display help text and exit",
-    "   open configuration file in editor and exit",
-    "          configuration file (default: ~/.config/magiclinux.conf)",
-    "         write configuration file with default values and exit",
-    " e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
-    "       choose editor program for -e option, default is gnome-text-editor"
+    "                  display help text and exit",
+    "    open configuration file in editor and exit",
+    "           configuration file (default: ~/.config/magiclinux.conf)",
+    "          write configuration file with default values and exit",
+    "  e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
+    "         e.g. 2x2 or 2 or 2x4, overrides config file",
+    "        choose editor program for -e option, default is gnome-text-editor"
 };
 
 static void print_opt(const struct option *options)
@@ -60,13 +62,140 @@ static void print_opt(const struct option *options)
 }
 
 
+// return 0 if OK
+static int eval_geometry(const char *geometry, int *mode, int *width, int *height)
+{
+    unsigned w, h, b;
+    char c1, c2;
+    bool ip;
+
+    int n = sscanf(geometry, "%ux%ux%u%c%c", &w, &h, &b, &c1, &c2);
+    if ((n == 5) && (tolower(c1) == 'i') && (tolower(c2) == 'p'))
+    {
+        ip = true;
+    }
+    else
+    if (n == 3)
+    {
+        ip = false;
+    }
+    else
+    if (n == 2)
+    {
+        ip = false;
+        b = 24;
+    }
+    else
+    {
+        printf("malformed geometry argument\n");
+        return 3;
+    }
+
+    if ((w < ATARI_SCREEN_WIDTH_MIN)  || (w > ATARI_SCREEN_WIDTH_MAX) ||
+        (h < ATARI_SCREEN_HEIGHT_MIN) || (h > ATARI_SCREEN_HEIGHT_MAX))
+    {
+        printf("Invalid Atari screen size\n");
+        return 4;
+    }
+
+    if (b == 24)
+    {
+        b = 32;
+    }
+    if ((b == 32) && !ip)
+    {
+        *mode = atariScreenMode16M;       // 32-bit true colour
+    }
+    else
+    if ((b == 16) && !ip)
+    {
+        *mode = atariScreenModeHC;       // 16-bit high colour
+    }
+    else
+    if ((b == 8) && !ip)
+    {
+        *mode = atariScreenMode256;       // 8-bit with 256 colour palette
+    }
+    else
+    if ((b == 4) && !ip)
+    {
+        *mode = atariScreenMode16;       // 4-bit
+    }
+    else
+    if ((b == 4) && ip)
+    {
+        *mode = atariScreenMode16ip;       // 4-bit interleaved plane
+    }
+    else
+    if ((b == 2) && ip)
+    {
+        *mode = atariScreenMode4ip;       // 2-bit interleaved plane
+    }
+    else
+    if ((b == 1) && !ip)
+    {
+        *mode = atariScreenMode2;       // monochrome
+    }
+
+    if (*mode < 0)
+    {
+        printf("unsupported colour mode\n");
+        return 3;
+    }
+
+    *width = w;      // use instead of those in config file
+    *height = h;
+
+    return 0;
+}
+
+
+
+// return 0 if OK
+static int eval_stretch(const char *stretch, int *stretch_x, int *stretch_y)
+{
+    unsigned x, y;
+
+    int n = sscanf(stretch, "%ux%ux", &x, &y);
+    if (n == 2)
+    {
+        // OK
+    }
+    else
+    if (n == 1)
+    {
+        y = x;
+    }
+    else
+    {
+        printf("malformed stretch argument\n");
+        return 3;
+    }
+
+    if ((x < 1) || (x > 8) ||
+        (y < 1) || (x > 16))
+    {
+        printf("Invalid stretch factors\n");
+        return 4;
+    }
+
+    *stretch_x = x;      // use instead of those in config file
+    *stretch_y = y;
+
+    return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
     int c;
     const char *geometry = nullptr;
+    const char *stretch = nullptr;
     int mode = -1;
     int width = -1;
     int height = -1;
+    int stretch_x = -1;
+    int stretch_y = -1;
     const char *config = "~/.config/magiclinux.conf";
     const char *editor = "gnome-text-editor";
     bool bRunEditor = false;
@@ -84,10 +213,11 @@ int main(int argc, char *argv[])
             {"config-edit",  no_argument,       nullptr, 'e' },
             {"config-write", no_argument,       nullptr, 'w' },
             {"geometry",     required_argument, nullptr, 'g' },
+            {"stretch",      required_argument, nullptr, 's' },
             {"editor",       required_argument, nullptr,  0 },
             {nullptr,        0,                 nullptr,  0 }
         };
-        c = getopt_long(argc, argv, "hc:ewg:",
+        c = getopt_long(argc, argv, "hc:ewg:s:",
                         long_options, &long_option_index);
 
         if (c == -1)
@@ -127,6 +257,10 @@ int main(int argc, char *argv[])
                 geometry = optarg;
                 break;
 
+            case 's':
+                stretch = optarg;
+                break;
+
             case 'w':
                 bWriteConf = true;
                 break;
@@ -141,81 +275,15 @@ int main(int argc, char *argv[])
     }
 
     //geometry = "800x600x1";
-    if (geometry != nullptr)
+    if ((geometry != nullptr) && eval_geometry(geometry, &mode, &width, &height))
     {
-        unsigned w, h, b;
-        char c1, c2;
-        bool ip;
+        return 3;
+    }
 
-        int n = sscanf(geometry, "%ux%ux%u%c%c", &w, &h, &b, &c1, &c2);
-        if ((n == 5) && (tolower(c1) == 'i') && (tolower(c2) == 'p'))
-        {
-            ip = true;
-        }
-        else
-        if (n == 3)
-        {
-            ip = false;
-        }
-        else
-        if (n == 2)
-        {
-            ip = false;
-            b = 24;
-        }
-        else
-        {
-            printf("malformed geometry argument");
-            return 3;
-        }
-
-        if (b == 24)
-        {
-            b = 32;
-        }
-        if ((b == 32) && !ip)
-        {
-            mode = atariScreenMode16M;       // 32-bit true colour
-        }
-        else
-        if ((b == 16) && !ip)
-        {
-            mode = atariScreenModeHC;       // 16-bit high colour
-        }
-        else
-        if ((b == 8) && !ip)
-        {
-            mode = atariScreenMode256;       // 8-bit with 256 colour palette
-        }
-        else
-        if ((b == 4) && !ip)
-        {
-            mode = atariScreenMode16;       // 4-bit
-        }
-        else
-        if ((b == 4) && ip)
-        {
-            mode = atariScreenMode16ip;       // 4-bit interleaved plane
-        }
-        else
-        if ((b == 2) && ip)
-        {
-            mode = atariScreenMode4ip;       // 2-bit interleaved plane
-        }
-        else
-        if ((b == 1) && !ip)
-        {
-            mode = atariScreenMode2;       // monochrome
-        }
-
-        if (mode < 0)
-        {
-            printf("unsupported colour mode");
-            return 3;
-        }
-
-        width = w;      // use instead of those in config file
-        height = h;
+    //stretch = "2x4";
+    if ((stretch != nullptr) && eval_stretch(stretch, &stretch_x, &stretch_y))
+    {
+        return 4;
     }
 
     if (optind < argc)
@@ -230,7 +298,7 @@ int main(int argc, char *argv[])
 
     if (bWriteConf)
     {
-        Preferences::init(config, mode, width, height, true);
+        Preferences::init(config, mode, width, height, stretch_x, stretch_y, true);
         return 0;
     }
 
@@ -261,7 +329,7 @@ int main(int argc, char *argv[])
     #endif
 
     DebugInit(NULL /* stderr */);
-    if (Preferences::init(config, mode, width, height, false))
+    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, false))
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }

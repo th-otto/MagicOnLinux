@@ -167,6 +167,8 @@ int Preferences::init
     int mode_override,
     int width_override,
     int height_override,
+    int stretch_x_override,
+    int stretch_y_override,
     bool rewrite_conf
 )
 {
@@ -204,6 +206,14 @@ int Preferences::init
     if (height_override >= 0)
     {
         AtariScreenHeight = height_override;
+    }
+    if (stretch_x_override >= 0)
+    {
+        AtariScreenStretchX = stretch_x_override;
+    }
+    if (stretch_y_override >= 0)
+    {
+        AtariScreenStretchY = stretch_y_override;
     }
 
     //
@@ -388,23 +398,28 @@ static int eval_quotated_str(char *outbuf, unsigned bufsiz, const char **in)
  * @brief Read unsigned numerical value, decimal, sedecimal or octal
  *
  * @param[out] outval   number
+ * @param[in]  minval   minimum valid number
  * @param[in]  maxval   maximum valid number
  * @param[out] in       input line pointer, will be advanced accordingly
  *
  * @return 0 for OK or 1 for error
  *
  ************************************************************************************************/
-static int eval_unsigned(unsigned *outval, unsigned maxval, const char **in)
+static int eval_unsigned(unsigned *outval, unsigned minval, unsigned maxval, const char **in)
 {
     char *endptr;
     unsigned long value = strtoul(*in, &endptr, 0 /*auto base*/);
     if (endptr > *in)
     {
-        if (value <= maxval)
+        if ((value > minval) && (value <= maxval))
         {
             *outval = (unsigned) value;
             *in = endptr;
             return 0;
+        }
+        else
+        {
+            fprintf(stderr, "value %lu out of range %u..%u\n", value, minval, maxval);
         }
     }
     return 1;
@@ -655,28 +670,28 @@ int Preferences::evaluatePreferencesLine(const char *line)
             break;
 
         case VAR_ATARI_SCREEN_WIDTH:
-            num_errors += eval_unsigned(&AtariScreenWidth, 4096, &line);
+            num_errors += eval_unsigned(&AtariScreenWidth, ATARI_SCREEN_WIDTH_MIN, ATARI_SCREEN_WIDTH_MAX, &line);
             break;
 
         case VAR_ATARI_SCREEN_HEIGHT:
-            num_errors += eval_unsigned(&AtariScreenHeight, 2048, &line);
+            num_errors += eval_unsigned(&AtariScreenHeight, ATARI_SCREEN_HEIGHT_MIN, ATARI_SCREEN_HEIGHT_MAX, &line);
             break;
 
         case VAR_ATARI_SCREEN_STRETCH_X:
-            num_errors += eval_unsigned(&AtariScreenStretchX, 8, &line);
+            num_errors += eval_unsigned(&AtariScreenStretchX, 1, 8, &line);
             break;
 
         case VAR_ATARI_SCREEN_STRETCH_Y:
-            num_errors += eval_unsigned(&AtariScreenStretchY, 8, &line);
+            num_errors += eval_unsigned(&AtariScreenStretchY, 1, 16, &line);
             break;
 
         case VAR_ATARI_SCREEN_RATE_HZ:
-            num_errors += eval_unsigned(&ScreenRefreshFrequency, 120, &line);
+            num_errors += eval_unsigned(&ScreenRefreshFrequency, 1, 120, &line);
             break;
 
         case VAR_ATARI_SCREEN_COLOUR_MODE:
             vu = 0xffff;    // invalid
-            num_errors += eval_unsigned(&vu, 6, &line);
+            num_errors += eval_unsigned(&vu, 0, 6, &line);
             atariScreenColourMode = (enAtariScreenColourMode) vu;
             break;
 
@@ -685,7 +700,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
             break;
 
         case VAR_APP_DISPLAY_NUMBER:
-            num_errors += eval_unsigned(&Monitor, 0xffffffff, &line);
+            num_errors += eval_unsigned(&Monitor, 0, 0xffffffff, &line);
             break;
 
         case VAR_APP_WINDOW_X:
@@ -697,11 +712,11 @@ int Preferences::evaluatePreferencesLine(const char *line)
             break;
 
         case VAR_ATARI_MEMORY_SIZE:
-            num_errors += eval_unsigned(&AtariMemSize, 0x20000000, &line);
+            num_errors += eval_unsigned(&AtariMemSize, ATARI_RAM_SIZE_MIN, ATARI_RAM_SIZE_MAX, &line);
             break;
 
         case VAR_ATARI_LANGUAGE:
-            num_errors += eval_unsigned(&AtariLanguage, 0xffffffff, &line);
+            num_errors += eval_unsigned(&AtariLanguage, 0, 0xffffffff, &line);
             break;
 
         case VAR_SHOW_HOST_MENU:
@@ -715,7 +730,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
         case VAR_ATARI_DRV_:
             {
                 unsigned flags;
-                num_errors += eval_unsigned(&flags, 0xffffffff, &line);
+                num_errors += eval_unsigned(&flags, 0, 0xffffffff, &line);
                 if (num_errors > 0)
                 {
                     break;

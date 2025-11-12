@@ -675,7 +675,7 @@ void EmulationRunner::_OpenWindow(void)
             break;
     }
 
-    sprintf(m_window_title, PGM_NAME " (%ux%ux%u%s)",
+    sprintf(m_window_title, PROGRAM_NAME " (%ux%ux%u%s)",
                             Preferences::AtariScreenWidth, Preferences::AtariScreenHeight,
                             screenbitsperpixel, (planeBytes == 2) ? "ip" : "");
     m_visible = false;

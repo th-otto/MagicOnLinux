@@ -5,6 +5,67 @@
 32k-colour mode works
 problem with palette?
 
+(23:28:38) DBG-INF LoadReloc() - Memory size Atari = 0x00800000 (= 8192 kBytes)
+(23:28:38) DBG-INF LoadReloc() - Load address of system (TEXT) = 0x007c9c68 (68k)
+
+
+Absturz bei 4 Farben IP:
+
+   exc = bus error (2)
+    exception address = 0x21fc125c (?)
+    AccessMode = read word
+    pc = 0x007cf974 (OS ROM 0x00005d0c)
+         code = 0x0028 [0x7214] 0x6100
+    sr = 0x2008 (SUP NEG INT=0)
+    usp = 0x00080000
+     d0 = 0x21fcffff
+     d1 = 0x000001bc
+     d2 = 0x00000000
+     d3 = 0x007c9e78
+     d4 = 0x007cb456
+     d5 = 0x007cb456
+     d6 = 0x007cb456
+     d7 = 0x00000000
+     a0 = 0x007cb456
+     a1 = 0x21fc1234
+     a2 = 0x0000e480
+     a3 = 0x007cb456
+     a4 = 0x0000e4b4
+     a5 = 0x007cb456
+     a6 = 0x0000e466
+     a7 = 0x0000e40a
+    ProcPath = C:\AESSYS
+    pd = 0x0001db64
+
+
+Absturz bei 16 Farben IP:
+
+exc = bus error (2)
+    exception address = 0x21fc125c (?)
+    AccessMode = read word
+    pc = 0x007cf974
+    sr = 0x2008 (SUP NEG INT=0)
+    usp = 0x00080000
+     d0 = 0x21fcffff
+     d1 = 0x00029c1e
+     d2 = 0x007cb456
+     d3 = 0x007c9e78
+     d4 = 0x007cb456
+     d5 = 0x007cb456
+     d6 = 0x007cb456
+     d7 = 0x00000000
+     a0 = 0x00000000
+     a1 = 0x21fc1234
+     a2 = 0x00029d1a
+     a3 = 0x007cb456
+     a4 = 0x0000e4b4
+     a5 = 0x007cb456
+     a6 = 0x0000e466
+     a7 = 0x0000e40a
+    ProcPath = C:\AESSYS
+    pd = 0x0001e204
+
+
 The Atari memory size is given in bytes and excludes video memory which is handled separately.
 
 Due to a bug in MVDI and NVDI, the VT52 emulator draws graphics artifacts e.g. with CLR SCREEN,

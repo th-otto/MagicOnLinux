@@ -892,11 +892,12 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     chksum = 0;
     uint32_t *fromptr = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
     uint32_t *toptr = (uint32_t *) (mem68k + be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen));
-#ifdef _DEBUG
+
 //    AdrOsRomStart = be32toh(pMacXSysHdr->MacSys_syshdr);            // Beginn schreibgeschützter Bereich
     addrOsRomStart = be32toh((uint32_t) m_BasePage->p_tbase);        // Beginn schreibgeschützter Bereich
     addrOsRomEnd = be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen);    // Ende schreibgeschützter Bereich
-#endif
+    DebugInfo2("() - OS ROM range from 0x%08x..0x%08x (68k)", addrOsRomStart, addrOsRomEnd);
+
     do
     {
         chksum += htobe32(*fromptr++);
@@ -2268,9 +2269,6 @@ uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
 {
-    int i,j;
-    uint32_t c;
-    uint32_t *pColourTable;
     struct VsetRGBParm
     {
         uint16_t index;
@@ -2282,14 +2280,15 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
     const uint8_t *pValues = (const uint8_t *) (addrOffset68k + be32toh(theVsetRGBParm->pValues));
     uint16_t index = be16toh(theVsetRGBParm->index);
     uint16_t cnt = be16toh(theVsetRGBParm->cnt);
-    DebugInfo("CMagiC::AtariVsetRGB(index=%u, cnt=%u, 0x%02x%02x%02x%02x)",
+    DebugInfo2("(index=%u, cnt=%u, 0x%02x%02x%02x%02x)",
               (unsigned) index, (unsigned) cnt,
               (unsigned) pValues[0], (unsigned) pValues[1], (unsigned) pValues[2], (unsigned) pValues[3]);
 
     // durchlaufe alle zu ändernden Farben
-    pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable;
-    j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
-    for    (i = index, pColourTable += index;
+    uint32_t * pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable;
+    int j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
+    int i;
+    for (i = index, pColourTable += index;
         i < j;
         i++, pValues += 4,pColourTable++)
     {
@@ -2298,7 +2297,7 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
         // 0xffff0000        red
         // 0xff00ff00        green
         // 0xff0000ff        blue
-        c = (pValues[1] << 16) | (pValues[2] << 8) | (pValues[3] << 0) | (0xff000000);
+        uint32_t c = (pValues[1] << 16) | (pValues[2] << 8) | (pValues[3] << 0) | (0xff000000);
         *pColourTable++ = c;
     }
 
@@ -2329,7 +2328,7 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
     uint8_t *pValues = (uint8_t *) (addrOffset68k + be32toh(theVgetRGBParm->pValues));
     uint16_t index = be16toh(theVgetRGBParm->index);
     uint16_t cnt = be16toh(theVgetRGBParm->cnt);
-    DebugInfo("CMagiC::AtariVgetRGB(index=%d, cnt=%d)", index, cnt);
+    DebugInfo2("(index=%u, cnt=%u)", index, cnt);
 
     // durchlaufe alle zu ändernden Farben
     pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable;

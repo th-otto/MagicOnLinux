@@ -15,16 +15,18 @@ const char *argnames[] =
     "config-file",
     nullptr,
     nullptr,
+    "wxh[xb][ip]",
     "program"
 };
 
 const char *descriptions[] =
 {
-    "                display help text and exit",
-    "  open configuration file in editor and exit",
-    "         configuration file (default: ~/.config/magiclinux.conf)",
-    "        write configuration file with default values and exit",
-    "      choose editor program for -e option, default is gnome-text-editor"
+    "                 display help text and exit",
+    "   open configuration file in editor and exit",
+    "          configuration file (default: ~/.config/magiclinux.conf)",
+    "         write configuration file with default values and exit",
+    " e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
+    "       choose editor program for -e option, default is gnome-text-editor"
 };
 
 static void print_opt(const struct option *options)
@@ -61,6 +63,10 @@ static void print_opt(const struct option *options)
 int main(int argc, char *argv[])
 {
     int c;
+    const char *geometry = nullptr;
+    int mode = -1;
+    int width = -1;
+    int height = -1;
     const char *config = "~/.config/magiclinux.conf";
     const char *editor = "gnome-text-editor";
     bool bRunEditor = false;
@@ -77,10 +83,11 @@ int main(int argc, char *argv[])
             {"config",       required_argument, nullptr, 'c' },
             {"config-edit",  no_argument,       nullptr, 'e' },
             {"config-write", no_argument,       nullptr, 'w' },
+            {"geometry",     required_argument, nullptr, 'g' },
             {"editor",       required_argument, nullptr,  0 },
             {nullptr,        0,                 nullptr,  0 }
         };
-        c = getopt_long(argc, argv, "hc:ew",
+        c = getopt_long(argc, argv, "hc:ewg:",
                         long_options, &long_option_index);
 
         if (c == -1)
@@ -116,6 +123,10 @@ int main(int argc, char *argv[])
                 config = optarg;
                 break;
 
+            case 'g':
+                geometry = optarg;
+                break;
+
             case 'w':
                 bWriteConf = true;
                 break;
@@ -127,6 +138,84 @@ int main(int argc, char *argv[])
             default:
                 printf("?? getopt returned character code 0%o ??\n", c);
         }
+    }
+
+    //geometry = "800x600x16";
+    if (geometry != nullptr)
+    {
+        unsigned w, h, b;
+        char c1, c2;
+        bool ip;
+
+        int n = sscanf(geometry, "%ux%ux%u%c%c", &w, &h, &b, &c1, &c2);
+        if ((n == 5) && (tolower(c1) == 'i') && (tolower(c2) == 'p'))
+        {
+            ip = true;
+        }
+        else
+        if (n == 3)
+        {
+            ip = false;
+        }
+        else
+        if (n == 2)
+        {
+            ip = false;
+            b = 24;
+        }
+        else
+        {
+            printf("malformed geometry argument");
+            return 3;
+        }
+
+        if (b == 24)
+        {
+            b = 32;
+        }
+        if ((b == 32) && !ip)
+        {
+            mode = atariScreenMode16M;       // 32-bit true colour
+        }
+        else
+        if ((b == 16) && !ip)
+        {
+            mode = atariScreenModeHC;       // 16-bit high colour
+        }
+        else
+        if ((b == 8) && !ip)
+        {
+            mode = atariScreenMode256;       // 8-bit with 256 colour palette
+        }
+        else
+        if ((b == 4) && !ip)
+        {
+            mode = atariScreenMode16;       // 4-bit
+        }
+        else
+        if ((b == 4) && ip)
+        {
+            mode = atariScreenMode16ip;       // 4-bit interleaved plane
+        }
+        else
+        if ((b == 2) && ip)
+        {
+            mode = atariScreenMode4ip;       // 2-bit interleaved plane
+        }
+        else
+        if ((b == 1) && ip)
+        {
+            mode = atariScreenMode2;       // monochrome
+        }
+
+        if (mode < 0)
+        {
+            printf("unsupported colour mode");
+            return 3;
+        }
+
+        width = w;      // use instead of those in config file
+        height = h;
     }
 
     if (optind < argc)
@@ -141,7 +230,7 @@ int main(int argc, char *argv[])
 
     if (bWriteConf)
     {
-        Preferences::init(config, true);
+        Preferences::init(config, mode, width, height, true);
         return 0;
     }
 
@@ -172,7 +261,7 @@ int main(int argc, char *argv[])
     #endif
 
     DebugInit(NULL /* stderr */);
-    if (Preferences::init(config, false))
+    if (Preferences::init(config, mode, width, height, false))
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }

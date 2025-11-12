@@ -161,7 +161,14 @@ static const char *get_home()
  *       exist or if requested.
  *
  ************************************************************************************************/
-int Preferences::init(const char *config_file, bool rewrite_conf)
+int Preferences::init
+(
+    const char *config_file,
+    int mode_override,
+    int width_override,
+    int height_override,
+    bool rewrite_conf
+)
 {
     for (int i = 0; i < NDRIVES; i++)
     {
@@ -181,6 +188,23 @@ int Preferences::init(const char *config_file, bool rewrite_conf)
         config_file = path;
     }
     int num_errors = getPreferences(config_file, rewrite_conf);
+
+    //
+    // override with command line values
+    //
+
+    if (mode_override >= 0)
+    {
+        atariScreenColourMode = (enAtariScreenColourMode) mode_override;
+    }
+    if (width_override >= 0)
+    {
+        AtariScreenWidth = width_override;
+    }
+    if (height_override >= 0)
+    {
+        AtariScreenHeight = height_override;
+    }
 
     //
     // Screen parameters consistency.

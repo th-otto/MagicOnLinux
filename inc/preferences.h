@@ -71,6 +71,7 @@ class Preferences
     static int getPreferences(const char *cfgfile, bool rewrite_conf);
     static int writePreferences(const char *cfgfile);
     static int evaluatePreferencesLine(const char *line);
+    static const char *videoModeToString(enAtariScreenColourMode mode);
 
     static unsigned AtariMemSize;
     static unsigned AtariLanguage;

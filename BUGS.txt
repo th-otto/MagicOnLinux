@@ -1,5 +1,6 @@
 640x400x2ip crashes
 640x200x2ip crashes
+16-colour mode (packed-pixel) works
 256-colour mode works
 32k-colour mode works
 problem with palette?

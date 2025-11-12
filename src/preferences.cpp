@@ -273,6 +273,31 @@ int Preferences::init
 
 /** **********************************************************************************************
  *
+ * @brief Get text description of video mode
+ *
+ * @param[in]  mode     video mode
+ *
+ * @return text
+ *
+ ************************************************************************************************/
+const char *Preferences::videoModeToString(enAtariScreenColourMode mode)
+{
+    switch(mode)
+    {
+        case atariScreenMode16M:    return "24-bit true colour";
+        case atariScreenModeHC:     return "16-bit high colour";
+        case atariScreenMode256:    return "256 colours with palette";
+        case atariScreenMode16:     return "16 colours with palette, packed pixels";
+        case atariScreenMode16ip:   return "16 colours with palette, interleaved plane";
+        case atariScreenMode4ip:    return "4 colours with palette, interleaved plane";
+        case atariScreenMode2:      return "monochrome";
+        default:                    return "== UNKNOWN ==";
+    }
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Write configuration file
  *
  * @param[in]  cfgfile   path

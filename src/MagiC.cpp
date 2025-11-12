@@ -356,10 +356,10 @@ int CMagiC::LoadReloc
     FILE *f = nullptr;
 
 
-    DebugInfo("CMagiC::LoadReloc(\"%s\")", path);
+    DebugInfo2("(\"%s\")", path);
 
     int64_t fileSize = getFileSize(path);
-    DebugInfo("CMagiC::LoadReloc() - kernel file size = %ld", fileSize);
+    DebugInfo2("() - kernel file size = %ld", fileSize);
     if (fileSize > 0)
     {
         f = fopen(path, "rb");
@@ -367,17 +367,7 @@ int CMagiC::LoadReloc
 
     if (f == nullptr)
     {
-        DebugError("CMagiC::LoadReloc() - Cannot open file \"%s\")", path);
-/*
-MagicMacX kann die MagiC-Kernel-Datei MagicMacX.OS nicht finden.
-
-Installieren Sie die Applikation neu.
-[MagiCMacX beenden]
-MagicMacX could not find the MagiC kernel file "MagicMacX.OS".
-
-Reinstall the application.
-[Quit program]
-*/
+        DebugError2("() - Cannot open file \"%s\")", path);
         (void) showAlert("The emulator cannot find the kernel file MAGICLIN.OS", "Repair configuration file!");
         return -1;
     }
@@ -586,7 +576,7 @@ void CMagiC::Init_CookieData(MgMxCookieData *pCookieData)
 #if !defined(__BIG_ENDIAN__)
 static void PixmapToBigEndian(MXVDI_PIXMAP *thePixMap)
 {
-    DebugInfo2("Host-CPU ist little-endian. Rufe PixmapToBigEndian() auf.");
+    DebugInfo2("() -- Convert Pixmap to big-endian");
 
     // video RAM access is more efficient with host endianess
     gbAtariVideoRamHostEndian = (thePixMap->pixelSize == 32);
@@ -691,24 +681,24 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 
     // Konfiguration
 
-    DebugInfo("MultiThread version for Linux");
+    DebugInfo2("() - MultiThread version for Linux");
 #ifdef EMULATE_68K_TRACE
-    DebugInfo("68k trace is emulated (slows down the emulator a bit)");
+    DebugInfo2("() - 68k trace is emulated (slows down the emulator a bit)");
 #else
-    DebugInfo("68k trace is not emulated (makes the emulator a bit faster)");
+    DebugInfo2("() - 68k trace is not emulated (makes the emulator a bit faster)");
 #endif
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
-    DebugInfo("68k ROM is write-protected (slows down the emulator a bit)");
+    DebugInfo2("() - 68k ROM is write-protected (slows down the emulator a bit)");
 #else
-    DebugInfo("68k ROM is not write-protected (makes the emulator a bit faster)");
+    DebugInfo("() - 68k ROM is not write-protected (makes the emulator a bit faster)");
 #endif
 #ifdef WATCH_68K_PC
-    DebugInfo("68k PC is checked for validity (slows down the emulator a bit)");
+    DebugInfo2("() - 68k PC is checked for validity (slows down the emulator a bit)");
 #else
-    DebugInfo("68k PC is not checked for validity (makes the emulator a bit faster)");
+    DebugInfo2("() - 68k PC is not checked for validity (makes the emulator a bit faster)");
 #endif
-    //DebugInfo("Mac-Menü %s", (CGlobals::s_bShowMacMenu) ? "ein" : "aus");
-    DebugInfo("Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
+    //DebugInfo2("() - Mac-Menü %s", (CGlobals::s_bShowMacMenu) ? "ein" : "aus");
+    DebugInfo2("() - Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
 
     // Atari screen data
 
@@ -728,16 +718,6 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     mem68k = (unsigned char *) malloc(mem68kSize + memVideo68kSize);
     if (mem68k == nullptr)
     {
-/*
-Der Applikation steht nicht genügend Speicher zur Verfügung.
-
-Weisen Sie der Applikation mit Hilfe des Finder-Dialogs "Information" mehr Speicher zu!
-[Abbruch]
-The application ran out of memory.
-
-Assign more memory to the application using the Finder dialogue "Information"!
-[Cancel]
-*/
         showAlert("The emulator cannot reserve enough memory", "Reduce Atari memory size in configuration file");
         return(1);
     }
@@ -746,13 +726,14 @@ Assign more memory to the application using the Finder dialogue "Information"!
     err = LoadReloc(Preferences::AtariKernelPath, 0, -1, &m_BasePage);
     if (err)
         return(err);
-    DebugInfo("MagiC kernel loaded and relocated successfully");
+    DebugInfo2("() - MagiC kernel loaded and relocated successfully");
 
     // 68k Speicherbegrenzungen ausrechnen
     addr68kVideo = mem68kSize;
-    DebugInfo("68k video memory starts at 68k address 0x%08x and uses %u (0x%08x) bytes.", addr68kVideo, memVideo68kSize, memVideo68kSize);
+    DebugInfo2("() - Atari video mode is %s", Preferences::videoModeToString(Preferences::atariScreenColourMode));
+    DebugInfo2("() - 68k video memory starts at 68k address 0x%08x and uses %u (0x%08x) bytes.", addr68kVideo, memVideo68kSize, memVideo68kSize);
     addr68kVideoEnd = addr68kVideo + memVideo68kSize;
-    DebugInfo("68k video memory and general memory end is 0x%08x", addr68kVideoEnd);
+    DebugInfo2("() - 68k video memory and general memory end is 0x%08x", addr68kVideoEnd);
     // real (host) address of video memory
     //m_pFgBuffer = m_RAM68k + Preferences::AtariMemSize;    // unused
 
@@ -764,9 +745,27 @@ Assign more memory to the application using the Finder dialogue "Information"!
     setAtariBE32(mem68k + _v_bas_ad, mem68kSize);
     AtariMemtop = ((uint32_t) ((unsigned char *) m_BasePage - mem68k)) - sizeof(Atari68kData);
     setAtariBE32(mem68k + _memtop, AtariMemtop);
-    setAtariBE16(mem68k + sshiftmd, 2);                // ST high resolution (640*400*2)
-    setAtariBE16(mem68k +_cmdload, 0);                // boot AES
-    setAtariBE16(mem68k +_nflops, 0);                    // no floppy disk drives
+    switch(Preferences::atariScreenColourMode)
+    {
+        case atariScreenMode16ip:
+            setAtariBE16(mem68k + sshiftmd, 0);   // ST low resolution (320*200*4 ip)
+            break;
+
+        case atariScreenMode4ip:
+            setAtariBE16(mem68k + sshiftmd, 1);   // ST medium resolution (640*200*2 ip)
+            break;
+
+        case atariScreenMode2:
+            setAtariBE16(mem68k + sshiftmd, 2);   // ST high resolution (640*400*2)
+            break;
+
+        default:
+            // does not make much sense here ...
+            setAtariBE16(mem68k + sshiftmd, 2);   // ST high resolution (640*400*2)
+            break;
+    }
+    setAtariBE16(mem68k +_cmdload, 0);            // boot AES
+    setAtariBE16(mem68k +_nflops, 0);             // no floppy disk drives, yet
 
     // Atari-68k-Daten setzen
 
@@ -779,8 +778,8 @@ Assign more memory to the application using the Finder dialogue "Information"!
     PixmapToBigEndian(&pAtari68kData->m_PixMap);
     #endif
 
-    DebugInfo("CMagiC::Init() - basepage address of system = 0x%08lx (68k)", AtariMemtop + sizeof(Atari68kData));
-    DebugInfo("CMagiC::Init() - address of Atari68kData = 0x%08lx (68k)", AtariMemtop);
+    DebugInfo2("() - basepage address of system = 0x%08lx (68k)", AtariMemtop + sizeof(Atari68kData));
+    DebugInfo2("() - address of Atari68kData = 0x%08lx (68k)", AtariMemtop);
 
     // neue Daten
 
@@ -792,33 +791,23 @@ Assign more memory to the application using the Finder dialogue "Information"!
 
     if (be32toh(pMacXSysHdr->MacSys_magic) != 'MagC')
     {
-        DebugError("CMagiC::Init() - magic value mismatch");
+        DebugError2("() - magic value mismatch");
         goto err_inv_os;
     }
 
 #ifndef NDEBUG
-    DebugInfo("CMagiC::Init() - sizeof(CMagiC_CPPCCallback) = %u", (unsigned) sizeof(CMagiC_CPPCCallback));
+    DebugInfo2("() - sizeof(CMagiC_CPPCCallback) = %u", (unsigned) sizeof(CMagiC_CPPCCallback));
     typedef UINT32 (CMagiC::*CMagiC_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
-    DebugInfo("CMagiC::Init() - sizeof(CMagiC_PPCCallback) = %u", (unsigned) sizeof(CMagiC_PPCCallback));
+    DebugInfo2("() - sizeof(CMagiC_PPCCallback) = %u", (unsigned) sizeof(CMagiC_PPCCallback));
 #endif
 
     assert(sizeof(CMagiC_CPPCCallback) == 16);
 
     if (be32toh(pMacXSysHdr->MacSys_len) != sizeof(*pMacXSysHdr))
     {
-        DebugError("CMagiC::Init() - Length of struct does not match (header: %u bytes, should be: %u bytes)",
+        DebugError2("() -- Length of struct does not match (header: %u bytes, should be: %u bytes)",
                          be32toh(pMacXSysHdr->MacSys_len), sizeof(*pMacXSysHdr));
         err_inv_os:
-/*
-Die Datei "MagicMacX.OS" ist defekt oder gehört zu einer anderen Programmversion als der Emulator.
-
-Installieren Sie die Applikation neu.
-[MagiCMacX beenden]
-The file "MagicMacX.OS" seems to be corrupted or belongs to a different (newer or older) version as the emulator program.
-
-Reinstall the application.
-[Quit program]
-*/
         showAlert("The kernel file MAGICLIN.OS is invalid or outdated", "Review your configuration");
         return(1);
     }

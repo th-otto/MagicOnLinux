@@ -407,7 +407,7 @@ struct SYSHDR
 #define _bootdev                0x446       // Default boot device
 #define palmode                 0x448       // 0 - NTSC (60hz), <>0 - PAL (50hz) (unused in emulator)
 #define defshiftmd              0x44a       // Default video resolution
-#define sshiftmd                0x44c       // Copy of contents of 0xFF8260
+#define sshiftmd                0x44c       // Copy of contents of 0xFF8260 (0: ST Low, 1: ST Mid, 2: ST High)
 #define _v_bas_ad               0x44e       // Pointer to video RAM (logical screen base)
 #define vblsem                  0x452       // If not zero, VBL routine is not executed
 #define nvbls                   0x454       // Number of vertical blank routines

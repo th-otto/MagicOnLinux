@@ -64,7 +64,8 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Full access to host file system, up to root
 * Mounts Atari volume or floppy disk images
 * Copy/paste clipboard text between host and emulated system.
-* Mount file systems, folder or image, via Drag&Drop, readable or read-only
+* Mount file systems, folder or image, via Drag&Drop, readable or read-only.
+* Some command line switches are provided to override config file settings.
 
 # Remarks
 

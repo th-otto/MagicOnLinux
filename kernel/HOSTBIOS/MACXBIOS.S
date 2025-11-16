@@ -1,6 +1,8 @@
 * BIOS fr MagiC MAC X
 * ********************
 
+* Echte Tabulatoren, Breite 5
+
 *
 * Dieses Modul enth„lt die Atari-seitige Nachbildung des BIOS
 *
@@ -103,7 +105,6 @@ COMMAND		EQU	$37			; "Apple"-Taste fr Calamus-Untersttzung
 	XDEF 	warm_boot 		; nach AES
 	XDEF 	warmbvec,coldbvec	; nach AES
 	XDEF		prn_wrts            ; -> DEV_BIOS
-	XDEF		Mac_xfsx			; -> MACXFS
 	IFNE FALCON
 	XDEF 	scrbuf_adr,scrbuf_len	; nach DOS
 	ENDIF
@@ -359,13 +360,12 @@ intern_maptab: 	DS.L 4*6		    ;interne MapTab. Enth„lt die Adressen
 ; Mag!X- und externen Routinen zu unterscheiden - eventuell in Zukunft aber
 ; auch fr andere Devices ntzlich, die sich an die Registerkonventionen des
 ; neuen (X)Bios-Dispatchers halten.
-mbiosvecs:
-Bconstatvec:		DS.L 8
-Bconinvec:		DS.L 8
-Bcostatvec:		DS.L 8
-Bconoutvec:		DS.L 8
+;mbiosvecs:
+;Bconstatvec:		DS.L 8
+;Bconinvec:		DS.L 8
+;Bcostatvec:		DS.L 8
+;Bconoutvec:		DS.L 8
 do_gettime:		DS.W 1
-Mac_xfsx:			DS.L	1			/* ->Tabelle mit XFS-Daten		*/
 warmbvec: 		DS.L 1			/* Sprungadr. fr Ctrl-Alt-Del	*/
 coldbvec: 		DS.L 1			/* Sprungadr. fr Ctrl-Alt-Rsh-Del */
 sust_len:			DS.L	1			/* Supervisorstack pro Applikation */
@@ -375,6 +375,32 @@ log_fd_pd:		DS.L	1			/* Prozeždeskriptor fr Handle */
 log_oldconout:		DS.L	1			/* Alter Vektor fr Bootlog */
 p_vt52:			DS.L	1			/* fr VT52.PRG */
 __e_bios:
+
+; Speicherbelegung in "lowmem":
+;     0 ..  $140		Interrupt-Vektoren
+;  $140 ..  $380		(frei, 576 Bytes)
+;  $380 ..  $5b4		offizielle Systemvariablen
+;  $5b4 ..  $840		(frei, 652 Bytes)
+;  $840 ..  $9a4		MagiC-BIOS-Variablen mit festen Adressen
+;  $9a4 .. $1200		BIOS
+; $1200 .. $28d6		VDI
+; $2900 .. (variabel)	DOS
+
+IF __e_bios >= $1200
+ "šberlauf der Bios-Variablen"
+ENDIF
+
+	OFFSET $600		/* war vorher unbenutzt */
+mbiosvecs:
+Bconstatvec:		DS.L 8
+Bconinvec:		DS.L 8
+Bcostatvec:		DS.L 8
+Bconoutvec:		DS.L 8
+__e_bios_ovfl:
+
+IF __e_bios_ovfl >= $840
+ "šberlauf der šberlauf-Bios-Variablen"
+ENDIF
 
 
 	   TEXT

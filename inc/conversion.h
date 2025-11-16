@@ -46,6 +46,8 @@ class CConversion
     static unsigned char charAtari2UpperCase(unsigned char c);
     static unsigned hostStringLength(const char *utf8, bool crlf_conv);
     static unsigned strHost2Atari(const char *utf8, uint8_t *buf, unsigned buflen, bool crlf_conv);
+    static unsigned atariStringHostLength(const unsigned char *src, bool crlf_conv);
+    static unsigned strAtari2Host(const unsigned char *src, char *buf, unsigned buflen, bool crlf_conv);
 
     static const char *textAtari2Host(const unsigned char *atari_text);
 	static int host2AtariError(int error);

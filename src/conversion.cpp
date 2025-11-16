@@ -347,6 +347,122 @@ unsigned CConversion::charAtari2Host(unsigned char c, char *dst)
 
 /** **********************************************************************************************
  *
+ * @brief [static] Get number of necessary utf8-bytes in an Atari string
+ *
+ * @param[in]  src          Atari string
+ * @param[in]  crlf_conv    count CR and LF as one (!) character, for conversion to LF
+ *
+ * @return number of needed bytes
+ *
+ ************************************************************************************************/
+unsigned CConversion::atariStringHostLength(const unsigned char *src, bool crlf_conv)
+{
+    if (src == nullptr)
+    {
+        return 0;
+    }
+
+    char dummy_buf[16];
+    unsigned dlen = 0;
+    const unsigned char *s = src;
+    while(*s)
+    {
+        if (crlf_conv)
+        {
+            if (s[0] == '\n')
+            {
+                s++;
+                dlen += 1;      // LF -> LF
+                continue;
+            }
+
+            if ((s[0] == '\r') && (s[1] != '\n'))
+            {
+                s++;
+                dlen += 1;      // CR -> LF
+                continue;
+            }
+
+            if ((s[0] == '\r') && (s[1] == '\n'))
+            {
+                s += 2;
+                dlen += 1;      // CR/LF -> LF
+                continue;
+            }
+        }
+
+        unsigned clen = charAtari2Host(*s, dummy_buf);
+        dlen += clen;
+        s++;
+    }
+
+    return dlen;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief [static] Convert Atari string to to utf8 host string
+ *
+ * @param[in]  src          Atari string
+ * @param[in]  crlf_conv    count CR and LF as one (!) character, for conversion to LF
+ *
+ * @return number of needed bytes
+ *
+ ************************************************************************************************/
+
+unsigned CConversion::strAtari2Host(const unsigned char *src, char *buf, unsigned buflen, bool crlf_conv)
+{
+    if (src == nullptr)
+    {
+        return 0;
+    }
+
+    unsigned dlen = 0;
+    const unsigned char *s = src;
+    while((*s) && (dlen < buflen))
+    {
+        if (crlf_conv)
+        {
+            if (s[0] == '\n')
+            {
+                *buf++ = '\n';
+                s++;
+                dlen += 1;      // LF -> LF
+                continue;
+            }
+
+            if ((s[0] == '\r') && (s[1] != '\n'))
+            {
+                *buf++ = '\n';
+                s++;
+                dlen += 1;      // CR -> LF
+                continue;
+            }
+
+            if ((s[0] == '\r') && (s[1] == '\n'))
+            {
+                *buf++ = '\n';
+                s += 2;
+                dlen += 1;      // CR/LF -> LF
+                continue;
+            }
+        }
+
+        unsigned clen = charAtari2Host(*s, buf);
+        dlen += clen;
+        buf += clen;
+        s++;
+    }
+
+    *buf = '\0';
+
+    return dlen;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief [static] Convert Atari lowercase character to uppercase
  *
  * @param[in]   c     Atari lowercase character

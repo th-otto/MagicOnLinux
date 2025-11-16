@@ -31,6 +31,7 @@ class CClipboard
 	static void host2Atari(const uint8_t *pData);	// accept buffer in utf-8 format
 	static void Atari2host(uint8_t **pBuffer);      // return buffer in utf-8 format
 
+#if 0
    private:
 	// Typen
 	typedef struct
@@ -50,4 +51,5 @@ class CClipboard
 //	static unsigned long s_lastMdDat;
 //	static long s_lastFILgLen;
 //	static char s_AtariScrapPath[256];
+#endif
 };

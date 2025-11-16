@@ -27,15 +27,14 @@
 #include <unistd.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <endian.h>
 #include <string.h>
 #include <errno.h>
-#include "Globals.h"
 #include "Debug.h"
 #include "conversion.h"
 #include "preferences.h"
 #include "Clipboard.h"
 
+#if 0
 #define CHSET_ATARI_delta						0x7F
 #define CHSET_ATARI_cedille_uppercase			0x80		// Ç
 #define CHSET_ATARI_u_umlaut_lowercase			0x81		// ü
@@ -244,6 +243,7 @@ const CClipboard::atariCharEntry CClipboard::atariCharConvTable[] =
 	{ CHSET_ATARI_superscript_three			, u8"³" },
 	{ CHSET_ATARI_overline					, u8" ̅" }
 };
+#endif
 
 // statische Attribute:
 
@@ -253,6 +253,7 @@ const CClipboard::atariCharEntry CClipboard::atariCharConvTable[] =
 //char CClipboard::s_AtariScrapPath[256] = ":MAGIC_C:GEMSYS:GEMSCRAP:";
 
 
+#if 0
 /**********************************************************************
  *
  * statisch: Clipboard Mac (UTF-8) -> Atari
@@ -297,6 +298,7 @@ const CClipboard::atariCharEntry *CClipboard::FindAtari(uint8_t c)
 
 	return NULL;
 }
+#endif
 
 
 /** **********************************************************************************************
@@ -556,14 +558,66 @@ void CClipboard::host2Atari(const uint8_t *pData)
 }
 
 
-/**********************************************************************
-*
-* statisch: Clipboard Atari -> Mac
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief [static] Read Atari SCRAP file and convert to host clipboard data
+ *
+ * @param[out]  pBuffer    utf-8 string
+ *
+ * @note This converts both characters and line endings (to LF)
+ *
+ * @note We use a two-pass conversion, first determine space, then convert.
+ *
+ ************************************************************************************************/
 void CClipboard::Atari2host(uint8_t **pBuffer)
 {
+    int fd = open((const char *) Preferences::AtariScrapFileUnixPath, O_RDONLY, 0);
+    if (fd < 0)
+    {
+    	DebugError2("() -- cannot open Atari scrap file -> %s", strerror(errno));
+        return;
+    }
+
+    // get file size
+    off_t file_length = lseek(fd, 0, SEEK_END);
+    (void) lseek(fd, 0, SEEK_SET);
+    if (file_length < 1)
+    {
+        close(fd);      // ignore non-readable and empty files
+        return;
+    }
+
+    // allocate one byte more, for end-of-string
+    uint8_t *src_buf = (uint8_t *) malloc(file_length + 1);
+    assert(src_buf != nullptr);
+
+    // read entire file and close it
+	ssize_t read_count = read(fd, src_buf, file_length);
+	close(fd);
+	if (read_count == -1)
+	{
+		free(src_buf);
+    	DebugError2("() -- cannot read Atari scrap file -> %s", strerror(errno));
+		return;
+	}
+    assert(read_count <= file_length);
+    src_buf[read_count] = '\0';    // add end-of-string
+
+    unsigned dst_len = CConversion::atariStringHostLength(src_buf, true);
+    if (dst_len == 0)
+    {
+        *pBuffer = nullptr;     // ignore empty file
+        return;
+    }
+
+    char *dst_buf = (char *) malloc(dst_len + 1);
+    unsigned done = CConversion::strAtari2Host(src_buf, dst_buf, dst_len + 1, true);
+    assert(done == dst_len);
+
+	free(src_buf);
+	*pBuffer = (uint8_t *) dst_buf;
+
+#if 0
 	uint8_t *inAtariBuffer;
 	uint8_t *outUtf8Buffer;
 	int fd;
@@ -650,6 +704,7 @@ void CClipboard::Atari2host(uint8_t **pBuffer)
 	*wrPtr = 0;		// end-of-string
 	free(inAtariBuffer);
 	*pBuffer = outUtf8Buffer;
+    #endif
 }
 
 
@@ -680,6 +735,7 @@ void CClipboard::DeleteAtariScrapFile( const char *fname )
 }
 */
 
+#if 0
 /**********************************************************************
 *
 * statisch und privat: Atari-Clipboard öffnen mit Unix-Aufrufen
@@ -714,7 +770,7 @@ int CClipboard::OpenAtariScrapFile(int unixPerm)
 */
 	return fd;
 }
-
+#endif
 
 /**********************************************************************
 *

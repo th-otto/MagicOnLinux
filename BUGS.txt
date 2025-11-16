@@ -29,8 +29,6 @@ Add command line option to convert Atari text files to UTF-8 and vice-versa, inc
 Drag & Drop file systems treats every file as image. If one image is invalid, no further images can be mounted.
 Maybe provide a list of supported file names extensions (.st, .image, .diskimage).
 
-Atari/UTF-8 conversion is multiple times in the source code, for filenames and clipboard.
-
 
 Create disk image:
 - 512 bytes per sector
@@ -114,14 +112,14 @@ Works not:
 VDI drivers:
 
 - *.OSD are offscreen drivers and not hardware related
--  *.NOD come from NVDI, they are faster than their OSD pendants.
-   They are preferably loaded during boot process if they are found.
+- *.NOD come from NVDI, they are faster than their OSD pendants.
+  They are preferably loaded during boot process if they are found.
 - MFA*.SYS are Atari hardware related and not used by MagicOnLinux or predecessors.
 - MFM*.SYS are used by MagicOnLinux
--  NFM*.SYS come from NVDI, they are faster than their MFM pendants.
-   They are not automatically loaded during boot, as the internal VDI
-   explicitly opens e.g. MFM2.SYS in monochrome mode.
-   It also seems that they are incompatible.
+- NFM*.SYS come from NVDI, they are faster than their MFM pendants.
+  They are not automatically loaded during boot, as the internal VDI
+  explicitly opens e.g. MFM2.SYS in monochrome mode.
+  It also seems that they are incompatible.
 
 in particular:
 

@@ -17,6 +17,7 @@ const char *argnames[] =
     nullptr,
     "wxh[xb][ip]",
     "w[xh]",
+    "size",
     "program"
 };
 
@@ -28,6 +29,7 @@ const char *descriptions[] =
     "          write configuration file with default values and exit",
     "  e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
     "         e.g. 2x2 or 2 or 2x4, overrides config file",
+    "          Atari RAM size, e.g. 512k or 4M or 3m",
     "        choose editor program for -e option, default is gnome-text-editor"
 };
 
@@ -186,16 +188,65 @@ static int eval_stretch(const char *stretch, int *stretch_x, int *stretch_y)
 }
 
 
+// return 0 if OK
+static int eval_memsize(const char *str, int *atari_memsize)
+{
+    unsigned m;
+    unsigned factor = 1;
+    char c;
+
+    int n = sscanf(str, "%u%c", &m, &c);
+    if (n == 2)
+    {
+        c = toupper(c);
+        if (c == 'K')
+        {
+            factor = 1024;
+        }
+        else
+        if (c == 'M')
+        {
+            factor = 1024 * 1024;
+        }
+        else
+        {
+            printf("memory size quantum may be k or m or nothing\n");
+            return 1;
+        }
+    }
+    else
+    if (n != 1)
+    {
+        printf("malformed memory size argument\n");
+        return 2;
+    }
+
+    m *= factor;
+
+    if ((m < ATARI_RAM_SIZE_MIN) || (m > ATARI_RAM_SIZE_MAX))
+    {
+        printf("Invalid memory size %u: must be between %uk and %um\n", m, ATARI_RAM_SIZE_MIN >> 10, ATARI_RAM_SIZE_MAX >> 20);
+        return 4;
+    }
+
+    *atari_memsize = m;      // use instead of those in config file
+
+    return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
     int c;
-    const char *geometry = nullptr;
-    const char *stretch = nullptr;
+    const char *arg_geometry = nullptr;
+    const char *arg_stretch = nullptr;
+    const char *arg_memsize = nullptr;
     int mode = -1;
     int width = -1;
     int height = -1;
     int stretch_x = -1;
     int stretch_y = -1;
+    int atari_memsize = -1;
     const char *config = "~/.config/magiclinux.conf";
     const char *editor = "gnome-text-editor";
     bool bRunEditor = false;
@@ -214,10 +265,11 @@ int main(int argc, char *argv[])
             {"config-write", no_argument,       nullptr, 'w' },
             {"geometry",     required_argument, nullptr, 'g' },
             {"stretch",      required_argument, nullptr, 's' },
+            {"memsize",      required_argument, nullptr, 'm' },
             {"editor",       required_argument, nullptr,  0 },
             {nullptr,        0,                 nullptr,  0 }
         };
-        c = getopt_long(argc, argv, "hc:ewg:s:",
+        c = getopt_long(argc, argv, "hc:ewg:s:m:",
                         long_options, &long_option_index);
 
         if (c == -1)
@@ -254,11 +306,15 @@ int main(int argc, char *argv[])
                 break;
 
             case 'g':
-                geometry = optarg;
+                arg_geometry = optarg;
                 break;
 
             case 's':
-                stretch = optarg;
+                arg_stretch = optarg;
+                break;
+
+            case 'm':
+                arg_memsize = optarg;
                 break;
 
             case 'w':
@@ -274,14 +330,19 @@ int main(int argc, char *argv[])
         }
     }
 
+    if ((arg_memsize != nullptr) && eval_memsize(arg_memsize, &atari_memsize))
+    {
+        return 5;
+    }
+
     //geometry = "800x600x1";
-    if ((geometry != nullptr) && eval_geometry(geometry, &mode, &width, &height))
+    if ((arg_geometry != nullptr) && eval_geometry(arg_geometry, &mode, &width, &height))
     {
         return 3;
     }
 
     //stretch = "2x4";
-    if ((stretch != nullptr) && eval_stretch(stretch, &stretch_x, &stretch_y))
+    if ((arg_stretch != nullptr) && eval_stretch(arg_stretch, &stretch_x, &stretch_y))
     {
         return 4;
     }
@@ -298,7 +359,7 @@ int main(int argc, char *argv[])
 
     if (bWriteConf)
     {
-        Preferences::init(config, mode, width, height, stretch_x, stretch_y, true);
+        Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, true);
         return 0;
     }
 
@@ -329,7 +390,7 @@ int main(int argc, char *argv[])
     #endif
 
     DebugInit(NULL /* stderr */);
-    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, false))
+    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, false))
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }

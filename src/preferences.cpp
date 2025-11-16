@@ -169,6 +169,7 @@ int Preferences::init
     int height_override,
     int stretch_x_override,
     int stretch_y_override,
+    int memsize_override,
     bool rewrite_conf
 )
 {
@@ -215,6 +216,10 @@ int Preferences::init
     {
         AtariScreenStretchY = stretch_y_override;
     }
+    if (memsize_override >= 0)
+    {
+        AtariMemSize = memsize_override;
+    }
 
     //
     // Screen parameters consistency.
@@ -245,6 +250,12 @@ int Preferences::init
             AtariScreenHeight &= ~15;
             fprintf(stderr, "Atari screen height justified to %u (multiple of 16)\n", AtariScreenHeight);
         }
+    }
+
+    if (AtariMemSize & 4095)
+    {
+        AtariMemSize &= ~4095;
+        fprintf(stderr, "Atari memory size justified to %u (multiple of 4096)\n", AtariMemSize);
     }
 
     // drive C: is root FS with 8+3 name scheme

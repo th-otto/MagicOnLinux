@@ -1,6 +1,3 @@
-Wenn auf der Kommandozeile die Schalter -c und -e angegeben sind, dann die richtige Datei editieren!
-
-
 The Atari memory size is given in bytes and excludes video memory which is handled separately.
 
 Due to a bug in MVDI and NVDI, the VT52 emulator draws graphics artifacts e.g. with CLR SCREEN,
@@ -50,13 +47,6 @@ GEMBENCH crashes (why?) and corrupts the whole emulated system. Why? Is there a 
 MGEDIT should be killable via MagiC task manager, but in most time this leads to a total system crash.
 
 The MagiC message "System was overwritten" shall be passed to emulator.
-
-Crash
-01:04:39) DBG-ERR AtariGetKeyboardOrMouseData() --- Keine Daten
-magic-on-linux: /home/and/Documents/magiclinux/src/HostHandles.cpp:136: void freeHostFD(HostFD*): Assertion `fd->ref_cnt > 0' failed.
-Aborted (core dumped)
-after copying "Techobox.CAD" to C:\ṪEMP and deleting target
-Maybe recursive deleting of directory?
 
 
 APPLICATIONS

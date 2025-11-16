@@ -1160,21 +1160,21 @@ enum MagiC_APP_STATUS
 
 struct MagiC_APP
 {
-    PTR32_BE  ap_next;          // concatenation pointer
-    UINT16_BE  ap_id;           // application ID
-    UINT16_BE  ap_parent;       // actual parent ID
-    UINT16_BE  ap_parent2;      // if applicable, the ap_id of VT52, to there ->CH_EXIT
-    UINT16_BE  ap_type;         // 0 = Main Thread / 1 = Thread / 2 = Signal Handler
-    UINT32_BE  ap_oldsigmask;   // saved signal mask (for Signal Handler)
-    PTR32_BE   ap_sigthr;       // if Main Tread: Pointer to active signal handler
-                                // if signal handler: Pointer to previous one or NULL
-    UINT16_BE  ap_srchflg;      // for appl_search
-    PTR32_BE   ap_menutree;     // menu tree
-    PTR32_BE   ap_attached;     // NULL or list for menu_attach()
-    PTR32_BE  ap_desktree;      // desktop background
-    UINT16_BE  ap_1stob;        //  for this background: first object
-    UINT8   ap_dummy1[2];       // two space characters to be placed in front of ap_name
-    UINT8   ap_name[8];         // name (8 characters, with trailing blanks)
+    PTR32_BE  ap_next;          // 0x00: concatenation pointer
+    UINT16_BE  ap_id;           // 0x04: application ID
+    UINT16_BE  ap_parent;       // 0x06: actual parent ID
+    UINT16_BE  ap_parent2;      // 0x08: if applicable, the ap_id of VT52, to there ->CH_EXIT
+    UINT16_BE  ap_type;         // 0x0a: 0 = Main Thread / 1 = Thread / 2 = Signal Handler
+    UINT32_BE  ap_oldsigmask;   // 0x0c: saved signal mask (for Signal Handler)
+    PTR32_BE   ap_sigthr;       // 0x10: if Main Tread: Pointer to active signal handler
+                                //       if signal handler: Pointer to previous one or NULL
+    UINT16_BE  ap_srchflg;      // 0x14: for appl_search
+    PTR32_BE   ap_menutree;     // 0x16: menu tree
+    PTR32_BE   ap_attached;     // 0x1a: NULL or list for menu_attach()
+    PTR32_BE  ap_desktree;      // 0x1e: desktop background
+    UINT16_BE  ap_1stob;        // 0x20: for this background: first object
+    UINT8   ap_dummy1[2];       // 0x22: two space characters to be placed in front of ap_name
+    UINT8   ap_name[8];         // 0x24: name (8 characters, with trailing blanks)
     UINT8   ap_dummy2[2];       // space character and, if applicable, hiding symbol
     UINT8   ap_dummy3;          // zero byte for end-of-string
     UINT8   ap_status;          // APSTAT_...
@@ -1223,8 +1223,8 @@ struct MagiC_APP
     UINT16_BE  ap_svd_mouse[37];    // x/y/planes/bg/fg/msk[32]/moff_cnt
     UINT16_BE  ap_prv_mouse[37];
     UINT16_BE  ap_act_mouse[37];
-    UINT32_BE  ap_ssp;
-    PTR32_BE  ap_pd;
+    UINT32_BE  ap_ssp;          // 0x58c:
+    PTR32_BE  ap_pd;            // 0x590:
     PTR32_BE  ap_etvterm;
     UINT32_BE  ap_stkchk;       // magic value for stack overflow check
     UINT8   ap_stack[0];        // stack

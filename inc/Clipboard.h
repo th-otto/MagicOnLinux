@@ -28,8 +28,8 @@
 class CClipboard
 {
    public:
-	static void Mac2Atari(const uint8_t *pData);	// put Clipboard data in UTF-8 format
-	static void Atari2Mac(uint8_t **pBuffer);
+	static void host2Atari(const uint8_t *pData);	// accept buffer in utf-8 format
+	static void Atari2host(uint8_t **pBuffer);      // return buffer in utf-8 format
 
    private:
 	// Typen

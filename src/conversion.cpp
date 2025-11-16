@@ -172,6 +172,149 @@ unsigned CConversion::charHost2Atari(const char *utf8, unsigned char *dst)
 
 /** **********************************************************************************************
  *
+ * @brief [static] Get number of characters in an utf-8 string
+ *
+ * @param[in]  utf8         utf-8 string
+ * @param[in]  crlf_conv    count CR and LF as two (!) characters, for conversion to CR/LF
+ *
+ * @return number of characters
+ *
+ ************************************************************************************************/
+unsigned CConversion::hostStringLength(const char *utf8, bool crlf_conv)
+{
+    if (utf8 == nullptr)
+    {
+        return 0;
+    }
+
+    unsigned slen = 0;
+    const char *s = utf8;
+    while(*s)
+    {
+        if (crlf_conv)
+        {
+            if (s[0] == '\n')
+            {
+                s++;
+                slen += 2;      // LF -> CR/LF
+                continue;
+            }
+
+            if ((s[0] == '\r') && (s[1] != '\n'))
+            {
+                s++;
+                slen += 2;      // CR -> CR/LF
+                continue;
+            }
+
+            if ((s[0] == '\r') && (s[1] == '\n'))
+            {
+                s += 2;
+                slen += 2;      // CR/LF -> CR/LF
+                continue;
+            }
+        }
+
+        slen++;
+        unsigned clen = utf8Len(*s);
+        s += clen;
+    }
+
+    return slen;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief [static] Convert utf-8 string to Atari string
+ *
+ * @param[in]  utf8         utf-8 string
+ * @param[out] buf          destination buffer
+ * @param[in]  buflen       destination buffer length, including end-of-string
+ * @param[in]  crlf_conv    convert CR and LF to CR/LF
+ *
+ * @return number of written bytes
+ *
+ ************************************************************************************************/
+unsigned CConversion::strHost2Atari(const char *utf8, uint8_t *buf, unsigned buflen, bool crlf_conv)
+{
+    if (utf8 == nullptr)
+    {
+        return 0;
+    }
+
+    unsigned slen = 0;
+    const char *s = utf8;
+    while((*s) && (slen < buflen))
+    {
+        if (crlf_conv)
+        {
+            if (s[0] == '\n')
+            {
+                s++;
+                if (slen < buflen - 1)
+                {
+                    *buf++ = '\r';      // LF -> CR/LF
+                    *buf++ = '\n';
+                }
+                else
+                {
+                    // overflow, suppress
+                }
+                slen += 2;
+                continue;
+            }
+
+            if ((s[0] == '\r') && (s[1] != '\n'))
+            {
+                s++;
+                if (slen < buflen - 1)
+                {
+                    *buf++ = '\r';      // CR -> CR/LF
+                    *buf++ = '\n';
+                }
+                else
+                {
+                    // overflow, suppress
+                }
+                slen += 2;
+                continue;
+            }
+
+            if ((s[0] == '\r') && (s[1] == '\n'))
+            {
+                s += 2;
+                if (slen < buflen - 1)
+                {
+                    *buf++ = '\r';      // CR/LF -> CR/LF
+                    *buf++ = '\n';
+                }
+                else
+                {
+                    // overflow, suppress
+                }
+                slen += 2;
+                continue;
+            }
+        }
+
+        unsigned clen = charHost2Atari(s, buf);
+        s += clen;
+        if (clen > 0)
+        {
+            buf++;
+            slen++;
+        }
+    }
+
+    *buf = '\0';
+
+    return slen;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief [static] Convert Atari single-byte character to utf-8 byte array
  *
  * @param[in]  c        Atari character

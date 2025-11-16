@@ -25,6 +25,7 @@
 #include "config.h"
 #include <stdlib.h>
 #include <unistd.h>
+#include <assert.h>
 #include <fcntl.h>
 #include <endian.h>
 #include <string.h>
@@ -298,14 +299,42 @@ const CClipboard::atariCharEntry *CClipboard::FindAtari(uint8_t c)
 }
 
 
-/**********************************************************************
-*
-* statisch: Clipboard Mac (UTF-8) -> Atari
-*
-**********************************************************************/
-
-void CClipboard::Mac2Atari(const uint8_t *pData)
+/** **********************************************************************************************
+ *
+ * @brief [static] Convert host clipboard data and write to Atari SCRAP file
+ *
+ * @param[in]  pData    utf-8 string
+ *
+ * @note This converts both characters and line endings (to CR/LF)
+ *
+ * @note We use a two-pass conversion, first determine space, then convert.
+ *
+ ************************************************************************************************/
+void CClipboard::host2Atari(const uint8_t *pData)
 {
+    unsigned stringlen = CConversion::hostStringLength((const char *) pData, true);
+	if	(stringlen == 0)
+	{
+		return;		// no data
+	}
+
+    int fd = open((const char *) Preferences::AtariScrapFileUnixPath, O_WRONLY | O_CREAT | O_TRUNC, 0);
+    if (fd < 0)
+    {
+    	DebugError2("() -- cannot open Atari scrap file -> %s", strerror(errno));
+        return;
+    }
+
+	uint8_t *scrapBuffer = (uint8_t *) malloc(stringlen + 1);
+    assert(scrapBuffer != nullptr);
+    unsigned done = CConversion::strHost2Atari((const char *) pData, scrapBuffer, stringlen + 1, true);
+    assert(done == stringlen);
+
+	(void) write(fd, scrapBuffer, done + 1);
+	(void) close(fd);
+
+#if 0
+
 	unsigned char *ScrapBuffer;
 	unsigned char *wrPtr;
 	const atariCharEntry *p;
@@ -317,10 +346,6 @@ void CClipboard::Mac2Atari(const uint8_t *pData)
 	DebugInfo("CClipboard::Mac2Atari(\"%s\")", dbgoutbuf);
 #endif
 
-	if	(pData == nullptr)
-	{
-		return;		// keine Daten
-	}
 
 	// Puffer anfordern, der die doppelte Länge der Ausgangsdaten hat, denn
 	// im Extremfall sind nur CRs im Clipboard.
@@ -527,6 +552,7 @@ void CClipboard::Mac2Atari(const uint8_t *pData)
     #pragma GCC diagnostic pop
 
 	free(ScrapBuffer);
+#endif
 }
 
 
@@ -536,7 +562,7 @@ void CClipboard::Mac2Atari(const uint8_t *pData)
 *
 **********************************************************************/
 
-void CClipboard::Atari2Mac(uint8_t **pBuffer)
+void CClipboard::Atari2host(uint8_t **pBuffer)
 {
 	uint8_t *inAtariBuffer;
 	uint8_t *outUtf8Buffer;

@@ -1006,7 +1006,7 @@ void EmulationRunner::EventLoop(void)
                                 clipboardData = (uint8_t *) SDL_GetClipboardText();
                                 if (clipboardData)
                                 {
-                                    CClipboard::Mac2Atari(clipboardData);
+                                    CClipboard::host2Atari(clipboardData);
                                     SDL_free(clipboardData);
                                 }
                             }
@@ -1022,7 +1022,7 @@ void EmulationRunner::EventLoop(void)
                         case SDL_WINDOWEVENT_FOCUS_LOST:
                             // Copy Atari Clipboard to host Clipboard
                             clipboardData = nullptr;
-                            CClipboard::Atari2Mac(&clipboardData);
+                            CClipboard::Atari2host(&clipboardData);
                             if (clipboardData)
                             {
                                 SDL_SetClipboardText((const char *) clipboardData);

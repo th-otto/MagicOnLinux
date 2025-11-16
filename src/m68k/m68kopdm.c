@@ -7355,6 +7355,7 @@ void m68k_op_move_16_pi_i(void)
 }
 
 
+// move.w dx,-(ay)
 void m68k_op_move_16_pd_d(void)
 {
 	uint res = MASK_OUT_ABOVE_16(DY);
@@ -8266,6 +8267,7 @@ void m68k_op_move_32_d_pd(void)
 }
 
 
+// move.l off16(ax),dy
 void m68k_op_move_32_d_di(void)
 {
 	uint res = OPER_AY_DI_32();
@@ -9613,6 +9615,7 @@ void m68k_op_movea_16_i(void)
 }
 
 
+// move.l dy,ay
 void m68k_op_movea_32_d(void)
 {
 	AX = DY;

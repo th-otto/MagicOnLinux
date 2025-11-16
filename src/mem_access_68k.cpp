@@ -137,7 +137,6 @@ const char *AtariAddr2Description(uint32_t addr)
  * @return byte read, extended to 32-bit unsigned
  *
  ************************************************************************************************/
-
 static void getAtariPrg(const char **pprocName, uint32_t *pact_pd)
 {
     getActAtariPrg(pprocName, pact_pd);
@@ -146,6 +145,30 @@ static void getAtariPrg(const char **pprocName, uint32_t *pact_pd)
         *pprocName = "<unknown>";
     }
 }
+
+
+#if defined(M68K_WRITE_WATCHES)
+/** **********************************************************************************************
+ *
+ * @brief Debug helper to find a write-watch
+ *
+ * @param[in] address        68k address
+ *
+ * @return true, if there is a watch
+ *
+ ************************************************************************************************/
+static bool is_write_watch(uint32_t address)
+{
+    for (unsigned i = 0; i < M68K_WRITE_WATCHES; i++)
+    {
+        if (address == m68k_write_watches[i])
+        {
+            return true;
+        }
+    }
+    return false;
+}
+#endif
 
 
 /** **********************************************************************************************
@@ -296,6 +319,13 @@ m68k_data_type m68k_read_memory_32(m68k_addr_type address)
  ************************************************************************************************/
 void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
 {
+#if defined(M68K_WRITE_WATCHES)
+    if (is_write_watch(address))
+    {
+        printf("write.8 value 0x%02x to 68k addr 0x%08x\n", value, address);
+    }
+#endif
+
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
     if ((address >= addrOsRomStart) && (address < addrOsRomEnd))
     {
@@ -358,6 +388,13 @@ void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
  ************************************************************************************************/
 void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
 {
+#if defined(M68K_WRITE_WATCHES)
+    if (is_write_watch(address))
+    {
+        printf("write.8 value 0x%02x to 68k addr 0x%08x\n", value, address);
+    }
+#endif
+
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
     if ((address >= addrOsRomStart-1) && (address < addrOsRomEnd))
     {
@@ -416,6 +453,13 @@ void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
  ************************************************************************************************/
 void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
 {
+#if defined(M68K_WRITE_WATCHES)
+    if (is_write_watch(address))
+    {
+        printf("write.8 value 0x%02x to 68k addr 0x%08x\n", value, address);
+    }
+#endif
+
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
     if ((address >= addrOsRomStart - 3) && (address < addrOsRomEnd))
     {

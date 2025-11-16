@@ -21,8 +21,9 @@
  *
  */
 
- #include "config.h"
+#include "config.h"
 
+#include <unistd.h>
 #include <assert.h>
 #include "Debug.h"
 #include "Clipboard.h"        // MagiC clipboad handling
@@ -954,6 +955,14 @@ void EmulationRunner::EventLoop(void)
 
     while((!m_bQuitLoop) && (SDL_WaitEvent(&event)))
     {
+
+#ifndef NDEBUG
+        while(do_not_interrupt_68k)
+        {
+            sleep(1);   // do not disturb the 68k debugging
+        }
+#endif
+
         switch(event.type)
         {
             case SDL_WINDOWEVENT:

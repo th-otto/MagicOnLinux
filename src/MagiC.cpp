@@ -47,7 +47,40 @@ static CMagiC *pTheMagiC = nullptr;
 
 
 #ifndef NDEBUG
-bool CMagiC__sNoAtariInterrupts = false;    // for debugging
+#if defined(M68K_BREAKPOINTS)
+uint32_t m68k_breakpoints[M68K_BREAKPOINTS][2];      //  68k address and range, usually 0
+#endif
+
+#if defined(M68K_WRITE_WATCHES)
+uint32_t m68k_write_watches[M68K_WRITE_WATCHES];
+#endif
+
+int do_not_interrupt_68k = 0;       // for debugging
+// disable interrupts, essential for debugging
+extern "C" {
+
+void int68k_enable(int enable)
+{
+    do_not_interrupt_68k = !enable;
+    sExitImmediately = 0;
+}
+void print_app(uint32_t addr68k)
+{
+    const MagiC_APP *app = (MagiC_APP *) (mem68k + addr68k);
+    printf(" ap = 0x%08x\n", addr68k);
+    printf(" ap_id = %u\n", be16toh(app->ap_id));
+    printf(" ap_type = %u\n", be16toh(app->ap_type));
+    printf(" ap_dummy1 = %s\n", app->ap_dummy1);
+    printf(" ap_status = %u\n", app->ap_status);
+    printf(" ap_cmd = %s\n", app->ap_cmd);
+    printf(" ap_tai = %s\n", app->ap_tai);
+    printf(" ap_ssp = 0x%08x\n", be32toh(app->ap_ssp));
+    printf(" ap_pd = 0x%08x\n", be32toh(app->ap_pd));
+    printf(" ap_etvterm = 0x%08x\n", be32toh(app->ap_etvterm));
+    printf(" ap_stkchk = 0x%08x\n", be32toh(app->ap_stkchk));
+}
+
+}
 #endif
 
 
@@ -215,8 +248,8 @@ CMagiC::CMagiC()
     m_bInterruptMouseButton[0] = m_bInterruptMouseButton[1] = false;
     m_InterruptMouseWhere.y = m_InterruptMouseWhere.x = 0;
     m_bInterruptPending = false;
-    m_LineAVars = NULL;
-    m_pMagiCScreen = NULL;
+    m_LineAVars = nullptr;
+    m_pMagiCScreen = nullptr;
 //    m_PrintFileRefNum = 0;
     pTheMagiC = this;
     m_bEmulatorHasEnded = false;
@@ -1211,7 +1244,7 @@ int CMagiC::EmuThread( void )
 
     m_bEmulatorIsRunning = true;
 
-    for    (;;)
+    for (;;)
     {
 
         while (!m_bCanRun)
@@ -1252,6 +1285,22 @@ int CMagiC::EmuThread( void )
             m_bScreenBufferChanged = false;
             OS_ExitCriticalRegion(&m_ScrCriticalRegionId);
         }
+
+#ifndef NDEBUG
+        if (do_not_interrupt_68k)
+        {
+            continue;
+            // TODO: replace with bit vector
+            /*
+            m_bBusErrorPending = false;
+            m_bInterruptPending = false;
+            m_bInterruptMouseKeyboardPending = false;
+            m_bInterruptMouseKeyboardPending = false;
+            m_bInterrupt200HzPending = false;
+            m_bInterruptVBLPending = false;
+            */
+        }
+#endif
 
         // ausstehende Busfehler bearbeiten
         if (m_bBusErrorPending)
@@ -1539,12 +1588,6 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
     unsigned char val;
 
 
-#ifndef NDEBUG
-    if (CMagiC__sNoAtariInterrupts)
-    {
-        return 0;
-    }
-#endif
 #ifdef _DEBUG_NO_ATARI_KB_INTERRUPTS
     return 0;
 #endif
@@ -1758,12 +1801,6 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
 
 int CMagiC::SendMousePosition(int x, int y)
 {
-#ifndef NDEBUG
-    if (CMagiC__sNoAtariInterrupts)
-    {
-        return 0;
-    }
-#endif
 #ifdef _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
     return 0;
 #endif
@@ -1816,12 +1853,6 @@ int CMagiC::SendMousePosition(int x, int y)
 
 int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
 {
-#ifndef NDEBUG
-    if (CMagiC__sNoAtariInterrupts)
-    {
-        return 0;
-    }
-#endif
 #ifdef _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
     return 0;
 #endif
@@ -1908,12 +1939,6 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
 
 int CMagiC::SendHz200(void)
 {
-#ifndef NDEBUG
-    if (CMagiC__sNoAtariInterrupts)
-    {
-        return 0;
-    }
-#endif
 #ifdef _DEBUG_NO_ATARI_HZ200_INTERRUPTS
     return 0;
 #endif
@@ -1973,13 +1998,6 @@ int CMagiC::SendHz200(void)
 
 int CMagiC::SendVBL(void)
 {
-#ifndef NDEBUG
-    if (CMagiC__sNoAtariInterrupts)
-    {
-        return 0;
-    }
-#endif
-
 #ifdef _DEBUG_NO_ATARI_VBL_INTERRUPTS
     return 0;
 #endif
@@ -2041,6 +2059,16 @@ uint32_t CMagiC::AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k)
 uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
 {
     DebugInfo2("() - ATARI: VDI initialisation done.");
+#if defined(M68K_BREAKPOINTS)
+    //breakpoint = 0x007c9c68 + 0x5cf2;   // Pdkill TODO: remove, if done
+    //breakpoint2 = 0x007c9c68 + 0x651c;   // Pexec
+    //breakpoint3 = 0x007c9c68 + 0x1e4ee;   // pgml_term
+    //breakpoint = 0x007c9c68 + 0x19c96;   // bsr pgm_loader
+    //breakpoint2 = 0x007c9c68 + 0x17ee;   // print_bombs10
+    //breakpoint2_range = 0x180a - 0x17ee;   // print_bombs10
+    //breakpoint3 = 0x007c9c68 + 0x1e2f2;   // pgm_loader
+    m68k_breakpoints[0][0] = 0x007c9c68 + 0x1793a;   // draw_spr
+#endif
 //    (void) params;
 //    (void) addrOffset68k;
     Point PtAtariMousePos;
@@ -2780,6 +2808,12 @@ uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
     const unsigned char *text = addrOffset68k + params;
     //printf((char *) text);
     DebugInfo2("(%s)", CConversion::textAtari2Host(text));
+/*
+    if ((text[0] == 'A') && (text[1] == 'E') && (text[2] == 'S'))
+    {
+        int68k_enable(0);   // TODO: remove
+    }
+*/
 #else
     (void) params;
     (void) addrOffset68k;

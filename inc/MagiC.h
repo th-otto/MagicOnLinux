@@ -36,10 +36,6 @@
 
 #define KEYBOARDBUFLEN  32
 
-#ifndef NDEBUG
-extern bool CMagiC__sNoAtariInterrupts;    // for debugging
-#endif
-
 class CMagiC
 {
    public:

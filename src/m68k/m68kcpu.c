@@ -1,6 +1,8 @@
 #include "config.h"
+#include "emulation_globals.h"
 
 #if defined(USE_MUSASHI_68K_EMU)
+#include <string.h>
 #include <stdint.h>
 
 /* ======================================================================== */
@@ -523,6 +525,61 @@ static void default_instr_hook_callback(void)
 	jmp_buf m68ki_aerr_trap;
 #endif /* M68K_EMULATE_ADDRESS_ERROR */
 
+#if defined(M68K_BREAKPOINTS)
+static void print_cpu(int init)
+{
+    static uint32_t dar_prev[16];
+    static uint32_t usp_prev;
+    FILE *f = stdout;
+
+    extern uint32_t addrOsRomStart;         // beginning of write-protected memory area (68k address)
+    extern uint32_t addrOsRomEnd;           // end of write-protected memory area (68k address)
+    extern uint8_t *mem68k;                 // host pointer to memory block used by emulator
+    extern uint32_t mem68kSize;             // complete address range for 68k emulator, but without video memory
+
+    if ((m68ki_cpu.pc >= addrOsRomStart) && (m68ki_cpu.pc < addrOsRomEnd))
+    {
+        fprintf(f, "pc = 0x%08x (OS ROM 0x%08x)\n", m68ki_cpu.pc, m68ki_cpu.pc - addrOsRomStart);
+    }
+    else
+    {
+        fprintf(f, "pc = 0x%08x\n", m68ki_cpu.pc);
+    }
+
+    uint32_t sp = m68ki_cpu.dar[7 + 8];
+    if (sp < mem68kSize)
+    {
+        fprintf(f, "  (sp) = 0x%02x%02x%02x%02x\n", mem68k[sp + 0], mem68k[sp + 1], mem68k[sp + 2], mem68k[sp + 3]);
+        fprintf(f, " 4(sp) = 0x%02x%02x%02x%02x\n", mem68k[sp + 4], mem68k[sp + 5], mem68k[sp + 6], mem68k[sp + 7]);
+    }
+
+    if (init || (dar_prev[0] != m68ki_cpu.dar[0])) fprintf(f, " d0 = 0x%08x\n", m68ki_cpu.dar[0]);
+    if (init || (dar_prev[1] != m68ki_cpu.dar[1])) fprintf(f, " d1 = 0x%08x\n", m68ki_cpu.dar[1]);
+    if (init || (dar_prev[2] != m68ki_cpu.dar[2])) fprintf(f, " d2 = 0x%08x\n", m68ki_cpu.dar[2]);
+    if (init || (dar_prev[3] != m68ki_cpu.dar[3])) fprintf(f, " d3 = 0x%08x\n", m68ki_cpu.dar[3]);
+    if (init || (dar_prev[4] != m68ki_cpu.dar[4])) fprintf(f, " d4 = 0x%08x\n", m68ki_cpu.dar[4]);
+    if (init || (dar_prev[5] != m68ki_cpu.dar[5])) fprintf(f, " d5 = 0x%08x\n", m68ki_cpu.dar[5]);
+    if (init || (dar_prev[6] != m68ki_cpu.dar[6])) fprintf(f, " d6 = 0x%08x\n", m68ki_cpu.dar[6]);
+    if (init || (dar_prev[7] != m68ki_cpu.dar[7])) fprintf(f, " d7 = 0x%08x\n", m68ki_cpu.dar[7]);
+
+    if (init || (dar_prev[0 + 8] != m68ki_cpu.dar[0 + 8])) fprintf(f, " a0 = 0x%08x\n", m68ki_cpu.dar[0 + 8]);
+    if (init || (dar_prev[1 + 8] != m68ki_cpu.dar[1 + 8])) fprintf(f, " a1 = 0x%08x\n", m68ki_cpu.dar[1 + 8]);
+    if (init || (dar_prev[2 + 8] != m68ki_cpu.dar[2 + 8])) fprintf(f, " a2 = 0x%08x\n", m68ki_cpu.dar[2 + 8]);
+    if (init || (dar_prev[3 + 8] != m68ki_cpu.dar[3 + 8])) fprintf(f, " a3 = 0x%08x\n", m68ki_cpu.dar[3 + 8]);
+    if (init || (dar_prev[4 + 8] != m68ki_cpu.dar[4 + 8])) fprintf(f, " a4 = 0x%08x\n", m68ki_cpu.dar[4 + 8]);
+    if (init || (dar_prev[5 + 8] != m68ki_cpu.dar[5 + 8])) fprintf(f, " a5 = 0x%08x\n", m68ki_cpu.dar[5 + 8]);
+    if (init || (dar_prev[6 + 8] != m68ki_cpu.dar[6 + 8])) fprintf(f, " a6 = 0x%08x\n", m68ki_cpu.dar[6 + 8]);
+    if (init || (dar_prev[7 + 8] != m68ki_cpu.dar[7 + 8])) fprintf(f, " a7 = 0x%08x\n", m68ki_cpu.dar[7 + 8]);
+
+    //fprintf(f, "sr = 0x%08x\n", m68ki_cpu.sr);
+    if (init || (usp_prev !=m68ki_cpu.sp[0])) fprintf(f, " usp = 0x%08x\n", m68ki_cpu.sp[0]);
+
+    memcpy(dar_prev, m68ki_cpu.dar, sizeof(dar_prev));
+    usp_prev = m68ki_cpu.sp[0];
+    fprintf(f, "\n");
+    fflush(f);
+}
+#endif
 
 /* ======================================================================== */
 /* ============================== DEBUG HELP ============================== */
@@ -1157,6 +1214,47 @@ void m68k_execute(void)
 
 		/* Record previous program counter */
 		REG_PPC = REG_PC;
+
+
+        // 68k breakpoints from host, for debugging 68k code
+        #if defined(M68K_BREAKPOINTS)
+        static uint32_t pc_ringbuf[32];
+        static unsigned pc_ringbuf_index = 0;
+        extern void print_app(uint32_t addr68k);
+
+        if (REG_SP < 0x100)
+        {
+            for (int i = 0; i < 32; i++)
+            {
+                uint32_t prevpc = pc_ringbuf[(32 + pc_ringbuf_index - i - 1) % 32];
+                printf(" PC was 0x%08x (OS rel 0x%06x)\n", prevpc, prevpc - 0x007c9c68);
+            }
+            print_app(REG_A[3]);    // old context
+            print_app(REG_A[0]);    // new context
+            printf("The SP should not be in this range\n");   // <<<<<<<===== Set host debugger breakpoint here
+        }
+
+        for (unsigned i = 0; i < M68K_BREAKPOINTS; i++)
+        {
+            if ((REG_PC >= m68k_breakpoints[i][0]) && (REG_PC <= m68k_breakpoints[i][1]))
+            {
+                int68k_enable(0);
+                printf("68k breakpoint reached\n");   // <<<<<<<===== Set host debugger breakpoint here
+                print_cpu(1);
+                for (int i = 0; i < 32; i++)
+                {
+                    uint32_t prevpc = pc_ringbuf[(32 + pc_ringbuf_index - i - 1) % 32];
+                    printf(" PC was 0x%08x (OS rel 0x%06x)\n", prevpc, prevpc - 0x007c9c68);
+                }
+            }
+        }
+
+        pc_ringbuf[pc_ringbuf_index] = REG_PC;
+        pc_ringbuf_index++;
+        pc_ringbuf_index %= 32;
+
+        #endif  // M68K_BREAKPOINTS
+
 
 		/* Read an instruction and call its handler */
 		REG_IR = m68ki_read_imm_16();

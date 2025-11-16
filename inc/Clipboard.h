@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1990-2018 Andreas Kromke, andreas.kromke@gmail.com
+ * Copyright (C) 1990-2018/2025 Andreas Kromke, andreas.kromke@gmail.com
  *
  * This program is free software; you can redistribute it or
  * modify it under the terms of the GNU General Public License
@@ -18,7 +18,7 @@
 
 /*
 *
-* Clipboard-Umsetzung f�r MagicMacX
+* Clipboard alias Scrap conversion between Atari and host
 *
 */
 

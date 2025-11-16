@@ -18,7 +18,7 @@
 
 /*
 *
-* Clipboard-Umsetzung für MagicMacX
+* Clipboard alias Scrap conversion between Atari and host
 *
 */
 
@@ -355,7 +355,7 @@ void CClipboard::Mac2Atari(const uint8_t *pData)
 	while(*pData)
 	{
 		c = *pData++;
-		if (c > 0x20 && c <= 0x7F)
+		if (c >= 0x20 && c <= 0x7F)
 		{
 			// US-ASCII (7 Bit), ohne Steuerzeichen
 			*wrPtr++ = c;

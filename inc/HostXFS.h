@@ -69,7 +69,7 @@ class CHostXFS
 
     INT32 XFSFunctions(uint32_t params, uint8_t *addrOffset68k);
     INT32 XFSDevFunctions(uint32_t params, uint8_t *addrOffset68k);
-    void activateXfsDrives(uint8_t *addrOffset68k);
+    void activateXfsDrives();
     void setActPdAddr(uint32_t * addr) {m_pAtariActPd = addr;}
     bool isDrvValid(uint16_t drv) { return ((drv < NDRIVES) && (drv_host_path[drv] != nullptr)); }
     // range check has been done before. TODO: any actions necessary here?
@@ -87,6 +87,8 @@ class CHostXFS
             drv_readOnly[drv] = readonly;
         }
     }
+    uint32_t getDrvBits() { return xfs_drvbits; }
+
 
    private:
 
@@ -329,8 +331,6 @@ class CHostXFS
 
     INT32 hostpath2HostFD(uint16_t drv, HostFD *reldir, uint16_t rel_hhdl, const char *path, int flags, HostHandle_t *hhdl);
     int _snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_DTA *dta);
-
-    void setDrivebits (uint32_t newbits, uint8_t *addrOffset68k);
 };
 
 #endif

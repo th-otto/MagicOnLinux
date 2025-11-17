@@ -70,6 +70,7 @@ Works:
 - Script (complains about missing fonts, needs case-insensitive drive)
 - Script 2 (complains about missing fonts, needs case-insensitive drive)
 - Technobox CAD/2 (needs case-insensitive drive)
+- MagiC Configurator (needs case-insensitive drive)
 - Texel 2.10
 - Pure C
 - RCS28K (patched by Andreas Kromke)

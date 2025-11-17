@@ -940,31 +940,47 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     setAtariBE32(mem68k + os_chksum, chksum);
 
     // dump Atari
+    // DumpAtariMem("AtariMemAfterInit.data");
 
-//    DumpAtariMem("AtariMemAfterInit.data");
-
+    //
     // Pass all XFS drives to the Atari
+    //
 
-    setAtariBE32(mem68k + _drvbits, 0);        // no Atari drives yet
-    m_HostXFS.activateXfsDrives(mem68k);
+    m_HostXFS.activateXfsDrives();
 
-    uint32_t volumes_drvbits;
-    CVolumeImages::init(&volumes_drvbits);
-    uint32_t drvbits = getAtariBE32(mem68k + _drvbits);
-    drvbits |= volumes_drvbits;
-    setAtariBE32(mem68k + _drvbits, drvbits);
+    //
+    // Pass all volume images to the Atari
+    //
 
-    setAtariBE16(mem68k + _bootdev, 'C'-'A');    // Atari boot drive C:
+    CVolumeImages::init();
+
+    //
+    // Set _drvbits and _nflops accordingly
     // If _nflops < 2, drive U: will suppress B:
-    if (drvbits & 2)
-    {
-        setAtariBE16(mem68k + _nflops, 2);
-    }
-    else
+    //
+
+    uint32_t drvbits = m_HostXFS.getDrvBits() | CVolumeImages::getDrvBits();
+    setAtariBE32(mem68k + _drvbits, drvbits);
+    uint16_t nflops = 0;
     if (drvbits & 1)
     {
-        setAtariBE16(mem68k + _nflops, 1);
+        nflops = 1;
     }
+    if (drvbits & 2)
+    {
+        if (nflops == 0)
+        {
+            DebugWarning2("() -- Have B: without A:, must set _nflops to 2");
+        }
+        nflops = 2;
+    }
+    setAtariBE16(mem68k + _nflops, nflops);
+
+    //
+    // boot drive might be irrelevant
+    //
+
+    setAtariBE16(mem68k + _bootdev, 'C'-'A');    // Atari boot drive C:
 
     //
     // initialise 68k emulator (Musashi)

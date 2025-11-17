@@ -45,10 +45,8 @@ uint32_t CVolumeImages::m_diskimages_drvbits;
  *
  * @brief get disk images from preferences
  *
- * @param[out]  new_drvbits     to be ORed to _drvbits Atari system variable
- *
  ************************************************************************************************/
-void CVolumeImages::init(uint32_t *new_drvbits)
+void CVolumeImages::init()
 {
     struct stat statbuf;
 
@@ -94,14 +92,6 @@ void CVolumeImages::init(uint32_t *new_drvbits)
         drv_image_fd[i] = -1;   // not open
 
     }
-
-    *new_drvbits = m_diskimages_drvbits;
-    /*
-    // add drvbits
-    uint32_t drvbits = getAtariBE32(mem68k + _drvbits);
-    drvbits |= m_diskimages_drvbits;
-    setAtariBE32(mem68k + _drvbits, drvbits);
-    */
 }
 
 
@@ -778,6 +768,32 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
 
 /** **********************************************************************************************
  *
+ * @brief Register a volume image
+ *
+ * @param[in] drv               drive number 0..25
+ * @param[in] allocated_path    allocated memory block containing the host path of the volume file
+ * @param[in] longnames         true, if long filenames shall be supported
+ * @param[in] readonly          true for read-only volume
+ * @param[in] size              volume file size in bytes
+ *
+ * @note called from main thread. TODO: add semaphore?
+ *
+ ************************************************************************************************/
+void CVolumeImages::setNewDrv(uint16_t drv, const char *allocated_path, bool longnames, bool readonly, uint64_t size)
+{
+    if (drv < NDRIVES)
+    {
+        drv_image_host_path[drv] = allocated_path;
+        drv_image_size[drv] = size;
+        drv_longNames[drv] = longnames;
+        drv_readOnly[drv] = readonly;
+        m_diskimages_drvbits |= (1 << drv);
+    }
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Emulator callback: eject
  *
  * @param[in] drv       drive number 0..25
@@ -796,7 +812,9 @@ void CVolumeImages::eject(uint16_t drv)
         if (drv_image_host_path[drv] != nullptr)
         {
             free((void *) drv_image_host_path[drv]);
-            drv_image_host_path[drv] = nullptr;     // maybe memory leak here
+            drv_image_host_path[drv] = nullptr;
         }
+
+        m_diskimages_drvbits &= ~(1 << drv);
     }
 }

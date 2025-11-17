@@ -27,11 +27,11 @@
 #include "preferences.h"
 
 
-// static class
+// Atari volume images (static class)
 class CVolumeImages
 {
    public:
-    static void init(uint32_t *new_drvbits);
+    static void init(void);
     static void exit(void);
 
     static uint32_t AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k);
@@ -42,21 +42,11 @@ class CVolumeImages
     static uint32_t AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count, uint32_t lrecno, uint8_t *buf);
     static bool isDrvValid(uint16_t drv) { return ((drv < NDRIVES) && (drv_image_host_path[drv] != nullptr)); }
     static void eject(uint16_t drv);
+    static void setNewDrv(uint16_t drv, const char *allocated_path, bool longnames, bool readonly, uint64_t size);
+    static uint32_t getDrvBits() { return m_diskimages_drvbits; }
 
-    // Atari volume images
+   private:
     static const char *drv_image_host_path[NDRIVES];       // nullptr, if not valid
-    // called from main thread. TODO: add semaphore
-    static void setNewDrv(uint16_t drv, const char *allocated_path, bool longnames, bool readonly, uint64_t size)
-    {
-        if (drv < NDRIVES)
-        {
-            drv_image_host_path[drv] = allocated_path;
-            drv_image_size[drv] = size;
-            drv_longNames[drv] = longnames;
-            drv_readOnly[drv] = readonly;
-            m_diskimages_drvbits |= (1 << drv);
-        }
-    }
     static int drv_image_fd[NDRIVES];
     static uint64_t drv_image_size[NDRIVES];
     static bool drv_longNames[NDRIVES];              // initialised with zeros

@@ -431,7 +431,7 @@ struct SYSHDR
 #define ____md                  0x49e       // Space for additional memory descriptors (unused)
 #define fstrm_beg               ____md      // Mag!X: begin of TT RAM
 #define savptr                  0x4a2       // Pointer to BIOS save registers block
-#define _nflops                 0x4a6       // Number of connected floppy drives
+#define _nflops                 0x4a6       // Number of connected floppy disk drives (usually 0..2)
 #define con_state               0x4a8       // Vector for screen output (here unused)
 #define save_row                0x4ac       // Temporary storage for cursor line position (here unused)
 #define sav_context             0x4ae       // Pointer to save area for exception processing (here unused)

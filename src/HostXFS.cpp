@@ -4061,33 +4061,10 @@ INT32 CHostXFS::XFSDevFunctions(UINT32 param, uint8_t *addrOffset68k)
 
 /** **********************************************************************************************
  *
- * @brief Updates both Atari and host bitmaps of valid drives
- *
- * @param[in] newbits           valid drives as bit map
- * @param[in] addrOffset68k     Host address of 68k memory
- *
- * Updates both Atari (_drvbits) and host variable (xfs_drvbits)
+ * @brief Collect XFS drives
  *
  ************************************************************************************************/
-void CHostXFS::setDrivebits(uint32_t newbits, uint8_t *addrOffset68k)
-{
-    uint32_t val = getAtariBE32(addrOffset68k + _drvbits);
-    //newbits |= (1L << ('m'-'a'));   // virtual drive M: is always present
-    val &= -1L - xfs_drvbits;       // clear old bits
-    val |= newbits;                 // set new bits
-    setAtariBE32(addrOffset68k + _drvbits, val);
-    xfs_drvbits = newbits;
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Tell Atari about all XFS drives
- *
- * @param[in] addrOffset68k      Host address of 68k memory
- *
- ************************************************************************************************/
-void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
+void CHostXFS::activateXfsDrives()
 {
     struct stat statbuf;
 
@@ -4139,8 +4116,6 @@ void CHostXFS::activateXfsDrives(uint8_t *addrOffset68k)
     drv_atari_name['C' - 'A'] = "MAGIC";
     drv_atari_name['H' - 'A'] = "HOME";
     drv_atari_name['M' - 'A'] = "ROOT";
-
-    setDrivebits(xfs_drvbits, addrOffset68k);
 }
 
 

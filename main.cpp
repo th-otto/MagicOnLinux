@@ -18,19 +18,23 @@ const char *argnames[] =
     "wxh[xb][ip]",
     "w[xh]",
     "size",
-    "program"
+    "program",
+    "atari_txtfile",
+    "host_txtfile"
 };
 
 const char *descriptions[] =
 {
-    "                  display help text and exit",
-    "    open configuration file in editor and exit",
-    "           configuration file (default: ~/.config/magiclinux.conf)",
-    "          write configuration file with default values and exit",
-    "  e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
-    "         e.g. 2x2 or 2 or 2x4, overrides config file",
-    "          Atari RAM size, e.g. 512k or 4M or 3m",
-    "        choose editor program for -e option, default is gnome-text-editor"
+    "                     display help text and exit",
+    "       open configuration file in editor and exit",
+    "              configuration file (default: ~/.config/magiclinux.conf)",
+    "             write configuration file with default values and exit",
+    "     e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
+    "            e.g. 2x2 or 2 or 2x4, overrides config file",
+    "             Atari RAM size, e.g. 512k or 4M or 3m",
+    "           choose editor program for -e option, default is gnome-text-editor",
+    "  convert text file from Atari to host format",
+    "   convert text file from host to Atari format"
 };
 
 static void print_opt(const struct option *options)
@@ -249,6 +253,8 @@ int main(int argc, char *argv[])
     int atari_memsize = -1;
     const char *config = "~/.config/magiclinux.conf";
     const char *editor = "gnome-text-editor";
+    const char *file_a2h = nullptr;
+    const char *file_h2a = nullptr;
     bool bRunEditor = false;
     bool bWriteConf = false;
 
@@ -266,11 +272,14 @@ int main(int argc, char *argv[])
             {"geometry",     required_argument, nullptr, 'g' },
             {"stretch",      required_argument, nullptr, 's' },
             {"memsize",      required_argument, nullptr, 'm' },
-            {"editor",       required_argument, nullptr,  0 },
+            {"editor",       required_argument, nullptr,  0 },      // long_option_index 7
+            {"tconv-a2h",    required_argument, nullptr,  0 },      // long_option_index 8
+            {"tconv-h2a",    required_argument, nullptr,  0 },      // long_option_index 9
             {nullptr,        0,                 nullptr,  0 }
         };
         c = getopt_long(argc, argv, "hc:ewg:s:m:",
                         long_options, &long_option_index);
+        //printf("getopt_long() -> %d (c = '%c'), long_option_index = %d\n", c, c, long_option_index);
 
         if (c == -1)
         {
@@ -282,14 +291,26 @@ int main(int argc, char *argv[])
         switch (c)
         {
             case 0:
-                if (long_option_index == 4)
-                {
-                    editor = optarg;
-                }
+                /*
                 printf("option %s", long_options[long_option_index].name);
                 if (optarg)
                     printf(" with arg %s", optarg);
                 printf("\n");
+                */
+                if (long_option_index == 7)
+                {
+                    editor = optarg;
+                }
+                else
+                if (long_option_index == 8)
+                {
+                    file_a2h = optarg;
+                }
+                else
+                if (long_option_index == 9)
+                {
+                    file_h2a = optarg;
+                }
                 break;
 
             case 'h':
@@ -323,10 +344,53 @@ int main(int argc, char *argv[])
 
             case '?':
                 // parsing error
+                return 1;
                 break;
 
             default:
                 printf("?? getopt returned character code 0%o ??\n", c);
+        }
+    }
+    // exit(0);
+
+    if (file_a2h != nullptr)
+    {
+        const char *outname = "/tmp/host.txt";
+        char *buffer = nullptr;
+        CConversion::init();
+        CConversion::convTextFileAtari2Host(file_a2h, &buffer);
+        if (buffer != nullptr)
+        {
+            unsigned len = strlen(buffer);
+            FILE *f = fopen(outname, "wt");
+            if (f != nullptr)
+            {
+                (void) fwrite(buffer, 1, len, f);
+                fclose(f);
+                printf("\"%s\" written\n", outname);
+            }
+        }
+        return 0;
+    }
+
+    //file_h2a = "/tmp/bla.txt";
+    if (file_h2a != nullptr)
+    {
+        const char *outname = "/tmp/atari.txt";
+        uint8_t *buffer = nullptr;
+        CConversion::init();
+        CConversion::convTextFileHost2Atari(file_h2a, &buffer);
+        if (buffer != nullptr)
+        {
+            unsigned len = strlen((const char *) buffer);
+            FILE *f = fopen(outname, "wt");
+            if (f != nullptr)
+            {
+                (void) fwrite(buffer, 1, len, f);
+                fclose(f);
+                printf("\"%s\" written\n", outname);
+            }
+        return 0;
         }
     }
 

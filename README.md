@@ -64,6 +64,7 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Full access to host file system, up to root
 * Mounts Atari volume or floppy disk images
 * Copy/paste clipboard text between host and emulated system.
+* Command line option to convert Atari text files to UTF-8 and vice-versa, including line endings between CR/LF and LF.
 * Mount file systems, folder or image, via Drag&Drop, readable or read-only.
 * Some command line switches are provided to override config file settings.
 

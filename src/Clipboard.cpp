@@ -315,25 +315,25 @@ const CClipboard::atariCharEntry *CClipboard::FindAtari(uint8_t c)
 void CClipboard::host2Atari(const uint8_t *pData)
 {
     unsigned stringlen = CConversion::hostStringLength((const char *) pData, true);
-	if	(stringlen == 0)
-	{
-		return;		// no data
-	}
+    if (stringlen == 0)
+    {
+        return;        // no data
+    }
 
     int fd = open((const char *) Preferences::AtariScrapFileUnixPath, O_WRONLY | O_CREAT | O_TRUNC, 0);
     if (fd < 0)
     {
-    	DebugError2("() -- cannot open Atari scrap file -> %s", strerror(errno));
+        DebugError2("() -- cannot open Atari scrap file -> %s", strerror(errno));
         return;
     }
 
-	uint8_t *scrapBuffer = (uint8_t *) malloc(stringlen + 1);
+    uint8_t *scrapBuffer = (uint8_t *) malloc(stringlen + 1);
     assert(scrapBuffer != nullptr);
     unsigned done = CConversion::strHost2Atari((const char *) pData, scrapBuffer, stringlen + 1, true);
     assert(done == stringlen);
 
-	(void) write(fd, scrapBuffer, done + 1);
-	(void) close(fd);
+    (void) write(fd, scrapBuffer, done + 1);
+    (void) close(fd);
 
 #if 0
 
@@ -571,51 +571,10 @@ void CClipboard::host2Atari(const uint8_t *pData)
  ************************************************************************************************/
 void CClipboard::Atari2host(uint8_t **pBuffer)
 {
-    int fd = open((const char *) Preferences::AtariScrapFileUnixPath, O_RDONLY, 0);
-    if (fd < 0)
-    {
-    	DebugError2("() -- cannot open Atari scrap file -> %s", strerror(errno));
-        return;
-    }
-
-    // get file size
-    off_t file_length = lseek(fd, 0, SEEK_END);
-    (void) lseek(fd, 0, SEEK_SET);
-    if (file_length < 1)
-    {
-        close(fd);      // ignore non-readable and empty files
-        return;
-    }
-
-    // allocate one byte more, for end-of-string
-    uint8_t *src_buf = (uint8_t *) malloc(file_length + 1);
-    assert(src_buf != nullptr);
-
-    // read entire file and close it
-	ssize_t read_count = read(fd, src_buf, file_length);
-	close(fd);
-	if (read_count == -1)
-	{
-		free(src_buf);
-    	DebugError2("() -- cannot read Atari scrap file -> %s", strerror(errno));
-		return;
-	}
-    assert(read_count <= file_length);
-    src_buf[read_count] = '\0';    // add end-of-string
-
-    unsigned dst_len = CConversion::atariStringHostLength(src_buf, true);
-    if (dst_len == 0)
-    {
-        *pBuffer = nullptr;     // ignore empty file
-        return;
-    }
-
-    char *dst_buf = (char *) malloc(dst_len + 1);
-    unsigned done = CConversion::strAtari2Host(src_buf, dst_buf, dst_len + 1, true);
-    assert(done == dst_len);
-
-	free(src_buf);
-	*pBuffer = (uint8_t *) dst_buf;
+    char *dst_buf;
+    const char *filename = Preferences::AtariScrapFileUnixPath;
+    CConversion::convTextFileAtari2Host(filename, &dst_buf);
+    *pBuffer = (uint8_t *) dst_buf;
 
 #if 0
 	uint8_t *inAtariBuffer;

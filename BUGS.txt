@@ -25,8 +25,6 @@ system info control panel shows 29.12.2003 as kernel build date. Update!
 
 Prevent volume image from being mounted twice.
 
-Add command line option to convert Atari text files to UTF-8 and vice-versa, including line endings between CR/LF and LF.
-
 Drag & Drop file systems treats every file as image. If one image is invalid, no further images can be mounted.
 Maybe provide a list of supported file names extensions (.st, .image, .diskimage).
 

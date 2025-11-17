@@ -22,9 +22,11 @@
 *
 */
 
-#include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <assert.h>
+#include <fcntl.h>
+#include <string.h>
 #include <errno.h>
 #include <time.h>
 #include "config.h"
@@ -514,6 +516,140 @@ const char *CConversion::textAtari2Host(const unsigned char *atari_text)
     }
     *p = '\0';
     return buf;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief [static] Read file to a buffer
+ *
+ * @param[in]  filename     file to read
+ * @param[in]  add_bufsiz   make buffer larger than file size
+ * @param[out] bufsiz       resulting buffer size
+ *
+ * @return buffer or nullptr
+ *
+ ************************************************************************************************/
+void *CConversion::readFileToBuffer(const char *filename, unsigned add_bufsiz, unsigned *pread_cont)
+{
+    int fd = open(filename, O_RDONLY, 0);
+    if (fd < 0)
+    {
+        DebugError2("() -- cannot open file \"%s\" -> %s", filename, strerror(errno));
+        return nullptr;
+    }
+
+    // get file size
+    off_t file_length = lseek(fd, 0, SEEK_END);
+    (void) lseek(fd, 0, SEEK_SET);
+    if (file_length < 1)
+    {
+        close(fd);      // ignore non-readable and empty files
+        return nullptr;
+    }
+
+    // optionally allocate more bytes, for end-of-string
+    uint8_t *src_buf = (uint8_t *) malloc(file_length + add_bufsiz);
+    assert(src_buf != nullptr);
+
+    // read entire file and close it
+    ssize_t read_count = read(fd, src_buf, file_length);
+    close(fd);
+    if (read_count == -1)
+    {
+        free(src_buf);
+        DebugError2("() -- cannot read file \"%s\" -> %s", filename, strerror(errno));
+        return nullptr;
+    }
+    assert(read_count <= file_length);
+    *pread_cont = read_count;
+
+    return src_buf;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief [static] Read Atari text file and convert to buffer in host text format
+ *
+ * @param[in]   filename   Atari text file, e.g. SCRAP.TXT
+ * @param[out]  pBuffer    utf-8 buffer
+ *
+ * @note This converts both characters and line endings (to LF)
+ *
+ * @note We use a two-pass conversion, first determine space, then convert.
+ *
+ ************************************************************************************************/
+void CConversion::convTextFileAtari2Host(const char *filename, char **pBuffer)
+{
+    unsigned read_count;
+    uint8_t *src_buf = (uint8_t *) readFileToBuffer(filename, 1, &read_count);
+    if (src_buf == nullptr)
+    {
+        *pBuffer = nullptr;
+        return;
+    }
+
+    src_buf[read_count] = '\0';    // add end-of-string
+
+    unsigned dst_len = CConversion::atariStringHostLength(src_buf, true);
+    if (dst_len == 0)
+    {
+        DebugWarning2("() -- ignore empty file \"%s\"", filename);
+        *pBuffer = nullptr;     // ignore empty file
+        free(src_buf);
+        return;
+    }
+
+    char *dst_buf = (char *) malloc(dst_len + 1);
+    unsigned done = CConversion::strAtari2Host(src_buf, dst_buf, dst_len + 1, true);
+    assert(done == dst_len);
+
+    free(src_buf);
+    *pBuffer = dst_buf;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief [static] Read host text file and convert to buffer in Atari text format
+ *
+ * @param[in]   filename   host text file, utf-8
+ * @param[out]  pBuffer    Atari text buffer
+ *
+ * @note This converts both characters and line endings (to CR/LF)
+ *
+ * @note We use a two-pass conversion, first determine space, then convert.
+ *
+ ************************************************************************************************/
+void CConversion::convTextFileHost2Atari(const char *filename, uint8_t **pBuffer)
+{
+    unsigned read_count;
+    char *src_buf = (char *) readFileToBuffer(filename, 1, &read_count);
+    if (src_buf == nullptr)
+    {
+        *pBuffer = nullptr;
+        return;
+    }
+
+    src_buf[read_count] = '\0';    // add end-of-string
+
+    unsigned stringlen = CConversion::hostStringLength(src_buf, true);
+    if (stringlen == 0)
+    {
+        DebugWarning2("() -- ignore empty file \"%s\"", filename);
+        *pBuffer = nullptr;     // ignore empty file
+        free(src_buf);
+        return;        // no data
+    }
+
+    uint8_t *dst_buf = (uint8_t *) malloc(stringlen + 1);
+    assert(dst_buf != nullptr);
+    unsigned done = CConversion::strHost2Atari(src_buf, dst_buf, stringlen + 1, true);
+    assert(done == stringlen);
+
+    free(src_buf);
+    *pBuffer = dst_buf;
 }
 
 

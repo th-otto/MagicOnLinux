@@ -48,6 +48,9 @@ class CConversion
     static unsigned strHost2Atari(const char *utf8, uint8_t *buf, unsigned buflen, bool crlf_conv);
     static unsigned atariStringHostLength(const unsigned char *src, bool crlf_conv);
     static unsigned strAtari2Host(const unsigned char *src, char *buf, unsigned buflen, bool crlf_conv);
+    static void *readFileToBuffer(const char *filename, unsigned add_bufsiz, unsigned *pread_count);
+    static void convTextFileAtari2Host(const char *filename, char **pBuffer);
+    static void convTextFileHost2Atari(const char *filename, uint8_t **pBuffer);
 
     static const char *textAtari2Host(const unsigned char *atari_text);
 	static int host2AtariError(int error);

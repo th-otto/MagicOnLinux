@@ -4133,5 +4133,6 @@ void CHostXFS::eject(uint16_t drv)
     {
         free((void *) drv_host_path[drv]);
         drv_host_path[drv] = nullptr;
+        xfs_drvbits &= ~(1 << drv);
     }
 }

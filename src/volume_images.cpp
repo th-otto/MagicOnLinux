@@ -110,6 +110,8 @@ void CVolumeImages::exit(void)
             drv_image_fd[i] = -1;
         }
     }
+
+    m_diskimages_drvbits = 0;
 }
 
 

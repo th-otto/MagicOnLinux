@@ -10,6 +10,7 @@ here nine seconds. Why?
 NVDI seems to freeze during start when ASSIGN.SYS is missing?
 
 
+Drive U: is not updated in case virtual drives are ejected or added. This is a limitation of the MagiC kernel, especially "DFS_U.S".
 
 mcmd shows "0 bytes free"
 

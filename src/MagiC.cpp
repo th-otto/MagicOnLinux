@@ -959,22 +959,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     // If _nflops < 2, drive U: will suppress B:
     //
 
-    uint32_t drvbits = m_HostXFS.getDrvBits() | CVolumeImages::getDrvBits();
-    setAtariBE32(mem68k + _drvbits, drvbits);
-    uint16_t nflops = 0;
-    if (drvbits & 1)
-    {
-        nflops = 1;
-    }
-    if (drvbits & 2)
-    {
-        if (nflops == 0)
-        {
-            DebugWarning2("() -- Have B: without A:, must set _nflops to 2");
-        }
-        nflops = 2;
-    }
-    setAtariBE16(mem68k + _nflops, nflops);
+    updateDriveBits(mem68k);
 
     //
     // boot drive might be irrelevant
@@ -2445,7 +2430,37 @@ uint32_t CMagiC::Drv2DevCode(uint32_t params, uint8_t *addrOffset68k)
 
 /** **********************************************************************************************
  *
- * @brief Emulator callback: Device operations. TODO: This is not part of XFS, move to CMagiC!
+ * @brief Update _drvbits and _nflops in Atari memory
+ *
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @note Needed during boot and whenever a volume is added or removed
+ *
+ ************************************************************************************************/
+void CMagiC::updateDriveBits(uint8_t *addrOffset68k)
+{
+    uint32_t drvbits = m_HostXFS.getDrvBits() | CVolumeImages::getDrvBits();
+    setAtariBE32(addrOffset68k + _drvbits, drvbits);
+    uint16_t nflops = 0;
+    if (drvbits & 1)
+    {
+        nflops = 1;
+    }
+    if (drvbits & 2)
+    {
+        if (nflops == 0)
+        {
+            DebugWarning2("() -- Have B: without A:, must set _nflops to 2");
+        }
+        nflops = 2;
+    }
+    setAtariBE16(addrOffset68k + _nflops, nflops);
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Device operations
  *
  * @param[in] params            68k address of parameter structure
  * @param[in] addrOffset68k     Host address of 68k memory
@@ -2487,6 +2502,7 @@ uint32_t CMagiC::RawDrvr(uint32_t param, uint8_t *addrOffset68k)
             //
 
             m_HostXFS.eject(drv);
+            updateDriveBits(addrOffset68k);
             return E_OK;
         }
         else
@@ -2497,6 +2513,7 @@ uint32_t CMagiC::RawDrvr(uint32_t param, uint8_t *addrOffset68k)
             //
 
             CVolumeImages::eject(drv);
+            updateDriveBits(addrOffset68k);
             return E_OK;
         }
     }
@@ -2618,6 +2635,7 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
                 if (drv < NDRIVES)
                 {
                     m_HostXFS.setNewDrv(drv, allocated_path, true, bReadOnly);
+                    updateDriveBits(mem68k);
                     return true;
                 }
             }
@@ -2642,6 +2660,7 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
                     if (drv < NDRIVES)
                     {
                         CVolumeImages::setNewDrv(drv, allocated_path, true, bReadOnly, statbuf.st_size);
+                        updateDriveBits(mem68k);
                         return true;
                     }
                 }

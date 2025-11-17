@@ -118,6 +118,7 @@ class CMagiC
     static uint32_t AtariYield(uint32_t params, uint8_t *addrOffset68k);
 
     uint32_t Drv2DevCode(uint32_t params, uint8_t *addrOffset68k);
+    void updateDriveBits(uint8_t *addrOffset68k);
     uint32_t RawDrvr(uint32_t params, uint8_t *addrOffset68k);
 
     // private attributes

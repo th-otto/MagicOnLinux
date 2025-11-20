@@ -55,10 +55,31 @@ are relatively slow. Maybe they are useful for specific Atari software.
 Limitations
 ===========
 
-Atari RAM size is limited to 2 GB. I do not know, if such large RAM would make any sense.
+Atari RAM size is limited to 2 GB. No idea, if such large RAM would make any sense.
 
 In virtual drive U: the symbolic links are not updated when virtual drives are ejected or added.
 This is a limitation or design flaw of the MagiC kernel, to be more precise: "DFS_U.S".
+
+Currently MagicOnLinux mounts FAT volume images only, i.e. no partitioned images.
+Volumes with MBR partitions may be supported later. AHDI seems not to use MBR, but a proprietary
+format. As there are no AHDI disk images lying around, a support would be unnecessary.
+
+MagicOnLinux mounts floppy images in format ".st" (which is just a usual image), but
+neither .stx nor .msa.
+
+In Ubuntu, most disk or volume images can be activated just by double-click. Note that the
+"gnome-disk-image-mounter" must be run from command line with parameter "-w" or "--writable" to make the image writable.
+However, it seems that at least not all ".st" images are accepted, maybe because of some details
+in the boot sector that are not fully MS-DOS conformant.
+
+The .msa format (Magic Shadow Archiver) shall preserve copy-protection information. It can be converted
+using "tools/hmsa" in the Hatari source directory (obviously by losing copy-protection data).
+A standlone version can be found here:
+https://web.archive.org/web/20060507110406/https://www.uni-ulm.de/~s_thuth/ix/msa-0.1.0.tar.gz
+
+The .stx format also contains raw floppy disk data, to preserve copy-protection. It can be
+read with Hatari. Hatari conveniently mounts host directories, so that files can be
+easily copied from .stx or .msa as A: to a virtual drive C:.
 
 
 This and That

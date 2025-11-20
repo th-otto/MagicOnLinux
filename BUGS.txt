@@ -1,6 +1,3 @@
-Opening "Vektor-Zeichensätze" in "H:\Documents\Atari-Software\0_Office-DTP-Textverarbeitung" fails in MAGXDESK.
-Host directories with non-ASCII values cause trouble.
-
 We should treat as one:
 DBG-WRN vbr2Bpb() -- 0 reserved sectors, should be 1. Continue.
 

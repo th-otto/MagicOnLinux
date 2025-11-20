@@ -1096,29 +1096,37 @@ INT32 CHostXFS::xfs_path2DD
          drv, 'A' + drv, mode, rel_dd->dirID, rel_dd->vRefNum, pathname);
     CHK_DRIVE(drv)
 
-    char pathbuf[1024];
-    char *p;
+    // host path may contain multi-byte characters!
+    char host_pathbuf[1024];
+    char *host_p;
+    // Atari path has single-byte characters only
+    const char *atari_p;
+
     bool upperCase = drv_caseInsens[drv];   // 8+3 drives usually also are case-insensitive
-    atariFnameToHostFname((const uint8_t *) pathname, upperCase, pathbuf, 1024);
-    DebugInfo2("() - host path is \"%s\"", pathbuf);
+    atariFnameToHostFname((const uint8_t *) pathname, upperCase, host_pathbuf, 1024);
+    DebugInfo2("() - host path is \"%s\"", host_pathbuf);
     if (mode == 0)
     {
         // The path refers to a file. Remove filename from path.
-        p = strrchr(pathbuf, '/');
-        if (p != nullptr)
+        host_p = strrchr(host_pathbuf, '/');
+        if (host_p != nullptr)
         {
-            *p++ = 0;
+            *host_p++ = 0;
+            atari_p = strrchr(pathname, '\\');
+            atari_p++;
         }
         else
         {
-            p = pathbuf;    // the file is directly located inside the given directory
-            *p = '\0';
+            host_p = host_pathbuf;    // the file is directly located inside the given directory
+            *host_p = '\0';
+            atari_p = pathname;
         }
-        DebugInfo2("() - remaining host path with filename removed is \"%s\"", pathbuf);
+        DebugInfo2("() - remaining host path with filename removed is \"%s\"", host_pathbuf);
     }
     else
     {
-        p = pathbuf + strlen(pathbuf);
+        host_p = host_pathbuf + strlen(host_pathbuf);
+        atari_p = pathname + strlen(pathname);
     }
 
     HostHandle_t hhdl_rel = rel_dd->dirID;  // host endian
@@ -1131,7 +1139,7 @@ INT32 CHostXFS::xfs_path2DD
 
     // O_PATH or O_DIRECTORY | O_RDONLY?
     HostHandle_t hhdl;
-    INT32 atari_ret = hostpath2HostFD(drv, rel_hostFD, hhdl_rel, pathbuf, /*O_PATH?*/ O_DIRECTORY | O_RDONLY, &hhdl);
+    INT32 atari_ret = hostpath2HostFD(drv, rel_hostFD, hhdl_rel, host_pathbuf, /*O_PATH?*/ O_DIRECTORY | O_RDONLY, &hhdl);
 
     /*
     // Note that O_DIRECTORY is essential, otherwise fdopendir() will refuse
@@ -1153,7 +1161,7 @@ INT32 CHostXFS::xfs_path2DD
     dd->dirID = hhdl;
     dd->vRefNum = rel_dd->vRefNum;
 
-    int len = p - pathbuf;  // length of consumed path
+    int len = atari_p - pathname;  // length of consumed atari path
     *remain_path = pathname + len;
     *dir_drive = htobe16(drv);  // big endian
 

@@ -285,6 +285,12 @@ uint32_t CVolumeImages::vbr2Bpb(const uint8_t *sector, BPB *bpb)
 
     // number or reserved sectors, including boot sector, should be 1
     reserved_sectors = le16toh(vbr->bs_sec_resvd);
+    if (reserved_sectors == 0)
+    {
+        DebugError2("() -- No reserved sectors, should be 1. Continue with 1.");
+        reserved_sectors = 1;
+    }
+
     if (reserved_sectors != 1)
     {
         DebugWarning2("() -- %u reserved sectors, should be 1. Continue.", reserved_sectors);

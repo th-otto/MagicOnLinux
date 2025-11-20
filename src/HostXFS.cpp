@@ -2035,7 +2035,7 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 
     if (rmdir(pathbuf))
     {
-        DebugWarning2("() : rmdir(\"%s\") -> %s", pathbuf, strerror(errno));
+        DebugWarning2("() : rmdir(\"%s\") -> %s (%d)", pathbuf, strerror(errno), errno);
         return CConversion::host2AtariError(errno);
     }
 

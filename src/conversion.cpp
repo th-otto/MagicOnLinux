@@ -666,14 +666,15 @@ int CConversion::host2AtariError(int error)
 {
     switch(error)
     {
-        case EROFS:
-        case EPERM:
+        case EROFS:                     // read-only file system
+        case EPERM:                     // operation not permitted
+        case EEXIST:                    // file exists (e.g. dcreate())
+        case ENOTEMPTY:                 // directory not empty (ddelete())
         case EACCES: return EACCDN;
         case EBADF: return EIHNDL;
         case ENOENT: return EFILNF;    // could also be EPTHNF
         case ENOTDIR: return EPTHNF;
         case EINVAL: return EINVFN;
-        case EEXIST: return EACCDN;
     }
 
     return ERROR;

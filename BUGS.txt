@@ -6,19 +6,10 @@ DBG-WRN vbr2Bpb() -- 0 reserved sectors, should be 1. Continue.
 
 Omicron Basic Compiler 3.06 (crash, and when ejecting "omikron_basic_compiler_3_06_omikron.st", system crashes)
 
-The Atari memory size is given in bytes and excludes video memory which is handled separately.
-
-Due to a bug in MVDI and NVDI, the VT52 emulator draws graphics artifacts e.g. with CLR SCREEN,
-visible in the MagiC task manager or if VT52.PRG is missing, when the screen width and
-height are not dividable by the system character size (8x8 or 8x16).
-
 With no VT52.PRG, if starting MCMD, it takes forever until screen gets white,
 here nine seconds. Why?
 
 NVDI seems to freeze during start when ASSIGN.SYS is missing?
-
-
-Drive U: is not updated in case virtual drives are ejected or added. This is a limitation of the MagiC kernel, especially "DFS_U.S".
 
 mcmd shows "0 bytes free"
 
@@ -37,119 +28,8 @@ Drag & Drop file systems treats every file as image. If one image is invalid, no
 Maybe provide a list of supported file names extensions (.st, .image, .diskimage).
 
 
-Create disk image:
-- 512 bytes per sector
-- 2 sectors per cluster
-- FAT32
-- verbose
-- name "FAT32_1M"
-
-dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
-mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
-
 GEMBENCH crashes (why?) and corrupts the whole emulated system. Why? Is there a deadlock in the emulator?
 
 MGEDIT should be killable via MagiC task manager, but in most time this leads to a total system crash.
 
 The MagiC message "System was overwritten" shall be passed to emulator.
-
-
-APPLICATIONS
-
-To test:
-- TWORD
-- CAB
-- Highwire
-- Prolist (missing GDOS)
-
-Works:
-
-- Chagall v01.00
-- Gempaint 1.3B2
-- GSTFRAKT (single-app mode)
-- MAPS (8+3 case-insensitive drive)
-- Papillon 2.2
-- Artworx v1.42 (complains about missing GDOS, needs case-insensitive drive)
-- Cypress v1.50
-- LDW Power Calc 1.03
-- Papyrus 4 (complains about missing fonts, needs case-insensitive drive)
-- Papyrus 7 (complains about missing fonts)
-- Script (complains about missing fonts, needs case-insensitive drive)
-- Script 2 (complains about missing fonts, needs case-insensitive drive)
-- Technobox CAD/2 (needs case-insensitive drive)
-- MagiC Configurator (needs case-insensitive drive)
-- Texel 2.10
-- Pure C
-- RCS28K (patched by Andreas Kromke)
-- Getinfo v1.1
-- Prgflags
-- Intrface v2.29beta
-- Kobold?
-- Olga?
-- Pure Pascal: run in single mode (hold Alt key during start)
-- Wordplus 2.02 UK
-- Wordplus 3.20 TT UK
-
-
-
-
-Works partially:
-
-- CAMCAD (works at least in 640x400 monochrome, should run in single-application mode)
-- DR Doodle (corrupts memory blocks, repairable)
-- Logo (corrupts memory blocks, repairable)
-- Easydraw (complains about missing GDOS)
-- Scigraph (complains about missing GDOS)
-- Font Expert, FONTEX.PRG (might run in single application mode)
-- RSCTEXT (direct video memory acces, might work with 640x400)
-- ST-Pascal (direct memory access, then bus error)
-- Tempus Word <<<=== herausfinden, welche Dateien er nicht findet
-
-Works not:
-
-- CAD 3D
-- CAMPUS
-- SWFŔAK.PRG (system was overwritten)
-- PERSYS (draws artifacts like task manager in B/W)
-- PLOT_IT.PRG (draws artifacts like task manager in B/W, then crashes)
-- STAD_1_3.PRG (accesses video base register, needs case-insensitive drive, freezes system after crash)
-- DBASE (why?)
-- PHOENIX 4.2 (strange file selector recursion)     <<<=== needs debugging
-- SIGNUM2 (trap #9 or memory mapped access to 68881)
-- Wordplus (bus error. Why?)
-- Wordplus 2 (bus error)
-- SED_440
-- Tempus
-- Tempus2 (access address 0xffff01)
-- GFABASIC 3.6 (message "AtariSetColor() - not supported") shows white screen, system is hanging
-- Omicron Basic Compiler 3.06 (crash, and when ejecting "omikron_basic_compiler_3_06_omikron.st", system crashes)
-
-VDI drivers:
-
-- *.OSD are offscreen drivers and not hardware related
-- *.NOD come from NVDI, they are faster than their OSD pendants.
-  They are preferably loaded during boot process if they are found.
-- MFA*.SYS are Atari hardware related and not used by MagicOnLinux or predecessors.
-- MFM*.SYS are used by MagicOnLinux
-- NFM*.SYS come from NVDI, they are faster than their MFM pendants.
-  They are not automatically loaded during boot, as the internal VDI
-  explicitly opens e.g. MFM2.SYS in monochrome mode.
-  It also seems that they are incompatible.
-
-in particular:
-
-- MFM2.SYS/NFM2.SYS: monochrome mode (black/white)
-- MFM4IP.SYS:   4     colours in 2 interleaved planes
-- MFM16.SYS:   16     colours in 4 consecutive (?) planes
-- MFM16IP.SYS: 16     colours in 4 interlaved planes
-- MFM16M.SYS:  16 mio colours, 32-bit pixel packed, 24 from which are used
-- MFM32K.SYS:  32768  colours, 16-bit pixel packed
-- MFM256.SYS:  256    colours, 8-bit pixel packed
-
-Note that the 16M and 32K graphics formats are direct, i.e. no colour palettes.
-All other modes are indirect, with a colour palette.
-
-Note that 16M is recommended for MagicOnLinux. It is similar to the host
-graphics format and thus leads to the best performance.
-The IP formats are impractical for any kind of software and thus
-are really slow.

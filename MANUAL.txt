@@ -87,6 +87,8 @@ This and That
 
 NVDI seems to freeze during start when ASSIGN.SYS is missing.
 
+Thanks to Thorsten Otto for the DFS_FAT FAT32 endianess bugfix (meta data on disk are always little-endian).
+
 
 Create Volume images
 ====================
@@ -126,6 +128,7 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - Intrface v2.29beta
 - LATTICE_C (single-app mode)
 - MAPS (8+3 case-insensitive drive)
+- MATRIX (naturally...)
 - MODULA-2 (single-app mode)
 - Papillon 2.2
 - Kobold?

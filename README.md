@@ -75,8 +75,7 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 # Bugs and Agenda
 
 * Include German, French and English localisation of emulator and emulated system without needing to clone AtariX repository.
-* FAT32 endianess bugfix to be applied to MagiC internal FAT driver.
-* Support partition tables, i.e. disk images, not only volume images.
+* Support MBR based partition tables, i.e. disk images, not only volume images.
 * Musashi emulator sources should be synchronised with latest version (see below).
 * Atari root file system (like MAGIC_C) folder should be automatically created and localised.
 * Add support for compilation on macOS.

@@ -1,0 +1,176 @@
+Remarks for Usage
+=================
+
+The Atari memory size is given in bytes and excludes video memory which is handled separately.
+On command line, the size can be specified in kbytes or Mbytes.
+This might later change in configuration
+
+Due to a bug in MVDI and NVDI, the VT52 emulator draws graphics artifacts e.g. with CLR SCREEN,
+visible in the MagiC task manager or if VT52.PRG is missing, when the screen width and
+height are not dividable by the system character size (8x8 or 8x16).
+To avoid this effect, the geometry is adjusted accordingly.
+
+With no VT52.PRG, if starting a TOS program like MCMD, it takes forever until screen gets white.
+This results from the MagiC kernel which used to work with slow floppy disk drives.
+
+
+Graphic Modes
+=============
+
+MVDI (MagiC VDI) is a stripped and slower sibling of NVDI, by the Behne Brothers.
+These are the provided (M)VDI drivers:
+
+- *.OSD are offscreen drivers and not hardware related
+- *.NOD come from NVDI, they are faster than their OSD pendants.
+  They are preferably loaded during boot process if they are found.
+- MFA*.SYS are Atari hardware related and not used by MagicOnLinux or predecessors.
+- MFM*.SYS are used by MagicOnLinux.
+- NFM*.SYS come from NVDI, they are faster than their MFM pendants.
+  They are not automatically loaded during boot, as the internal VDI
+  explicitly opens e.g. MFM2.SYS in monochrome mode.
+  It also seems that they are incompatible.
+
+In particular:
+
+- MFM2.SYS/NFM2.SYS:    monochrome mode (black/white)
+- MFM4IP.SYS:           4 colours in 2 interleaved planes
+- MFM16.SYS:            16 colours in 4 consecutive (?) planes
+- MFM16IP.SYS:          16 colours in 4 interlaved planes
+- MFM16M.SYS:           16 mio colours, 32-bit pixel packed, 24 from which are used
+- MFM32K.SYS:           32768 colours, 16-bit pixel packed
+- MFM256.SYS:           256 colours, 8-bit pixel packed
+
+Note that the 16M and 32K graphics formats are direct, i.e. no colour palettes.
+All other modes are indirect, with a colour palette of different length.
+
+Note that 16M is recommended for MagicOnLinux. It is similar to the host
+graphics format and thus leads to the best performance. Also the 256-colour
+and monochrome modes are fast, because the colour representation is
+suitable for the 68k emulation.
+
+The IP formats are impractical for any kind of software and thus
+are relatively slow. Maybe they are useful for specific Atari software.
+
+
+Limitations
+===========
+
+Atari RAM size is limited to 2 GB. I do not know, if such large RAM would make any sense.
+
+In virtual drive U: the symbolic links are not updated when virtual drives are ejected or added.
+This is a limitation or design flaw of the MagiC kernel, to be more precise: "DFS_U.S".
+
+
+This and That
+=============
+
+NVDI seems to freeze during start when ASSIGN.SYS is missing.
+
+
+Create Volume images
+====================
+
+Consider we want to create a disk image of these dimensions:
+
+- 512 bytes per sector
+- 2 sectors per cluster
+- FAT32
+- verbose
+- name "FAT32_1M"
+
+Then these commands can be used:
+
+dd if=/dev/zero of=vol-fat32-1M.img bs=1M count=1
+mkfs.vfat -S 512 -s 2 -F 32 -v -n "FAT32_1M" vol-fat32-1M.img
+
+Note that README.md lists an alternative solution that works without preceding "dd".
+
+
+Atari Applications that seem to work (whitelist, alphabetically)
+================================================
+
+- Artworx v1.42 (complains about missing GDOS, needs case-insensitive drive)
+- CAB 1.5 (freeware)
+- Chagall v01.00
+- Cypress v1.50
+- FONTZ.PRG
+- Gempaint 1.3B2
+- GEM2 Draw 2.0D (needs NVDI or GDOS)
+- GEM2 GRAPH 1.0D
+- GEM Output 1.2
+- Getinfo v1.1
+- GSTASM (single-app mode)
+- GSTFRAKT (single-app mode)
+- Highwire (needs NVDI or GDOS)
+- Intrface v2.29beta
+- LATTICE_C (single-app mode)
+- MAPS (8+3 case-insensitive drive)
+- MODULA-2 (single-app mode)
+- Papillon 2.2
+- Kobold?
+- LDW Power Calc 1.03
+- MagiC Configurator (needs case-insensitive drive)
+- Olga?
+- Papyrus 4 (complains about missing fonts, needs case-insensitive drive)
+- Papyrus 7 (complains about missing fonts)
+- Prgflags
+- Pure C
+- Pure Pascal: run in single mode (hold Alt key during start)
+- RCS28K (patched by Andreas Kromke)
+- RCS.PRG 1.4
+- RSM211E
+- SCRAP.PRG
+- Script (complains about missing fonts, needs case-insensitive drive)
+- Script 2 (complains about missing fonts, needs case-insensitive drive)
+- Technobox CAD/2 (needs case-insensitive drive)
+- Texel 2.10
+- Wordplus 2.02 UK
+- Wordplus 3.20 TT UK
+
+
+
+Atari applications that might work partially (greylist)
+=======================================================
+
+- CAMCAD (works at least in 640x400 monochrome, should run in single-application mode)
+- DR Doodle (corrupts memory blocks, repairable)
+- Logo (corrupts memory blocks, repairable)
+- Font Expert, FONTEX.PRG (might run in single application mode)
+- RSCTEXT (direct video memory access, might work with 640x400)
+- ST-Pascal (direct memory access, then bus error)
+- Tempus Word <<<=== herausfinden, welche Dateien er nicht findet
+
+
+Atari applications that do not work at all (blacklist)
+======================================================
+
+- ALICE (overwrites memory)
+- CAD 3D
+- CAMPUS
+- DBASE (why?)
+- Easydraw (first complains about missing GDOS, but then crashes and overwrites memory)
+- EASYRIDR
+- GFABASIC 3.6 (message "AtariSetColor() - not supported") shows white screen, system is hanging
+- GEM2 Wordchart (bus error)
+- NRSC 2.4 (writing to I/O)
+- Omicron Basic Compiler 3.06 (crash, and when ejecting "omikron_basic_compiler_3_06_omikron.st", system crashes)
+- PERSYS (draws artifacts like task manager in B/W)
+- PLOT_IT.PRG (draws artifacts like task manager in B/W, then crashes)
+- STAD_1_3.PRG (accesses video base register, needs case-insensitive drive, freezes system after crash)
+- ST BASIC (bus error)
+- ST LOGO (overwrites memory)
+- PHOENIX 4.2 (strange file selector recursion)     <<<=== needs debugging
+- Scigraph (first complains about missing GDOS, then crashes with access to fffffa42, MC68881 FPU)
+- SED_440
+- SIGNUM2 (trap #9 or memory mapped access to 68881)
+- SWFŔAK.PRG (system was overwritten)
+- Tempus
+- Tempus2 (access address 0xffff01)
+- Wordplus (bus error. Why?)
+- Wordplus 2 (bus error)
+
+
+To test
+=======
+
+- Prolist (missing GDOS)

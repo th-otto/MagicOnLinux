@@ -1678,7 +1678,7 @@ void CMagiC::sendKbshift(uint8_t atari_kbshift)
 {
     if (m_bEmulatorIsRunning && (m_AtariKbData[0] != atari_kbshift))
     {
-        CDebug::DebugInfo2("() -- re-synchronise Atari kbshift 0x%02x -> 0x%02x", m_AtariKbData[0], atari_kbshift);
+        DebugInfo2("() -- re-synchronise Atari kbshift 0x%02x -> 0x%02x", m_AtariKbData[0], atari_kbshift);
         m_AtariKbData[0] = atari_kbshift;
     }
 }

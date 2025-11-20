@@ -13,6 +13,8 @@ extern uint32_t memVideo68kSize;        // size of emulated video memory
 extern uint8_t *addrOpcodeROM;
 extern uint32_t addr68kVideo;           // start of 68k video memory (68k address)
 extern uint32_t addr68kVideoEnd;        // end of 68k video memory (68k address)
+extern uint32_t addrOsRomStart;         // beginning of optionally write-protected memory area (68k address)
+extern uint32_t addrOsRomEnd;           // end of write-protected memory area (68k address)
 
 extern uint8_t *hostVideoAddr;          // start of host video memory (host address)
 extern volatile unsigned char sExitImmediately;     // m68kcpu.c
@@ -42,8 +44,6 @@ extern uint32_t m68k_breakpoints[M68K_BREAKPOINTS][2];      //  68k address and 
 extern uint32_t m68k_write_watches[M68K_WRITE_WATCHES];
 #endif
 
-extern uint32_t addrOsRomStart;         // beginning of write-protected memory area (68k address)
-extern uint32_t addrOsRomEnd;           // end of write-protected memory area (68k address)
 extern int do_not_interrupt_68k;        // for debugging
 
 #if defined(__cplusplus)

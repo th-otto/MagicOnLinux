@@ -46,11 +46,9 @@ uint32_t memVideo68kSize;        // size of emulated video memory
 uint8_t *addrOpcodeROM;				// pointer to 68k memory (host address)
 uint32_t addr68kVideo;				// start of 68k video memory (68k address)
 uint32_t addr68kVideoEnd;			// end of 68k video memory (68k address)
-bool gbAtariVideoRamHostEndian;		// true: video RAM is stored in host endian-mode
-#ifdef _DEBUG
 uint32_t addrOsRomStart;			// beginning of write-protected memory area (68k address)
 uint32_t addrOsRomEnd;				// end of write-protected memory area (68k address)
-#endif
+bool gbAtariVideoRamHostEndian;		// true: video RAM is stored in host endian-mode
 uint8_t *hostVideoAddr;				// start of host video memory (host address)
 std::atomic_bool gbAtariVideoBufChanged;
 
@@ -1132,7 +1130,14 @@ void EmulationRunner::EventLoop(void)
                 break;
 
             case SDL_CLIPBOARDUPDATE:
-                DebugWarning2("() - SDL_CLIPBOARDUPDATE currently unhandled");
+                #if !defined(NDEBUG)
+                static bool SDL_CLIPBOARDUPDATE_warned = false;
+                if (!SDL_CLIPBOARDUPDATE_warned)
+                {
+                    DebugWarning2("() - SDL_CLIPBOARDUPDATE currently unhandled");
+                    SDL_CLIPBOARDUPDATE_warned = true;      // warn only ONCE!
+                }
+                #endif
                 // The clipboard or primary selection changed
                 // TODO: support
                 break;
@@ -1142,7 +1147,7 @@ void EmulationRunner::EventLoop(void)
                 SDL_DropEvent *ev = &event.drop;
                 if ((ev->file != nullptr) && !m_Emulator.sendDragAndDropFile(ev->file))
                 {
-                    DebugWarning2("() - SDL_DROPFILE \"%s\" unhandled", ev->file);
+                    DebugWarning2("() - SDL_DROPFILE \"%s\" unhandled (warn ONCE)", ev->file);
                     free(ev->file);
                     ev->file = nullptr;
                 }

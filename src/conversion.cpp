@@ -673,9 +673,10 @@ int CConversion::host2AtariError(int error)
         case ENOENT: return EFILNF;    // could also be EPTHNF
         case ENOTDIR: return EPTHNF;
         case EINVAL: return EINVFN;
+        case EEXIST: return EACCDN;
     }
 
-    return(ERROR);
+    return ERROR;
 }
 
 

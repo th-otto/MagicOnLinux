@@ -2789,12 +2789,22 @@ uint32_t CMagiC::AtariColdBoot(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Emulator normal beenden
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Atari has shut down itself
+ *
+ * @param[in] params            68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return (irrelevant)
+ *
+ * @note MagiC's SHUTDOWN.PRG more or less gracefully stops all running applications and then
+ *       calls [xbios(39, 'AnKr', 0)]. This is ignored on the Atari, but the emulator XBIOS
+ *       calls [v_clswk()] to close the VDI. Then it calls the emulator. Without VDI the
+ *       emulated system may not continue, so we make sure that the 68k instruction
+ *       loop is left, and then emulator thread can end.
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariExit(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
@@ -2802,31 +2812,13 @@ uint32_t CMagiC::AtariExit(uint32_t params, uint8_t *addrOffset68k)
 
     DebugInfo2("()");
 
-#if 0
-//    is of no use, because guest calls: "jsr v_clswk" to close VDI, no more redraws!
-    // shutdown is done in the 200Hz timer call, delay shutdown for 0,5s to let guest complete the redraw
-    pTheMagiC->m_AtariShutDownDelay = 1000;
-    DebugInfo("CMagiC::AtariExit() -- delay for %u ticks", pTheMagiC->m_AtariShutDownDelay);
-#else
-    // FÜR DIE FEHLERSUCHE: GIB DIE LETZTEN TRACE-INFORMATIONEN AUS.
-//    m68k_trace_print("68k-trace-dump-exit.txt");
+    sExitImmediately = true;        // make sure the inner instruction loop in m68kcpu ends
+    pTheMagiC->m_bCanRun = false;   // also leave the outer loop
 
-    // Emulator-Thread anhalten
-    pTheMagiC->m_bCanRun = false;
-//    pTheMagiC->m_bAtariWasRun = false;    (entf. 4.11.07)
-
-    // setze mir selbst einen Event zum Beenden (4.11.07)
+    // Tell the main thread to also leave
     pTheMagiC->OS_SetEvent(
             &pTheMagiC->m_EventId,
             EMU_EVNT_TERM);
-
-    // Nachricht and Haupt-Thread zum Beenden (entf. 4.11.07)
-//    SendMessageToMainThread(true, kHICommandQuit);
-#ifdef MAGICMACX_DEBUG68K
-    for    (register int i = 0; i < 100; i++)
-        CDebug::DebugInfo("### VideoRamWriteCounter(%2d) = %d", i, WriteCounters[i]);
-#endif
-#endif
     return 0;
 }
 

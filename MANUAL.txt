@@ -122,6 +122,7 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - GEM2 GRAPH 1.0D
 - GEM Output 1.2
 - Getinfo v1.1
+- GFA-Basic Editor v3.77
 - GSTASM (single-app mode)
 - GSTFRAKT (single-app mode)
 - Highwire (needs NVDI or GDOS)
@@ -130,6 +131,8 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - MAPS (8+3 case-insensitive drive)
 - MATRIX (naturally...)
 - MODULA-2 (single-app mode)
+- Omikron Basic 5.19
+- ORCS 2.18 (but missing sharp-s)
 - Papillon 2.2
 - Kobold?
 - LDW Power Calc 1.03
@@ -178,6 +181,7 @@ Atari applications that do not work at all (blacklist)
 - GEM2 Wordchart (bus error)
 - NRSC 2.4 (writing to I/O)
 - Omicron Basic Compiler 3.06 (crash, and when ejecting "omikron_basic_compiler_3_06_omikron.st", system crashes)
+- Omikron BASIC v3.60 (I/O access)
 - PERSYS (draws artifacts like task manager in B/W)
 - PLOT_IT.PRG (draws artifacts like task manager in B/W, then crashes)
 - STAD_1_3.PRG (accesses video base register, needs case-insensitive drive, freezes system after crash)

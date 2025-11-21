@@ -32,6 +32,12 @@
 #include "gui.h"
 #include "volume_images.h"
 
+#if !defined(_DEBUG_VOLUME_IMAGES)
+ #undef DebugInfo
+ #define DebugInfo(...)
+ #undef DebugInfo2
+ #define DebugInfo2(...)
+#endif
 
 const char *CVolumeImages::drv_image_host_path[NDRIVES];       // nullptr, if not valid
 int CVolumeImages::drv_image_fd[NDRIVES];
@@ -113,6 +119,27 @@ void CVolumeImages::exit(void)
 
     m_diskimages_drvbits = 0;
 }
+
+
+// MBR Partition entry (16 bytes)
+struct MBR_PART
+{
+    uint8_t status;
+    uint8_t chs_first[3];
+    uint8_t part_type;
+    uint8_t chs_last[3];
+    uint8_t lba_first[4];       // first absolute sector (little-endian)
+    uint8_t lba_num[4];         // number of sectors (little-endian)
+} __attribute__((packed));
+
+// Master Boot Record, old Partition table format, before GPT came up
+struct MBR
+{
+    uint8_t boot_code[446];     // 0x000
+    MBR_PART partitions[4];     // 0x1be / 0x1ce / 0x1de / 0x1ee
+    uint8_t sig0;               // 0x55
+    uint8_t sig1;               // 0xaa
+} __attribute__((packed));
 
 
 // alles little-endian!
@@ -206,12 +233,109 @@ struct FAT_BOOT_SEC_16_12
 } __attribute__((packed));
 
 
+/** **********************************************************************************************
+ *
+ * @brief Check for MBR
+ *
+ * @param[in]  sector       boot sector
+ * @param[out] partitions   partition table
+ * @param[in]  maxparts     length of that table
+ *
+ * @return number of found partitions, less or equal to maxparts
+ *
+ ************************************************************************************************/
+int CVolumeImages::getMbr(const uint8_t *sector, partition *partitions, unsigned maxparts)
+{
+    const MBR *mbr = (const MBR *) sector;
+
+    if ((mbr->sig0 != 0x55) || (mbr->sig1 != 0xaa))
+    {
+        DebugWarning2("() -- Invalid MBR signature");
+    }
+
+    DebugInfo2("() -- MBR signature found");
+
+    unsigned numparts = 0;
+    uint64_t secsiz = 512;      // force 64-bit multiplication
+
+    for (unsigned i = 0; i < 4; i++)
+    {
+        const MBR_PART *part = mbr->partitions + i;
+
+        uint32_t lba_first = (part->lba_first[0]) | (part->lba_first[1] << 8) | (part->lba_first[2] << 16) | (part->lba_first[3] << 24);
+        uint32_t lba_num = (part->lba_num[0]) | (part->lba_num[1] << 8) | (part->lba_num[2] << 16) | (part->lba_num[3] << 24);
+
+        int type = 0;
+        const char *description;
+        switch(part->part_type)
+        {
+            case 0:
+                description = "empty (ignored)";
+                break;
+
+            case 1:
+                description = "FAT12";
+                type = 12;
+                break;
+
+            case 4:
+                description = "FAT16 < 65,536 sectors";
+                type = 16;
+                break;
+
+            case 5:
+                description = "Extended partition CHS (ignored)";
+                break;
+
+            case 6:
+                description = "FAT16B >= 65,536 sectors";
+                type = 16;
+                break;
+
+            case 0x0b:
+                description = "FAT32 CHS (ignored)";
+                break;
+
+            case 0x0c:
+                description = "FAT32 LBA";
+                type = 32;
+                break;
+
+            case 0x0e:
+                description = "FAT16B LBA";
+                type = 16;
+                break;
+
+            case 0x0f:
+                description = "Extended partition LBA (ignored)";
+                break;
+
+            default:
+                description = "unhandled (ignored)";
+                break;
+        }
+
+        DebugInfo2("() -- Partition #%u type %u (%s) LBA %u .. %u, size %u sectors",
+                         i, part->part_type, description, lba_first, lba_first + lba_num, lba_num);
+        if ((type > 0) && (numparts < maxparts))
+        {
+            partitions->start_offs = secsiz * lba_first;
+            partitions->size = secsiz * lba_first;
+            partitions->type = type;
+            partitions++;
+            numparts++;
+        }
+    }
+
+    return numparts;
+}
+
 
 /** **********************************************************************************************
  *
  * @brief Converts boot sector an image to BPB (FAT12 or FAT16), if any
  *
- * @param[out] vbr      boot sector
+ * @param[in]  sector   boot sector
  * @param[out] bpb      buffer for BPB (inside Atari memory)
  *
  * @return E_OK or negative error code
@@ -368,9 +492,9 @@ uint32_t CVolumeImages::vbr2Bpb(const uint8_t *sector, BPB *bpb)
 
 /** **********************************************************************************************
  *
- * @brief Check if boot sector an image of FAT32
+ * @brief Check if the sector is a FAT32 VBR
  *
- * @param[out] vbr      boot sector
+ * @param[out] sector      boot sector
  *
  * @return E_OK or negative error code
  *
@@ -511,7 +635,7 @@ uint32_t CVolumeImages::AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb)
 
 /** **********************************************************************************************
  *
- * @brief Handle hdv_rwabs Atari callback, read or write sectors
+ * @brief Check if the file contains a mountable drive or volume image, for Drag&Drop
  *
  * @param[in]  path     path to image file
  *
@@ -547,9 +671,20 @@ int CVolumeImages::checkFatVolume(const char *path)
     // 2. Try FAT32
 
     aerr = vbr2Fat32(dskbuf);
+    if (aerr == E_OK)
+    {
+        free(dskbuf);
+        return 32;
+    }
+
+    // 3. Try MBR
+
+    partition part_tab[8];
+    int num_parts = getMbr(dskbuf, part_tab, 8);
+    DebugInfo2("() -- %d partitions found", num_parts);
     free(dskbuf);
 
-    return (aerr == E_OK) ? 32 : -2;
+    return -2;
 }
 
 

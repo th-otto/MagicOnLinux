@@ -34,7 +34,15 @@ class CVolumeImages
     static void init(void);
     static void exit(void);
 
+    struct partition
+    {
+        uint64_t start_offs;    // in bytes
+        uint64_t size;
+        int type;
+    };
+
     static uint32_t AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k);
+    static int getMbr(const uint8_t *sector, partition *partitions, unsigned maxparts);
     static uint32_t vbr2Bpb(const uint8_t *sector, BPB *bpb);
     static uint32_t vbr2Fat32(const uint8_t *sector);
     static uint32_t AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb);

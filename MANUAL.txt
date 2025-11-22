@@ -13,6 +13,9 @@ To avoid this effect, the geometry is adjusted accordingly.
 With no VT52.PRG, if starting a TOS program like MCMD, it takes forever until screen gets white.
 This results from the MagiC kernel which used to work with slow floppy disk drives.
 
+If you for example specify "atari_drv_P" and "atari_drv_Q" with the same disk image file path,
+the logical drive Q: will be the first usable partition, and P: will be the second one.
+
 
 Graphic Modes
 =============

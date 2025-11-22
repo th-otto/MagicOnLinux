@@ -27,6 +27,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <assert.h>
 #include "Debug.h"
 #include "conversion.h"
 #include "gui.h"
@@ -39,12 +40,9 @@
  #define DebugInfo2(...)
 #endif
 
-const char *CVolumeImages::drv_image_host_path[NDRIVES];       // nullptr, if not valid
-int CVolumeImages::drv_image_fd[NDRIVES];
-uint64_t CVolumeImages::drv_image_size[NDRIVES];
-bool CVolumeImages::drv_longNames[NDRIVES];              // initialised with zeros
-bool CVolumeImages::drv_readOnly[NDRIVES];
-uint32_t CVolumeImages::m_diskimages_drvbits;
+CVolumeImages::drv_image *CVolumeImages::drv_images[NDRVIMAGES];      // nullptr, if not valid
+CVolumeImages::drv_volume *CVolumeImages::drv_volumes[NDRIVES];      // nullptr, if not valid
+uint32_t CVolumeImages::m_drvbits;
 
 
 /** **********************************************************************************************
@@ -56,47 +54,37 @@ void CVolumeImages::init()
 {
     struct stat statbuf;
 
-    m_diskimages_drvbits = 0;
-    for (int i = 0; i < NDRIVES; i++)
+    m_drvbits = 0;
+    for (int drv = 0; drv < NDRIVES; drv++)
     {
-        const char *path = Preferences::drvPath[i];
-        unsigned flags = Preferences::drvFlags[i];
-        if (path != nullptr)
+        const char *path = Preferences::drvPath[drv];
+        if (path == nullptr)
         {
-            int res = stat(path, &statbuf);
-            if (res < 0)
-            {
-                // alert already shown by HostXFS
-                // (void) showAlert("Invalid Atari drive path:", path, 1);
-                continue;
-            }
-            // we should not get symbolic links here, because of stat, not lstat...
-            mode_t ftype = (statbuf.st_mode & S_IFMT);
-            if (ftype != S_IFREG)
-            {
-                DebugInfo2("() -- Atari drive %c: is not a regular file: \"%s\"", 'A' + i, path);
-                path = nullptr;
-            }
+            continue;
         }
 
-        if (path != nullptr)
+        int res = stat(path, &statbuf);
+        if (res < 0)
         {
-            drv_image_host_path[i] = CConversion::copyString(path);
-            drv_image_size[i] = statbuf.st_size;
-            drv_longNames[i] = (flags & DRV_FLAG_8p3) == 0;
-            drv_readOnly[i] = (flags & DRV_FLAG_RDONLY);
-            m_diskimages_drvbits |= (1 << i);
+            // alert already shown by HostXFS
+            // (void) showAlert("Invalid Atari drive path:", path, 1);
+            continue;
         }
-        else
+        // we should not get symbolic links here, because of stat, not lstat...
+        mode_t ftype = (statbuf.st_mode & S_IFMT);
+        if (ftype != S_IFREG)
         {
-            drv_image_host_path[i] = nullptr;    // invalid
-            drv_longNames[i] = false;
-            drv_readOnly[i] = false;
-            drv_image_size[i] = 0;
+            DebugInfo2("() -- Atari drive %c: is not a regular file: \"%s\"", 'A' + drv, path);
+            path = nullptr;
+            continue;
         }
 
-        drv_image_fd[i] = -1;   // not open
-
+        uint64_t size = statbuf.st_size;
+        unsigned flags = Preferences::drvFlags[drv];
+        bool longnames = (flags & DRV_FLAG_8p3) == 0;       // currently unused
+        bool readonly = (flags & DRV_FLAG_RDONLY);
+        const char *allocated_path = CConversion::copyString(path);
+        setNewDrv(drv, allocated_path, longnames, readonly, size);
     }
 }
 
@@ -108,18 +96,58 @@ void CVolumeImages::init()
  ************************************************************************************************/
 void CVolumeImages::exit(void)
 {
-    for (int i = 0; i < NDRIVES; i++)
+    for (unsigned drv = 0; drv < NDRIVES; drv++)
     {
-        if (drv_image_fd[i] >= 0)
+        eject(drv);
+    }
+
+    assert(m_drvbits == 0);
+
+    for (unsigned i = 0; i < NDRVIMAGES; i++)
+    {
+        assert(drv_images[i] == nullptr);
+    }
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Check if image has already been registered
+ *
+ * @param[in]  path         disk image path
+ * @param[out] imgno        index in drv_image[]
+ *
+ * @return true: found, false return first free index or -1
+ *
+ ************************************************************************************************/
+bool CVolumeImages::findImagePath(const char *path, int *imgno)
+{
+    *imgno = -1;
+    for (int i = 0; i < NDRVIMAGES; i++)
+    {
+        if (drv_images[i] != nullptr)
         {
-            close(drv_image_fd[i]);
-            drv_image_fd[i] = -1;
+            if (!strcmp(drv_images[i]->host_path, path))
+            {
+                *imgno = i;     // index of found image
+                return true;
+            }
+        }
+        else
+        {
+            if (*imgno < 0)
+            {
+                *imgno = i;
+            }
         }
     }
 
-    m_diskimages_drvbits = 0;
+    return false;
 }
 
+
+// number of MBR primary partitions
+#define MBR_NO_PRIMARY_PARTITIONS 4
 
 // MBR Partition entry (16 bytes)
 struct MBR_PART
@@ -241,7 +269,10 @@ struct FAT_BOOT_SEC_16_12
  * @param[out] partitions   partition table
  * @param[in]  maxparts     length of that table
  *
- * @return number of found partitions, less or equal to maxparts
+ * @return number of found partitions, less or equal to maxparts, or -1 for "no MBR"
+ * @retval -1  no MBR
+ * @retval -2  corrupt MBR
+ * @retval 0   no usable partitions found
  *
  ************************************************************************************************/
 int CVolumeImages::getMbr(const uint8_t *sector, partition *partitions, unsigned maxparts)
@@ -250,20 +281,49 @@ int CVolumeImages::getMbr(const uint8_t *sector, partition *partitions, unsigned
 
     if ((mbr->sig0 != 0x55) || (mbr->sig1 != 0xaa))
     {
-        DebugWarning2("() -- Invalid MBR signature");
+        DebugInfo2("() -- No MBR signature");
+        return -1;
     }
 
     DebugInfo2("() -- MBR signature found");
 
+    //
+    // sanity check: partition overlap
+    //
+
+    uint32_t lba_first[MBR_NO_PRIMARY_PARTITIONS];
+    uint32_t lba_num[MBR_NO_PRIMARY_PARTITIONS];
+
+    for (unsigned i = 0; i < MBR_NO_PRIMARY_PARTITIONS; i++)
+    {
+        const MBR_PART *part = mbr->partitions + i;
+        lba_first[i] = (part->lba_first[0]) | (part->lba_first[1] << 8) | (part->lba_first[2] << 16) | (part->lba_first[3] << 24);
+        lba_num[i]   = (part->lba_num[0]) | (part->lba_num[1] << 8) | (part->lba_num[2] << 16) | (part->lba_num[3] << 24);
+
+        uint32_t first = lba_first[i];
+        uint32_t last = lba_first[i] + lba_num[i] - 1;
+        for (unsigned j = 0; j < i; j++)
+        {
+            if (((first >= lba_first[j]) && (first < lba_first[j] + lba_num[j])) ||
+                ((last >= lba_first[j]) && (last < lba_first[j] + lba_num[j])) ||
+                ((first < lba_first[j]) && (last >= lba_first[j] + lba_num[j])))
+            {
+                DebugError2("() -- MBR partitions %u and %u overlap. Not mounted.", j, i);
+                return 0;
+            }
+        }
+    }
+
+    //
+    // walk and gather
+    //
+
     unsigned numparts = 0;
     uint64_t secsiz = 512;      // force 64-bit multiplication
 
-    for (unsigned i = 0; i < 4; i++)
+    for (unsigned i = 0; i < MBR_NO_PRIMARY_PARTITIONS; i++)
     {
         const MBR_PART *part = mbr->partitions + i;
-
-        uint32_t lba_first = (part->lba_first[0]) | (part->lba_first[1] << 8) | (part->lba_first[2] << 16) | (part->lba_first[3] << 24);
-        uint32_t lba_num = (part->lba_num[0]) | (part->lba_num[1] << 8) | (part->lba_num[2] << 16) | (part->lba_num[3] << 24);
 
         int type = 0;
         const char *description;
@@ -316,11 +376,12 @@ int CVolumeImages::getMbr(const uint8_t *sector, partition *partitions, unsigned
         }
 
         DebugInfo2("() -- Partition #%u type %u (%s) LBA %u .. %u, size %u sectors",
-                         i, part->part_type, description, lba_first, lba_first + lba_num, lba_num);
+                         i, part->part_type, description, lba_first[i], lba_first[i] + lba_num[i], lba_num[i]);
+
         if ((type > 0) && (numparts < maxparts))
         {
-            partitions->start_offs = secsiz * lba_first;
-            partitions->size = secsiz * lba_first;
+            partitions->start_offs = secsiz * lba_first[i];
+            partitions->size = secsiz * lba_num[i];
             partitions->type = type;
             partitions++;
             numparts++;
@@ -624,7 +685,7 @@ uint32_t CVolumeImages::vbr2Fat32(const uint8_t *sector)
 uint32_t CVolumeImages::AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb)
 {
     // read boot sector and evaluate
-    INT32 aerr = AtariRwabs(drv, 0,  1, 0, dskbuf);
+    INT32 aerr = AtariRwabs(drv, 0, 1, 0, dskbuf);
     if (aerr == E_OK)
     {
         aerr = vbr2Bpb(dskbuf, bpb);
@@ -639,7 +700,7 @@ uint32_t CVolumeImages::AtariGetBpb(uint16_t drv, uint8_t *dskbuf, BPB *bpb)
  *
  * @param[in]  path     path to image file
  *
- * @return 12 for FAT12, 16 for FAT16, 32 for FAT32, -2 for format error and -1 for file error
+ * @return 12 for FAT12, 16 for FAT16, 32 for FAT32, 0 for MBR, -2 for format error and -1 for file error
  *
  ************************************************************************************************/
 int CVolumeImages::checkFatVolume(const char *path)
@@ -681,10 +742,8 @@ int CVolumeImages::checkFatVolume(const char *path)
 
     partition part_tab[8];
     int num_parts = getMbr(dskbuf, part_tab, 8);
-    DebugInfo2("() -- %d partitions found", num_parts);
     free(dskbuf);
-
-    return -2;
+    return (num_parts > 0) ? 0 : -2;
 }
 
 
@@ -710,69 +769,82 @@ uint32_t CVolumeImages::AtariRwabs(uint16_t drv, uint16_t flags, uint16_t count,
     DebugInfo2("() - hdv_rawbs(flags = 0x%04x, buf = 0x%08x, count = %u, dev = %u, lrecno = %u)",
                     flags, buf, count, drv, lrecno);
 
-    if ((drv < NDRIVES) && ((drv_image_host_path[drv]) != nullptr))
+    if ((drv >= NDRIVES) || (drv_volumes[drv] == nullptr))
     {
-        if (drv_image_fd[drv] == -1)
+        return EUNDEV;
+    }
+
+    if (flags & 2)
+    {
+        DebugError2("() - Physical sector numbers are not (yet) supported");
+        return EUNCMD;
+    }
+
+    // open disk image, if not already done, and get partitions, if any
+
+    drv_volume *volume = drv_volumes[drv];
+    if (!openDrvImage(volume->image_no))
+    {
+        return EUNDEV;
+    }
+
+    drv_image *image = drv_images[volume->image_no];
+    assert(image != nullptr);
+    unsigned partno = volume->partition_no;
+
+    if ((int) partno >= image->nparts)
+    {
+        DebugError2("() - Partition %u on disk image %u is invalid", partno, volume->image_no);
+        return EUNDEV;
+    }
+
+    int fd = image->fd;
+    uint64_t part_offs = image->partitions[partno].start_offs;
+    uint64_t part_size = image->partitions[partno].size;
+    uint64_t secsize = 512;     // force 64-bit multiply
+
+    uint64_t new_offset = lrecno * secsize;
+    uint64_t new_count = count * secsize;
+
+    if ((new_offset < part_size) && (new_offset + new_count <= part_size))
+    {
+        off_t offs = lseek(fd, part_offs + new_offset, SEEK_SET);
+        if (offs == (long) (part_offs + new_offset))
         {
-            // not open, yet, or cannot be opend
-            drv_image_fd[drv] = open(drv_image_host_path[drv], drv_readOnly[drv] ? O_RDONLY : O_RDWR);
-            if (drv_image_fd[drv] < 0)
+            ssize_t transferred;
+
+            if (flags & 1)
             {
-                (void) showAlert("Cannot open Atari volume image:", drv_image_host_path[drv]);
-                drv_image_host_path[drv] = nullptr;
-            }
-        }
-
-        int fd = drv_image_fd[drv];
-        if (fd >= 0)
-        {
-            uint64_t fsize = drv_image_size[drv];
-            uint64_t secsize = 512;     // force 64-bit multiply
-
-            uint64_t new_offset = lrecno * secsize;
-            uint64_t new_count = count * secsize;
-
-            if ((new_offset < fsize) && (new_offset + new_count <= fsize))
-            {
-                off_t offs = lseek(fd, new_offset, SEEK_SET);
-                if (offs == (long) new_offset)
+                if (volume->read_only)
                 {
-                    ssize_t transferred;
-
-                    if (flags & 1)
-                    {
-                        if (drv_readOnly[drv])
-                        {
-                            return EWRPRO;
-                        }
-                        transferred = write(fd, buf, new_count);
-                    }
-                    else
-                    {
-                        transferred = read(fd, buf, new_count);
-                    }
-
-                    if (transferred == (long) new_count)
-                    {
-                        return E_OK;
-                    }
-                    else
-                    {
-                        return (flags & 1) ? EWRITF : EREADF;
-                    }
+                    return EWRPRO;
                 }
-                else
-                {
-                    DebugError2("() - lseek() failure");
-                    return ATARIERR_ERANGE;
-                }
+                transferred = write(fd, buf, new_count);
             }
             else
             {
-                DebugError2("() - pos %u out of size %u", (unsigned) new_offset, (unsigned) drv_image_size[drv]);
-                return ATARIERR_ERANGE;
+                transferred = read(fd, buf, new_count);
+            }
+
+            if (transferred == (long) new_count)
+            {
+                return E_OK;
+            }
+            else
+            {
+                return (flags & 1) ? EWRITF : EREADF;
             }
         }
+        else
+        {
+            DebugError2("() - lseek() failure");
+            return ATARIERR_ERANGE;
+        }
+    }
+    else
+    {
+        DebugError2("() - pos %u out of size %u", (unsigned) new_offset, (unsigned) image->size);
+        return ATARIERR_ERANGE;
     }
 
     return EUNDEV;
@@ -887,9 +959,12 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
             MediachParm *theParams = (MediachParm *) (addrOffset68k + params);
             drv = be16toh(theParams->drive);
             DebugInfo2("(drv = %c:) - hdv_mediach()", 'A' + drv);
-            if ((drv < NDRIVES) && ((drv_image_fd[drv]) >= 0))
+            if ((drv < NDRIVES) && (drv_volumes[drv] != nullptr))
             {
-                aerr = 0;
+                drv_volume *volume = drv_volumes[drv];
+                drv_image *image = drv_images[volume->image_no];
+                assert(image != nullptr);
+                aerr = (image->fd >= 0) ? 0 : EUNDEV;
             }
             else
             {
@@ -911,7 +986,114 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
 
 /** **********************************************************************************************
  *
- * @brief Register a volume image
+ * @brief Open a drive image and get partitions, if any and if not already done
+ *
+ * @param[in] image_no          image index
+ *
+ * @return true for success, false for failure
+ *
+ ************************************************************************************************/
+bool CVolumeImages::openDrvImage(unsigned image_no)
+{
+    if ((image_no >= NDRVIMAGES) || (drv_images[image_no] == nullptr))
+    {
+        DebugError2("() -- wrong parameters");
+        return false;    // wrong parameters
+    }
+
+    drv_image *image = drv_images[image_no];
+    if (image->fd >= 0)
+    {
+        return true;    // already open
+    }
+
+    if (image->fd == -2)
+    {
+        DebugError2("() -- disk image not usable");
+        return false;    // error state
+    }
+
+    // not yet open
+    // check if all volumes shall be mounted as read-only
+
+    bool disk_image_read_only = true;
+    for (unsigned pi = 0; pi < NPARTITIONS; pi++)
+    {
+        char cdrv = image->partitions[pi].drv;
+        if (cdrv >= 'A')
+        {
+            unsigned drv = (unsigned) (cdrv - 'A');
+            assert(drv < NDRIVES);
+            drv_volume *volume = drv_volumes[drv];
+            assert(volume != nullptr);
+            if (!volume->read_only)
+            {
+                DebugInfo("() -- disk image must be opened in read/write mode");
+                disk_image_read_only = true;    // TODO: remember?
+                break;
+            }
+        }
+    }
+
+    // open disk image file as either read-write or read-only
+
+    image->fd = open(image->host_path, disk_image_read_only ? O_RDONLY : O_RDWR);
+    if (image->fd < 0)
+    {
+        (void) showAlert("Cannot open disk image:", image->host_path);
+        image->fd = -2;     // mark as errorneous
+        return false;
+    }
+
+    // read first sector and check if it contains an MBR partion table
+
+    uint8_t *dskbuf = (uint8_t *) malloc(512);
+    ssize_t bytes = read(image->fd, dskbuf, 512);
+    if (bytes != 512)
+    {
+        free(dskbuf);
+        (void) showAlert("Cannot read disk image first sector:", image->host_path);
+        close(image->fd);
+        image->fd = -2;     // mark as errorneous
+        return false;
+    }
+
+    // get partition table if any
+
+    image->nparts = getMbr(dskbuf, image->partitions, NPARTITIONS);
+    if (image->nparts == -2)
+    {
+        (void) showAlert("Corrupted MBR on disk image:", image->host_path);
+        close(image->fd);
+        image->fd = -2;     // mark as errorneous
+        return false;
+    }
+
+    if (image->nparts == 0)
+    {
+        (void) showAlert("No readable partitions on disk image:", image->host_path);
+        close(image->fd);
+        image->fd = -2;     // mark as errorneous
+        return false;
+    }
+
+    if (image->nparts == -1)
+    {
+        // disk image seems to be un-partitioned. Treat as one partition.
+        DebugInfo2("() -- Disk image seems be un-partitioned: %s", image->host_path);
+        image->partitions[0].start_offs = 0;
+        image->partitions[0].size = image->size;
+        image->partitions[0].type = 0;
+        image->nparts = 1;
+    }
+
+    return true;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Register a drive image and a volume image
  *
  * @param[in] drv               drive number 0..25
  * @param[in] allocated_path    allocated memory block containing the host path of the volume file
@@ -924,40 +1106,125 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
  ************************************************************************************************/
 void CVolumeImages::setNewDrv(uint16_t drv, const char *allocated_path, bool longnames, bool readonly, uint64_t size)
 {
-    if (drv < NDRIVES)
+    if ((drv >= NDRIVES) || (allocated_path == nullptr))
     {
-        drv_image_host_path[drv] = allocated_path;
-        drv_image_size[drv] = size;
-        drv_longNames[drv] = longnames;
-        drv_readOnly[drv] = readonly;
-        m_diskimages_drvbits |= (1 << drv);
+        DebugError2("() -- invalid parameters");
+        return;
     }
+
+    int imgno;
+    if (!findImagePath(allocated_path, &imgno))
+    {
+        if (imgno >= 0)
+        {
+            // new image
+            drv_image *image = (drv_image *) calloc(1, sizeof(*image));
+            image->host_path = allocated_path;
+            image->fd = -1;
+            image->size = size;
+            drv_images[imgno] = image;
+        }
+        else
+        {
+            DebugError2("() -- Too many disk images, ignore drive %c:", drv + 'A');
+            free((void *) allocated_path);
+            return;
+        }
+    }
+
+    if (imgno >= 0)
+    {
+        // image registered in drv_images[imgno]
+        // look for unregistered partition
+
+        drv_image *image = drv_images[imgno];
+        assert(image != nullptr);
+        int partno;
+        for (partno = 0; partno < NPARTITIONS; partno++)
+        {
+            if (image->partitions[partno].drv == 0)
+            {
+                break;
+            }
+        }
+        if (partno < NPARTITIONS)
+        {
+            //
+            // The logical Atari drive will get the first free partition of an already
+            // registered disk image.
+            //
+
+            DebugInfo2("() -- Atari drive %c: is partition %u in disk image %u", drv + 'A', partno, imgno);
+            drv_volume *volume = (drv_volume *) calloc(1, sizeof(*volume));
+            volume->image_no = imgno;
+            volume->partition_no = partno;
+            volume->read_only = readonly;
+            volume->long_names = longnames;       // currently unused
+            drv_volumes[drv] = volume;
+            image->partitions[partno].drv = 'A' + drv;
+            m_drvbits |= (1 << drv);
+        }
+        else
+        {
+            DebugError2("() -- No unused partition for Atari drive %c: in disk image %u", drv + 'A', imgno);
+            free((void *) allocated_path);
+            return;
+        }
+    }
+
+    m_drvbits |= (1 << drv);
 }
 
 
 /** **********************************************************************************************
  *
- * @brief Emulator callback: eject
+ * @brief Eject a logical volume, also eject image, if no longer needed
  *
  * @param[in] drv       drive number 0..25
  *
  ************************************************************************************************/
 void CVolumeImages::eject(uint16_t drv)
 {
-    if (drv < NDRIVES)
+    if ((drv < NDRIVES) && (drv_volumes[drv] != nullptr))
     {
-        if (drv_image_fd[drv] >= 0)
+        drv_volume *volume = drv_volumes[drv];
+        drv_volumes[drv] = nullptr;             // remove logical drive
+        m_drvbits &= ~(1 << drv);
+
+        unsigned image_no = volume->image_no;
+        drv_image *image = drv_images[image_no];
+        assert(image != nullptr);
+        assert(volume->partition_no < NPARTITIONS);
+        assert(image->partitions[volume->partition_no].drv == 'A' + drv);
+        image->partitions[volume->partition_no].drv = 0;    // set partition to "unused"
+        free(volume);
+
+        // also free disk image, if now unused
+
+        for (unsigned pi = 0; pi < NPARTITIONS; pi++)
         {
-            close(drv_image_fd[drv]);
-            drv_image_fd[drv] = -1;
+            if (image->partitions[pi].drv != 0)
+            {
+                DebugInfo2("() - disk image %u still in use", image_no);
+                return;
+            }
         }
 
-        if (drv_image_host_path[drv] != nullptr)
+        DebugInfo2("() - disk image %u no longer in use, close it", image_no);
+
+        if (image->fd >= 0)
         {
-            free((void *) drv_image_host_path[drv]);
-            drv_image_host_path[drv] = nullptr;
+            close(image->fd);
+            image->fd = -1;
         }
 
-        m_diskimages_drvbits &= ~(1 << drv);
+        if (image->host_path != nullptr)
+        {
+            free((void *) image->host_path);
+            image->host_path = nullptr;
+        }
+
+        drv_images[image_no] = nullptr;
+        free(image);
     }
 }

@@ -2643,9 +2643,24 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
             if (ftype == S_IFREG)
             {
                 int volume_type = CVolumeImages::checkFatVolume(allocated_path);
-                if (volume_type > 0)
+                if (volume_type >= 0)
                 {
-                    int answer = showDialogue("Mount volume image?", allocated_path, mount_buttons);
+                    const char *question = "Mount partition of disk image?";
+                    if (volume_type == 12)
+                    {
+                        question = "Mount FAT12 image?";
+                    }
+                    else
+                    if (volume_type == 16)
+                    {
+                        question = "Mount FAT16 image?";
+                    }
+                    else
+                    if (volume_type == 32)
+                    {
+                        question = "Mount FAT32 image?";
+                    }
+                    int answer = showDialogue(question, allocated_path, mount_buttons);
                     if ((answer == answerA) || (answer == answerA_ro))
                     {
                         drv = 'A' - 'A';

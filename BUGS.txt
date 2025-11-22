@@ -1,3 +1,13 @@
+Invalid logical drives cannot be ejected. Maybe wait for mediach() and automatically eject them.
+
+Drag&Drop of a volume (e.g. floppy disk) image mounts the image only to drive A: or B:.
+Maybe it should look for the first free logical drive.
+
+Drag&Drop of a a partitioned disk image mounts only the first not already mounted partition and only to A: or B:.
+Maybe it should look for free logical drives and mount all partitions, if possible.
+
+rwabs() does not support physical sector numbers, yet. Maybe that is not really necessary and might be dangerous.
+
 Omicron Basic Compiler 3.06 (crash, and when ejecting "omikron_basic_compiler_3_06_omikron.st", system crashes)
 
 With no VT52.PRG, if starting MCMD, it takes forever until screen gets white,
@@ -15,8 +25,6 @@ What is XHDI, and shall it be supported? It seems that DFS_FAT.S, the MagiC inte
 file system driver, supports this to get information about a storage volume.
 
 system info control panel shows 29.12.2003 as kernel build date. Update!
-
-Prevent volume image from being mounted twice.
 
 Drag & Drop file systems treats every file as image. If one image is invalid, no further images can be mounted.
 Maybe provide a list of supported file names extensions (.st, .image, .diskimage).

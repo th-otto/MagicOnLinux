@@ -272,6 +272,7 @@ int CVolumeImages::getMbr(const uint8_t *sector, partition *partitions, unsigned
             partitions++;
             numparts++;
         }
+        (void)description;
     }
 
     return numparts;

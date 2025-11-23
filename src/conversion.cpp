@@ -604,6 +604,7 @@ void CConversion::convTextFileAtari2Host(const char *filename, char **pBuffer)
     char *dst_buf = (char *) malloc(dst_len + 1);
     unsigned done = CConversion::strAtari2Host(src_buf, dst_buf, dst_len + 1, true);
     assert(done == dst_len);
+    (void)done;
 
     free(src_buf);
     *pBuffer = dst_buf;
@@ -647,6 +648,7 @@ void CConversion::convTextFileHost2Atari(const char *filename, uint8_t **pBuffer
     assert(dst_buf != nullptr);
     unsigned done = CConversion::strHost2Atari(src_buf, dst_buf, stringlen + 1, true);
     assert(done == stringlen);
+    (void)done;
 
     free(src_buf);
     *pBuffer = dst_buf;

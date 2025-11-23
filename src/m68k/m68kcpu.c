@@ -5,6 +5,13 @@
 #include <string.h>
 #include <stdint.h>
 
+typedef unsigned tfHostCall(unsigned a1, unsigned char *emubase);
+typedef unsigned tfHostCallCpp(void *self, unsigned a1, unsigned char *emubase);
+extern union {
+	tfHostCall *c;
+	tfHostCallCpp *cpp;
+} jump_table[];
+
 /* ======================================================================== */
 /* ========================= LICENSING & COPYRIGHT ======================== */
 /* ======================================================================== */
@@ -1326,7 +1333,6 @@ void m68k_exception_bus_error(void)
 void m68k_op_call_emu_proc(void)
 {
 	unsigned a0, a1;
-	typedef unsigned tfHostCall(unsigned a1, unsigned char *emubase);
 	tfHostCall *proc;
 
 	a0 = m68ki_cpu.dar[8];	// hopefully in host's endianess mode
@@ -1336,8 +1342,7 @@ void m68k_op_call_emu_proc(void)
 	const uint32_t *p32 = (const uint32_t *) p;
 	//TODO: This is a hack
 	uint32_t jump_table_index = p32[0];
-	extern void *jump_table[];
-	proc = (tfHostCall *) jump_table[jump_table_index];
+	proc = jump_table[jump_table_index].c;
 	// call host function. Put return value into d0 (all in host endian-mode)
 	m68ki_cpu.dar[0] = proc(a1, sBaseAddr);
 }
@@ -1347,7 +1352,6 @@ void m68k_op_call_emu_proc(void)
 {
 	unsigned a0, a1;
 	unsigned char *p;
-	typedef unsigned tfHostCall(unsigned a1, unsigned char *emubase);
 	tfHostCall *proc;
 
 	a0 = m68ki_cpu.dar[8];	// hopefully in host's endianess mode
@@ -1382,8 +1386,7 @@ void m68k_op_call_emu_cproc(void)
 	//TODO: This is a hack
 	uint32_t jump_table_index = p32[0];
 	uint32_t self_table_index = p32[1];		// indices 2 and 3 are unused
-	extern void *jump_table[];
-	proc = (tfHostCallCpp *) jump_table[jump_table_index];
+	proc = jump_table[jump_table_index].cpp;
 	extern void *self_table[];
 	self = self_table[self_table_index];
 	// call host function. Put return value into d0 (all in host endian-mode)
@@ -1585,7 +1588,7 @@ void m68k_pulse_halt(void)
 
 /* Get and set the current CPU context */
 /* This is to allow for multiple CPUs */
-unsigned int m68k_context_size()
+unsigned int m68k_context_size(void)
 {
 	return sizeof(m68ki_cpu_core);
 }

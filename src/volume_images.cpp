@@ -272,6 +272,7 @@ int CVolumeImages::getMbr(const uint8_t *sector, partition *partitions, unsigned
             partitions++;
             numparts++;
         }
+        (void)description;
     }
 
     return numparts;
@@ -526,6 +527,7 @@ uint32_t CVolumeImages::vbr2Fat32(const uint8_t *sector)
     {
         fat2_sectors = fat_sectors;
     }
+    (void)flags0;
 
     // sector number of first data cluster
     data_secno = fat2_secno + fat2_sectors + root_dir_size;

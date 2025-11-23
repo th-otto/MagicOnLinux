@@ -779,12 +779,16 @@
 #define SET_CYCLES(A)
 #define GET_CYCLES()
 #define USE_ALL_CYCLES()
+#define INIT_CYCLE_COUNTER(A)
+#define INC_CYCLE_COUNTER()
 #else
 #define ADD_CYCLES(A)    m68ki_remaining_cycles += (A)
 #define USE_CYCLES(A)    m68ki_remaining_cycles -= (A)
 #define SET_CYCLES(A)    m68ki_remaining_cycles = A
 #define GET_CYCLES()     m68ki_remaining_cycles
 #define USE_ALL_CYCLES() m68ki_remaining_cycles = 0
+#define INIT_CYCLE_COUNTER() uint count = 0;
+#define INC_CYCLE_COUNTER() count++;
 #endif
 
 
@@ -1262,7 +1266,7 @@ INLINE uint m68ki_get_ea_ix(uint An)
 
 	/* Check if base displacement is present */
 	if(BIT_5(extension))                /* BD SIZE */
-		bd = BIT_4(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+		bd = BIT_4(extension) ? m68ki_read_imm_32() : (uint)MAKE_INT_16(m68ki_read_imm_16());
 
 	/* If no indirect action, we are done */
 	if(!(extension&7))                  /* No Memory Indirect */
@@ -1270,7 +1274,7 @@ INLINE uint m68ki_get_ea_ix(uint An)
 
 	/* Check if outer displacement is present */
 	if(BIT_1(extension))                /* I/IS:  od */
-		od = BIT_0(extension) ? m68ki_read_imm_32() : MAKE_INT_16(m68ki_read_imm_16());
+		od = BIT_0(extension) ? m68ki_read_imm_32() : (uint)MAKE_INT_16(m68ki_read_imm_16());
 
 	/* Postindex */
 	if(BIT_2(extension))                /* I/IS:  0 = preindex, 1 = postindex */

@@ -47,6 +47,7 @@ class CVolumeImages
     static void eject(uint16_t drv);
     static void setNewDrv(uint16_t drv, const char *allocated_path, bool longnames, bool readonly, uint64_t size);
     static uint32_t getDrvBits() { return m_drvbits; }
+    static void remove_failed_volumes();
 
    private:
     struct partition
@@ -71,6 +72,9 @@ class CVolumeImages
         unsigned partition_no;
         bool long_names;            // currently ignored
         bool read_only;
+        bool bootsec_read;          // boot sector has been read
+        bool sec_written;           // write access
+        bool non_bootsec_read;      // other sector has been read
     };
 
     static drv_image *drv_images[NDRVIMAGES];      // nullptr, if not valid

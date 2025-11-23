@@ -1,5 +1,3 @@
-Invalid logical drives cannot be ejected. Maybe wait for mediach() and automatically eject them.
-
 Drag&Drop of a volume (e.g. floppy disk) image mounts the image only to drive A: or B:.
 Maybe it should look for the first free logical drive.
 

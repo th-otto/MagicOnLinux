@@ -2578,6 +2578,9 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
     static const char *mount_buttons_b = "B\\:, B\\: Read-Only, Cancel";
     static const char *mount_buttons_ab = "A\\:, B\\:, A\\: Read-Only, B\\: Read-Only, Cancel";
 
+    // do some tidy up to free logical drives that failed to mount
+    CVolumeImages::remove_failed_volumes();
+
     bool availA = (!m_HostXFS.isDrvValid('A' - 'A') && !CVolumeImages::isDrvValid('A' - 'A'));
     bool availB = (!m_HostXFS.isDrvValid('B' - 'A') && !CVolumeImages::isDrvValid('B' - 'A'));
 

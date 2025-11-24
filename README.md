@@ -1,5 +1,5 @@
 # MagicOnLinuX
-<img alt="Logo" src="assets/Logo.png" width="80">
+<img alt="Logo" src="assets/MagicOnLinux-Logo.png" width="80">
 
 An Atari ST/TT High Level Emulator for Linux, SDL2 based, running MagiC OS only.
 

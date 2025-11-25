@@ -48,6 +48,7 @@ static const char* copyright_notice =
 
 #include "m68kops.h"
 #include "m68kcpu.h"
+#include "natfeat.h"
 
 /* ======================================================================== */
 /* ================================= DATA ================================= */
@@ -1475,6 +1476,21 @@ int m68k_execute(int num_cycles)
 	return num_cycles;
 }
 #endif
+
+
+/* MagicMacX specific */
+void m68k_op_nf_id(void)
+{
+    REG_D[0] = nf_get_id(REG_SP + 4);
+}
+
+
+/* MagicMacX specific */
+void m68k_op_nf_call(void)
+{
+    REG_D[0] = nf_call(REG_SP + 4);
+}
+
 
 
 #if COUNT_CYCLES != OPT_OFF

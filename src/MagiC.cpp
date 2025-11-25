@@ -781,20 +781,20 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     switch(Preferences::atariScreenColourMode)
     {
         case atariScreenMode16ip:
-            setAtariBE16(mem68k + sshiftmd, 0);   // ST low resolution (320*200*4 ip)
+            mem68k[sshiftmd] = 0;   // ST low resolution (320*200*4 ip)
             break;
 
         case atariScreenMode4ip:
-            setAtariBE16(mem68k + sshiftmd, 1);   // ST medium resolution (640*200*2 ip)
+            mem68k[sshiftmd] = 1;   // ST medium resolution (640*200*2 ip)
             break;
 
         case atariScreenMode2:
-            setAtariBE16(mem68k + sshiftmd, 2);   // ST high resolution (640*400*2)
+            mem68k[sshiftmd] = 2;   // ST high resolution (640*400*2)
             break;
 
         default:
             // does not make much sense here ...
-            setAtariBE16(mem68k + sshiftmd, 2);   // ST high resolution (640*400*2)
+            mem68k[sshiftmd] = 2;   // ST high resolution (640*400*2)
             break;
     }
     setAtariBE16(mem68k +_cmdload, 0);            // boot AES

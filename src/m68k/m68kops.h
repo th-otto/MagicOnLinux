@@ -9,6 +9,8 @@
 // MagicMacX specific
 void m68k_op_call_emu_proc(void);
 void m68k_op_call_emu_cproc(void);
+void m68k_op_nf_id(void);
+void m68k_op_nf_call(void);
 
 void m68k_op_1010(void);
 void m68k_op_1111(void);

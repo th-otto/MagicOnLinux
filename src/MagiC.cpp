@@ -40,6 +40,7 @@
 #include "mem_access_68k.h"
 #include "conversion.h"
 #include "gui.h"
+#include "nf_objs.h"
 
 //#define _DEBUG_KB_CRITICAL_REGION 1
 
@@ -1055,6 +1056,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     // The 68020 is the most powerful CPU that is supported by Musashi
     m68k_set_cpu_type(M68K_CPU_TYPE_68020);
     m68k_init();
+    NFCreate();
 
     // Emulator starten
 
@@ -2247,6 +2249,7 @@ uint32_t CMagiC::AtariExec68k(uint32_t params, uint8_t *addrOffset68k)
     (void) Asgard68000SetContext(Old68kContext);
 #else
     m68k_pulse_reset();
+    NFReset();
     m68k_set_reg(M68K_REG_PC, be32toh(pNew68Context->regPC));
     m68k_set_reg(M68K_REG_SP, be32toh(pNew68Context->regSP));
     m68k_set_reg(M68K_REG_A0, be32toh(pNew68Context->arg));

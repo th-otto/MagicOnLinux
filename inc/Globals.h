@@ -27,7 +27,27 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#ifndef be32toh /* sometimes <endian.h> already included by c++ headers */
+#if defined(__linux__)
 #include <endian.h>
+#elif defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define be32toh(x) __builtin_bswap32(x)
+#define htobe32(x) __builtin_bswap32(x)
+#define be16toh(x) __builtin_bswap16(x)
+#define htobe16(x) __builtin_bswap16(x)
+#define le16toh(x) (x)
+#define le32toh(x) (x)
+#elif defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#define be32toh(x) (x)
+#define htobe32(x) (x)
+#define be16toh(x) (x)
+#define htobe16(x) (x)
+#define le16toh(x) __builtin_bswap16(x)
+#define le32toh(x) __builtin_bswap32(x)
+#else
+#error "unsupported byte order"
+#endif
+#endif
 
 #if defined(USE_ASGARD_PPC_68K_EMU)
 // Asgard 68k emulator (PPC Assembler)

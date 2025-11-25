@@ -27,6 +27,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "Globals.h"
 #include "Debug.h"
 #include "Atari.h"
 #include "emulation_globals.h"

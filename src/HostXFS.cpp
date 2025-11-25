@@ -31,7 +31,6 @@
 
 #include "config.h"
 
-#include <endian.h>
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>

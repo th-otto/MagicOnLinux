@@ -27,7 +27,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <endian.h>
 // Programm-Header
 #include "Debug.h"
 

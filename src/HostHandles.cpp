@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <time.h>
 #include <dirent.h>
-#include <endian.h>
 #include <assert.h>
 #include <fcntl.h>
 // program headers

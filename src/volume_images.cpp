@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <assert.h>
+#include "Globals.h"
 #include "Debug.h"
 #include "conversion.h"
 #include "gui.h"

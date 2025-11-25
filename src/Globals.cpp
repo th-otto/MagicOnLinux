@@ -23,8 +23,6 @@
 */
 
 #include "config.h"
-// System-Header
-#include <endian.h>
 // Programm-Header
 #include "Globals.h"
 #include "Debug.h"

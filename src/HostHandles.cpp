@@ -106,7 +106,7 @@ uint16_t allocHostFD(HostFD **pfd)
     fd->ref_cnt++;
     return handle;
 }
-HostFD *findHostFD(__dev_t dev, __ino_t ino, uint16_t *hhdl)
+HostFD *findHostFD(dev_t dev, ino_t ino, uint16_t *hhdl)
 {
     HostFD *p = fdTab;
     for (unsigned n = 0; n < HOST_HANDLE_NUM; n++, p++)

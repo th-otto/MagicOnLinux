@@ -36,8 +36,8 @@
 struct HostFD
 {
     int ref_cnt;     // 0 = unused
-    __dev_t dev;     // Device, retrieved from struct stat
-    __ino_t ino;     // File serial number (inode), retrieved from struct stat
+    dev_t dev;       // Device, retrieved from struct stat
+    ino_t ino;       // File serial number (inode), retrieved from struct stat
     int fd;          // open file handle
     // Maybe better store the host path here?
     // Maybe also store Atari drive here?
@@ -48,7 +48,7 @@ HostFD *getFreeHostFD();
 uint16_t allocHostFD(HostFD **pfd);
 void freeHostFD(HostFD *fd);
 HostFD *getHostFD(uint16_t hhdl);
-HostFD *findHostFD(__dev_t dev, __ino_t ino, uint16_t *hhdl);
+HostFD *findHostFD(dev_t dev, ino_t ino, uint16_t *hhdl);
 
 
 #define HOST_HANDLE_NUM     1024            // number of memory blocks

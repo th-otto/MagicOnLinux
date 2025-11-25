@@ -39,6 +39,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 
 #include "Debug.h"
 #include "Globals.h"
@@ -2475,13 +2476,14 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
     CHK_DRIVE(drv)
 
     (void) dirID;
-    (void) data;
+	struct statvfs buff;
+	int res = statvfs(drv_host_path[drv], &buff);
+	if (res != 0)
+		return CConversion::host2AtariError(errno);
 
-    // TODO: this is dummy so far
-    // 1G free from 1.5G
-    data[0] = htobe32(2 * 1024 * 1024);   // # free blocks
-    data[1] = htobe32(3 * 1024 * 1024);   // # total blocks
-    data[2] = htobe32(512); // sector size in bytes
+    data[0] = htobe32(buff.f_bavail);   // # free blocks
+    data[1] = htobe32(buff.f_blocks);   // # total blocks
+    data[2] = htobe32(buff.f_bsize);    // sector size in bytes
     data[3] = htobe32(1);   // sectors per cluster
 
     DebugInfo2("() -> E_OK");

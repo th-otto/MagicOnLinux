@@ -26,6 +26,7 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - make
 - popd
 - cp -rp AtariX/src/AtariX-MT/AtariX/rootfs-common Atari-rootfs
+- rm Atari-rootfs/GEMSYS/MFM16M-1fff.SYS
 - cp -p magiclinux/kernel/HOSTBIOS/MAGICLIN.OS Atari-rootfs/
 - rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/
 
@@ -35,7 +36,7 @@ Without gxmessage you will not see error message dialogues, instead the text wil
 
 The MAGICLIN.OS kernel is currently only available in German, but you may compile and link your own.
 
-You might replace CMAKE_BUILD with "Debug" or omit this parameter.
+You might replace CMAKE_BUILD with "Debug" (to get debug log output) or omit this parameter.
 
 Alternatively you can put your Atari root file system (drive C:) and kernel (MAGICLIN.OS) anywhere and configure the emulator accordingly.
 

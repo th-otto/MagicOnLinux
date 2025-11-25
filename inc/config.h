@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1990-2018 Andreas Kromke, andreas.kromke@gmail.com
+ * Copyright (C) 1990-2018/2025 Andreas Kromke, andreas.kromke@gmail.com
  *
  * This program is free software; you can redistribute it or
  * modify it under the terms of the GNU General Public License
@@ -16,25 +16,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-//
-//  config.h
-//  SDLOpenGLIntro
-//
-//  Created by Andreas Kromke on 07.10.11.
-//  Copyright 2011 __MyCompanyName__. All rights reserved.
-//
 
-// backward compatibility
-#if !defined(NDEBUG)
-#define _DEBUG
-#endif
-
-#ifndef SDLOpenGLIntro_config_h
-#define SDLOpenGLIntro_config_h
+#ifndef _CONFIG_H_
+#define _CONFIG_H_
 
 #define PROGRAM_NAME "MagicOnLinux v0.3"
 #define PROGRAM_VERSION_MAJOR 0
-#define PROGRAM_VERSION_MINOR 1
+#define PROGRAM_VERSION_MINOR 3
 
 #define EVENT_MOUSE 1
 
@@ -43,7 +31,7 @@
 #endif
 
 // debug output for debug configuration
-#if defined(_DEBUG)
+#if !defined(NDEBUG)
 //#define _DEBUG_BASEPAGE
 //#define _DEBUG_KBD_AND_MOUSE
 //#define _DEBUG_KB_CRITICAL_REGION

@@ -32,7 +32,7 @@ const char *descriptions[] =
     "     e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
     "            e.g. 2x2 or 2 or 2x4, overrides config file",
     "             Atari RAM size, e.g. 512k or 4M or 3m",
-    "           choose editor program for -e option, default is gnome-text-editor",
+    "           choose editor program for -e option, to override xdg-open",
     "  convert text file from Atari to host format",
     "   convert text file from host to Atari format"
 };
@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
     int stretch_y = -1;
     int atari_memsize = -1;
     const char *config = "~/.config/magiclinux.conf";
-    const char *editor = "gnome-text-editor";
+    const char *editor_command = "xdg-open";        //  "gnome-text-editor";
     const char *file_a2h = nullptr;
     const char *file_h2a = nullptr;
     bool bRunEditor = false;
@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
                 */
                 if (long_option_index == 7)
                 {
-                    editor = optarg;
+                    editor_command = optarg;
                 }
                 else
                 if (long_option_index == 8)
@@ -430,7 +430,7 @@ int main(int argc, char *argv[])
     if (bRunEditor)
     {
         char command[1024];
-        sprintf(command, "%s %s", editor, config);
+        sprintf(command, "%s %s", editor_command, config);
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wunused-result"
         (void) system(command);

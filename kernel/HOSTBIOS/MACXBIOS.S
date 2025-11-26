@@ -86,11 +86,11 @@ COMMAND		EQU	$37			; "Apple"-Taste fÅr Calamus-UnterstÅtzung
 	XDEF 	pe_timer			; nach XAES
 	XDEF 	first_sem 		; nach XAES
 	XDEF 	app0 			; nach AES
-     XDEF		sust_len			; nach AES
-     XDEF		datemode			; nach STD
+	XDEF		sust_len			; nach AES
+	XDEF		datemode			; nach STD
 	XDEF 	Bmalloc			; nach DOS
 	EXPORT	Bmaddalt			; nach DOS (ab 25.9.96)
-     XDEF		dos_macfn			; nach DOS
+	XDEF		dos_macfn			; nach DOS
 
 	XDEF		p_vt52			; neues VT52 nach DOS
 	XDEF 	p_vt52_winlst		; nach DOS
@@ -411,8 +411,8 @@ ENDIF
 
 **********************************************************************
 *
-* Header fÅr MagicMacX. öbergabestruktur zwischen
-* Atari und MacOS X
+* Header fÅr MagicOnLinux. öbergabestruktur zwischen
+* Atari und Host
 *
 **********************************************************************
 
@@ -435,8 +435,8 @@ MSysX:
  DC.L	0				; MacSys_pixmap
  DC.L	0				; MacSysX_pMMXCookie
  DCB.L	PTRLEN,0			; MacSysX_Xcmd
- DC.L	0				; MacSys_PPCAddr
- DC.L	0				; MacSys_VideoAddr
+ DC.L	0				; MacSys_PPCAddr, unused in MagicOnLinux
+ DC.L	0				; MacSys_VideoAddr, unused in MagicOnLinux
  DCB.L	PTRLEN,0			; MacSys_Exec68k
  DC.L	0				; MacSys_gettime
  DC.L	0				; MacSys_settime
@@ -459,6 +459,12 @@ MSysX:
  DC.L	0				; MacSys_seros
  DC.L	0				; MacSys_serin
  DC.L	0				; MacSys_serout
+ DC.L	0				; MacSysX_SerOpen
+ DC.L	0				; MacSysX_SerClose
+ DC.L	0				; MacSysX_SerRead
+ DC.L	0				; MacSysX_SerWrite
+ DC.L	0				; MacSysX_SerStat
+ DC.L	0				; MacSysX_SerIoctl
  DCB.L	PTRLEN,0			; MacSys_GetKbOrMous
  DC.L	0				; MacSys_dos_macfn
  DC.L	0				; MacSys_xfs_version
@@ -469,8 +475,8 @@ MSysX:
  DCB.L	PTRLEN,0			; MacSys_rawdrvr
  DC.L	0				; MacSys_Daemon
  DC.L     0                   ; MacSys_BlockDev
- DC.L     0                   ; reserved for future
- DC.L     0                   ; reserved for future
+ DC.L     0                   ; reserved for future use
+ DC.L     0                   ; reserved for future use
  DC.L	0				; MacSys_Yield
 
 **********************************************************************

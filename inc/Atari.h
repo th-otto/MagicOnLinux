@@ -959,7 +959,11 @@ MacSysX_xfs:            DS.L PTRLEN   ; central entry to host XFS
 MacSysX_xfs_dev:        DS.L PTRLEN   ; corresponding file driver
 MacSysX_drv2devcode:    DS.L PTRLEN   ; convert driver number to device number
 MacSysX_rawdrvr:        DS.L PTRLEN   ; LONG RawDrvr({int, long} *) Raw driver (eject) for Mac
-MacSysX_Daemon:         DS.L PTRLEN   ; call for the mmx daemon
+// previously MacSysX_Daemon:         DS.L PTRLEN   ; call for the mmx daemon
+MacSysX_Daemon:	        DS.L 1		  ; MagicOnLinux: call for the mmx daemon
+MacSysX_BlockDev:       DS.L 1        ; MagicOnLinux: disk image management
+MacSysX_resvd1:         DS.L 1        ; MagicOnLinux: reserved for future use
+MacSysX_resvd2:         DS.L 1        ; MagicOnLinux: reserved for future use
 MacSysX_Yield:          DS.L 1        ; call to yield CPU time (idle)
 MacSys_OldHdr:          DS.L 49       ; for compatibility with Behne's code
 MacSysX_sizeof:
@@ -1047,7 +1051,7 @@ struct MacXSysHdr
     UINT32_BE    MacSys_xfs_flags;          // flags for host XFS
     PTR32x4_HOST MacSys_xfs;                // central entry to host XFS
     PTR32x4_HOST MacSys_xfs_dev;            // corresponding file driver
-    PTR32x4_HOST MacSys_drv2devcode;        // convert driver number to device number
+    PTR32x4_HOST MacSys_drv2devcode;        // convert drive number to device number
     PTR32x4_HOST MacSys_rawdrvr;            // LONG RawDrvr({int, long} *) Raw driver (eject) for Mac
 #if defined(MAGICLIN)
     PTR32_HOST   MacSys_Daemon;             // call for the mmx daemon

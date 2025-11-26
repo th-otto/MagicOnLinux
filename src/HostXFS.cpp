@@ -264,7 +264,7 @@ bool CHostXFS::nameto_8_3
  *
  * @param[in] dir_fd    host directory file descriptor
  * @param[in] pathbuf   buffer for host path
- * @param[in] bufsiz    buffer size
+ * @param[in] bufsiz    buffer size, including end-of-string
  *
  * @return E_OK or negative error code
  *
@@ -273,7 +273,7 @@ INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
 {
     char pathname[32];
     sprintf(pathname, "/proc/self/fd/%u", dir_fd);
-    ssize_t size = readlink(pathname, pathbuf, bufsiz);
+    ssize_t size = readlink(pathname, pathbuf, bufsiz - 1);     // leave one byte for end-of-string
     if (size < 0)
     {
         DebugWarning2("() : readlink() -> %s", strerror(errno));

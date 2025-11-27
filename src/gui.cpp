@@ -40,6 +40,44 @@
 // send some space characters.
 int showDialogue(const char *msg_text, const char *info_txt, const char *buttons)
 {
+#ifdef __APPLE__
+    // macOS: Use osascript with AppleScript for native dialogs
+    const char *title = "MagicOnLinux";
+    char command[2048];
+    char escaped_msg[512];
+    char escaped_info[512];
+
+    // Simple escape for AppleScript strings - replace quotes with escaped quotes
+    const char *src = msg_text;
+    char *dst = escaped_msg;
+    while (*src && (dst - escaped_msg) < sizeof(escaped_msg) - 2) {
+        if (*src == '"') {
+            *dst++ = '\\';
+        }
+        *dst++ = *src++;
+    }
+    *dst = '\0';
+
+    src = info_txt;
+    dst = escaped_info;
+    while (*src && (dst - escaped_info) < sizeof(escaped_info) - 2) {
+        if (*src == '"') {
+            *dst++ = '\\';
+        }
+        *dst++ = *src++;
+    }
+    *dst = '\0';
+
+    // Build AppleScript command - for now, ignore custom buttons and just use OK
+    snprintf(command, sizeof(command),
+             "osascript -e 'tell app \"System Events\" to display dialog \"%s\\n\\n%s\" with title \"%s\" buttons {\"OK\"} default button \"OK\"'",
+             escaped_msg, escaped_info, title);
+
+    int result = system(command);
+    // osascript returns 0 on success (button clicked)
+    return (result == 0) ? 0 : 1;
+#else
+    // Linux: Use gxmessage
     const char *title = "MagicOnLinux";
     char fname[] = "/tmp/magic-on-linux_XXXXXX";
     // TODO: find some reasonable unicode long space
@@ -73,6 +111,7 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
     //fprintf(stderr, "-> %d (0x%08x)\n", result, result);
 
     return result >> 8;
+#endif
 }
 
 

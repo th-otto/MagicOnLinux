@@ -1,0 +1,133 @@
+ Complete Build Instructions for macOS
+
+  Prerequisites
+
+  1. Xcode Command Line Tools
+  xcode-select --install
+  2. Homebrew (if not already installed)
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+  Install Dependencies
+
+  Install the required packages via Homebrew:
+
+  brew install sdl2 pkg-config cmake
+
+  Verify installations:
+  pkg-config --modversion sdl2  # Should show: 2.32.10 or similar
+  cmake --version                # Should show: 4.2.0 or similar
+
+  Build the Project
+
+  1. Clone the Repository (if you haven't already):
+  git clone https://gitlab.com/AndreasK/magiclinux
+  cd magiclinux
+  2. Create Build Directory:
+  mkdir build
+  cd build
+  3. Generate Xcode Project:
+  cmake -G Xcode ..
+
+  3. Expected output:
+  -- Found PkgConfig: /opt/homebrew/bin/pkg-config
+  -- Checking for module 'sdl2'
+  --   Found sdl2, version 2.32.10
+  -- Configuring done
+  -- Generating done
+  -- Build files have been written to: .../magiclinux/build
+  4. Build with Xcode Command Line:
+  xcodebuild -project MagicOnLinux.xcodeproj \
+             -target magic-on-linux \
+             -configuration Release \
+             build
+
+  4. Or for a Debug build:
+  xcodebuild -project MagicOnLinux.xcodeproj \
+             -target magic-on-linux \
+             -configuration Debug \
+             build
+  5. Alternative: Build with Xcode GUI:
+    - Open MagicOnLinux.xcodeproj in Xcode
+    - Select the magic-on-linux scheme
+    - Choose Product > Build (⌘B)
+
+  Run the Application
+
+  The compiled executable will be located at:
+  - Release build: build/Release/magic-on-linux
+  - Debug build: build/Debug/magic-on-linux
+
+  Run the application:
+  # From the build directory
+  ./Release/magic-on-linux --help
+
+  # Or with full path
+  /Users/yourusername/path/to/magiclinux/build/Release/magic-on-linux
+
+  Clean Build
+
+  To start fresh:
+  cd build
+  rm -rf *
+  cmake -G Xcode ..
+  xcodebuild -project MagicOnLinux.xcodeproj -target magic-on-linux -configuration Release build
+
+  Build Options
+
+  Available CMake Configurations:
+  - Release - Optimized build (recommended)
+  - Debug - Debug symbols included
+  - RelWithDebInfo - Release with debug info
+  - MinSizeRel - Minimum size release
+
+  Command Line Options for the executable:
+  Usage:
+    -h, --help                     display help text and exit
+    -c, --config=config-file       open configuration file in editor and exit
+    -e, --config-edit              configuration file (default: ~/.config/magiclinux.conf)
+    -w, --config-write             write configuration file with default values and exit
+    -g, --geometry=wxh[xb][ip]     e.g. 640x400x2 or 800x600 or 640x200x4ip
+    -s, --stretch=w[xh]            e.g. 2x2 or 2 or 2x4
+    -m, --memsize=size             Atari RAM size, e.g. 512k or 4M or 3m
+        --editor=program           choose editor program for -e option
+        --tconv-a2h=atari_txtfile  convert text file from Atari to host format
+        --tconv-h2a=host_txtfile   convert text file from host to Atari format
+
+  Troubleshooting
+
+  Issue: SDL2 not found
+  # Verify SDL2 installation
+  brew list sdl2
+  pkg-config --cflags --libs sdl2
+
+  # Reinstall if needed
+  brew reinstall sdl2
+
+  Issue: CMake not found
+  # Add Homebrew to PATH (Apple Silicon)
+  export PATH="/opt/homebrew/bin:$PATH"
+
+  # Or for Intel Macs
+  export PATH="/usr/local/bin:$PATH"
+
+  Issue: Xcode project not found
+  # Ensure you're in the build directory
+  cd magiclinux/build
+  ls MagicOnLinux.xcodeproj  # Should exist
+
+  System Requirements
+
+  - OS: macOS 11.0 (Big Sur) or later
+  - Architecture: Apple Silicon (arm64) or Intel (x86_64)
+  - Xcode: 13.0 or later
+  - RAM: 4GB minimum, 8GB recommended
+  - Disk Space: 500MB for build artifacts
+
+  Architecture Notes
+
+  This build has been tested on:
+  - macOS Sequoia (26.1)
+  - Xcode 17.0.0
+  - Apple Silicon (arm64)
+
+  The code is compatible with both Apple Silicon and Intel Macs. CMake will automatically build for the native architecture.

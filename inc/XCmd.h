@@ -34,6 +34,12 @@
 
 // switches
 
+// Disable old Mac plugin system on modern macOS (only use on pre-OSX Mac)
+#if defined(__APPLE__) && defined(__MACH__)
+#undef TARGET_RT_MAC_MACHO
+#define TARGET_RT_MAC_MACHO 0
+#endif
+
 #if TARGET_RT_MAC_MACHO
 struct GlueCode
 {

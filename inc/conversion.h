@@ -23,6 +23,7 @@
 */
 
 #include "Atari.h"
+#include <time.h>
 
 // endian conversion helpers
 

@@ -37,6 +37,7 @@
 #include <assert.h>
 #include <utime.h>
 #include <dirent.h>
+#include <limits.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
@@ -73,6 +74,31 @@ unsigned trigger_ProcessFileLen = 0;
 extern void _DumpAtariMem(const char *filename);
 #endif
 
+#ifdef __APPLE__
+#ifndef AT_EMPTY_PATH
+#define AT_EMPTY_PATH 0
+#endif
+// RENAME_NOREPLACE is not available on macOS
+#ifndef RENAME_NOREPLACE
+#define RENAME_NOREPLACE (1 << 0)
+#endif
+#endif
+
+#ifdef __APPLE__
+// macOS doesn't have renameat2, so we provide a simple wrapper
+static int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
+{
+    if (flags & RENAME_NOREPLACE) {
+        // Check if destination exists
+        struct stat st;
+        if (fstatat(newdirfd, newpath, &st, 0) == 0) {
+            errno = EEXIST;
+            return -1;
+        }
+    }
+    return renameat(olddirfd, oldpath, newdirfd, newpath);
+}
+#endif
 
 /** **********************************************************************************************
  *
@@ -271,6 +297,13 @@ bool CHostXFS::nameto_8_3
  ************************************************************************************************/
 INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
 {
+#ifdef __APPLE__
+    if (fcntl(dir_fd, F_GETPATH, pathbuf) == -1) 
+    {
+        DebugWarning2("() : fcntl(F_GETPATH) failed");
+        return EINTRN;
+    }
+#else
     char pathname[32];
     sprintf(pathname, "/proc/self/fd/%u", dir_fd);
     ssize_t size = readlink(pathname, pathbuf, bufsiz - 1);     // leave one byte for end-of-string
@@ -280,6 +313,8 @@ INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
         return EINTRN;
     }
     pathbuf[size] = '\0';   // necessary
+#endif
+
     return E_OK;
 }
 
@@ -1810,6 +1845,14 @@ INT32 CHostXFS::xfs_xattr
     {
         flags |= AT_SYMLINK_NOFOLLOW;
     }
+    
+#ifdef __APPLE__
+    if (mode == 0 && host_name != NULL && strlen(host_name) == 0) {
+        host_name[0] = '.';
+        host_name[1] = '\0';
+    }
+#endif
+    
     int res = fstatat(dir_fd, host_name, &statbuf, flags);
     if (res < 0)
     {

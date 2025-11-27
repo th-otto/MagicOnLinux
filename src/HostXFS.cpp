@@ -38,6 +38,7 @@
 #include <assert.h>
 #include <utime.h>
 #include <dirent.h>
+#include <limits.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
@@ -405,7 +406,7 @@ int CHostXFS::atariFnameToHostFnameCond8p3
 /// and additionally to upper case, if file system is case insenstive.
 /// Finally convert to host filename in utf-8 format.
 #define CONV8p3(DRV, NAME, HOSTNAME) \
-    char HOSTNAME[256]; \
+    char HOSTNAME[PATH_MAX]; \
     if (atariFnameToHostFnameCond8p3(DRV, NAME, HOSTNAME, sizeof(HOSTNAME))) \
     { \
         DebugError2("() -- cannot convert Atari filename to host format: %s ", NAME); \
@@ -964,7 +965,7 @@ INT32 CHostXFS::hostpath2HostFD
         // Check if hostFD->fd is valid, i.e. is inside this Atari drive
         //
 
-        char pathbuf[1024];
+        char pathbuf[PATH_MAX];
         INT32 aret = hostFd2Path(dir_fd, pathbuf, sizeof(pathbuf));
         if (aret != E_OK)
         {
@@ -1144,13 +1145,13 @@ INT32 CHostXFS::xfs_path2DD
     CHK_DRIVE(drv)
 
     // host path may contain multi-byte characters!
-    char host_pathbuf[1024];
+    char host_pathbuf[PATH_MAX];
     char *host_p;
     // Atari path has single-byte characters only
     const char *atari_p;
 
     bool upperCase = drv_caseInsens[drv];   // 8+3 drives usually also are case-insensitive
-    atariFnameToHostFname((const uint8_t *) pathname, upperCase, host_pathbuf, 1024);
+    atariFnameToHostFname((const uint8_t *) pathname, upperCase, host_pathbuf, sizeof(host_pathbuf));
     DebugInfo2("() - host path is \"%s\"", host_pathbuf);
     if (mode == 0)
     {
@@ -1250,7 +1251,7 @@ INT32 CHostXFS::xfs_path2DD
  ************************************************************************************************/
 int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_DTA *dta)
 {
-    unsigned char atariname[256];   // long filename in Atari charset
+    unsigned char atariname[PATH_MAX];   // long filename in Atari charset
     unsigned char dosname[14];      // internal, 8+3
 
     DebugInfo2("() - %d \"%s\"", entry->d_type, entry->d_name);
@@ -2086,8 +2087,8 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     // We cannot remove the directory via its DD or fd, instead we need a path
-    char pathbuf[1024];
-    INT32 aret = xfs_DD2hostPath(dd, pathbuf, 1023);
+    char pathbuf[PATH_MAX];
+    INT32 aret = xfs_DD2hostPath(dd, pathbuf, sizeof(pathbuf) - 1);
     if (aret != E_OK)
     {
         DebugError2("() -> %d", aret);
@@ -2158,8 +2159,8 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
     }
 
     // first get host path ...
-    char pathbuf[1024];
-    INT32 aret = xfs_DD2hostPath(dd, pathbuf, 1023);
+    char pathbuf[PATH_MAX];
+    INT32 aret = xfs_DD2hostPath(dd, pathbuf, sizeof(pathbuf) - 1);
     if (aret < 0)
     {
         DebugError2("() -> %d", aret);
@@ -2637,8 +2638,8 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const unsigned char *name,
     CONV8p3(drv, name, host_name)
 
     // convert Atari path to host path
-    char host_target[1024];
-    if (atariPath2HostPath((const unsigned char *) target, drv, host_target, 1024) >= 0)
+    char host_target[PATH_MAX];
+    if (atariPath2HostPath((const unsigned char *) target, drv, host_target, sizeof(host_target)) >= 0)
     {
         target = (const unsigned char *) host_target;
     }
@@ -2685,7 +2686,7 @@ INT32 CHostXFS::xfs_readlink
 
     CONV8p3(drv, name, host_name)
 
-    char host_target[1024];
+    char host_target[PATH_MAX];
     int nbytes = readlinkat(dir_fd, host_name, host_target, sizeof(host_target) - 1);
     if (nbytes < 0)
     {
@@ -2874,7 +2875,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
         if (f->mod_tdate_dirty)
         {
             // get host path from file descriptor
-            char pathbuf[1024];
+            char pathbuf[PATH_MAX];
             aret = hostFd2Path(fd, pathbuf, sizeof(pathbuf));
             if (aret == E_OK)
             {

@@ -103,9 +103,11 @@ class CXCmd
    	void InitXCMD(uint64_t connectionId);
    	static XCmdCallbackFunctionProcType Callback;
 
+#if 0
    	strXCmdInfo m_XCmdInfo;		// Info-Struktur geht an PEF/CFM PlugIns
    	struct XCmdInfo m_XCmdPlugInInfo;	// Info-Struktur geht an MachO PlugIns
 	const char *m_XCMDFolderSpec;
+#endif
 #if TARGET_RT_MAC_MACHO
 	void *NewGlue(void *pCFragPtr, uint32_t XCmdDescriptor, CFragSymbolClass symclass);
 #endif

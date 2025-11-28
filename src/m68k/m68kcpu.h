@@ -779,12 +779,16 @@
 #define SET_CYCLES(A)
 #define GET_CYCLES()
 #define USE_ALL_CYCLES()
+#define INIT_CYCLE_COUNTER(A)
+#define INC_CYCLE_COUNTER()
 #else
 #define ADD_CYCLES(A)    m68ki_remaining_cycles += (A)
 #define USE_CYCLES(A)    m68ki_remaining_cycles -= (A)
 #define SET_CYCLES(A)    m68ki_remaining_cycles = A
 #define GET_CYCLES()     m68ki_remaining_cycles
 #define USE_ALL_CYCLES() m68ki_remaining_cycles = 0
+#define INIT_CYCLE_COUNTER() uint count = 0;
+#define INC_CYCLE_COUNTER() count++;
 #endif
 
 

@@ -47,6 +47,7 @@ class CDebug
 	static FILE *dbgFile;
 };
 
+
 #if 0
 #define DebugInit(...)
 #define DebugInfo(format, ...) fprintf(stderr, "INF: " format "\n", ##__VA_ARGS__)

@@ -320,7 +320,7 @@ void CClipboard::host2Atari(const uint8_t *pData)
         return;        // no data
     }
 
-    int fd = open((const char *) Preferences::AtariScrapFileUnixPath, O_WRONLY | O_CREAT | O_TRUNC, 0);
+    int fd = open((const char *) Preferences::AtariScrapFileUnixPath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0)
     {
         DebugError2("() -- cannot open Atari scrap file -> %s", strerror(errno));
@@ -706,7 +706,7 @@ int CClipboard::OpenAtariScrapFile(int unixPerm)
 	int fd;
 
 
-	fd = open((const char *) Preferences::AtariScrapFileUnixPath, unixPerm, 0);
+	fd = open((const char *) Preferences::AtariScrapFileUnixPath, unixPerm, 0644);
 
 /*
 	if	(perm == fsWrPerm)

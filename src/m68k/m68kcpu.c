@@ -4,13 +4,7 @@
 #if defined(USE_MUSASHI_68K_EMU)
 #include <string.h>
 #include <stdint.h>
-
-typedef unsigned tfHostCall(unsigned a1, unsigned char *emubase);
-typedef unsigned tfHostCallCpp(void *self, unsigned a1, unsigned char *emubase);
-extern union {
-	tfHostCall *c;
-	tfHostCallCpp *cpp;
-} jump_table[];
+#include "AtariX.h"
 
 /* ======================================================================== */
 /* ========================= LICENSING & COPYRIGHT ======================== */
@@ -1329,93 +1323,40 @@ void m68k_exception_bus_error(void)
 // MagicMacX specific: Opcode MACPPC (0x00c0)
 // a0 points to callback structure (32-bit word)
 // a1 points to parameters for the callback
-#if __UINTPTR_MAX__ == 0xFFFFFFFFFFFFFFFF
 // variant for 64-bit hosts
 void m68k_op_call_emu_proc(void)
 {
 	unsigned a0, a1;
-	tfHostCall *proc;
+	tfHostCallback proc;
 
 	a0 = m68ki_cpu.dar[8];	// hopefully in host's endianess mode
 	a1 = m68ki_cpu.dar[9];
 
 	const uint8_t *p = sBaseAddr + a0;		// address in host's address range
 	const uint32_t *p32 = (const uint32_t *) p;
-	//TODO: This is a hack
 	uint32_t jump_table_index = p32[0];
 	proc = jump_table[jump_table_index].c;
 	// call host function. Put return value into d0 (all in host endian-mode)
 	m68ki_cpu.dar[0] = proc(a1, sBaseAddr);
 }
-#else
-// variant for 32-bit hosts
-void m68k_op_call_emu_proc(void)
-{
-	unsigned a0, a1;
-	unsigned char *p;
-	tfHostCall *proc;
-
-	a0 = m68ki_cpu.dar[8];	// hopefully in host's endianess mode
-	a1 = m68ki_cpu.dar[9];
-	p = sBaseAddr + a0;		// address in host's address range
-	// geht nicht:
-	//proc = *((tfHostCall *)(p));
-	a0 = *((unsigned *) (p + 0));
-	proc = (tfHostCall *) a0;
-	// call host function. Put return value into d0 (all in host endian-mode)
-	m68ki_cpu.dar[0] = proc(a1, sBaseAddr);
-}
-#endif
 
 // MagicMacX specific: Opcode MACPPCE (0x00c1)
 // a0 points to callback structure (four 32-bit words)
 // a1 points to parameters for the callback
-#if __UINTPTR_MAX__ == 0xFFFFFFFFFFFFFFFF
-// variant for 64-bit hosts
 void m68k_op_call_emu_cproc(void)
 {
 	unsigned a0, a1;
-	typedef unsigned tfHostCallCpp(void *self, unsigned a1, unsigned char *emubase);
-	tfHostCallCpp *proc;
-	void *self;
+	tfHostCallbackCpp proc;
 
 	a0 = m68ki_cpu.dar[8];	// hopefully in host's endianess mode
 	a1 = m68ki_cpu.dar[9];
 
 	const uint8_t *p = sBaseAddr + a0;		// address in host's address range
 	const uint32_t *p32 = (const uint32_t *) p;
-	//TODO: This is a hack
-	uint32_t jump_table_index = p32[0];
-	uint32_t self_table_index = p32[1];		// indices 2 and 3 are unused
+	uint32_t jump_table_index = p32[0];		// indices 1-3 are unused
 	proc = jump_table[jump_table_index].cpp;
-	extern void *self_table[];
-	self = self_table[self_table_index];
-	// call host function. Put return value into d0 (all in host endian-mode)
-	m68ki_cpu.dar[0] = proc(self, a1, sBaseAddr);
+	m68ki_cpu.dar[0] = proc(a1, sBaseAddr);
 }
-#else
-// variant for 32-bit hosts
-void m68k_op_call_emu_cproc(void)
-{
-	unsigned a0, a1;
-	unsigned char *p;
-	unsigned self;
-	typedef unsigned tfHostCallCpp(unsigned self, unsigned a1, unsigned char *emubase);
-	tfHostCallCpp *proc;
-
-
-	a0 = m68ki_cpu.dar[8];	// hopefully in host's endianess mode
-	a1 = m68ki_cpu.dar[9];
-	p = sBaseAddr + a0;		// address in host's address range
-	// geht nicht:
-	//proc = *((tfHostCallCpp *)(p));
-	a0 = *((unsigned *) (p + 0));
-	proc = (tfHostCallCpp *) a0;
-	self = *((unsigned *) (p + 12));
-	// call host function. Put return value into d0 (all in host endian-mode)
-	m68ki_cpu.dar[0] = proc(self, a1, sBaseAddr);
-}
-#endif
 
 #else
 int m68k_execute(int num_cycles)

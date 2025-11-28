@@ -29,6 +29,7 @@
 
 // define UINT32 et cetera
 #include "osd_cpu.h"
+#include "AtariX.h"
 
 // Make clear that all struct members are stored in
 // natural order (big endian) and that Atari pointers
@@ -730,80 +731,30 @@ struct CPPCCallback
 
 
 /// @brief Static function host callback with two parameters
-typedef UINT32 tfHostCallback(UINT32 params, uint8_t *AdrOffset68k);
 void setHostCallback(PTR32_HOST *dest, tfHostCallback callback);
 
 
 /// @brief CMagiC method host callback
 class CMagiC;
-typedef UINT32 (CMagiC::*tpfCMagiC_HostCallback)(UINT32 params, uint8_t *AdrOffset68k);
-void setCMagiCHostCallback(PTR32x4_HOST *dest, tpfCMagiC_HostCallback callback, CMagiC *pthis);
+void setCMagiCHostCallback(PTR32x4_HOST *dest, tfHostCallbackCpp callback, CMagiC *pthis);
 
 /// @brief CXCmd method host callback
 class CXCmd;
-typedef INT32 (CXCmd::*tpfCXCmd_HostCallback)(UINT32 params, uint8_t *AdrOffset68k);
-void setCXCmdHostCallback(PTR32x4_HOST *dest, tpfCXCmd_HostCallback callback, CXCmd *pthis);
+void setCXCmdHostCallback(PTR32x4_HOST *dest, tfHostCallbackCpp callback, CXCmd *pthis);
 
 /// @brief CHostXFS method host callback
 class CHostXFS;
-typedef INT32 (CHostXFS::*tpfCHostXFS_HostCallback)(UINT32 params, uint8_t *AdrOffset68k);
-void setCHostXFSHostCallback(PTR32x4_HOST *dest, tpfCHostXFS_HostCallback callback, CHostXFS *pthis);
-
-
-
-typedef UINT32 (*PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
-//typedef UINT32 (CMagiC::*PPCCallback)(void *params, unsigned char *AdrOffset68k);
+void setCHostXFSHostCallback(PTR32x4_HOST *dest, tfHostCallbackCpp callback, CHostXFS *pthis);
 
 
 
 // occupies four 32-bit words
-
-#if __UINTPTR_MAX__ == 0xFFFFFFFFFFFFFFFF
 
 // variant for 64-bit hosts
 struct CMagiC_CPPCCallback
 {
     uint32_t data[4];
 } __attribute__((packed));
-
-#else
-
-// variant for 32-bit hosts
-class CMagiC;
-struct CMagiC_CPPCCallback
-{
-    typedef UINT32 (CMagiC::*CMagiC_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
-    CMagiC_PPCCallback m_Callback;
-    #if defined(__GNUC__)
-    UINT32 dummy;
-    #endif
-    CMagiC *m_thisptr;
-} __attribute__((packed));
-
-
-class CMacXFS;
-struct CMacXFS_CPPCCallback
-{
-    typedef INT32 (CMacXFS::*CMacXFS_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
-    CMacXFS_PPCCallback m_Callback;
-    #if defined(__GNUC__)
-    UINT32 dummy;
-    #endif
-    CMacXFS *m_thisptr;
-} __attribute__((packed));
-
-class CXCmd;
-struct CXCmd_CPPCCallback
-{
-    typedef INT32 (CXCmd::*CXCmd_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
-    CXCmd_PPCCallback m_Callback;        // gcc: 2 words, mwc: 3 words
-    #if defined(__GNUC__)
-    UINT32 dummy;
-    #endif
-    CXCmd *m_thisptr;
-} __attribute__((packed));
-
-#endif
 
 /// screen and video format description for MXVDI
 typedef struct

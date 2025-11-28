@@ -127,106 +127,40 @@ static inline void OS_CreateEvent(uint32_t *eventId)
 }
 
 
-#if __UINTPTR_MAX__ == 0xFFFFFFFFFFFFFFFF
-
 // 68k emulator callback jump table
 #define JUMP_TABLE_LEN 256
-void *jump_table[256];    // pointers to functions
+union hostcall jump_table[256];    // pointers to functions
 unsigned jump_table_len = 0;
-#define SELF_TABLE_LEN 32
-void *self_table[32];    // pointers to objects
-unsigned self_table_len = 0;
 
 void setHostCallback(PTR32_HOST *dest, tfHostCallback callback)
 {
     assert(jump_table_len < JUMP_TABLE_LEN);
     dest[0] = jump_table_len;
-    jump_table[jump_table_len++] = (void *) callback;
+    jump_table[jump_table_len++].c = callback;
 }
 
-static void setSelf(void *pthis, uint32_t *pIndex)
-{
-    // check if pointer is already registered
-    unsigned i;
-    for (i = 0; i < self_table_len; i++)
-    {
-        if (self_table[i] == pthis)
-        {
-            // found
-            *pIndex = i;
-            return;
-        }
-    }
-    assert(self_table_len < SELF_TABLE_LEN);
-    *pIndex = self_table_len;
-    self_table[self_table_len++] = pthis;
-}
-
-static void setMethodCallback(PTR32x4_HOST *dest4, void *callback, void *pthis)
+static void setMethodCallback(PTR32x4_HOST *dest, tfHostCallbackCpp callback)
 {
     assert(jump_table_len < JUMP_TABLE_LEN);
-    uint32_t *dest = (uint32_t *) dest4;
-    *dest++ = jump_table_len;
-    jump_table[jump_table_len++] = callback;
-    setSelf(pthis, dest);
+    (*dest)[0] = jump_table_len;
+    jump_table[jump_table_len++].cpp = callback;
 }
 
 
-// For whatever reasons the pointer to a class method occupies two pointer variables, not one,
-// thus the conversion to a (void *) is discouraged. However, it seems that only the first of
-// these pointers is needed, maybe the second one is necessary for virtual functions.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-
-void setCMagiCHostCallback(PTR32x4_HOST *dest4, tpfCMagiC_HostCallback callback, CMagiC *pthis)
+void setCMagiCHostCallback(PTR32x4_HOST *dest4, tfHostCallbackCpp callback)
 {
-    // Use union to safely convert member function pointer to void*
-    union { tpfCMagiC_HostCallback mfp; void* vp; } u;
-    u.mfp = callback;
-    setMethodCallback(dest4, u.vp, (void *) pthis);
+    setMethodCallback(dest4, callback);
 }
 
-void setCXCmdHostCallback(PTR32x4_HOST *dest4, tpfCXCmd_HostCallback callback, CXCmd *pthis)
+void setCXCmdHostCallback(PTR32x4_HOST *dest4, tfHostCallbackCpp callback)
 {
-    // Use union to safely convert member function pointer to void*
-    union { tpfCXCmd_HostCallback mfp; void* vp; } u;
-    u.mfp = callback;
-    setMethodCallback(dest4, u.vp, (void *) pthis);
+    setMethodCallback(dest4, callback);
 }
 
-void setCHostXFSHostCallback(PTR32x4_HOST *dest4, tpfCHostXFS_HostCallback callback, CHostXFS *pthis)
+void setCHostXFSHostCallback(PTR32x4_HOST *dest4, tfHostCallbackCpp callback)
 {
-    // Use union to safely convert member function pointer to void*
-    union { tpfCHostXFS_HostCallback mfp; void* vp; } u;
-    u.mfp = callback;
-    setMethodCallback(dest4, u.vp, (void *) pthis);
+    setMethodCallback(dest4, callback);
 }
-#pragma GCC diagnostic pop
-
-
-#else
-
-void setHostCallback(PTR32_HOST *dest, tfHostCallback callback)
-{
-    dest[0] = callback;
-}
-void setCMagiCHostCallback(PTR32x4_HOST *dest, tpfCMagiC_HostCallback callback, CMagiC *pthis)
-{
-    dest[0] = callback;
-    dest[2] = pThis;
-}
-void setCXCmdHostCallback(PTR32x4_HOST *dest, tpfCXCmd_HostCallback callback, CMagiC *pthis)
-{
-    dest[0] = callback;
-    dest[2] = pThis;
-}
-void setCHostXFSHostCallback(PTR32x4_HOST *dest, tpfCHostXFS_HostCallback callback, CMagiC *pthis)
-{
-    dest[0] = callback;
-    dest[2] = pThis;
-}
-#endif
-
 
 /** **********************************************************************************************
  *
@@ -736,6 +670,56 @@ void CMagiC::DumpAtariMem(const char *filename)
 
 
 /**********************************************************************
+ * Member function wrappers
+ **********************************************************************/
+
+/* CMagiC */
+uint32_t CMagiC::thunk_AtariInit(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->AtariInit(params, AdrOffset68k);
+}
+uint32_t CMagiC::thunk_AtariBIOSInit(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->AtariBIOSInit(params, AdrOffset68k);
+}
+uint32_t CMagiC::thunk_AtariVdiInit(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->AtariVdiInit(params, AdrOffset68k);
+}
+uint32_t CMagiC::thunk_AtariExec68k(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->AtariExec68k(params, AdrOffset68k);
+}
+uint32_t CMagiC::thunk_AtariGetKeyboardOrMouseData(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->AtariGetKeyboardOrMouseData(params, AdrOffset68k);
+}
+
+/* HostXFS */
+uint32_t CMagiC::thunk_XFSFunctions(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->m_HostXFS.XFSFunctions(params, AdrOffset68k);
+}
+uint32_t CMagiC::thunk_XFSDevFunctions(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->m_HostXFS.XFSDevFunctions(params, AdrOffset68k);
+}
+uint32_t CMagiC::thunk_Drv2DevCode(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->Drv2DevCode(params, AdrOffset68k);
+}
+uint32_t CMagiC::thunk_RawDrvr(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->RawDrvr(params, AdrOffset68k);
+}
+
+/* XCmd */
+uint32_t CMagiC::thunk_XCmdCommand(uint32_t params, unsigned char *AdrOffset68k)
+{
+	return pTheMagiC->m_pXCmd->Command(params, AdrOffset68k);
+}
+
+/**********************************************************************
 *
 * Initialisierung
 * => 0 = OK, sonst = Fehler
@@ -916,18 +900,22 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
         return(1);
     }
 
+	/*
+	 * set callbacks for kernel
+	 */
+	m_pXCmd = pXCmd;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
     pMacXSysHdr->MacSys_verMac = htobe32(10);
     pMacXSysHdr->MacSys_cpu = htobe16(20);        // 68020
     pMacXSysHdr->MacSys_fpu = htobe16(0);        // keine FPU
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_init, &CMagiC::AtariInit, this);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_biosinit, &CMagiC::AtariBIOSInit, this);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_VdiInit, &CMagiC::AtariVdiInit, this);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_Exec68k, &CMagiC::AtariExec68k, this);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_init, thunk_AtariInit);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_biosinit, thunk_AtariBIOSInit);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_VdiInit, thunk_AtariVdiInit);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_Exec68k, thunk_AtariExec68k);
     pMacXSysHdr->MacSys_pixmap = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_PixMap) - (uint64_t) mem68k));
     pMacXSysHdr->MacSys_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) mem68k));
-    setCXCmdHostCallback(&pMacXSysHdr->MacSys_Xcmd, &CXCmd::Command, pXCmd);
+    setCXCmdHostCallback(&pMacXSysHdr->MacSys_Xcmd, thunk_XCmdCommand);
     pMacXSysHdr->MacSys_PPCAddr = 0;                // on 32-bit host: mem68k
     pMacXSysHdr->MacSys_VideoAddr = 0x80000000;        // on 32-bit host: m_pMagiCScreen->m_PixMap.baseAddr
     setHostCallback(&pMacXSysHdr->MacSys_gettime,    AtariGettime);
@@ -957,17 +945,17 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     setHostCallback(&pMacXSysHdr->MacSys_SerWrite,   &CMagiCSerial::AtariSerWrite);
     setHostCallback(&pMacXSysHdr->MacSys_SerStat,    &CMagiCSerial::AtariSerStat);
     setHostCallback(&pMacXSysHdr->MacSys_SerIoctl,   &CMagiCSerial::AtariSerIoctl);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_GetKeybOrMouse, &CMagiC::AtariGetKeyboardOrMouseData, this);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_GetKeybOrMouse, thunk_AtariGetKeyboardOrMouseData);
     setHostCallback(&pMacXSysHdr->MacSys_dos_macfn, AtariDOSFn);
-    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs, &CHostXFS::XFSFunctions, &m_HostXFS);
-    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs_dev, &CHostXFS::XFSDevFunctions, &m_HostXFS);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_drv2devcode, &CMagiC::Drv2DevCode, this);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_rawdrvr, &CMagiC::RawDrvr, this);
+    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs, thunk_XFSFunctions);
+    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs_dev, thunk_XFSDevFunctions);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_drv2devcode, thunk_Drv2DevCode);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_rawdrvr, thunk_RawDrvr);
 #if defined(MAGICLIN)
     setHostCallback(&pMacXSysHdr->MacSys_Daemon, MmxDaemon);
     setHostCallback(&pMacXSysHdr->MacSys_BlockDevice, CVolumeImages::AtariBlockDevice);
 #else
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_Daemon, &CMagiC::MmxDaemon, this);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSys_Daemon, thunk_MmxDaemon);
 #endif
     setHostCallback(&pMacXSysHdr->MacSys_Yield, AtariYield);
 #pragma GCC diagnostic pop

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<preferences name="magixlinux.conf">
+  <section name="HOST PATHS" _label="Host Paths">
+    <path name="atari_kernel_path" _label="Path for Kernel" default="~/Documents/MAGIC_C/MAGICLIN.OS"></path>
+    <folder name="atari_rootfs_path" _label="Path for boot filesystem" default="~/Documents/MAGIC_C"></folder>
+    <bool name="atari_h_home" _label="Mount $HOME directory" default="1"></bool>
+    <bool name="atari_h_rdonly" _label="Set HOME directory read-only" default="1"></bool>
+    <bool name="atari_m_host_root" _label="Mount host root Directory" default="1"></bool>
+    <bool name="atari_m_host_root_rdonly" _label="Set root directory read-only" default="1"></bool>
+    <folder name="atari_temp_path" _label="Path for temp files" default="/tmp"></folder>
+  </section>
+  <section name="HOST DEVICES" _label="Host Devices">
+    <string name="atari_print_cmd" _label="Print command" default="echo printing not yet implemented"></string>
+    <path name="atari_serial_dev_path" _label="Serial device" default=""></path>
+  </section>
+  <section name="ATARI SCREEN" _label="Atari Screen">
+    <int name="atari_screen_width" _label="Atari screen width" default="1024" minval="320" maxval="4096" step="8"></int>
+    <int name="atari_screen_height" _label="Atari screen height" default="768" minval="200" maxval="4096" step="16"></int>
+    <int name="atari_screen_stretch_x" _label="X-scale factor" default="1" minval="1" maxval="8"></int>
+    <int name="atari_screen_stretch_y" _label="Y-scale factor" default="1" minval="1" maxval="16"></int>
+    <int name="atari_screen_rate_hz" _label="Screen frefresh frequency" default="60" minval="1" maxval="120"></int>
+    <choice name="atari_screen_colour_mode" _label="Screen color mode" default="0">
+       <select value="0" name="" _label="24-bit true color"></select>
+       <select value="1" name="" _label="16-bit high color"></select>
+       <select value="2" name="" _label="256 colors packed pixels"></select>
+       <select value="3" name="" _label="16 colors, packed pixels"></select>
+       <select value="4" name="" _label="16 colors, interleaved planes"></select>
+       <select value="5" name="" _label="4 colors, interleaved planes"></select>
+       <select value="6" name="" _label="monochrome"></select>
+    </choice>
+    <bool name="hide_host_mouse" _label="Hide host mouse" default="0"></bool>
+  </section>
+  <section name="SCREEN PLACEMENT" _label="Screen Placement">
+    <int name="app_display_number" _label="Monitor" default="0"></int>
+    <int name="app_window_x" _label="Window position X" default="-1" minval="-1"></int>
+    <int name="app_window_y" _label="Window position Y" default="-1" minval="-1"></int>
+  </section>
+  <section name="ATARI EMULATION" _label="Atari Emulation">
+    <int name="atari_memory_size" _label="Memory size" default="8388608" minval="819200" maxval="2147483648" step="4096"></int>
+    <choice name="atari_language" _label="Atari language" default="0">
+       <select value="0" name="" _label="English"></select>
+       <select value="1" name="" _label="German"></select>
+       <select value="2" name="" _label="French"></select>
+    </choice>
+    <bool name="show_host_menu" _label="Show host menu" default="1"></bool>
+    <bool name="atari_autostart" _label="Auto start MagiC" default="1"></bool>
+  </section>
+  <section name="ADDITIONAL ATARI DRIVES" _label="Additional Drives">
+    <folder name="atari_drv_a" flags="6" _label="Path for Drive A:"></folder>
+    <folder name="atari_drv_b" flags="6" _label="Path for Drive B:"></folder>
+    <!-- C: is used for the boot drive -->
+    <!-- <folder name="atari_drv_c" flags="6" _label="Path for boot filesystem"></folder> -->
+    <folder name="atari_drv_d" flags="0" _label="Path for Drive D:"></folder>
+    <folder name="atari_drv_e" flags="0" _label="Path for Drive E:"></folder>
+    <folder name="atari_drv_f" flags="0" _label="Path for Drive F:"></folder>
+    <folder name="atari_drv_g" flags="0" _label="Path for Drive G:"></folder>
+    <!-- H: is used for the home directory -->
+    <!-- <folder name="atari_drv_h" flags="1" _label="Path for home directory"></folder> -->
+    <folder name="atari_drv_i" flags="0" _label="Path for Drive I:"></folder>
+    <folder name="atari_drv_j" flags="0" _label="Path for Drive J:"></folder>
+    <folder name="atari_drv_k" flags="0" _label="Path for Drive K:"></folder>
+    <folder name="atari_drv_l" flags="0" _label="Path for Drive L:"></folder>
+    <!-- M: is used for the root filesystem -->
+    <!-- <folder name="atari_drv_m" flags="1" _label="Path for root filesystem"></folder> -->
+    <folder name="atari_drv_n" flags="0" _label="Path for Drive N:"></folder>
+    <folder name="atari_drv_o" flags="0" _label="Path for Drive O:"></folder>
+    <folder name="atari_drv_p" flags="0" _label="Path for Drive P:"></folder>
+    <folder name="atari_drv_q" flags="0" _label="Path for Drive Q:"></folder>
+    <folder name="atari_drv_r" flags="0" _label="Path for Drive R:"></folder>
+    <folder name="atari_drv_s" flags="0" _label="Path for Drive S:"></folder>
+    <folder name="atari_drv_t" flags="0" _label="Path for Drive T:"></folder>
+    <!-- U: is used for the mint universal filesystem -->
+    <!-- <folder name="atari_drv_u" flags="0" _label="Path for Drive U:"></folder> -->
+    <folder name="atari_drv_v" flags="0" _label="Path for Drive V:"></folder>
+    <folder name="atari_drv_w" flags="0" _label="Path for Drive W:"></folder>
+    <folder name="atari_drv_x" flags="0" _label="Path for Drive X:"></folder>
+    <folder name="atari_drv_y" flags="0" _label="Path for Drive Y:"></folder>
+    <folder name="atari_drv_z" flags="0" _label="Path for Drive Z:"></folder>
+  </section>
+</preferences>

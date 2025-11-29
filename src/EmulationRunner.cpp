@@ -1295,6 +1295,7 @@ int EmulationRunner::EmulatorThread(void *param)
     if (err)
     {
         DebugError2("() => %d", err);
+        m_bQuitLoop = true;     // leave main loop
         return 0;
     }
 
@@ -1302,6 +1303,7 @@ int EmulationRunner::EmulatorThread(void *param)
     if (err)
     {
         DebugError2("() - m_Emulator.CreateThread() => %d", err);
+        m_bQuitLoop = true;     // leave main loop
         return 0;
     }
 

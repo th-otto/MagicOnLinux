@@ -752,13 +752,15 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     if (mem68k == nullptr)
     {
         showAlert("The emulator cannot reserve enough memory", "Reduce Atari memory size in configuration file");
-        return(1);
+        return 1;
     }
 
     // Atari-Kernel lesen
     err = LoadReloc(Preferences::AtariKernelPath, 0, -1, &m_BasePage);
     if (err)
-        return(err);
+    {
+        return err;
+    }
     DebugInfo2("() - MagiC kernel loaded and relocated successfully");
 
     // 68k Speicherbegrenzungen ausrechnen

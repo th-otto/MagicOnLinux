@@ -29,8 +29,11 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - rm Atari-rootfs/GEMSYS/MFM16M-1fff.SYS
 - cp -p magiclinux/kernel/HOSTBIOS/MAGICLIN.OS Atari-rootfs/
 - rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/
+- mv Atari-rootfs MAGIC_C
 
 Replace "English" with "de" or "fr" for German or French.
+
+Optionally adapt some default values in "CMakeLists.txt".
 
 Without gxmessage you will not see error message dialogues, instead the text will be printed to stderr only.
 

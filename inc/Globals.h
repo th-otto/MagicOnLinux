@@ -27,7 +27,12 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#ifdef __APPLE__
+#include "macos_endian.h"
+#else
 #include <endian.h>
+#endif
+
 
 #if defined(USE_ASGARD_PPC_68K_EMU)
 // Asgard 68k emulator (PPC Assembler)

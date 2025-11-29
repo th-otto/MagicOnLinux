@@ -25,8 +25,8 @@
 #include "config.h"
 
 #include <errno.h>
-#include <endian.h>
 
+#include "Globals.h"
 #include "Debug.h"
 #include "Atari.h"
 #include "preferences.h"

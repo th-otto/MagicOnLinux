@@ -30,8 +30,26 @@
 */
 
 #include "config.h"
+#include "Globals.h"
 
-#include <endian.h>
+#ifdef __APPLE__
+// macOS uses st_mtimespec instead of st_mtim
+#define st_mtim st_mtimespec
+#define st_atim st_atimespec
+#define st_ctim st_ctimespec
+// AT_EMPTY_PATH is not available on macOS
+#ifndef AT_EMPTY_PATH
+#define AT_EMPTY_PATH 0
+#endif
+// RENAME_NOREPLACE is not available on macOS
+#ifndef RENAME_NOREPLACE
+#define RENAME_NOREPLACE (1 << 0)
+#endif
+// macOS uses S_IWRITE instead of __S_IWRITE
+#ifndef __S_IWRITE
+#define __S_IWRITE S_IWRITE
+#endif
+#endif
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -42,7 +60,23 @@
 #include <sys/stat.h>
 
 #include "Debug.h"
-#include "Globals.h"
+
+#ifdef __APPLE__
+// macOS doesn't have renameat2, so we provide a simple wrapper
+static int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
+{
+    if (flags & RENAME_NOREPLACE) {
+        // Check if destination exists
+        struct stat st;
+        if (fstatat(newdirfd, newpath, &st, 0) == 0) {
+            errno = EEXIST;
+            return -1;
+        }
+    }
+    return renameat(olddirfd, oldpath, newdirfd, newpath);
+}
+#endif
+
 #include "HostXFS.h"
 #include "Atari.h"
 #include "emulation_globals.h"

@@ -179,17 +179,26 @@ static void setMethodCallback(PTR32x4_HOST *dest4, void *callback, void *pthis)
 
 void setCMagiCHostCallback(PTR32x4_HOST *dest4, tpfCMagiC_HostCallback callback, CMagiC *pthis)
 {
-    setMethodCallback(dest4, (void *) callback, (void *) pthis);
+    // Use union to safely convert member function pointer to void*
+    union { tpfCMagiC_HostCallback mfp; void* vp; } u;
+    u.mfp = callback;
+    setMethodCallback(dest4, u.vp, (void *) pthis);
 }
 
 void setCXCmdHostCallback(PTR32x4_HOST *dest4, tpfCXCmd_HostCallback callback, CXCmd *pthis)
 {
-    setMethodCallback(dest4, (void *) callback, (void *) pthis);
+    // Use union to safely convert member function pointer to void*
+    union { tpfCXCmd_HostCallback mfp; void* vp; } u;
+    u.mfp = callback;
+    setMethodCallback(dest4, u.vp, (void *) pthis);
 }
 
 void setCHostXFSHostCallback(PTR32x4_HOST *dest4, tpfCHostXFS_HostCallback callback, CHostXFS *pthis)
 {
-    setMethodCallback(dest4, (void *) callback, (void *) pthis);
+    // Use union to safely convert member function pointer to void*
+    union { tpfCHostXFS_HostCallback mfp; void* vp; } u;
+    u.mfp = callback;
+    setMethodCallback(dest4, u.vp, (void *) pthis);
 }
 #pragma GCC diagnostic pop
 

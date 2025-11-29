@@ -24,9 +24,13 @@
 
 #include <stdint.h>
 #include <dirent.h>
+#include <sys/types.h>
 
 #define HOST_FH_SIZE MAX_HANDLE_SZ   // 128 bytes, while in fact 8 bytes are enough
 
+// Platform compatibility for device and inode types
+typedef dev_t host_dev_t;
+typedef ino_t host_ino_t;
 
 #pragma GCC diagnostic push
 //#pragma GCC diagnostic ignored "-Wzero-length-array"
@@ -36,8 +40,8 @@
 struct HostFD
 {
     int ref_cnt;     // 0 = unused
-    __dev_t dev;     // Device, retrieved from struct stat
-    __ino_t ino;     // File serial number (inode), retrieved from struct stat
+    host_dev_t dev;  // Device, retrieved from struct stat
+    host_ino_t ino;  // File serial number (inode), retrieved from struct stat
     int fd;          // open file handle
     // Maybe better store the host path here?
     // Maybe also store Atari drive here?
@@ -48,7 +52,7 @@ HostFD *getFreeHostFD();
 uint16_t allocHostFD(HostFD **pfd);
 void freeHostFD(HostFD *fd);
 HostFD *getHostFD(uint16_t hhdl);
-HostFD *findHostFD(__dev_t dev, __ino_t ino, uint16_t *hhdl);
+HostFD *findHostFD(host_dev_t dev, host_ino_t ino, uint16_t *hhdl);
 
 
 #define HOST_HANDLE_NUM     1024            // number of memory blocks

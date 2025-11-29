@@ -33,50 +33,25 @@
 #include "gui.h"
 
 
-// We need a temporary file, because otherwise we get a syntax
-// error for the long exception error message.
-// To make sure that the message window will not get too small horizontally,
-// send some space characters.
+#if !defined(__APPLE__)
+/** **********************************************************************************************
+ *
+ * @brief Show a simple text dialogue with decision buttons in Linux, using gxmessage
+ *
+ * @param[in]  msg_text         main message text, may be shown as headline
+ * @param[in]  info_txt         message details, may be shown in a smaller font
+ * @param[in]  buttons          list of buttons, comma separated
+ *
+ * @return 101, 102, 103, ... for the buttons
+ * @retval 1    message window was closed
+ *
+ * @note We need a temporary file, because otherwise we get a syntax error for the long
+ *       exception error message. To make sure that the message window will not get too small
+ *       horizontally, send some space characters.
+ *
+ ************************************************************************************************/
 int showDialogue(const char *msg_text, const char *info_txt, const char *buttons)
 {
-#ifdef __APPLE__
-    // macOS: Use osascript with AppleScript for native dialogs
-    const char *title = "MagicOnLinux";
-    char command[2048];
-    char escaped_msg[512];
-    char escaped_info[512];
-
-    // Simple escape for AppleScript strings - replace quotes with escaped quotes
-    const char *src = msg_text;
-    char *dst = escaped_msg;
-    while (*src && (dst - escaped_msg) < sizeof(escaped_msg) - 2) {
-        if (*src == '"') {
-            *dst++ = '\\';
-        }
-        *dst++ = *src++;
-    }
-    *dst = '\0';
-
-    src = info_txt;
-    dst = escaped_info;
-    while (*src && (dst - escaped_info) < sizeof(escaped_info) - 2) {
-        if (*src == '"') {
-            *dst++ = '\\';
-        }
-        *dst++ = *src++;
-    }
-    *dst = '\0';
-
-    // Build AppleScript command - for now, ignore custom buttons and just use OK
-    snprintf(command, sizeof(command),
-             "osascript -e 'tell app \"System Events\" to display dialog \"%s\\n\\n%s\" with title \"%s\" buttons {\"OK\"} default button \"OK\"'",
-             escaped_msg, escaped_info, title);
-
-    int result = system(command);
-    // osascript returns 0 on success (button clicked)
-    return (result == 0) ? 0 : 1;
-#else
-    // Linux: Use gxmessage
     const char *title = "MagicOnLinux";
     char fname[] = "/tmp/magic-on-linux_XXXXXX";
     // TODO: find some reasonable unicode long space
@@ -110,21 +85,94 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
     //fprintf(stderr, "-> %d (0x%08x)\n", result, result);
 
     return result >> 8;
-#endif
 }
+#endif
 
 
-// We need a temporary file, because otherwise we get a syntax
-// error for the long exception error message.
-// To make sure that the message window will not get too small horizontally,
-// send some space characters.
+#if defined(__APPLE__)
+/** **********************************************************************************************
+ *
+ * @brief Show a simple text dialogue with decision buttons in macOS, using osascript with AppleScript
+ *
+ * @param[in]  msg_text         main message text, may be shown as headline
+ * @param[in]  info_txt         message details, may be shown in a smaller font
+ * @param[in]  buttons          list of buttons, comma separated
+ *
+ * @return 101, 102, 103, ... for the buttons
+ * @retval 1    message window was closed
+ *
+ ************************************************************************************************/
+int showDialogue(const char *msg_text, const char *info_txt, const char *buttons)
+{
+    const char *title = "MagicOnLinux";
+    char command[2048];
+    char escaped_msg[512];
+    char escaped_info[512];
+
+    // Simple escape for AppleScript strings - replace quotes with escaped quotes
+    const char *src = msg_text;
+    char *dst = escaped_msg;
+    while (*src && (dst - escaped_msg) < sizeof(escaped_msg) - 2)
+    {
+        if (*src == '"')
+        {
+            *dst++ = '\\';
+        }
+        *dst++ = *src++;
+    }
+    *dst = '\0';
+
+    src = info_txt;
+    dst = escaped_info;
+    while (*src && (dst - escaped_info) < sizeof(escaped_info) - 2)
+    {
+        if (*src == '"')
+        {
+            *dst++ = '\\';
+        }
+        *dst++ = *src++;
+    }
+    *dst = '\0';
+
+    // Build AppleScript command - for now, ignore custom buttons and just use OK
+    snprintf(command, sizeof(command),
+             "osascript -e 'tell app \"System Events\" to display dialog \"%s\\n\\n%s\" with title \"%s\" buttons {\"OK\"} default button \"OK\"'",
+             escaped_msg, escaped_info, title);
+
+    int result = system(command);
+    // osascript returns 0 on success (button clicked)
+    return (result == 0) ? 0 : 1;
+}
+#endif
+
+
+/** **********************************************************************************************
+ *
+ * @brief Show a simple alert text dialogue with OK button
+ *
+ * @param[in]  msg_text         main message text, may be shown as headline
+ * @param[in]  info_txt         message details, may be shown in a smaller font
+ *
+ * @retval 101  OK pressed
+ * @retval 1    message window was closed
+ *
+ ************************************************************************************************/
 int showAlert(const char *msg_text, const char *info_txt)
 {
     return showDialogue(msg_text, info_txt, "OK");
 }
 
 
-const char *exception68kToName(unsigned exception_no)
+/** **********************************************************************************************
+ *
+ * @brief Convert 68k exception to its name
+ *
+ * @param[in]  exception_no     68k exception number
+ *
+ * @return  human readable description
+ *
+ ************************************************************************************************/
+static const char *exception68kToName(unsigned exception_no)
 {
     static char buf[32];
 
@@ -157,18 +205,34 @@ const char *exception68kToName(unsigned exception_no)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Show dialogue describing the 68k CPU state when the exception occurred
+ *
+ * @param[in]  exception_no     68k exception number
+ * @param[in]  err_addr         68k address that triggered the exception
+ * @param[in]  access_mode      "read byte", "write long" etc.
+ * @param[in]  pc               68k program counter (host-endian)
+ * @param[in]  sr               68k status register (host-endian)
+ * @param[in]  usp              68k user stack pointer (host-endian)
+ * @param[in]  pDx              68k data registers (big-endian)
+ * @param[in]  pAx              68k address registers (big-endian)
+ * @param[in]  proc_path        path of the running process (host-endian)
+ * @param[in]  pd               process descriptor (host-endian)
+ *
+ ************************************************************************************************/
 static void GuiAtariCrash
 (
     unsigned exception_no,
     uint32_t err_addr,
     const char *access_mode,
-    uint32_t pc,                // host-endian
-    uint16_t sr,                // host-endian
-    uint32_t usp,               // host-endian
-    const uint32_t *pDx,        // big-endian
-    const uint32_t *pAx,        // big-endian
+    uint32_t pc,
+    uint16_t sr,
+    uint32_t usp,
+    const uint32_t *pDx,
+    const uint32_t *pAx,
     const char *proc_path,
-    uint32_t pd                 // host-endian
+    uint32_t pd
 )
 {
     char text[1024] = "";
@@ -233,10 +297,26 @@ static void GuiAtariCrash
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Handle 68k exception
+ *
+ * @param[in]  exception_no     68k exception number
+ * @param[in]  err_addr         68k address that triggered the exception
+ * @param[in]  access_mode      "read byte", "write long" etc.
+ * @param[in]  pc               68k program counter (host-endian)
+ * @param[in]  sr               68k status register (host-endian)
+ * @param[in]  usp              68k user stack pointer (host-endian)
+ * @param[in]  pDx              68k data registers (big-endian)
+ * @param[in]  pAx              68k address registers (big-endian)
+ * @param[in]  proc_path        path of the running process (host-endian)
+ * @param[in]  pd               process descriptor (host-endian)
+ *
+ ************************************************************************************************/
 void send68kExceptionData(
                          unsigned exception_no,
                          uint32_t ErrAddr,
-                         char *AccessMode,
+                         const char *AccessMode,
                          uint32_t pc,
                          uint16_t sr,
                          uint32_t usp,

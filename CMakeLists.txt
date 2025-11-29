@@ -29,10 +29,10 @@ if(APPLE)
         DEFAULT_EDITOR="open -e"
     )
 else()
-add_compile_definitions(
-    DEFAULT_ATARI_ROOT="~/Documents/MAGIC_C"
-    DEFAULT_CONFIG="~/.config/magiclinux.conf"
-    DEFAULT_EDITOR="xdg-open"
+    add_compile_definitions(
+        DEFAULT_ATARI_ROOT="~/Documents/MAGIC_C"
+        DEFAULT_CONFIG="~/.config/magiclinux.conf"
+        DEFAULT_EDITOR="xdg-open"
 )
 endif()
 

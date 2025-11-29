@@ -69,9 +69,6 @@ class Preferences
                     int stretch_x_override, int stretch_y_override,
                     int memsize_override,
                     bool rewrite_conf);
-    static int getPreferences(const char *cfgfile, bool rewrite_conf);
-    static int writePreferences(const char *cfgfile);
-    static int evaluatePreferencesLine(const char *line);
     static const char *videoModeToString(enAtariScreenColourMode mode);
 
     static unsigned AtariMemSize;
@@ -127,5 +124,10 @@ class Preferences
             }
         }
     }
+
+   private:
+    static int getPreferences(const char *cfgfile, bool rewrite_conf);
+    static int writePreferences(const char *cfgfile);
+    static int evaluatePreferencesLine(const char *line);
 };
 #endif

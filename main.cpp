@@ -8,6 +8,14 @@
 #include "MagiCSerial.h"
 #include "EmulationRunner.h"
 
+#if !defined(DEFAULT_EDITOR)
+#define DEFAULT_EDITOR "xdg-open"
+#endif
+
+#if !defined(DEFAULT_CONFIG)
+#define DEFAULT_CONFIG "~/.config/magiclinux.conf"
+#endif
+
 
 const char *argnames[] =
 {
@@ -251,8 +259,8 @@ int main(int argc, char *argv[])
     int stretch_x = -1;
     int stretch_y = -1;
     int atari_memsize = -1;
-    const char *config = "~/.config/magiclinux.conf";
-    const char *editor_command = "xdg-open";        //  "gnome-text-editor";
+    const char *config = DEFAULT_CONFIG;
+    const char *editor_command = DEFAULT_EDITOR;    // xdg-open
     const char *file_a2h = nullptr;
     const char *file_h2a = nullptr;
     bool bRunEditor = false;

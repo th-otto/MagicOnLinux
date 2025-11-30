@@ -28,7 +28,15 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - cp -rp AtariX/src/AtariX-MT/AtariX/rootfs-common Atari-rootfs
 - rm Atari-rootfs/GEMSYS/MFM16M-1fff.SYS
 - cp -p magiclinux/kernel/HOSTBIOS/EN/MAGICLIN.OS Atari-rootfs/
-- rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/
+- mkdir Atari-rootfs/LANG Atari-rootfs/LANG/DE Atari-rootfs/LANG/EN Atari-rootfs/LANG/FR
+- rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/LANG/EN/
+- rsync -a AtariX/src/AtariX-MT/AtariX/de.lproj/rootfs/ Atari-rootfs/LANG/DE/
+- rsync -a AtariX/src/AtariX-MT/AtariX/fr.lproj/rootfs/ Atari-rootfs/LANG/FR/
+- cp -p magiclinux/kernel/HOSTBIOS/EN/MAGICLIN.OS Atari-rootfs/LANG/EN/
+- cp -p magiclinux/kernel/HOSTBIOS/DE/MAGICLIN.OS Atari-rootfs/LANG/DE/
+- cp -p magiclinux/kernel/HOSTBIOS/FR/MAGICLIN.OS Atari-rootfs/LANG/FR/
+- cp -p magiclinux/kernel/LOCALISE.SH Atari-rootfs/LANG/
+- mv Atari-rootfs MAGIC_C
 
 Replace "HOSTBIOS/EN" with "HOSTBIOS/DE" or "HOSTBIOS/FR" for German or French.
 

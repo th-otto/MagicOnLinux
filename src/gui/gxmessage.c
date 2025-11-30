@@ -394,7 +394,7 @@ static gboolean cb_key_press(GtkWidget *widget, GdkEventKey *event, gpointer dat
 {
 	(void)widget;
 	(void)data;
-	if (gx.allow_escape && (event->keyval == GDK_Escape))
+	if (gx.allow_escape && (event->keyval == GDK_KEY_Escape))
 	{
 		gtk_main_quit();
 	}
@@ -429,8 +429,9 @@ static void cb_entry_activated(GtkWidget *widget, gpointer data)
 }
 
 
-static gboolean cb_timeout(gint *timeout)
+static gboolean cb_timeout(gpointer _timeout)
 {
+	gint *timeout = (gint *)_timeout;
 	static gint counter = 0;
 
 	if (++counter >= *timeout)
@@ -708,7 +709,7 @@ static void window_create(void)
 	/* begin timeout */
 	if (gx.timeout != 0)
 	{
-		gx.timeout_id = g_timeout_add(1000, (GtkFunction) cb_timeout, &gx.timeout);
+		gx.timeout_id = g_timeout_add(1000, cb_timeout, &gx.timeout);
 	}
 }
 

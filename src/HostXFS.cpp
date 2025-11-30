@@ -842,7 +842,8 @@ INT32 CHostXFS::xfs_sync(uint16_t drv)
  *
  * @brief Atari callback: Tells the host that an Atari process has terminated
  *
- * @param[in] pd        Atari process descriptor
+ * @param[in] pd                Atari process descriptor
+ * @param[in] addrOffset68k     needed to dereference pointers
  *
  * @note used for tidy-up, e.g. close hanging Fsnext handles.
  *

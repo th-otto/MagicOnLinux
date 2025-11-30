@@ -30,6 +30,10 @@
 #include <sys/stat.h>
 #include "preferences.h"
 
+#if !defined(DEFAULT_ATARI_ROOT)
+#define DEFAULT_ATARI_ROOT "~/Documents/MAGIC_C"
+#endif
+
 
 #define MAX_ATARIMEMSIZE	(2U*1024U*1024U*1024U)		// 2 Gigabytes
 
@@ -106,8 +110,8 @@ bool Preferences::bHideHostMouse = false;
 bool Preferences::bAutoStartMagiC = true;
 unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3 / 4 == case insensitive, ...
 const char *Preferences::drvPath[NDRIVES];
-char Preferences::AtariKernelPath[1024] = "~/Documents/Atari-rootfs/MAGICLIN.OS";
-char Preferences::AtariRootfsPath[1024] = "~/Documents/Atari-rootfs";
+char Preferences::AtariKernelPath[1024] = "";       // empty: used default path
+char Preferences::AtariRootfsPath[1024] = DEFAULT_ATARI_ROOT;
 bool Preferences::AtariHostHome = true;                      // Atari H: as host home
 bool Preferences::AtariHostHomeRdOnly = true;
 bool Preferences::AtariHostRoot = true;                      // Atari M: as host root
@@ -222,6 +226,16 @@ int Preferences::init
     }
 
     //
+    // Kernel path: get default value, if not specified
+    //
+
+    if (AtariKernelPath[0] == '\0')
+    {
+        strcpy(AtariKernelPath, AtariRootfsPath);
+        strcat(AtariKernelPath, "/MAGICLIN.OS");
+    }
+
+    //
     // Screen parameters consistency.
     // There are bugs in the MVDI and NVDI VT52 emulator
     // causing graphics artifacts with unaligned sizes.
@@ -325,7 +339,7 @@ int Preferences::writePreferences(const char *cfgfile)
     }
 
     fprintf(f, "[HOST PATHS]\n");
-    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_KERNEL_PATH], AtariKernelPath);
+    fprintf(f, "#%s = \"%s\"\n", var_name[VAR_ATARI_KERNEL_PATH], DEFAULT_ATARI_ROOT "/MAGICLIN.OS");
     fprintf(f, "%s = \"%s\"\n", var_name[VAR_ATARI_ROOTFS_PATH], AtariRootfsPath);
     fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_H_HOME], AtariHostHome ? "YES" : "NO");
     fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_H_RDONLY], AtariHostHomeRdOnly ? "YES" : "NO");

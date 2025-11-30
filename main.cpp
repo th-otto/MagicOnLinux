@@ -24,23 +24,23 @@ const char *argnames[] =
 };
 
 #ifdef __APPLE__
-#define EDITOR_COMMAND "open -e"
-#define CONFIG_FILENAME "~/Library/Preferences/magiclinux.conf"
+#define DEFAULT_EDITOR "open -e"
+#define DEFAULT_CONFIG "~/Library/Preferences/magiclinux.conf"
 #else
-#define EDITOR_COMMAND "xdg-open"
-#define CONFIG_FILENAME "~/.config/magiclinux.conf"
+#define DEFAULT_EDITOR "xdg-open"
+#define DEFAULT_CONFIG "~/.config/magiclinux.conf"
 #endif
 
 const char *descriptions[] =
 {
     "                     display help text and exit",
     "       open configuration file in editor and exit",
-    "              configuration file (default: " CONFIG_FILENAME ")",
+    "              configuration file (default: " DEFAULT_CONFIG ")",
     "             write configuration file with default values and exit",
     "     e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
     "            e.g. 2x2 or 2 or 2x4, overrides config file",
     "             Atari RAM size, e.g. 512k or 4M or 3m",
-    "           choose editor program for -e option, to override '" EDITOR_COMMAND "'",
+    "           choose editor program for -e option, to override '" DEFAULT_EDITOR "'",
     "  convert text file from Atari to host format",
     "   convert text file from host to Atari format"
 };
@@ -259,8 +259,8 @@ int main(int argc, char *argv[])
     int stretch_x = -1;
     int stretch_y = -1;
     int atari_memsize = -1;
-    const char *config = CONFIG_FILENAME;
-    const char *editor_command = EDITOR_COMMAND;        //  "gnome-text-editor";
+    const char *config = DEFAULT_CONFIG;
+    const char *editor_command = DEFAULT_EDITOR;        //  "xdg-open"
     const char *file_a2h = nullptr;
     const char *file_h2a = nullptr;
     bool bRunEditor = false;

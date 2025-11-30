@@ -1,4 +1,6 @@
  Complete Build Instructions for macOS
+ (kindly provided by https://github.com/idevelopers)
+ ===================================================
 
   Prerequisites
 

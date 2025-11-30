@@ -101,20 +101,20 @@ uint32_t CMagiCSerial::Open()
     if (m_fd == -1)
     {
         DebugError2("() : open(\"%s\") -> %s", Preferences::szAuxPath, strerror(errno));
-        return(uint32_t) -1;
+        return (uint32_t) -1;
     }
 
     if (fcntl(m_fd, F_SETFL, 0) == -1)
     {
         DebugError2("() : fcntl(clearing O_NDELAY) -> %s", strerror(errno));
-        return(uint32_t) -2;
+        return (uint32_t) -2;
     }
 
     // Get the current options and save them for later reset
     if (tcgetattr(m_fd, &gOriginalTTYAttrs) == -1)
     {
         DebugError2("() : tcgetattr() -> %s", strerror(errno));
-        return(uint32_t) -3;
+        return (uint32_t) -3;
     }
 
     // Set raw input, one second timeout
@@ -172,7 +172,7 @@ uint32_t CMagiCSerial::Close()
  ************************************************************************************************/
 bool CMagiCSerial::IsOpen()
 {
-    return(m_fd != -1);
+    return (m_fd != -1);
 }
 
 
@@ -201,17 +201,17 @@ uint32_t CMagiCSerial::Read(char *pBuf, uint32_t cnt)
 
 #ifndef USE_SERIAL_SELECT
     nBytesRead = (int) MIN(m_InBufFill, cnt);
-    if    (nBytesRead)
+    if (nBytesRead)
     {
         memcpy(pBuf, m_InBuffer, (size_t) nBytesRead);
         memmove(m_InBuffer, m_InBuffer + nBytesRead, (size_t) (m_InBufFill - nBytesRead));
 #ifdef DEBUG_VERBOSE
-        if    (nBytesRead)
-            DebugInfo("CMagiCSerial::Read() -- buflen = %d, %d Zeichen erhalten:", cnt, nBytesRead);
+        if (nBytesRead)
+            DebugInfo2("() -- buflen = %d, %d characters read:", cnt, nBytesRead);
 
-        for    (register int i = 0; i < nBytesRead; i++)
+        for (int i = 0; i < nBytesRead; i++)
         {
-            DebugInfo("CMagiCSerial::Read() -- <== c = 0x%02x (%c)", ((unsigned int) (pBuffer[i])) & 0xff, ((pBuffer[i] >= ' ') && (pBuffer[i] <= 'z')) ? pBuffer[i] : '?');
+            DebugInfo2("() -- <== c = 0x%02x (%c)", ((unsigned int) (pBuffer[i])) & 0xff, ((pBuffer[i] >= ' ') && (pBuffer[i] <= 'z')) ? pBuffer[i] : '?');
         }
 #endif
         m_InBufFill -= nBytesRead;
@@ -219,7 +219,7 @@ uint32_t CMagiCSerial::Read(char *pBuf, uint32_t cnt)
         cnt -= nBytesRead;
     }
 
-    if    (cnt)
+    if (cnt)
         ret = read(m_fd, pBuf, cnt);
     else
         ret = 0;
@@ -231,11 +231,11 @@ uint32_t CMagiCSerial::Read(char *pBuf, uint32_t cnt)
     if (ret != -1)
     {
         if (ret)
-            DebugInfo("CMagiCSerial::Read() -- buflen = %d, %d Zeichen erhalten:", cnt, ret);
+            DebugInfo2("() -- buflen = %d, %d characters received:", cnt, ret);
 
         for (register int i = 0; i < ret; i++)
         {
-            DebugInfo("CMagiCSerial::Read() -- <== c = 0x%02x (%c)", ((unsigned int) (pBuffer[i])) & 0xff, ((pBuffer[i] >= ' ') && (pBuffer[i] <= 'z')) ? pBuffer[i] : '?');
+            DebugInfo2("() -- <== c = 0x%02x (%c)", ((unsigned int) (pBuffer[i])) & 0xff, ((pBuffer[i] >= ' ') && (pBuffer[i] <= 'z')) ? pBuffer[i] : '?');
         }
     }
 #endif
@@ -245,7 +245,7 @@ uint32_t CMagiCSerial::Read(char *pBuf, uint32_t cnt)
         return 0xffffffff;        // Atari error code
     }
 
-    return(uint32_t) ret + nBytesRead;    // number of characters
+    return (uint32_t) ret + nBytesRead;    // number of characters
 }
 
 
@@ -264,10 +264,10 @@ uint32_t CMagiCSerial::Write(const char *pBuf, uint32_t cnt)
     int ret;
 
 #ifdef DEBUG_VERBOSE
-    DebugInfo("CMagiCSerial::Write() -- %d Zeichen schreiben:", cnt);
-    for (register int i = 0; i < cnt; i++)
+    DebugInfo2("() -- send %d characters:", cnt);
+    for (int i = 0; i < cnt; i++)
     {
-        DebugInfo("CMagiCSerial::Write() -- ==> c = 0x%02x (%c)", (unsigned int) pBuffer[i], ((pBuffer[i] >= ' ') && (pBuffer[i] <= 'z')) ? pBuffer[i] : '?');
+        DebugInfo2("() -- ==> c = 0x%02x (%c)", (unsigned int) pBuffer[i], ((pBuffer[i] >= ' ') && (pBuffer[i] <= 'z')) ? pBuffer[i] : '?');
     }
 #endif
     ret = write(m_fd, pBuf, cnt);
@@ -277,7 +277,7 @@ uint32_t CMagiCSerial::Write(const char *pBuf, uint32_t cnt)
         return 0xffffffff;        // Atari error code
     }
 
-    return(uint32_t) ret;    // number of characters
+    return (uint32_t) ret;    // number of characters
 }
 
 
@@ -325,22 +325,27 @@ bool CMagiCSerial::ReadStatus(void)
     struct bsd_fdset fdset;
 
 
-    if    (m_fd == -1)
-        return(false);
+    if (m_fd == -1)
+        return false;
 
     MY_FD_ZERO(&fdset);
     MY_FD_SET(m_fd, &fdset);
     ret = CMachO::select(1, &fdset /*readfds*/, NULL/*writefds*/, NULL, &Timeout);
-    return(ret == 1);    // number of ready fds
+    return (ret == 1);    // number of ready fds
 #else
     int ret;
 
-    if    (m_InBufFill)
-        return(true);
+    if (m_InBufFill)
+    {
+        return true;
+    }
 
     ret = read(m_fd, m_InBuffer, SERIAL_IBUFLEN);
-    if    ((ret == -1) || (ret == 0))
-        return(false);
+    if ((ret == -1) || (ret == 0))
+    {
+        return false;
+    }
+
     m_InBufFill = ret;
     return true;
 #endif
@@ -370,6 +375,9 @@ uint32_t CMagiCSerial::Drain(void)
  *
  * @brief Flush input and output buffer (called from emulator thread)
  *
+ * @param[in]  bInputBuffer     flush read buffer
+ * @param[in]  bOutputBuffer    flush write buffer
+ *
  * @return zero or error code
  *
  ************************************************************************************************/
@@ -395,7 +403,9 @@ uint32_t CMagiCSerial::Flush(bool bInputBuffer, bool bOutputBuffer)
     ret = tcflush(m_fd, action);
 
     if (ret)
-        return((uint32_t) -1);
+    {
+        return (uint32_t) -1;
+    }
 
     return 0;
 }
@@ -666,64 +676,65 @@ uint32_t CMagiCSerial::Config
 }
 
 
-/**********************************************************************
-*
-* Serielle Schnittstelle für BIOS-Zugriff öffnen, wenn nötig.
-* Der BIOS-Aufruf erfolgt auch indirekt über das Atari-GEMDOS,
-* wenn die Standard-Schnittstelle AUX: angesprochen wird.
-* Die moderne Geräteschnittstelle u:\dev\SERIAL wird durch einen
-* nachladbaren Gerätetreiber respräsentiert und verwendet
-* andere - effizientere - Routinen.
-*
-* Wird aufgerufen von:
-*    AtariSerOut()
-*    AtariSerIn()
-*    AtariSerOs()
-*    AtariSerIs()
-*    AtariSerConf()
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Open serial interface for BIOS access, if necessary
+ *
+ * @return zero or error code
+ *
+ * @note This BIOS callback is also called indirectly from GEMDOS, via the standard device "AUX:"".
+ *       The modern alternative "u:\dev\SERIAL" is implemented in a loadable device driver
+ *       and uses more effective functions
+ * @note Called by
+ *          AtariSerOut()
+ *          AtariSerIn()
+ *          AtariSerOs()
+ *          AtariSerIs()
+ *          AtariSerConf()
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::OpenSerialBIOS(void)
 {
-    // schon geöffnet => OK
+    // already opened => OK
     if (m_bBIOSSerialUsed)
     {
         return 0;
     }
 
-    // schon vom DOS geöffnet => Fehler
+    // already opened by GEMDOS => error
     if (CMagiCSerial::IsOpen())
     {
-        DebugError("CMagiC::OpenSerialBIOS() -- schon vom DOS geöffnet => Fehler");
-        return((uint32_t) ERROR);
+        DebugError2("() -- already opened by GEMDOS => error");
+        return (uint32_t) ERROR;
     }
 
     if (-1 == (int) CMagiCSerial::Open())
     {
-        DebugInfo("CMagiC::OpenSerialBIOS() -- kann \"%s\" nicht öffnen.", Preferences::szAuxPath);
-        return((uint32_t) ERROR);
+        DebugError2("() -- cannot open \"%s\"", Preferences::szAuxPath);
+        return (uint32_t) ERROR;
     }
 
     m_bBIOSSerialUsed = true;
-    DebugWarning("CMagiC::OpenSerialBIOS() -- Serielle Schnittstelle vom BIOS geöffnet.");
-    DebugWarning("   Jetzt kann sie nicht mehr geschlossen werden!");
+    DebugWarning2("() -- Serial device opened by BIOS, no way to ever close it.");
     return 0;
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: XBIOS Serconf
-*
-* Wird aufgerufen von der Atari-BIOS-Funktion Rsconf() für
-* die serielle Schnittstelle. Rsconf() wird auch vom
-* Atari-GEMDOS aufgerufen für die Geräte AUX und AUXNB,
-* und zwar hier mit Spezialwerten:
-*    Rsconf(-2,-2,-1,-1,-1,-1, 'iocl', dev, cmd, parm)
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback of XBIOS Serconf
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return zero or error code
+ *
+ * @note Called by the Atari BIOS function Rsconf() for the serial interface.
+ *       Rsconf() is also called by the Atari GEMDOS for the devices AUX and AUXNB,
+ *       in particular with this special parameters:
+ *          Rsconf(-2,-2,-1,-1,-1,-1, 'iocl', dev, cmd, parm)
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
 {
     struct SerConfParm
@@ -734,17 +745,17 @@ uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
         uint16_t rsr;
         uint16_t tsr;
         uint16_t scr;
-        uint32_t xtend_magic;    // ist ggf. 'iocl'
-        uint16_t biosdev;        // Ioctl-Bios-Gerät
-        uint16_t cmd;            // Ioctl-Kommando
-        uint32_t parm;        // Ioctl-Parameter
-        uint32_t ptr2zero;        // deref. und auf ungleich 0 setzen!
+        uint32_t xtend_magic;   // may be 'iocl'
+        uint16_t biosdev;       // Ioctl BIOS device
+        uint16_t cmd;           // Ioctl command
+        uint32_t parm;          // Ioctl parameter
+        uint32_t ptr2zero;      // dereference and set to non-zero!
     } __attribute__((packed));
-    unsigned int nBitsTable[] =
+    static const unsigned int nBitsTable[] =
     {
         8,7,6,5
     };
-    unsigned int baudtable[] =
+    static const unsigned int baudtable[] =
     {
         19200,
         9600,
@@ -768,16 +779,16 @@ uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
 
     DebugInfo2("()");
 
-    // serielle Schnittstelle öffnen, wenn nötig
+    // open serial interface, if necessary
     if (OpenSerialBIOS())
     {
-        DebugInfo2("() -- kann serielle Schnittstelle nicht öffnen => Fehler.");
-        return((uint32_t) ERROR);
+        DebugError2("() -- cannot open serial interface");
+        return (uint32_t) ERROR;
     }
 
-    SerConfParm *theSerConfParm = (SerConfParm *) (addrOffset68k + params);
+    const SerConfParm *theSerConfParm = (SerConfParm *) (addrOffset68k + params);
 
-    // Rsconf(-2,-2,-1,-1,-1,-1, 'iocl', dev, cmd, parm) macht Fcntl
+    // Rsconf(-2,-2,-1,-1,-1,-1, 'iocl', dev, cmd, parm) is implemented as fcntl()
 
     if ((be16toh(theSerConfParm->baud) == 0xfffe) &&
          (be16toh(theSerConfParm->ctrl) == 0xfffe) &&
@@ -802,73 +813,73 @@ uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
         unsigned int nStopBits;
 
 
-        DebugInfo("CMagiC::AtariSerConf() -- Fcntl(dev=%d, cmd=0x%04x, parm=0x%08x)", be16toh(theSerConfParm->biosdev), be16toh(theSerConfParm->cmd), be32toh(theSerConfParm->parm));
+        DebugInfo2("() -- Fcntl(dev=%d, cmd=0x%04x, parm=0x%08x)", be16toh(theSerConfParm->biosdev), be16toh(theSerConfParm->cmd), be32toh(theSerConfParm->parm));
         *((uint32_t *) (addrOffset68k + be32toh(theSerConfParm->ptr2zero))) = htobe32(0xffffffff);    // wir kennen Fcntl
         switch(be16toh(theSerConfParm->cmd))
         {
             case TIOCBUFFER:
                 // Inquire/Set buffer settings
-                DebugWarning("CMagiC::AtariSerConf() -- Fcntl(TIOCBUFFER) -- not supported");
+                DebugWarning2("() -- Fcntl(TIOCBUFFER) -- not supported");
                 ret = (uint32_t) EINVFN;
                 break;
 
             case TIOCCTLMAP:
                 // Inquire I/O-lines and signaling capabilities
-                DebugWarning("CMagiC::AtariSerConf() -- Fcntl(TIOCCTLMAP) -- not supported");
+                DebugWarning2("() -- Fcntl(TIOCCTLMAP) -- not supported");
                 ret = (uint32_t) EINVFN;
                 break;
 
             case TIOCCTLGET:
                 // Inquire I/O-lines and signals
-                DebugWarning("CMagiC::AtariSerConf() -- Fcntl(TIOCCTLGET) -- not supported");
+                DebugWarning2("() -- Fcntl(TIOCCTLGET) -- not supported");
                 ret = (uint32_t) EINVFN;
                 break;
 
             case TIOCCTLSET:
                 // Set I/O-lines and signals
-                DebugWarning("CMagiC::AtariSerConf() -- Fcntl(TIOCCTLSET) -- not supported");
+                DebugWarning2("() -- Fcntl(TIOCCTLSET) -- not supported");
                 ret = (uint32_t) EINVFN;
                 break;
 
             case TIOCGPGRP:
                 //get terminal process group
-                DebugWarning("CMagiC::AtariSerConf() -- Fcntl(TIOCGPGRP) -- not supported");
+                DebugWarning2("() -- Fcntl(TIOCGPGRP) -- not supported");
                 ret = (uint32_t) EINVFN;
                 break;
 
             case TIOCSPGRP:
                 //set terminal process group
                 grp = be32toh(*((uint32_t *) (addrOffset68k + be32toh(theSerConfParm->parm))));
-                DebugInfo("CMagiC::AtariSerConf() -- Fcntl(TIOCSPGRP, %d)", (uint32_t) grp);
+                DebugInfo2("() -- Fcntl(TIOCSPGRP, %d)", (uint32_t) grp);
                 (void) grp;     // TODO: really unused?
                 ret = (uint32_t) EINVFN;
                 break;
 
             case TIOCFLUSH:
-                // Leeren der seriellen Puffer
+                // Flush buffers of serial interface
                 mode = be32toh(theSerConfParm->parm);
-                DebugInfo("CMagiC::AtariSerConf() -- Fcntl(TIOCFLUSH, %d)", mode);
+                DebugInfo2("() -- Fcntl(TIOCFLUSH, %d)", mode);
                 switch(mode)
                 {
-                    // Der Sendepuffer soll komplett gesendet werden. Die Funktion kehrt
-                    // erst zurück, wenn der Puffer leer ist (return E_OK, =0) oder ein
-                    // systeminterner Timeout abgelaufen ist (return EDRVNR, =-2). Der
-                    // Timeout wird vom System sinnvoll bestimmt.
+                    // The whole transmit buffer shall be sent. The function does not return before
+                    // the transmit buffer is empty (return E_OK, =0) or a system internal timeout
+                    // has occurred (return EDRVNR, =-2).
+                    // The timeout value is defined by the system in a sensible way.
                     case 0:
                         ret = CMagiCSerial::Drain();
                         break;
 
-                    // Der Empfangspuffer wird gelöscht.
+                    // clear receive buffer
                     case 1:
                         ret = CMagiCSerial::Flush(true, false);
                         break;
 
-                    // Der Sendepuffer wird gelöscht.
+                    // clear tansmit buffer
                     case 2:
                         ret = CMagiCSerial::Flush(false, true);
                         break;
 
-                    // Empfangspuffer und Sendepuffer werden gelîscht.
+                    // clear receive and transmit buffers
                     case 3:
                         ret = CMagiCSerial::Flush(true, true);
                         break;
@@ -881,99 +892,103 @@ uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
 
             case TIOCIBAUD:
             case TIOCOBAUD:
-                // Eingabegeschwindigkeit festlegen
+                // set receive speed
                 NewBaudrate = be32toh(*((uint32_t *) (addrOffset68k + be32toh(theSerConfParm->parm))));
                 bSet = ((int) NewBaudrate != -1) && (NewBaudrate != 0);
-                DebugInfo("CMagiC::AtariSerConf() -- Fcntl(%s, %d)", (be16toh(theSerConfParm->cmd) == TIOCIBAUD) ? "TIOCIBAUD" : "TIOCOBAUD", NewBaudrate);
+                DebugInfo2("() -- Fcntl(%s, %d)", (be16toh(theSerConfParm->cmd) == TIOCIBAUD) ? "TIOCIBAUD" : "TIOCOBAUD", NewBaudrate);
 
                 if (be16toh(theSerConfParm->cmd) == TIOCIBAUD)
                     ret = CMagiCSerial::Config(
-                        bSet,                        // Input-Rate ggf. ändern
-                        NewBaudrate,                // neue Input-Rate
-                        &OldBaudrate,                // alte Baud-Rate
-                        false,                        // Output-Rate nicht ändern
-                        0,                        // neue Output-Rate
-                        NULL,                        // alte Output-Rate egal
-                        false,                        // Xon/Xoff ändern
+                        bSet,                       // conditionally change input rate
+                        NewBaudrate,                // new input rate
+                        &OldBaudrate,               // previous baudrate
+                        false,                      // do not change output rate
+                        0,                          // new output rate
+                        nullptr,                    // old output rate is don't care
+                        false,                      // change Xon/Xoff
                         false,
-                        NULL,
-                        false,                        // Rts/Cts ändern
+                        nullptr,
+                        false,                      // change Rts/Cts
                         false,
-                        NULL,
-                        false,                        // parity enable ändern
+                        nullptr,
+                        false,                      // change parity enable
                         false,
-                        NULL,
-                        false,                        // parity even ändern
+                        nullptr,
+                        false,                      // change parity even
                         false,
-                        NULL,
-                        false,                        // n Bits ändern
+                        nullptr,
+                        false,                      // change n bits
                         0,
-                        NULL,
-                        false,                        // Stopbits ändern
+                        nullptr,
+                        false,                      // change stop bits
                         0,
-                        NULL);
+                        nullptr);
                 else
                     ret = CMagiCSerial::Config(
-                        false,                        // Input-Rate nicht ändern
-                        0,                        // neue Input-Rate
-                        NULL,                        // alte Input-Rate egal
-                        bSet,                        // Output-Rate ggf. ändern
-                        NewBaudrate,                // neue Output-Rate
-                        &OldBaudrate,                // alte Output-Rate
-                        false,                        // Xon/Xoff ändern
+                        false,                      // do not change input rate
+                        0,                          // new input rate
+                        nullptr,                    // old input rate is don't care
+                        bSet,                       // conditionally change output rate
+                        NewBaudrate,                // new output rate
+                        &OldBaudrate,               // previous output rate
+                        false,                      // change Xon/Xoff
                         false,
-                        NULL,
-                        false,                        // Rts/Cts ändern
+                        nullptr,
+                        false,                      // change Rts/Cts
                         false,
-                        NULL,
-                        false,                        // parity enable ändern
+                        nullptr,
+                        false,                      // change parity enable
                         false,
-                        NULL,
-                        false,                        // parity even ändern
+                        nullptr,
+                        false,                      // change parity even
                         false,
-                        NULL,
-                        false,                        // n Bits ändern
+                        nullptr,
+                        false,                      // change n Bits
                         0,
-                        NULL,
-                        false,                        // Stopbits ändern
+                        nullptr,
+                        false,                      // change stop bits
                         0,
-                        NULL);
+                        nullptr);
 
                 *((uint32_t *) (addrOffset68k + be32toh(theSerConfParm->parm))) = htobe32(OldBaudrate);
                 if ((int) ret == -1)
+                {
                     ret = (uint32_t) ATARIERR_ERANGE;
+                }
                 break;
 
             case TIOCGFLAGS:
-                // Übertragungsprotokolleinstellungen erfragen
+                // retrieve protocol settings
 
-                DebugInfo("CMagiC::AtariSerConf() -- Fcntl(TIOCGFLAGS, %d)", be32toh(theSerConfParm->parm));
+                DebugInfo2("() -- Fcntl(TIOCGFLAGS, %d)", be32toh(theSerConfParm->parm));
                 (void) CMagiCSerial::Config(
-                            false,                        // Input-Rate nicht ändern
-                            0,                        // neue Input-Rate
-                            NULL,                        // alte Input-Rate egal
-                            false,                        // Output-Rate nicht ändern
-                            0,                        // neue Output-Rate
-                            NULL,                        // alte Output-Rate egal
-                            false,                        // Xon/Xoff nicht ändern
-                            false,                        // neuer Wert
-                            &bXonXoff,                    // alter Wert
-                            false,                        // Rts/Cts nicht ändern
+                            false,                  // do not change input rate
+                            0,                      // new input rate
+                            nullptr,                // old input rate is don't care
+                            false,                  // do not change output rate
+                            0,                      // new output rate
+                            nullptr,                // old output rate is don't care
+                            false,                  // do not change Xon/Xoff
+                            false,                  // new value
+                            &bXonXoff,              // old value
+                            false,                  // do not change Rts/Cts
                             false,
                             &bRtsCts,
-                            false,                        // parity enable nicht ändern
+                            false,                  // do not change parity enable
                             false,
                             &bParityEnable,
-                            false,                        // parity even nicht ändern
+                            false,                  // do not change parity even
                             false,
                             &bParityEven,
-                            false,                        // n Bits nicht ändern
+                            false,                  // do not change n Bits
                             0,
                             &nBits,
-                            false,                        // Stopbits nicht ändern
+                            false,                  // do not change Stopbits
                             0,
                             &nStopBits);
-                // Rückgabewert zusammenbauen
+
+                // compose return value
+
                 flags = 0;
                 if (bXonXoff)
                     flags |= 0x1000;
@@ -999,63 +1014,66 @@ uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
                 break;
 
             case TIOCSFLAGS:
-                // Übertragungsprotokolleinstellungen setzen
+                // change protocol settings
+
                 flags = be16toh(*((uint16_t *) (addrOffset68k + be32toh(theSerConfParm->parm))));
-                DebugInfo("CMagiC::AtariSerConf() -- Fcntl(TIOCSFLAGS, 0x%04x)", (uint32_t) flags);
+                DebugInfo2("() -- Fcntl(TIOCSFLAGS, 0x%04x)", (uint32_t) flags);
                 bXonXoff = (flags & 0x1000) != 0;
-                DebugInfo("CMagiC::AtariSerConf() -- XON/XOFF %s", (bXonXoff) ? "ein" : "aus");
+                DebugInfo2("() -- XON/XOFF %s", (bXonXoff) ? "ON" : "OFF");
                 bRtsCts = (flags & 0x2000) != 0;
-                DebugInfo("CMagiC::AtariSerConf() -- RTS/CTS %s", (bRtsCts) ? "ein" : "aus");
+                DebugInfo2("() -- RTS/CTS %s", (bRtsCts) ? "ON" : "OFF");
                 bParityEnable = (flags & (0x4000+0x8000)) != 0;
-                DebugInfo("CMagiC::AtariSerConf() -- Parität %s", (bParityEnable) ? "ein" : "aus");
+                DebugInfo2("() -- parity %s", (bParityEnable) ? "ON" : "OFF");
                 bParityEven= (flags & 0x4000) != 0;
-                DebugInfo("CMagiC::AtariSerConf() -- Parität %s", (bParityEven) ? "gerade (even)" : "ungerade (odd)");
+                DebugInfo2("() -- parity %s", (bParityEven) ? "(even)" : "(odd)");
                 nBits = 8U - ((flags & 0xc) >> 2);
-                DebugInfo("CMagiC::AtariSerConf() -- %d Bits", nBits);
+                DebugInfo2("() -- %d Bits", nBits);
                 nStopBits = flags & 3U;
-                DebugInfo("CMagiC::AtariSerConf() -- %d Stop-Bits%s", nStopBits, (nStopBits == 0) ? " (Synchron-Modus?)" : "");
+                DebugInfo2("() -- %d stop  bits%s", nStopBits, (nStopBits == 0) ? " (synchronous mode?)" : "");
                 if ((nStopBits == 0) || (nStopBits == 2))
-                    return((uint32_t) ATARIERR_ERANGE);
+                    return (uint32_t) ATARIERR_ERANGE;
+
                 if (nStopBits == 3)
                     nStopBits = 2;
+
                 ret = CMagiCSerial::Config(
-                            false,                        // Input-Rate nicht ändern
-                            0,                        // neue Input-Rate
-                            NULL,                        // alte Input-Rate egal
-                            false,                        // Output-Rate nicht ändern
-                            0,                        // neue Output-Rate
-                            NULL,                        // alte Output-Rate egal
-                            true,                        // Xon/Xoff ändern
-                            bXonXoff,                    // neuer Wert
-                            NULL,                        // alter Wert egal
-                            true,                        // Rts/Cts ändern
+                            false,                  // do not change input rate
+                            0,                      // new input rate
+                            nullptr,                // old input rate is don't care
+                            false,                  // do not change output rate
+                            0,                      // new output rate
+                            nullptr,                // old output rate is don't care
+                            true,                   // change Xon/Xoff
+                            bXonXoff,               // new value
+                            nullptr,                // old value is don't care
+                            true,                   // change Rts/Cts
                             bRtsCts,
-                            NULL,
-                            true,                        // parity enable ändern
+                            nullptr,
+                            true,                   // change parity enable
                             bParityEnable,
-                            NULL,
-                            false,                        // parity even nicht ändern
+                            nullptr,
+                            false,                  // do not change parity even
                             bParityEven,
-                            NULL,
-                            true,                        // n Bits ändern
+                            nullptr,
+                            true,                   // change n Bits
                             nBits,
-                            NULL,
-                            true,                        // Stopbits ändern
+                            nullptr,
+                            true,                   // change Stopbits
                             nStopBits,
-                            NULL);
+                            nullptr);
                 if ((int) ret == -1)
                     ret = (uint32_t) ATARIERR_ERANGE;
                 break;
 
             default:
-                DebugError("CMagiC::AtariSerConf() -- Fcntl(0x%04x -- unbekannt", be16toh(theSerConfParm->cmd) & 0xffff);
+                DebugError2("() -- Fcntl(0x%04x) is unknown", be16toh(theSerConfParm->cmd) & 0xffff);
                 ret = (uint32_t) EINVFN;
                 break;
         }
         return ret;
     }
 
-    // Rsconf(-2,-1,-1,-1,-1,-1) gibt aktuelle Baudrate zurück
+    // Rsconf(-2,-1,-1,-1,-1,-1) returns current baudrate
 
     if ((be16toh(theSerConfParm->baud) == 0xfffe) &&
          (be16toh(theSerConfParm->ctrl) == 0xffff) &&
@@ -1065,62 +1083,67 @@ uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
          (be16toh(theSerConfParm->scr) == 0xffff))
     {
 //        unsigned long OldInputBaudrate;
-//        return((uint32_t) pTheSerial->GetBaudRate());
+//        return (uint32_t) pTheSerial->GetBaudRate();
     }
 
     if (be16toh(theSerConfParm->baud) >= sizeof(baudtable)/sizeof(baudtable[0]))
     {
-        DebugError2("() -- ungültige Baudrate von Rsconf()");
-        return((uint32_t) ATARIERR_ERANGE);
+        DebugError2("() -- invalid baudrate passed to Rsconf()");
+        return (uint32_t) ATARIERR_ERANGE;
     }
 
     nBits = nBitsTable[(be16toh(theSerConfParm->ucr) >> 5) & 3];
     nStopBits = (unsigned int) (((be16toh(theSerConfParm->ucr) >> 3) == 3) ? 2 : 1);
 
     return CMagiCSerial::Config(
-                    true,                        // Input-Rate ändern
-                    baudtable[be16toh(theSerConfParm->baud)],    // neue Input-Rate
-                    NULL,                        // alte Input-Rate egal
-                    true,                        // Output-Rate ändern
-                    baudtable[be16toh(theSerConfParm->baud)],    // neue Output-Rate
-                    NULL,                        // alte Output-Rate egal
-                    true,                        // Xon/Xoff ändern
-                    (be16toh(theSerConfParm->ctrl) & 1) != 0,    // neuer Wert
-                    NULL,                        // alter Wert egal
-                    true,                        // Rts/Cts ändern
+                    true,                           // change input rate
+                    baudtable[be16toh(theSerConfParm->baud)],    // new input rate
+                    nullptr,                        // old input rate is don't care
+                    true,                           // change output rate
+                    baudtable[be16toh(theSerConfParm->baud)],    // new output rate
+                    nullptr,                        // old output rate is don't care
+                    true,                           // change Xon/Xoff
+                    (be16toh(theSerConfParm->ctrl) & 1) != 0,    // new value
+                    nullptr,                        // old value is don't care
+                    true,                           // change Rts/Cts
                     (be16toh(theSerConfParm->ctrl) & 2) != 0,
-                    NULL,
-                    true,                        // parity enable ändern
+                    nullptr,
+                    true,                           // change parity enable
                     (be16toh(theSerConfParm->ucr) & 4) != 0,
-                    NULL,
-                    true,                        // parity even ändern
+                    nullptr,
+                    true,                           // change parity even
                     (be16toh(theSerConfParm->ucr) & 2) != 0,
-                    NULL,
-                    true,                        // n Bits ändern
+                    nullptr,
+                    true,                           // change n bits
                     nBits,
-                    NULL,
-                    true,                        // Stopbits ändern
+                    nullptr,
+                    true,                           // change stop bits
                     nStopBits,
-                    NULL);
+                    nullptr);
 }
 
-/**********************************************************************
-*
-* Callback des Emulators: Lesestatus der seriellen Schnittstelle
-* Rückgabe: -1 = bereit 0 = nicht bereit
-*
-* Wird aufgerufen von der Atari-BIOS-Funktion Bconstat() für
-* die serielle Schnittstelle.
-*
-**********************************************************************/
 
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback for read status of serial interface
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return status
+ * @retval -1  ready
+ * @retval 0   not ready
+ *
+ * @note Called by the Atari BIOS function Bconstat() for the serial interface.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerIs(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
     (void) addrOffset68k;
 //    DebugInfo("CMagiC::AtariSerIs()");
 
-    // serielle Schnittstelle öffnen, wenn nötig
+    // open serial port, if necessary
     if (!OpenSerialBIOS())
     {
         return 0;
@@ -1130,23 +1153,27 @@ uint32_t CMagiCSerial::AtariSerIs(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Ausgabestatus der seriellen Schnittstelle
-* Rückgabe: -1 = bereit 0 = nicht bereit
-*
-* Wird aufgerufen von der Atari-BIOS-Funktion Bcostat() für
-* die serielle Schnittstelle.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback for write status of serial interface
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return status
+ * @retval -1  ready
+ * @retval 0   not ready
+ *
+ * @note Called by the Atari BIOS function Bcostat() for the serial interface.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerOs(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
     (void) addrOffset68k;
 //    DebugInfo("CMagiC::AtariSerOs()");
 
-    // serielle Schnittstelle öffnen, wenn nötig
+    // open serial port, if necessary
     if (!OpenSerialBIOS())
     {
         return 0;
@@ -1156,16 +1183,19 @@ uint32_t CMagiCSerial::AtariSerOs(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Zeichen von serieller Schnittstelle lesen
-* Rückgabe: Zeichen in Bit 0..7, andere Bits = 0, 0xffffffff bei Fehler
-*
-* Wird aufgerufen von der Atari-BIOS-Funktion Bconin() für
-* die serielle Schnittstelle.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback for reading a character from serial interface
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return character in bits 0..7, other bits shall be zero
+ * @retval 0xffffffff   error
+ *
+ * @note Called by the Atari BIOS function Bconin() for the serial interface.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerIn(uint32_t params, uint8_t *addrOffset68k)
 {
     char c;
@@ -1175,7 +1205,7 @@ uint32_t CMagiCSerial::AtariSerIn(uint32_t params, uint8_t *addrOffset68k)
 
 //    DebugInfo("CMagiC::AtariSerIn()");
 
-    // serielle Schnittstelle öffnen, wenn nötig
+    // open serial port, if necessary
     if (!OpenSerialBIOS())
     {
         return 0;
@@ -1184,29 +1214,32 @@ uint32_t CMagiCSerial::AtariSerIn(uint32_t params, uint8_t *addrOffset68k)
     ret = CMagiCSerial::Read(&c, 1);
     if (ret > 0)
     {
-        return((uint32_t) c & 0x000000ff);
+        return (uint32_t) c & 0x000000ff;
     }
     else
-        return(0xffffffff);
+        return 0xffffffff;
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Zeichen auf serielle Schnittstelle ausgeben
-* params        Zeiger auf auszugebendes Zeichen (16 Bit)
-* Rückgabe: 1 = OK, 0 = nichts geschrieben, sonst Fehlercode
-*
-* Wird aufgerufen von der Atari-BIOS-Funktion Bconout() für
-* die serielle Schnittstelle.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback for writing a character to serial interface
+ *
+ * @param[in]  params           68k address of character (16-bits, big-endian) to write
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return status or negative error code
+ * @retval 0   nothing written
+ * @retval 1   OK
+ *
+ * @note Called by the Atari BIOS function Bconout() for the serial interface.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerOut(uint32_t params, uint8_t *addrOffset68k)
 {
 //    DebugInfo("CMagiC::AtariSerOut()");
 
-    // serielle Schnittstelle öffnen, wenn nötig
+    // open serial port, if necessary
     if (!OpenSerialBIOS())
     {
         return 0;
@@ -1216,61 +1249,67 @@ uint32_t CMagiCSerial::AtariSerOut(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Serielle Schnittstelle öffnen
-*
-* Wird vom SERIAL-Treiber für MagicMacX verwendet
-* (DEV_SER.DEV), jedoch nicht im MagiC-Kernel selbst.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Open serial interface
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return zero or negative error code
+ *
+ * @note Used by the host's SERIAL driver (DEV_SER.DEV), not by the MagiC kernel itself.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerOpen(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
     (void) addrOffset68k;
 
-    DebugInfo("CMagiC::AtariSerOpen()");
+    DebugInfo2("()");
 
-    // schon durch BIOS geöffnet => OK
+    // already opened by BIOS => OK
     if (m_bBIOSSerialUsed)
     {
-        DebugInfo("CMagiC::AtariSerOpen() -- schon durch BIOS geöffnet => OK");
+        DebugInfo2("() -- already opened by BIOS => OK");
         return 0;
     }
 
-    // schon vom DOS geöffnet => Fehler
+    // already opened by GEMDOS => error
     if (CMagiCSerial::IsOpen())
     {
-        DebugInfo("CMagiC::AtariSerOpen() -- schon vom DOS geöffnet => Fehler");
-        return((uint32_t) EACCDN);
+        DebugInfo2("() -- already opend by GEMDOS => error");
+        return (uint32_t) EACCDN;
     }
 
     if (-1 == (int) CMagiCSerial::Open())
     {
-        DebugInfo("CMagiC::AtariSerOpen() -- kann \"%s\" nicht öffnen.", Preferences::szAuxPath);
-        return((uint32_t) ERROR);
+        DebugInfo2("() -- cannot open \"%s\"", Preferences::szAuxPath);
+        return (uint32_t) ERROR;
     }
 
     return 0;
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Serielle Schnittstelle schließen
-*
-* Wird vom SERIAL-Treiber für MagicMacX verwendet
-* (DEV_SER.DEV), jedoch nicht im MagiC-Kernel selbst.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Close serial interface
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return zero or negative error code
+ *
+ * @note Used by the host's SERIAL driver (DEV_SER.DEV), not by the MagiC kernel itself.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerClose(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
     (void) addrOffset68k;
 
-    DebugInfo("CMagiC::AtariSerClose()");
+    DebugInfo2("()");
 
     // schon durch BIOS geöffnet => OK
     if (m_bBIOSSerialUsed)
@@ -1279,7 +1318,7 @@ uint32_t CMagiCSerial::AtariSerClose(uint32_t params, uint8_t *addrOffset68k)
     // nicht vom DOS geöffnet => Fehler
     if (!CMagiCSerial::IsOpen())
     {
-        return(uint32_t) EACCDN;
+        return (uint32_t) EACCDN;
     }
 
     if (CMagiCSerial::Close())
@@ -1291,16 +1330,18 @@ uint32_t CMagiCSerial::AtariSerClose(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Mehrere Zeichen von serieller Schnittstelle lesen
-* Rückgabe: Anzahl Zeichen
-*
-* Wird vom SERIAL-Treiber für MagicMacX verwendet
-* (DEV_SER.DEV), jedoch nicht im MagiC-Kernel selbst.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Read characters from serial interface
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return number of characters read
+ *
+ * @note Used by the host's SERIAL driver (DEV_SER.DEV), not by the MagiC kernel itself.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerRead(uint32_t params, uint8_t *addrOffset68k)
 {
     struct SerReadParm
@@ -1318,17 +1359,18 @@ uint32_t CMagiCSerial::AtariSerRead(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Mehrere Zeichen auf serielle Schnittstelle ausgeben
-* params        Zeiger auf auszugebendes Zeichen (16 Bit)
-* Rückgabe: Anzahl Zeichen
-*
-* Wird vom SERIAL-Treiber für MagicMacX verwendet
-* (DEV_SER.DEV), jedoch nicht im MagiC-Kernel selbst.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Write characters to serial interface
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return number of characters written
+ *
+ * @note Used by the host's SERIAL driver (DEV_SER.DEV), not by the MagiC kernel itself.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerWrite(uint32_t params, uint8_t *addrOffset68k)
 {
     struct SerWriteParm
@@ -1346,17 +1388,20 @@ uint32_t CMagiCSerial::AtariSerWrite(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Status für serielle Schnittstelle
-* params        Zeiger auf Struktur
-* Rückgabe: 0xffffffff (kann schreiben) oder 0 (kann nicht schreiben)
-*
-* Wird vom SERIAL-Treiber für MagicMacX verwendet
-* (DEV_SER.DEV), jedoch nicht im MagiC-Kernel selbst.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Get status of serial interface
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return status
+ * @retval 0            cannot write
+ * @retval 0xffffffff   can write
+ *
+ * @note Used by the host's SERIAL driver (DEV_SER.DEV), not by the MagiC kernel itself.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerStat(uint32_t params, uint8_t *addrOffset68k)
 {
     struct SerStatParm
@@ -1373,17 +1418,18 @@ uint32_t CMagiCSerial::AtariSerStat(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Ioctl für serielle Schnittstelle
-* params        Zeiger auf Struktur
-* Rückgabe: Fehlercode
-*
-* Wird vom SERIAL-Treiber für MagicMacX verwendet
-* (DEV_SER.DEV), jedoch nicht im MagiC-Kernel selbst.
-*.
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Ioctl for serial interface
+ *
+ * @param[in]  params           68k address of parameter block
+ * @param[in]  addrOffset68k    host address of 68k memory
+ *
+ * @return zero or error code
+ *
+ * @note Used by the host's SERIAL driver (DEV_SER.DEV), not by the MagiC kernel itself.
+ *
+ ************************************************************************************************/
 uint32_t CMagiCSerial::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
 {
     struct SerIoctlParm
@@ -1410,43 +1456,43 @@ uint32_t CMagiCSerial::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
     unsigned int nStopBits;
 
 
-    DebugInfo("CMagiC::AtariSerIoctl() -- Fcntl(cmd=0x%04x, parm=0x%08x)", be16toh(theSerIoctlParm->cmd), be32toh(theSerIoctlParm->parm));
+    DebugInfo2("() -- Fcntl(cmd=0x%04x, parm=0x%08x)", be16toh(theSerIoctlParm->cmd), be32toh(theSerIoctlParm->parm));
     switch(be16toh(theSerIoctlParm->cmd))
     {
         case TIOCBUFFER:
             // Inquire/Set buffer settings
-            DebugWarning("CMagiC::AtariSerConf() -- Fcntl(TIOCBUFFER) -- not supported");
+            DebugWarning2("() -- Fcntl(TIOCBUFFER) -- not supported");
             ret = (uint32_t) EINVFN;
             break;
 
         case TIOCCTLMAP:
             // Inquire I/O-lines and signaling capabilities
-            DebugWarning("CMagiC::AtariSerConf() -- Fcntl(TIOCCTLMAP) -- not supported");
+            DebugWarning2("() -- Fcntl(TIOCCTLMAP) -- not supported");
             ret = (uint32_t) EINVFN;
             break;
 
         case TIOCCTLGET:
             // Inquire I/O-lines and signals
-            DebugWarning("CMagiC::AtariSerConf() -- Fcntl(TIOCCTLGET) -- not supported");
+            DebugWarning2("() -- Fcntl(TIOCCTLGET) -- not supported");
             ret = (uint32_t) EINVFN;
             break;
 
         case TIOCCTLSET:
             // Set I/O-lines and signals
-            DebugWarning("CMagiC::AtariSerConf() -- Fcntl(TIOCCTLSET) -- not supported");
+            DebugWarning2("() -- Fcntl(TIOCCTLSET) -- not supported");
             ret = (uint32_t) EINVFN;
             break;
 
         case TIOCGPGRP:
             //get terminal process group
-            DebugWarning("CMagiC::AtariSerIoctl() -- Fcntl(TIOCGPGRP) -- not supported");
+            DebugWarning2("() -- Fcntl(TIOCGPGRP) -- not supported");
             ret = (uint32_t) EINVFN;
             break;
 
         case TIOCSPGRP:
             //set terminal process group
             grp = be32toh(*((uint32_t *) (addrOffset68k + be32toh(theSerIoctlParm->parm))));
-            DebugInfo("CMagiC::AtariSerIoctl() -- Fcntl(TIOCSPGRP, %d)", (uint32_t) grp);
+            DebugInfo2("() -- Fcntl(TIOCSPGRP, %d)", (uint32_t) grp);
             (void) grp;     // TODO: really unused?
             ret = (uint32_t) EINVFN;
             break;
@@ -1454,28 +1500,28 @@ uint32_t CMagiCSerial::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
         case TIOCFLUSH:
             // Leeren der seriellen Puffer
             mode = be32toh(theSerIoctlParm->parm);
-            DebugInfo("CMagiC::AtariSerIoctl() -- Fcntl(TIOCFLUSH, %d)", mode);
+            DebugInfo2("() -- Fcntl(TIOCFLUSH, %d)", mode);
             switch(mode)
             {
-                // Der Sendepuffer soll komplett gesendet werden. Die Funktion kehrt
-                // erst zurück, wenn der Puffer leer ist (return E_OK, =0) oder ein
-                // systeminterner Timeout abgelaufen ist (return EDRVNR, =-2). Der
-                // Timeout wird vom System sinnvoll bestimmt.
+                // The whole transmit buffer shall be sent. The function does not return before
+                // the transmit buffer is empty (return E_OK, =0) or a system internal timeout
+                // has occurred (return EDRVNR, =-2).
+                // The timeout value is defined by the system in a sensible way.
                 case 0:
                     ret = CMagiCSerial::Drain();
                     break;
 
-                // Der Empfangspuffer wird gelöscht.
+                // clear receive buffer
                 case 1:
                     ret = CMagiCSerial::Flush(true, false);
                     break;
 
-                // Der Sendepuffer wird gelöscht.
+                // clear transmit buffer
                 case 2:
                     ret = CMagiCSerial::Flush(false, true);
                     break;
 
-                // Empfangspuffer und Sendepuffer werden gelîscht.
+                // clear receive and transmit buffer
                 case 3:
                     ret = CMagiCSerial::Flush(true, true);
                     break;
@@ -1488,63 +1534,64 @@ uint32_t CMagiCSerial::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
 
         case TIOCIBAUD:
         case TIOCOBAUD:
-            // Eingabegeschwindigkeit festlegen
+            // configure receive speed
+
             NewBaudrate = be32toh(*((uint32_t *) (addrOffset68k + be32toh(theSerIoctlParm->parm))));
             bSet = ((int) NewBaudrate != -1) && (NewBaudrate != 0);
-            DebugInfo("CMagiC::AtariSerIoctl() -- Fcntl(%s, %d)", (be16toh(theSerIoctlParm->cmd) == TIOCIBAUD) ? "TIOCIBAUD" : "TIOCOBAUD", NewBaudrate);
+            DebugInfo2("() -- Fcntl(%s, %d)", (be16toh(theSerIoctlParm->cmd) == TIOCIBAUD) ? "TIOCIBAUD" : "TIOCOBAUD", NewBaudrate);
 
             if (be16toh(theSerIoctlParm->cmd) == TIOCIBAUD)
                 ret = CMagiCSerial::Config(
-                    bSet,                        // Input-Rate ggf. ändern
-                    NewBaudrate,                // neue Input-Rate
-                    &OldBaudrate,                // alte Baud-Rate
-                    false,                        // Output-Rate nicht ändern
-                    0,                        // neue Output-Rate
-                    NULL,                        // alte Output-Rate egal
-                    false,                        // Xon/Xoff ändern
+                    bSet,                               // conditionally change input rate
+                    NewBaudrate,                        // new input rate
+                    &OldBaudrate,                       // old baudrate
+                    false,                              // do not change output rate
+                    0,                                  // new output rate
+                    nullptr,                            // old output rate is don't care
+                    false,                              // change Xon/Xoff
                     false,
                     NULL,
-                    false,                        // Rts/Cts ändern
+                    false,                              // change Rts/Cts
                     false,
-                    NULL,
-                    false,                        // parity enable ändern
+                    nullptr,
+                    false,                              // change parity enable
                     false,
-                    NULL,
-                    false,                        // parity even ändern
+                    nullptr,
+                    false,                              // change parity even
                     false,
-                    NULL,
-                    false,                        // n Bits ändern
+                    nullptr,
+                    false,                              // change n bits
                     0,
-                    NULL,
-                    false,                        // Stopbits ändern
+                    nullptr,
+                    false,                              // change stop bits
                     0,
-                    NULL);
+                    nullptr);
             else
                 ret = CMagiCSerial::Config(
-                    false,                        // Input-Rate nicht ändern
-                    0,                        // neue Input-Rate
-                    NULL,                        // alte Input-Rate egal
-                    bSet,                        // Output-Rate ggf. ändern
-                    NewBaudrate,                // neue Output-Rate
-                    &OldBaudrate,                // alte Output-Rate
-                    false,                        // Xon/Xoff ändern
+                    false,                              // do not change input rate
+                    0,                                  // new input rate
+                    nullptr,                            // old input rate is don't care
+                    bSet,                               // conditionally change output rate
+                    NewBaudrate,                        // new output rate
+                    &OldBaudrate,                       // old output rate
+                    false,                              // change Xon/Xoff
                     false,
-                    NULL,
-                    false,                        // Rts/Cts ändern
+                    nullptr,
+                    false,                              // change Rts/Cts
                     false,
-                    NULL,
-                    false,                        // parity enable ändern
+                    nullptr,
+                    false,                              // change parity enable
                     false,
-                    NULL,
-                    false,                        // parity even ändern
+                    nullptr,
+                    false,                              // change parity even
                     false,
-                    NULL,
-                    false,                        // n Bits ändern
+                    nullptr,
+                    false,                              // change n bits
                     0,
-                    NULL,
-                    false,                        // Stopbits ändern
+                    nullptr,
+                    false,                              // change stop bits
                     0,
-                    NULL);
+                    nullptr);
 
             *((uint32_t *) (addrOffset68k + be32toh(theSerIoctlParm->parm))) = htobe32(OldBaudrate);
             if ((int) ret == -1)
@@ -1552,35 +1599,35 @@ uint32_t CMagiCSerial::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
             break;
 
         case TIOCGFLAGS:
-            // Übertragungsprotokolleinstellungen erfragen
+            // retrieve protocol settings
 
-            DebugInfo("CMagiC::AtariSerIoctl() -- Fcntl(TIOCGFLAGS, %d)", be32toh(theSerIoctlParm->parm));
+            DebugInfo2("() -- Fcntl(TIOCGFLAGS, %d)", be32toh(theSerIoctlParm->parm));
             (void) CMagiCSerial::Config(
-                        false,                        // Input-Rate nicht ändern
-                        0,                        // neue Input-Rate
-                        NULL,                        // alte Input-Rate egal
-                        false,                        // Output-Rate nicht ändern
-                        0,                        // neue Output-Rate
-                        NULL,                        // alte Output-Rate egal
-                        false,                        // Xon/Xoff nicht ändern
-                        false,                        // neuer Wert
-                        &bXonXoff,                    // alter Wert
-                        false,                        // Rts/Cts nicht ändern
+                        false,                          // do not change input rate
+                        0,                              // new input rate
+                        nullptr,                        // old input rate is don't care
+                        false,                          // do not change output rate
+                        0,                              // new output rate
+                        nullptr,                        // old output rate is don't care
+                        false,                          // do not change Xon/Xoff
+                        false,                          // new value
+                        &bXonXoff,                      // old value
+                        false,                          // do not change Rts/Cts
                         false,
                         &bRtsCts,
-                        false,                        // parity enable nicht ändern
+                        false,                          // do not change parity enable
                         false,
                         &bParityEnable,
-                        false,                        // parity even nicht ändern
+                        false,                          // do not change parity even
                         false,
                         &bParityEven,
-                        false,                        // n Bits nicht ändern
+                        false,                          // do not change n bits
                         0,
                         &nBits,
-                        false,                        // Stopbits nicht ändern
+                        false,                          // do not change stop bits
                         0,
                         &nStopBits);
-            // Rückgabewert zusammenbauen
+            // compose return value
             flags = 0;
             if (bXonXoff)
                 flags |= 0x1000;
@@ -1606,56 +1653,60 @@ uint32_t CMagiCSerial::AtariSerIoctl(uint32_t params, uint8_t *addrOffset68k)
             break;
 
         case TIOCSFLAGS:
-            // Übertragungsprotokolleinstellungen setzen
+            // configure protocol parameters
+
             flags = be16toh(*((uint16_t *) (addrOffset68k + be32toh(theSerIoctlParm->parm))));
-            DebugInfo("CMagiC::AtariSerIoctl() -- Fcntl(TIOCSFLAGS, 0x%04x)", (uint32_t) flags);
+            DebugInfo2("() -- Fcntl(TIOCSFLAGS, 0x%04x)", (uint32_t) flags);
             bXonXoff = (flags & 0x1000) != 0;
-            DebugInfo("CMagiC::AtariSerIoctl() -- XON/XOFF %s", (bXonXoff) ? "ein" : "aus");
+            DebugInfo2("() -- XON/XOFF %s", (bXonXoff) ? "ON" : "OFF");
             bRtsCts = (flags & 0x2000) != 0;
-            DebugInfo("CMagiC::AtariSerIoctl() -- RTS/CTS %s", (bRtsCts) ? "ein" : "aus");
+            DebugInfo2("() -- RTS/CTS %s", (bRtsCts) ? "ON" : "OFF");
             bParityEnable = (flags & (0x4000+0x8000)) != 0;
-            DebugInfo("CMagiC::AtariSerIoctl() -- Parität %s", (bParityEnable) ? "ein" : "aus");
+            DebugInfo2("() -- parity %s", (bParityEnable) ? "ON" : "OFF");
             bParityEven= (flags & 0x4000) != 0;
-            DebugInfo("CMagiC::AtariSerIoctl() -- Parität %s", (bParityEven) ? "gerade (even)" : "ungerade (odd)");
+            DebugInfo2("() -- parity %s", (bParityEven) ? "(even)" : "(odd)");
             nBits = 8U - ((flags & 0xc) >> 2);
-            DebugInfo("CMagiC::AtariSerIoctl() -- %d Bits", nBits);
+            DebugInfo2("() -- %d bits", nBits);
             nStopBits = flags & 3U;
-            DebugInfo("CMagiC::AtariSerIoctl() -- %d Stop-Bits%s", nStopBits, (nStopBits == 0) ? " (Synchron-Modus?)" : "");
+            DebugInfo2("() -- %d stop bits%s", nStopBits, (nStopBits == 0) ? " (synchronous mode?)" : "");
             if ((nStopBits == 0) || (nStopBits == 2))
-                return((uint32_t) ATARIERR_ERANGE);
+            {
+                return (uint32_t) ATARIERR_ERANGE;
+            }
+
             if (nStopBits == 3)
                 nStopBits = 2;
             ret = CMagiCSerial::Config(
-                        false,                        // Input-Rate nicht ändern
-                        0,                        // neue Input-Rate
-                        NULL,                        // alte Input-Rate egal
-                        false,                        // Output-Rate nicht ändern
-                        0,                        // neue Output-Rate
-                        NULL,                        // alte Output-Rate egal
-                        true,                        // Xon/Xoff ändern
-                        bXonXoff,                    // neuer Wert
-                        NULL,                        // alter Wert egal
-                        true,                        // Rts/Cts ändern
+                        false,                          // do not change input rate
+                        0,                              // new input rate
+                        nullptr,                        // old input rate is don't care
+                        false,                          // do not change output rate
+                        0,                              // new output rate
+                        nullptr,                        // old output rate is don't care
+                        true,                           // change Xon/Xoff
+                        bXonXoff,                       // new value
+                        nullptr,                        // old value is don't care
+                        true,                           // change Rts/Cts
                         bRtsCts,
-                        NULL,
-                        true,                        // parity enable ändern
+                        nullptr,
+                        true,                           // change parity enable
                         bParityEnable,
-                        NULL,
-                        false,                        // parity even nicht ändern
+                        nullptr,
+                        false,                          // do not change parity even
                         bParityEven,
-                        NULL,
-                        true,                        // n Bits ändern
+                        nullptr,
+                        true,                           // change n bits
                         nBits,
-                        NULL,
-                        true,                        // Stopbits ändern
+                        nullptr,
+                        true,                           // change stop bits
                         nStopBits,
-                        NULL);
+                        nullptr);
             if ((int) ret == -1)
                 ret = (uint32_t) ATARIERR_ERANGE;
             break;
 
         default:
-            DebugError("CMagiC::AtariSerIoctl() -- Fcntl(0x%04x -- unbekannt", be16toh(theSerIoctlParm->cmd) & 0xffff);
+            DebugError2("() -- Fcntl(0x%04x) is unknown", be16toh(theSerIoctlParm->cmd) & 0xffff);
             ret = (uint32_t) EINVFN;
             break;
     }

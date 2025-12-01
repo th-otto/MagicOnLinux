@@ -18,6 +18,7 @@ const char *argnames[] =
     "wxh[xb][ip]",
     "w[xh]",
     "size",
+    "EN|DE|FR",
     "program",
     "atari_txtfile",
     "host_txtfile"
@@ -39,6 +40,7 @@ const char *descriptions[] =
     "             write configuration file with default values and exit",
     "     e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
     "            e.g. 2x2 or 2 or 2x4, overrides config file",
+    "            language for Atari localisation, either EN or DE or FR",
     "             Atari RAM size, e.g. 512k or 4M or 3m",
     "           choose editor program for -e option, to override '" DEFAULT_EDITOR "'",
     "  convert text file from Atari to host format",
@@ -247,12 +249,42 @@ static int eval_memsize(const char *str, int *atari_memsize)
 }
 
 
+static int localise(const char *arg_lang)
+{
+    // We must get the preferences first to know the location of the Atari root file system.
+    // Also we can set localisation from config file.
+    // command line has precedence
+    if (arg_lang == nullptr)
+    {
+        arg_lang = Preferences::AtariLanguage;
+    }
+    if ((arg_lang[0] != '\0') && (arg_lang[0] != '0'))
+    {
+        // Note that the shell script converts language code to uppercase.
+        char cmd[1200];
+        // cut long string to 10 characters, avoiding overflow
+        sprintf(cmd, "%s/LANG/LOCALISE.SH %.10s", Preferences::AtariRootfsPath, arg_lang);
+        //puts(cmd);
+        //exit(0);
+        int ret = system(cmd);
+        if (ret != 0)
+        {
+            fputs("Localisation change failed\n", stderr);
+            return 4;
+        }
+    }
+
+    return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
     int c;
     const char *arg_geometry = nullptr;
     const char *arg_stretch = nullptr;
     const char *arg_memsize = nullptr;
+    const char *arg_lang = nullptr;
     int mode = -1;
     int width = -1;
     int height = -1;
@@ -280,12 +312,13 @@ int main(int argc, char *argv[])
             {"geometry",     required_argument, nullptr, 'g' },
             {"stretch",      required_argument, nullptr, 's' },
             {"memsize",      required_argument, nullptr, 'm' },
+            {"lang",         required_argument, nullptr, 'l' },
             {"editor",       required_argument, nullptr,  0 },      // long_option_index 7
             {"tconv-a2h",    required_argument, nullptr,  0 },      // long_option_index 8
             {"tconv-h2a",    required_argument, nullptr,  0 },      // long_option_index 9
             {nullptr,        0,                 nullptr,  0 }
         };
-        c = getopt_long(argc, argv, "hc:ewg:s:m:",
+        c = getopt_long(argc, argv, "hc:ewg:s:m:l:",
                         long_options, &long_option_index);
         //printf("getopt_long() -> %d (c = '%c'), long_option_index = %d\n", c, c, long_option_index);
 
@@ -344,6 +377,10 @@ int main(int argc, char *argv[])
 
             case 'm':
                 arg_memsize = optarg;
+                break;
+
+            case 'l':
+                arg_lang = optarg;
                 break;
 
             case 'w':
@@ -466,6 +503,15 @@ int main(int argc, char *argv[])
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }
+
+    // We must get the preferences first to know the location of the Atari root file system.
+    // Also we can set localisation from config file.
+    // command line has precedence
+    if (localise(arg_lang))
+    {
+        return 4;
+    }
+
     CConversion::init();
     CMagiCPrint::init();
     CMagiCSerial::init();

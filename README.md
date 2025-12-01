@@ -38,13 +38,9 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - cp -p magiclinux/kernel/LOCALISE.SH Atari-rootfs/LANG/
 - mv Atari-rootfs MAGIC_C
 
-Replace "HOSTBIOS/EN" with "HOSTBIOS/DE" or "HOSTBIOS/FR" for German or French.
-
-Replace "English" with "de" or "fr" for German or French.
+Replace "HOSTBIOS/EN" with "HOSTBIOS/DE" or "HOSTBIOS/FR" for German or French. Replace "English" with "de" or "fr" for German or French. But, however, the Atari's language can be changed later via config file or command line.
 
 Without gxmessage you will not see error message dialogues, instead the text will be printed to stderr only.
-
-The MAGICLIN.OS kernel is currently only available in German, but you may compile and link your own.
 
 You might replace CMAKE_BUILD with "Debug" (to get debug log output) or omit this parameter.
 
@@ -57,6 +53,8 @@ Run the application with "magiclinux/build/magic-on-linux".
 Use parameter "-h" or "--help" for an explanation of the parameters.
 
 Especially helpful: parameter "-e" to open the configuration file in a text editor.
+
+The Atari's language can be changed anytime, via command line (-lang=de) or in the config file. If necessary, some localised files are then copied inside root file system.
 
 Atari RAM size is given in bytes and excludes video memory, which is managed separately.
 
@@ -86,10 +84,8 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 
 # Bugs and Agenda
 
-* Include German, French and English localisation of emulator and emulated system without needing to clone AtariX repository.
 * Musashi emulator sources should be synchronised with latest version (see below).
-* Atari root file system (like MAGIC_C) folder should be automatically created and localised.
-* Add support for compilation on macOS.
+* Atari root file system (like MAGIC_C) folder should be automatically created.
 
 # Example Command to Create a Volume Image:
 

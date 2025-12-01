@@ -102,7 +102,7 @@ static const char *var_name[VAR_NUMBER] =
 };
 
 
-unsigned Preferences::AtariLanguage = 0;
+char Preferences::AtariLanguage[16] = "";       // empty: default
 unsigned Preferences::AtariMemSize = (8 * 1024 * 1024);
 bool Preferences::bShowHostMenu = true;
 enAtariScreenColourMode Preferences::atariScreenColourMode = atariScreenMode16M;
@@ -364,7 +364,7 @@ int Preferences::writePreferences(const char *cfgfile)
     fprintf(f, "%s = %u\n",     var_name[VAR_APP_WINDOW_Y], AtariScreenY);
     fprintf(f, "[ATARI EMULATION]\n");
     fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_MEMORY_SIZE], AtariMemSize);
-    fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_LANGUAGE], AtariLanguage);
+    fprintf(f, "#%s = %s\n",     var_name[VAR_ATARI_LANGUAGE], AtariLanguage);
     fprintf(f, "%s = %s\n",     var_name[VAR_SHOW_HOST_MENU], bShowHostMenu ? "YES" : "NO");
     fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_AUTOSTART], bAutoStartMagiC ? "YES" : "NO");
     fprintf(f, "[ADDITIONAL ATARI DRIVES]\n");
@@ -766,7 +766,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
             break;
 
         case VAR_ATARI_LANGUAGE:
-            num_errors += eval_unsigned(&AtariLanguage, 0, 0xffffffff, &line);
+            num_errors += eval_quotated_str(AtariLanguage, sizeof(AtariLanguage), &line);
             break;
 
         case VAR_SHOW_HOST_MENU:

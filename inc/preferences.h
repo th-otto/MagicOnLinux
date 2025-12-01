@@ -72,7 +72,7 @@ class Preferences
     static const char *videoModeToString(enAtariScreenColourMode mode);
 
     static unsigned AtariMemSize;
-    static unsigned AtariLanguage;
+    static char AtariLanguage[16];                  // empty for default, or EN/DE/FR
     static bool bShowHostMenu;
     static enAtariScreenColourMode atariScreenColourMode;
     static bool bHideHostMouse;

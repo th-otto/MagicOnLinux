@@ -732,7 +732,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
     DebugInfo2("() - 68k ROM is write-protected (slows down the emulator a bit)");
 #else
-    DebugInfo("() - 68k ROM is not write-protected (makes the emulator a bit faster)");
+    DebugInfo2("() - 68k ROM is not write-protected (makes the emulator a bit faster)");
 #endif
 #ifdef WATCH_68K_PC
     DebugInfo2("() - 68k PC is checked for validity (slows down the emulator a bit)");
@@ -1357,10 +1357,12 @@ int CMagiC::EmuThread( void )
             {
                 bNewBstate[0] = CMagiCMouse::setNewButtonState(0, m_bInterruptMouseButton[0]);
                 bNewBstate[1] = CMagiCMouse::setNewButtonState(1, m_bInterruptMouseButton[1]);
-                bNewMpos =  CMagiCMouse::setNewPosition(m_InterruptMouseWhere);
+                bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhere);
                 bNewKey = (m_pKbRead != m_pKbWrite);
                 if (bNewBstate[0] || bNewBstate[1] || bNewMpos || bNewKey)
                 {
+                    // The "no kbd/mouse data" error occurs with 0 0 1 0:
+                    // DebugInfo2("() -- ikbd pending = %u %u %u %u", bNewBstate[0], bNewBstate[1], bNewMpos, bNewKey);
                     // Interrupt-Vektor 70 für Tastatur/MIDI mitliefern
                     m_bInterruptPending = true;
 #if defined(USE_ASGARD_PPC_68K_EMU)
@@ -2956,6 +2958,13 @@ uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
 *
 * Callback des Emulators: Tastatur- und Mausdaten abholen
 *
+* Interrupt calls ikbdsys() via vector
+*   ikbdsys -> callback with param = 0
+* Interrupt directly calls host -> callback with param = 1
+*
+* params = 0: called from ikbdsys()
+* params = 1: called from midikey_int() in MagiC kernel (MFP interrupt 6)
+*
 **********************************************************************/
 
 uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffset68k)
@@ -2977,6 +2986,7 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
         {
             ret = CMagiCMouse::getNewPositionAndButtonState(buf);
         }
+
         if (ret)
         {
             PutKeyToBuffer((unsigned char) buf[0]);

@@ -110,5 +110,6 @@ typedef struct
 // -> MagiC.cpp
 void sendBusError(uint32_t addr, const char *AccessMode);
 void getActAtariPrg(const char **pName, uint32_t *pact_pd);
+void sendVBL(void);
 
 #endif

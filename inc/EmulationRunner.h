@@ -32,6 +32,7 @@
 #include "MagiC.h"
 #include "MagiCScreen.h"
 #include "XCmd.h"
+#include "network.h"
 
 // static class
 class EmulationRunner
@@ -72,6 +73,7 @@ class EmulationRunner
     static CMagiCScreen m_EmulatorScreen;
     static CXCmd m_EmulatorXcmd;
     static CMagiC m_Emulator;
+    static CNetwork m_Network;
     static SDL_Thread *m_EmulatorThread;
     static bool m_EmulatorRunning;
 

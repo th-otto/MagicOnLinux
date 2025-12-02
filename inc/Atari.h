@@ -489,6 +489,7 @@ struct SYSHDR
 #define EUNDEV    -15L    // unknown device
 #define EBADSF    -16L    // bad sectors on format
 #define EOTHER    -17L    // insert other disk
+#define TOS_EINVAL  -25 /* Invalid argument. */
 
 /* BDOS level errors */
 
@@ -918,7 +919,7 @@ MacSysX_rawdrvr:        DS.L PTRLEN   ; LONG RawDrvr({int, long} *) Raw driver (
 // previously MacSysX_Daemon:         DS.L PTRLEN   ; call for the mmx daemon
 MacSysX_Daemon:	        DS.L 1		  ; MagicOnLinux: call for the mmx daemon
 MacSysX_BlockDev:       DS.L 1        ; MagicOnLinux: disk image management
-MacSysX_resvd1:         DS.L 1        ; MagicOnLinux: reserved for future use
+MacSysX_Network:        DS.L 1        ; MagicOnLinux: network management
 MacSysX_resvd2:         DS.L 1        ; MagicOnLinux: reserved for future use
 MacSysX_Yield:          DS.L 1        ; call to yield CPU time (idle)
 MacSys_OldHdr:          DS.L 49       ; for compatibility with Behne's code
@@ -1012,7 +1013,7 @@ struct MacXSysHdr
 #if defined(MAGICLIN)
     PTR32_HOST   MacSys_Daemon;             // call for the mmx daemon
     PTR32_HOST   MacSys_BlockDevice;        // new for MagicOnLinux
-    PTR32_HOST   MacSys_resvd1;
+    PTR32_HOST   MacSys_Network;            // new for MagicOnLinux
     PTR32_HOST   MacSys_resvd2;
 #else
     PTR32x4_HOST MacSys_Daemon;             // call for the mmx daemon

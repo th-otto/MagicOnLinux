@@ -37,6 +37,7 @@
 #include "MagiCPrint.h"
 #include "Atari.h"
 #include "volume_images.h"
+#include "network.h"
 #include "mem_access_68k.h"
 #include "conversion.h"
 #include "gui.h"
@@ -88,6 +89,10 @@ void print_app(uint32_t addr68k)
 void sendBusError(uint32_t addr, const char *AccessMode)
 {
     pTheMagiC->SendBusError(addr, AccessMode);
+}
+void sendVBL(void)
+{
+    pTheMagiC->SendVBL();
 }
 void getActAtariPrg(const char **pName, uint32_t *pact_pd)
 {
@@ -954,6 +959,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 #if defined(MAGICLIN)
     setHostCallback(&pMacXSysHdr->MacSys_Daemon, MmxDaemon);
     setHostCallback(&pMacXSysHdr->MacSys_BlockDevice, CVolumeImages::AtariBlockDevice);
+    setHostCallback(&pMacXSysHdr->MacSys_Network, CNetwork::AtariNetwork);
 #else
     setCMagiCHostCallback(&pMacXSysHdr->MacSys_Daemon, thunk_MmxDaemon);
 #endif

@@ -89,40 +89,87 @@ const char *AtariAddr2Description(uint32_t addr)
     // Convert ST address to TT address
 
     if ((addr >= 0xff0000) && (addr < 0xffffff))
+    {
         addr |= 0xff000000;
+    }
 
-    if (addr == 0xffff8201)
-        return("Video Controller: Video base register high");
+    switch(addr)
+    {
+        case 0xffff8006:
+            return("Falcon 030 Monitor type, RAM size, etc.");
+            break;
 
-    if (addr == 0xffff8203)
-        return("Video Controller: Video base register mid");
+        case 0xffff8201:
+            return("Video Controller: Video base register high");
+            break;
 
-    if (addr == 0xffff820d)
-        return("Video Controller: Video base register low (STE)");
+        case 0xffff8203:
+            return("Video Controller: Video base register mid");
+            break;
 
-    if (addr == 0xffff8260)
-        return("Video Controller: ST shift mode register (0: 4 Planes, 1: 2 Planes, 2: 1 Plane)");
+        case 0xffff820a:
+            return "Video Sync Mode";
+            break;
 
-    // Interrupts A: Timer B/XMIT Err/XMIT Buffer Empty/RCV Err/RCV Buffer full/Timer A/Port I6/Port I7 (Bits 0..7)
-    if (addr == 0xfffffa0f)
-        return("MFP: ISRA (Interrupt-in-service A)");
+        case 0xffff820d:
+            return("Video Controller: Video base register low (STE)");
+            break;
 
-    // Interrupts B: Port I0/Port I1/Port I2/Port I3/Timer D/Timer C/Port I4/Port I5 (Bits 0..7)
-    if (addr == 0xfffffa11)
-        return("MFP: ISRB (Interrupt-in-service B)");
+        case 0xffff8260:
+        case 0xffff8261:
+            return("Video Controller: ST shift mode register (0: 4 Planes, 1: 2 Planes, 2: 1 Plane)");
+            break;
+
+        case 0xffff8262:
+            return("Video Controller: TT shift mode register");
+            break;
+
+        // Interrupts A: Timer B/XMIT Err/XMIT Buffer Empty/RCV Err/RCV Buffer full/Timer A/Port I6/Port I7 (Bits 0..7)
+        case 0xfffffa0f:
+            return("MFP: ISRA (Interrupt-in-service A)");
+            break;
+
+        // Interrupts B: Port I0/Port I1/Port I2/Port I3/Timer D/Timer C/Port I4/Port I5 (Bits 0..7)
+        case 0xfffffa11:
+            return("MFP: ISRB (Interrupt-in-service B)");
+            break;
+    }
+
+    if ((addr >= 0xffff8240) && (addr < 0xffff8260))
+    {
+        return("ST Video palette register 0..15");
+    }
+
+    if ((addr >= 0xffff8400) && (addr < 0xffff8600))
+    {
+        return("TT Video palette register 0..255");
+    }
 
     if ((addr >= 0xfffffa40) && (addr < 0xfffffa54))
+    {
         return("MC68881");
+    }
 
     if ((addr >= 0xfffffc00) && (addr < 0xfffffc07))
+    {
         return("6850 ACIA I/O Chips");
+    }
 
-    if ((addr >= 0x00FF0000) && (addr < 0x00FF8000))
+    if ((addr >= 0xffff0000) && (addr < 0xffff8000))
+    {
         return("Reserved I/O Space");
+    }
+
+    if ((addr >= 0xfffc0000) && (addr < 0xffff0000))
+    {
+        return("ST 192k ROM");
+    }
 
     // if we do not know details ...
     if (addr >= 0xffff8000)
+    {
         return("ST/TT I/O");
+    }
 
     return("?");
 }
@@ -196,6 +243,12 @@ m68k_data_type m68k_read_memory_8(m68k_addr_type address)
         return(*((uint8_t *) (hostVideoAddr + (address - addr68kVideo))));
     }
     else
+    if (address == 0xffff820a)
+    {
+        DebugWarning2("() --- Reading of \"Video Sync Mode\" returns zero!");
+        return 0;
+    }
+    else
     {
         // handle access error
         const char *procName;
@@ -213,7 +266,7 @@ m68k_data_type m68k_read_memory_8(m68k_addr_type address)
         */
             sendBusError(address, "read byte");
 
-        return(0xff);
+        return 0xff;
     }
 }
 
@@ -360,20 +413,29 @@ void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
         uint32_t act_pd;
         getAtariPrg(&procName, &act_pd);
 
-        DebugError("m68k_write_memory_8(adr = 0x%08lx, dat = 0x%02hx) --- bus error (%s) by process %s",
+        DebugError2("(adr = 0x%08lx, dat = 0x%02hx) --- access error (%s) by process %s",
                      address, (uint8_t) value, AtariAddr2Description(address), procName);
 
         if ((address == 0xffff8201) || (address == 0xffff8203) || (address == 0xffff820d))
         {
-            DebugWarning("m68k_write_memory_8() --- Access to \"Video Base Register\" ignored to make PD.PRG working!");
+            DebugWarning2("() --- Access to \"Video Base Register\" ignored to make PD.PRG working!");
         }
         else
         if (address == 0xfffffa11)
         {
-            DebugWarning("m68k_write_memory_8() --- Access to \"MFP ISRB\" ignored to make ZBENCH.APP working!");
+            DebugWarning2("() --- Access to \"MFP ISRB\" ignored to make ZBENCH.APP working!");
         }
         else
+        if (address == 0xffff820a)
+        {
+            DebugWarning2("() --- Access to \"Video Sync Mode\" ignored!");
+        }
+        else
+        {
+            DebugError2("(adr = 0x%08lx, dat = 0x%02hx) --- bus error (%s) by process %s",
+                        address, (uint8_t) value, AtariAddr2Description(address), procName);
             sendBusError(address, "write byte");
+        }
     }
 }
 

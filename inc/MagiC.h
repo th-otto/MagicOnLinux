@@ -77,6 +77,7 @@ class CMagiC
     } __attribute__((packed));
 
     void Init_CookieData(MgMxCookieData *pCookieData);
+    static int relocate(FILE *f, uint32_t file_size, uint8_t *tbase, const ExeHeader *exehead);
     int LoadReloc(const char *path, uint32_t stackSize, int32_t  reladdr, BasePage **basePage);
     int GetKbBufferFree(void);
     void PutKeyToBuffer(unsigned char key);

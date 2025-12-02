@@ -239,15 +239,20 @@ struct BasePage
 /// file header for GEMDOS executable files, not MagiC specific
 struct ExeHeader
 {
-    UINT16_BE code;
-    UINT32_BE tlen;
-    UINT32_BE dlen;
-    UINT32_BE blen;
-    UINT32_BE slen;
-    INT32_BE  dum1;
-    INT32_BE  dum2;
-    INT16_BE  relmod;
+    UINT16_BE code;         // 0x00: magic value 0x601a (big endian)
+    UINT32_BE tlen;         // 0x02: TEXT length (code)
+    UINT32_BE dlen;         // 0x06: DATA length
+    UINT32_BE blen;         // 0x0a: BSS length, not stored in file
+    UINT32_BE slen;         // 0x0e: symbol table length
+    INT32_BE  unused;       // 0x12:
+    INT32_BE  flags;        // 0x16: see PF_xxxx
+    INT16_BE  relmod;       // 0x1a: non-zero, if there is no relocation table in the file
 } __attribute__((packed));
+
+#define PF_FASTLOAD     1   // only clear BSS, not heap on process start
+#define PF_TTRAMLOAD    2   // program may be loaded to TT RAM
+#define PF_TTRAMMEM     4   // programm may get TT RAM on Malloc()
+#define PF_PROT      0x18   // protection mode
 
 /// BIOS Parameter Block for a mounted volume
 struct BPB

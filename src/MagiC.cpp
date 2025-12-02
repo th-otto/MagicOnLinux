@@ -281,11 +281,15 @@ void CMagiC::OS_WaitForEvent(uint32_t *event, uint32_t *flags)
 }
 
 
-/**//**************************************************************************
-*
-*  @brief Get file size from host path
-*
-******************************************************************************/
+/** **********************************************************************************************
+ *
+ * @brief Get file size from host path
+ *
+ * @param[in]  hostPath     file
+ *
+ * @return file size or -1 on error
+ *
+ ************************************************************************************************/
 static int64_t getFileSize(const char *hostPath)
 {
 	int ret;
@@ -302,16 +306,122 @@ static int64_t getFileSize(const char *hostPath)
 
 
 /** **********************************************************************************************
-*
-* @brief Load and relocate an Atari executable file, here the MagiC kernel
-*
-* @param[in]   path           host path of Atari exe file
-* @param[in]   stackSize      space needed after BSS segment
-* @param[in]   reladdr        load to here, -1: load to end (default)
-* @param[out]  basePage       pointer to loaded base page
-*
-* @return 0 = OK, otherwise error code
-*
+ *
+ * @brief Relocate an Atari executable file, here the MagiC kernel
+ *
+ * @param[in]  f            Atari exe file
+ * @param[in]  file_size    size of the file
+ * @param[in]  tbase        host address of TEXT segment
+ * @param[in]  exehead      pointer to loaded program file header (big-endian)
+ *
+ * @return 0 = OK, otherwise error code
+ *
+ ************************************************************************************************/
+int CMagiC::relocate
+(
+    FILE *f,
+    uint32_t file_size,
+    uint8_t *tbase,
+    const ExeHeader *exehead
+)
+{
+    //
+    // seek to relocation table, skip code, data, symbols and header
+    //
+
+    uint32_t relocation_table_fpos = be32toh(exehead->slen) +
+                                     be32toh(exehead->tlen) +
+                                     be32toh(exehead->dlen)+ sizeof(ExeHeader);
+    DebugInfo2("() - seek to relocation table, file offset %u\n", relocation_table_fpos);
+
+    int err = fseek(f, relocation_table_fpos, SEEK_SET);
+    if (err)
+    {
+        DebugError2("() - cannot seek to relocation table, file offset %u\n", relocation_table_fpos);
+        DebugError2("() - error code %d\n", errno);
+        return -1;
+    }
+
+    //
+    // read first relocation offset, 32-bit
+    //
+
+    uint32_t loff;      // offset of first relocation entry
+    if (fread(&loff, sizeof(loff), 1, f) != 1)
+    {
+        return -2;
+    }
+    loff = be32toh(loff);
+    if (loff == 0)
+    {
+        DebugWarning2("() - No relocation");
+        return 0;
+    }
+    relocation_table_fpos += sizeof(loff);
+
+    //
+    // read all relocation data
+    //
+
+    size_t RelocBufSize = file_size - relocation_table_fpos;
+    uint8_t *relBuf = (uint8_t *) malloc(RelocBufSize + 2);
+    if (relBuf == nullptr)
+    {
+        return -3;
+    }
+    if (fread(relBuf, RelocBufSize, 1, f) != 1)
+    {
+        free(relBuf);
+        return -4;
+    }
+    relBuf[RelocBufSize] = 0;    // just to be sure that the table is zero terminated
+
+    //
+    // relocate first 32-bit word in Atari code
+    //
+
+    uint32_t *tp = (uint32_t *) (tbase + loff);
+    *tp = htobe32((uint32_t) (tbase - mem68k) + be32toh(*tp));
+
+    //
+    // relocate the remaining
+    //
+
+    uint8_t *relp = relBuf;
+    while(*relp)
+    {
+        uint8_t relb = *relp++;
+        if (relb == 1)
+        {
+            tp = (uint32_t *) ((char *) tp + 254);
+        }
+        else
+        {
+            tp = (uint32_t *) ((char *) tp + (unsigned char) relb);
+
+            *tp = htobe32((uint32_t) (tbase - mem68k) + be32toh(*tp));
+        }
+    }
+
+    free(relBuf);
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Load and relocate an Atari executable file, here the MagiC kernel
+ *
+ * @param[in]   path           host path of Atari exe file
+ * @param[in]   stackSize      space needed after BSS segment
+ * @param[in]   reladdr        load to here, -1: load to end (default)
+ * @param[out]  basePage       pointer to loaded base page
+ *
+ * @return 0 = OK, otherwise error code
+ * @retval 0        OK
+ * @retval -1       file not found
+ * @retval -2       file is corrupt
+ *
  ************************************************************************************************/
 int CMagiC::LoadReloc
 (
@@ -321,83 +431,88 @@ int CMagiC::LoadReloc
     BasePage **basePage
 )
 {
-    int err = 0;
-    size_t len, codlen;
     ExeHeader exehead;
     BasePage *bp = nullptr;
-    unsigned char *relp;
-    unsigned char relb;
-    unsigned char *tpaStart, *relBuf = NULL, *reloff, *tbase, *bbase;
-    unsigned long loff, tpaSize;
-    long Fpos;
-    FILE *f = nullptr;
 
 
     DebugInfo2("(\"%s\")", path);
+    *basePage = nullptr;    // assume failure by default
 
     int64_t fileSize = getFileSize(path);
-    DebugInfo2("() - kernel file size = %ld", fileSize);
-    if (fileSize > 0)
+    if (fileSize < 0)
     {
-        f = fopen(path, "rb");
-    }
-
-    if (f == nullptr)
-    {
-        DebugError2("() - Cannot open file \"%s\")", path);
-        (void) showAlert("The emulator cannot find the kernel file MAGICLIN.OS", "Repair configuration file!");
+        DebugInfo2("() - kernel file does not exist");
         return -1;
     }
 
-    size_t items_read;
-    len = sizeof(ExeHeader);
+    DebugInfo2("() - kernel file size = %ld", fileSize);
+    if ((fileSize <= (int64_t) sizeof(ExeHeader)) || (fileSize > 0x1000000))
+    {
+        DebugError2("() - Invalid kernel file size %ld", fileSize);
+        return -2;
+    }
+
+    FILE *f = fopen(path, "rb");
+    if (f == nullptr)
+    {
+        DebugError2("() - Cannot open file \"%s\")", path);
+        return -1;
+    }
+
+    //
     // read PRG Header
-    items_read = fread(&exehead, len, 1, f);
-    if (items_read != 1)
+    //
+
+    if (fread(&exehead, sizeof(ExeHeader), 1, f) != 1)
     {
         DebugError2("() - MagiC kernel file is too small.");
-        goto exitReloc;
+        fclose(f);
+        return -2;
     }
 
     DebugInfo2("() - Size TEXT = %ld", be32toh(exehead.tlen));
     DebugInfo2("() - Size DATA = %ld", be32toh(exehead.dlen));
     DebugInfo2("() - Size BSS  = %ld", be32toh(exehead.blen));
 
-    codlen = be32toh(exehead.tlen) + be32toh(exehead.dlen);
+    uint32_t codlen = be32toh(exehead.tlen) + be32toh(exehead.dlen);
     if (be32toh(exehead.blen) & 1)
     {
-    //    exehead.blen++;        // BSS-Segment auf gerade Länge
         exehead.blen = htobe32(be32toh(exehead.blen) + 1);    // big-endian increment
     }
-    tpaSize = sizeof(BasePage) + codlen + be32toh(exehead.blen) + stackSize;
+    uint32_t tpaSize = sizeof(BasePage) + codlen + be32toh(exehead.blen) + stackSize;
 
     DebugInfo2("() - Size overall, including basepage and stack = 0x%08x (%ld)", tpaSize, tpaSize);
 
     if (tpaSize > mem68kSize)
     {
-        DebugError2("() - Insufficient memory");
-        err = 1;
-        goto exitReloc;
+        DebugError2("() - Insufficient memory for kernel");
+        fclose(f);
+        return -2;
     }
 
-
-// hier basepage auf durch 4 teilbare Adresse!
+    //
+    // determine basepage address, 4-byte aligned
+    //
 
     if (reladdr < 0)
+    {
         reladdr = (long) (mem68kSize - ((tpaSize + 2) & ~3));
+    }
     if (reladdr + tpaSize > mem68kSize)
     {
         DebugError2("() - Invalid load address");
-        err = 2;
-        goto exitReloc;
+        fclose(f);
+        return -3;
     }
 
-    tpaStart = mem68k + reladdr;
-    tbase = tpaStart + sizeof(BasePage);
-    reloff = tbase;
-    bbase = tbase + codlen;
+    //
+    // initialise basepage
+    //
 
-    // All 68k addresses are relative to m_RAM68k
+    uint8_t *tpaStart = mem68k + reladdr;           // basepage address in host memory
+    uint8_t *tbase = tpaStart + sizeof(BasePage);   // TEXT address in host memory
+    uint8_t *bbase = tbase + codlen;                // BSS address in host memory
+
     bp = (BasePage *) tpaStart;
     memset(bp, 0, sizeof(BasePage));
     bp->p_lowtpa = (PTR32_BE) htobe32(tpaStart - mem68k);
@@ -427,104 +542,38 @@ int CMagiC::LoadReloc
     }
     #endif
 
+    //
     // read TEXT+DATA from file
-    items_read = fread(tbase, codlen, 1, f);
-    if (items_read != 1)
+    //
+
+    if (fread(tbase, codlen, 1, f) != 1)
     {
-        readerr:
-        DebugError2("() - read error");
-        goto exitReloc;
+        fclose(f);
+        return -2;
     }
+
+    //
+    // relocate
+    //
 
     if (!be16toh(exehead.relmod))    // we must relocate
     {
-        // seek to relocation table
-        Fpos = be32toh(exehead.slen) + codlen + sizeof(exehead);
-        DebugInfo2("() - seek to relocation table, file offset %u\n", Fpos);
-
-        err = fseek(f, Fpos, SEEK_SET);
+        int err = relocate(f, (uint32_t) fileSize, tbase, &exehead);
         if (err)
         {
-            DebugError2("() - cannot seek to relocation table, file offset %u\n", Fpos);
-            DebugError2("() - error code %d\n", errno);
-            goto readerr;
-        }
-        len = 4;
-        items_read = fread(&loff, len, 1, f);
-        if (items_read != 1)
-        {
-            goto readerr;
-        }
-
-        loff = be32toh(loff);
-
-        if (loff)    // we must relocate
-        {
-            Fpos += 4;
-
-            // allocate buffer for relocation data
-            size_t RelocBufSize = fileSize - Fpos;
-            relBuf = (uint8_t *) malloc(RelocBufSize + 2);
-            if (relBuf == nullptr)
-            {
-                err = 1;    // out-of-memory
-                goto exitReloc;
-            }
-
-            // relocate first 32-bit word in Atari code
-            uint32_t *tp = (uint32_t *) (reloff + loff);
-
-            //*tp += (uint32_t) (reloff - mem68k);
-            *tp = htobe32((uint32_t) (reloff - mem68k) + be32toh(*tp));
-
-            // Reloc-Tabelle in einem Rutsch einlesen
-            items_read = fread(relBuf, RelocBufSize, 1, f);
-            if (items_read != 1)
-            {
-                goto readerr;
-            }
-            relBuf[RelocBufSize] = 0;    // just to be sure that the table is zero terminated
-
-            relp = relBuf;
-            while(*relp)
-            {
-                relb = *relp++;
-                if (relb == 1)
-                {
-                    tp = (uint32_t *) ((char *) tp + 254);
-                }
-                else
-                {
-                    tp = (uint32_t *) ((char *) tp + (unsigned char) relb);
-
-                    //*tp += (uint32_t) (reloff - mem68k);
-                    *tp = htobe32((uint32_t) (reloff - mem68k) + be32toh(*tp));
-                }
-            }
-        }
-        else
-        {
-            DebugWarning2("() - No relocation");
+            fclose(f);
+            return -2;
         }
     }
 
-    memset (bbase, 0, be32toh(exehead.blen));    // clear BSS
+    //
+    // clear BSS
+    //
 
-exitReloc:
-    if (err)
-        *basePage = NULL;
-    else
-        *basePage = bp;
-
-    if (relBuf)
-        free(relBuf);
-
-    if (f != nullptr)
-    {
-        fclose(f);
-    }
-
-    return err;
+    fclose(f);
+    memset(bbase, 0, be32toh(exehead.blen));
+    *basePage = bp;
+    return 0;
 }
 
 
@@ -746,13 +795,25 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     if (mem68k == nullptr)
     {
         showAlert("The emulator cannot reserve enough memory", "Reduce Atari memory size in configuration file");
-        return(1);
+        return 1;
     }
 
     // Atari-Kernel lesen
     err = LoadReloc(Preferences::AtariKernelPath, 0, -1, &m_BasePage);
+    switch(err)
+    {
+        case -1:
+            (void) showAlert("The emulator cannot find the kernel file MAGICLIN.OS", "Repair configuration file!");
+            break;
+        case -2:
+            (void) showAlert("The kernel file MAGICLIN.OS has been corrupted", "Repair configuration file!");
+            break;
+    }
+
     if (err)
-        return(err);
+    {
+        return err;
+    }
     DebugInfo2("() - MagiC kernel loaded and relocated successfully");
 
     // 68k Speicherbegrenzungen ausrechnen

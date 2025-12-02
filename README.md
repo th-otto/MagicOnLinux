@@ -27,6 +27,7 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - popd
 - cp -rp AtariX/src/AtariX-MT/AtariX/rootfs-common Atari-rootfs
 - rm Atari-rootfs/GEMSYS/MFM16M-1fff.SYS
+- mkdir Atari-rootfs/GEMSYS/GEMSCRAP
 - cp -p magiclinux/kernel/HOSTBIOS/EN/MAGICLIN.OS Atari-rootfs/
 - mkdir Atari-rootfs/LANG Atari-rootfs/LANG/DE Atari-rootfs/LANG/EN Atari-rootfs/LANG/FR
 - rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/LANG/EN/
@@ -40,9 +41,11 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 
 Replace "HOSTBIOS/EN" with "HOSTBIOS/DE" or "HOSTBIOS/FR" for German or French. Replace "English" with "de" or "fr" for German or French. But, however, the Atari's language can be changed later via config file or command line.
 
+Optionally adapt some default values in "CMakeLists.txt".
+
 Without gxmessage you will not see error message dialogues, instead the text will be printed to stderr only.
 
-You might replace CMAKE_BUILD with "Debug" (to get debug log output) or omit this parameter.
+You might replace CMAKE_BUILD_TYPE with "Debug" (to get debug log output) or omit this parameter.
 
 Alternatively you can put your Atari root file system (drive C:) and kernel (MAGICLIN.OS) anywhere and configure the emulator accordingly.
 

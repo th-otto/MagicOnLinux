@@ -80,7 +80,7 @@ class CMagiC
     static int relocate(FILE *f, uint32_t file_size, uint8_t *tbase, const ExeHeader *exehead);
     int LoadReloc(const char *path, uint32_t stackSize, int32_t  reladdr, BasePage **basePage);
     int GetKbBufferFree(void);
-    void PutKeyToBuffer(unsigned char key);
+    void PutKeyToBuffer(uint8_t key);
     static void *_EmuThread(void *param);
     int EmuThread(void);
 #if defined(USE_ASGARD_PPC_68K_EMU)

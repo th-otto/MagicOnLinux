@@ -36,7 +36,7 @@
 #define CURX     -0x158
 #define CURY     -0x156
 
-unsigned char *CMagiCMouse::m_pLineAVars;
+uint8_t *CMagiCMouse::m_pLineAVars;
 Point CMagiCMouse::m_PtActAtariPos;             // current position
 Point CMagiCMouse::m_PtActHostPos;              // desired position
 bool CMagiCMouse::m_bActAtariMouseButton[2];    // current state
@@ -53,7 +53,7 @@ bool CMagiCMouse::m_bActHostMouseButton[2];     // desired state
  * @return currently returns always zero
  *
  ************************************************************************************************/
-int CMagiCMouse::init(unsigned char *pLineAVars, Point PtPos)
+int CMagiCMouse::init(uint8_t *pLineAVars, Point PtPos)
 {
     m_bActAtariMouseButton[0] = m_bActAtariMouseButton[1] = false;
     m_bActHostMouseButton[0] = m_bActHostMouseButton[1] = false;
@@ -124,10 +124,10 @@ bool CMagiCMouse::setNewButtonState(unsigned int NumOfButton, bool bIsDown)
  *       both directions. For farther distances more than one packet is needed.
  *
  ************************************************************************************************/
-bool CMagiCMouse::getNewPositionAndButtonState(char packet[3])
+bool CMagiCMouse::getNewPositionAndButtonState(int8_t packet[3])
 {
     int xdiff,ydiff;
-    char packetcode;
+    int8_t packetcode;
 
     // Determine the way to go to the desired mouse pointer position
     xdiff = m_PtActHostPos.x - m_PtActAtariPos.x;
@@ -155,16 +155,16 @@ bool CMagiCMouse::getNewPositionAndButtonState(char packet[3])
 
         // The mouse packet allows horizontal movements up to 127 pixels.
         if (abs(xdiff) < 128)
-            *packet = (char) xdiff;
+            *packet = (int8_t) xdiff;
         else
-            *packet = (xdiff > 0) ? (char) 127 : (char) -127;
+            *packet = (xdiff > 0) ? (int8_t) 127 : (int8_t) -127;
         m_PtActAtariPos.x += *packet++;
 
         // The mouse packet allows vertical movements up to 127 pixels.
         if (abs(ydiff) < 128)
-            *packet = (char) ydiff;
+            *packet = (int8_t) ydiff;
         else
-            *packet = (ydiff > 0) ? (char) 127 : (char) -127;
+            *packet = (ydiff > 0) ? (int8_t) 127 : (int8_t) -127;
         m_PtActAtariPos.y += *packet++;
     }
 

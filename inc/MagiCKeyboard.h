@@ -29,7 +29,7 @@ class CMagiCKeyboard
 {
    public:
     static int init(void);
-    static unsigned char SdlScanCode2AtariScanCode(int s);
+    static uint8_t SdlScanCode2AtariScanCode(int s);
 };
 
 #endif

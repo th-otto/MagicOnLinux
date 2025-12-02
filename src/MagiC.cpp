@@ -1588,7 +1588,7 @@ int CMagiC::GetKbBufferFree( void )
 *
 **********************************************************************/
 
-void CMagiC::PutKeyToBuffer(unsigned char key)
+void CMagiC::PutKeyToBuffer(uint8_t key)
 {
     *m_pKbWrite++ = key;
     if (m_pKbWrite >= m_cKeyboardOrMouseData + KEYBOARDBUFLEN)
@@ -3031,7 +3031,7 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
     if (!ret)
     {
         // Die Maus wird erst erkannt, wenn VDI initialisiert ist
-        char buf[3];
+        int8_t buf[3];
         if (m_LineAVars != nullptr)
         {
             ret = CMagiCMouse::getNewPositionAndButtonState(buf);
@@ -3039,9 +3039,9 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
 
         if (ret)
         {
-            PutKeyToBuffer((unsigned char) buf[0]);
-            PutKeyToBuffer((unsigned char) buf[1]);
-            PutKeyToBuffer((unsigned char) buf[2]);
+            PutKeyToBuffer((uint8_t) buf[0]);
+            PutKeyToBuffer((uint8_t) buf[1]);
+            PutKeyToBuffer((uint8_t) buf[2]);
         }
     }
 

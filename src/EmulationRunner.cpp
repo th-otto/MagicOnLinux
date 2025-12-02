@@ -74,6 +74,7 @@ CXCmd EmulationRunner::m_EmulatorXcmd;
 CMagiC EmulationRunner::m_Emulator;
 SDL_Thread *EmulationRunner::m_EmulatorThread = nullptr;
 bool EmulationRunner::m_EmulatorRunning = false;
+CNetwork EmulationRunner::m_Network;
 
 SDL_TimerID EmulationRunner::m_timer;
 bool EmulationRunner::m_bQuitLoop = false;
@@ -1304,6 +1305,7 @@ int EmulationRunner::EmulatorThread(void *param)
         DebugError2("() - m_Emulator.CreateThread() => %d", err);
         return 0;
     }
+    m_Network.init();
 
     m_EmulatorRunning = true;
 

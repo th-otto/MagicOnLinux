@@ -45,7 +45,7 @@ Optionally adapt some default values in "CMakeLists.txt".
 
 Without gxmessage you will not see error message dialogues, instead the text will be printed to stderr only.
 
-You might replace CMAKE_BUILD with "Debug" (to get debug log output) or omit this parameter.
+You might replace CMAKE_BUILD_TYPE with "Debug" (to get debug log output) or omit this parameter.
 
 Alternatively you can put your Atari root file system (drive C:) and kernel (MAGICLIN.OS) anywhere and configure the emulator accordingly.
 

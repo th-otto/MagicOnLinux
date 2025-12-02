@@ -310,7 +310,7 @@ bool CHostXFS::nameto_8_3
 INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
 {
 #ifdef __APPLE__
-    assert(bufsiz >= MAXPATHLEN);
+    assert(bufsiz >= PATH_MAX);
     (void) bufsiz;
     if (fcntl(dir_fd, F_GETPATH, pathbuf) == -1)
     {

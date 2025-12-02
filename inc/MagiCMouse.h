@@ -29,13 +29,13 @@
 class CMagiCMouse
 {
    public:
-    static int init(unsigned char *pLineAVars, Point PtPos);
+    static int init(uint8_t *pLineAVars, Point PtPos);
     static bool setNewPosition(Point PtPos);
     static bool setNewButtonState(unsigned int NumOfButton, bool bIsDown);
-    static bool getNewPositionAndButtonState(char packet[3]);
+    static bool getNewPositionAndButtonState(int8_t packet[3]);
 
    private:
-    static unsigned char *m_pLineAVars;
+    static uint8_t *m_pLineAVars;
     static Point m_PtActAtariPos;           // current
     static Point m_PtActHostPos;            // goal
     static bool m_bActAtariMouseButton[2];  // current

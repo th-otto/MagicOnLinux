@@ -51,7 +51,7 @@ int CMagiCKeyboard::init(void)
  * @retval 0  key not assigned, ignore
  *
  ************************************************************************************************/
-unsigned char CMagiCKeyboard::SdlScanCode2AtariScanCode(int s)
+uint8_t CMagiCKeyboard::SdlScanCode2AtariScanCode(int s)
 {
     switch(s)
     {

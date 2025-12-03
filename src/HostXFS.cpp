@@ -309,14 +309,19 @@ bool CHostXFS::nameto_8_3
  ************************************************************************************************/
 INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
 {
-#ifdef __APPLE__
-    assert(bufsiz >= PATH_MAX);
-    (void) bufsiz;
-    if (fcntl(dir_fd, F_GETPATH, pathbuf) == -1)
+#if defined(__APPLE__)
+    char pathbuf_max[PATH_MAX];
+    if (fcntl(dir_fd, F_GETPATH, pathbuf_max) == -1)
     {
         DebugWarning2("() : fcntl(F_GETPATH) failed");
         return EINTRN;
     }
+    if (strlen(pathbuf_max) + 1 > bufsiz)
+    {
+        DebugError2("() : path buffer overflow");
+        return ERANGE;
+    }
+    strcpy(pathbuf, pathbuf_max);
 #else
     char pathname[32];
     sprintf(pathname, "/proc/self/fd/%u", dir_fd);

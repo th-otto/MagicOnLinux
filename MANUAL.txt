@@ -164,6 +164,8 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - SCRAP.PRG
 - Script (complains about missing fonts, needs case-insensitive drive)
 - Script 2 (complains about missing fonts, needs case-insensitive drive)
+- SIGNUM 2.00 (6.11.1987) runs in 640x400 monochrome in single-application mode.
+- SIGNUM 2.01 (23.2.1988) runs in 640x400 monochrome in single-application mode.
 - Technobox CAD/2 (needs case-insensitive drive)
 - Texel 2.10
 - Wordplus 2.02 UK
@@ -205,7 +207,6 @@ Atari applications that do not work at all (blacklist)
 - PHOENIX 4.2 (strange file selector recursion)     <<<=== needs debugging
 - Scigraph (first complains about missing GDOS, then crashes with access to fffffa42, MC68881 FPU)
 - SED_440
-- SIGNUM2 (trap #9 or memory mapped access to 68881)
 - SWFŔAK.PRG (system was overwritten)
 - Tempus
 - Tempus2 (access address 0xffff01)

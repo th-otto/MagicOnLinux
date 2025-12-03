@@ -173,12 +173,12 @@ class CMagiC
     uint32_t m_InterruptEventsId;
 
     bool m_bSpecialExec;
-    unsigned char *m_LineAVars;
+    uint8_t *m_LineAVars;
 
     // ring buffer for keyboard and mouse
-    unsigned char m_cKeyboardOrMouseData[KEYBOARDBUFLEN];
-    unsigned char *m_pKbRead;           // read pointer
-    unsigned char *m_pKbWrite;          // write pointer
+    uint8_t m_cKeyboardOrMouseData[KEYBOARDBUFLEN];
+    uint8_t *m_pKbRead;           // read pointer
+    uint8_t *m_pKbWrite;          // write pointer
     pthread_mutex_t m_KbCriticalRegionId;   // mutex for keyboard events
 
     // Screen data

@@ -3013,33 +3013,30 @@ uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Tastatur- und Mausdaten abholen
-*
-* Interrupt calls ikbdsys() via vector
-*   ikbdsys -> callback with param = 0
-* Interrupt directly calls host -> callback with param = 1
-*
-* params = 0: called from ikbdsys()
-* params = 1: called from midikey_int() in MagiC kernel (MFP interrupt 6)
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: get keyboard and mouse data
+ *
+ * @param[in] params            0: about to handle interrupt, 1: leaving interrupt
+ * @param[in] addrOffset68k     Host address of 68k memory (unused)
+ *
+ * @return scancode or mouse code. Zero, in none is available
+ *
+ * @note params = 0: called from ikbdsys(),
+ *       params = 1: called from midikey_int() in MagiC kernel (MFP interrupt 6)
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) addrOffset68k;
 
-#ifdef _DEBUG_KB_CRITICAL_REGION
-    CDebug::DebugInfo("CMagiC::AtariGetKeyboardOrMouseData() --- Enter critical region m_KbCriticalRegionId");
-#endif
     OS_EnterCriticalRegion(&m_KbCriticalRegionId);
-    uint32_t ret = m_pKbRead != m_pKbWrite;        // Daten im Puffer?
+    uint32_t ret = m_pKbRead != m_pKbWrite;        // any data in buffer?
 
-    // Wenn keine Taste mehr im Puffer => Maus abfragen
+    // If no data in buffer, query mouse buttons and position
     if (!ret)
     {
-        // Die Maus wird erst erkannt, wenn VDI initialisiert ist
+        // No mouse handling before VDI initialisation
         int8_t buf[3];
         if (m_LineAVars != nullptr)
         {
@@ -3056,39 +3053,29 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
 
     if (params)
     {
+        // key was processed by kernel, end of interrupt handler
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::AtariGetKeyboardOrMouseData() --- Exited critical region m_KbCriticalRegionId");
-#endif
-        // Taste wurde verarbeitet. Entspricht beim Atari dem Löschen des
-        // "interrupt service bit"
-//        if (!ret)
-//            Asgard68000SetIRQLine(k68000IRQLineIRQ6, k68000IRQStateClear);
-        return ret;        // ggf. weitere Interrupts
+
+        // Clear "interrupt service bit", if any
+        //  if (!ret)
+        //      Asgard68000SetIRQLine(k68000IRQLineIRQ6, k68000IRQStateClear);
+        return ret;        // maybe more interrupts
     }
 
     if (!ret)
     {
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::AtariGetKeyboardOrMouseData() --- Exited critical region m_KbCriticalRegionId");
-#endif
-        DebugError("AtariGetKeyboardOrMouseData() --- Keine Daten");
-        return 0;                    // kein Zeichen?
+        // no data to process
+        return 0;  // no mouse or keyboard events to process
     }
 
+    // read byte from mouse/keyboard ringbuffer
     ret = *m_pKbRead++;
     if (m_pKbRead >= m_cKeyboardOrMouseData + KEYBOARDBUFLEN)
     {
         m_pKbRead = m_cKeyboardOrMouseData;
     }
-    #if defined(_DEBUG_KBD_AND_MOUSE)
-    DebugInfo("CMagiC::AtariGetKeyboardOrMouseData() - Sende 0x%02x", ret);
-    #endif
     OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-    #if defined(_DEBUG_KB_CRITICAL_REGION)
-    CDebug::DebugInfo("CMagiC::AtariGetKeyboardOrMouseData() --- Exited critical region m_KbCriticalRegionId");
-    #endif
     return ret;
 }
 

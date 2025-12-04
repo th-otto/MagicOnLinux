@@ -1,3 +1,12 @@
+Colours:
+- 32-bit True Colour: OK
+- 16-bit High Colour: OK
+- 8-bit, 256 colours: OK
+- 4-bit packed, 16 colours: OK
+- 4-bit interleaved, 16 colours: OK
+- 2-bit interleaved, 4 colours: total mess with NVDI, otherwise OK
+- 1-Bit monochrome: OK
+
 Drag&Drop of a volume (e.g. floppy disk) image mounts the image only to drive A: or B:.
 Maybe it should look for the first free logical drive.
 

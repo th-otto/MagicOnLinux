@@ -242,6 +242,8 @@ static void UpdateTextureFromRect(SDL_Texture *txtu, const SDL_Surface *srf, con
  * @param[in]  bStretchX    horizontal stretching factor ?!?
  * @param[in]  bStretchY    vertical stretching factor ?!?
  *
+ * @note This function is NOT called in true colour mode.
+ *
  ************************************************************************************************/
 static void ConvertAtari2HostSurface
 (
@@ -260,14 +262,13 @@ static void ConvertAtari2HostSurface
     const uint8_t *ps8x;
     uint32_t *pd32x;
     uint8_t c;
+    // Atari colour representation:
     // 0xff000000        black
     // 0xffff0000        red
     // 0xff00ff00        green
     // 0xff0000ff        blue
-    uint32_t col0 = palette[0];
-    uint32_t col1 = palette[1];
     // convert from RGB555 to RGB888 using a conversion table
-    const uint32_t rgbConvTable5to8[32] =
+    static const uint32_t rgbConvTable5to8[32] =
     {
         0,
         ( 1 * 255)/31,
@@ -312,7 +313,14 @@ static void ConvertAtari2HostSurface
 
     switch(bitsperpixel)
     {
+        //
+        // one bit, two colours
+        //
+
         case 1:
+        {
+            uint32_t col0 = palette[0];
+            uint32_t col1 = palette[1];
 
             // monochrome, driver MFM2.SYS.
             for (y = 0; y < pSrc->h; y++)
@@ -346,10 +354,14 @@ static void ConvertAtari2HostSurface
                 pd8 += pDst->pitch;
             }
             break;
+        }
+
+        //
+        // two bits interleaved, four colours, driver MFM4IP.SYS
+        //
 
         case 20:
-
-            // 4 colours, organized as interleaved plane (16-bit-big-endian, lowest bit first), driver MFM4IP.SYS. ?????
+            // organized as interleaved plane (16-bit-big-endian, lowest bit first)
             for (y = 0; y < pSrc->h; y++)
             {
                 ps8x = ps8;                    // pointer to source line
@@ -404,9 +416,11 @@ static void ConvertAtari2HostSurface
             }
             break;
 
-        case 4:
+        //
+        // four bits packed, 16 colours, driver MFM16.SYS
+        //
 
-            // 16 colours, organized as packed pixels, driver MFM16.SYS.
+        case 4:
             for (y = 0; y < pSrc->h; y++)
             {
                 ps8x = ps8;                    // pointer to source line
@@ -439,9 +453,12 @@ static void ConvertAtari2HostSurface
              colours on screen, meaning 4 bitplanes, you have 8 bytes (4 words)
              of data which describe 16 pixels in all 4 bitplanes. */
 
-        case 40:
+        //
+        // four bits interleaved, 16 colours, driver MFM16IP.SYS
+        //
 
-            // 16 colours, organized as interleaved plane (16-bit-big-endian), driver MFM16IP.SYS.
+        case 40:
+            // organized as interleaved plane (16-bit-big-endian)
             for (y = 0; y < pSrc->h; y++)
             {
                 ps8x = ps8;                    // pointer to source line
@@ -503,9 +520,11 @@ static void ConvertAtari2HostSurface
             }
             break;
 
-        case 8:
+        //
+        // 8 bits packed, 256 colours, driver MFM256.SYS
+        //
 
-            // 256 colours, organized as packed pixels, driver MFM256.SYS.
+        case 8:
             for (y = 0; y < pSrc->h; y++)
             {
                 ps8x = ps8;                    // pointer to source line
@@ -524,9 +543,11 @@ static void ConvertAtari2HostSurface
             }
             break;
 
-        case 16:
+        //
+        // 16 resp. 15 bits packed, 32768 colours, driver MFM32K.SYS
+        //
 
-            // 32768 colours, organized as packed pixels, driver MFM32K.SYS.
+        case 16:
             for (y = 0; y < pSrc->h; y++)
             {
                 ps8x = ps8;                    // pointer to source line
@@ -548,6 +569,7 @@ static void ConvertAtari2HostSurface
                     g = rgbConvTable5to8[g];
                     b = rgbConvTable5to8[b];
 
+                    // SDL has ARGB
                     w = (0xff000000) | (r << 16) | (g << 8) | (b);
                     *pd32x++ = w;
                 }
@@ -598,7 +620,6 @@ void EmulationRunner::_StartEmulatorThread(void)
  ************************************************************************************************/
 void EmulationRunner::_OpenWindow(void)
 {
-    int ret;
     // SDL stuff
     Uint32 rmask = 0;
     Uint32 gmask = 0;
@@ -658,17 +679,10 @@ void EmulationRunner::_OpenWindow(void)
             break;
 
         default:
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-            rmask = 0xff000000;
-            gmask = 0x00ff0000;
-            bmask = 0x0000ff00;
-            amask = 0x000000ff;
-#else
-            rmask = 0x000000ff;
+            rmask = 0x00ff0000;         // ARGB
             gmask = 0x0000ff00;
-            bmask = 0x00ff0000;
+            bmask = 0x000000ff;
             amask = 0xff000000;
-#endif
             pixelType = 16;             // RGBDirect, 0 would be indexed
             planeBytes = 0;
             break;
@@ -686,13 +700,16 @@ void EmulationRunner::_OpenWindow(void)
     m_hostScreenStretchX = Preferences::AtariScreenStretchX;
     m_hostScreenStretchY = Preferences::AtariScreenStretchY;
 
-    // note that the SDL surface cannot distinguish between packed pixel and interleaved.
+    // Note that the SDL surface cannot distinguish between packed pixel and interleaved.
     // This is the screen buffer for the emulated Atari
+
+    DebugWarning2("() : Create SDL surface with %u bits per pixel, r=0x%08x, g=0x%08x, b=0x%08x",
+                     screenbitsperpixel, rmask, gmask, bmask);
     m_sdl_atari_surface = SDL_CreateRGBSurface(
             0,    // no flags
             Preferences::AtariScreenWidth,
             Preferences::AtariScreenHeight,
-            screenbitsperpixel,
+            screenbitsperpixel,     // depending on Atari screen mode
             rmask,
             gmask,
             bmask,
@@ -711,17 +728,12 @@ void EmulationRunner::_OpenWindow(void)
 
     if (screenbitsperpixel != 32)
     {
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-        rmask = 0xff000000;
-        gmask = 0x00ff0000;
-        bmask = 0x0000ff00;
-        amask = 0x000000ff;
-#else
-        rmask = 0x000000ff;
+        rmask = 0x00ff0000;         // ARGB
         gmask = 0x0000ff00;
-        bmask = 0x00ff0000;
+        bmask = 0x000000ff;
         amask = 0xff000000;
-#endif
+        DebugWarning2("() : Create SDL surface with 32 bits per pixel, r=0x%08x, g=0x%08x, b=0x%08x",
+                        screenbitsperpixel, rmask, gmask, bmask);
         m_sdl_surface = SDL_CreateRGBSurface(
                                              0,    // no flags
                                              Preferences::AtariScreenWidth,     // was m_hostScreenW, why?
@@ -775,7 +787,7 @@ void EmulationRunner::_OpenWindow(void)
         return;     // fatal
     }
 
-#if 1
+#if 0
     /*
     * Draw test:  draws a grey square, only visible in native mode (true colour)
     */

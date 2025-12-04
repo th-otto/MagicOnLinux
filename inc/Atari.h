@@ -1248,7 +1248,7 @@ struct XFS_DMD
     UINT16 d_drive;     // 0x04: drive number 0..31
     UINT32 d_root;      // 0x06: 68k pointer to DD of root directory
     uint8_t data[94 - 10];
-};
+} __attribute__((packed));
 
 /// @brief  MagiC Directory Descriptor, stored in an IMB (internal memory block)
 struct XFS_DD

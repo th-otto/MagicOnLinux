@@ -2285,17 +2285,16 @@ uint32_t CMagiC::AtariDOSFn(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************************************//**
-*
-* @brief Emulator callback: XBIOS Gettime
-*
-* @param[in] params
-* @param[in] addrOffset68k
-*
-* @return bits [0:4]=two-seconds [5:10]=min [11:15]=h [16:20]=day [21:24]=month [25-31]=y-1980
-*
-**************************************************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS Gettime
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return bits [0:4]=two-seconds [5:10]=min [11:15]=h [16:20]=day [21:24]=month [25-31]=y-1980
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariGettime(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
@@ -2314,12 +2313,16 @@ uint32_t CMagiC::AtariGettime(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: XBIOS Settime
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS Settime
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return not supported, always zero
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariSettime(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
@@ -2329,12 +2332,16 @@ uint32_t CMagiC::AtariSettime(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: XBIOS Setpalette
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS Setpalette
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return not supported, always zero
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
@@ -2344,12 +2351,16 @@ uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: XBIOS Setcolor
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS Setcolor
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return not supported, always zero
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
@@ -2359,36 +2370,45 @@ uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: XBIOS VsetRGB
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS VsetRGB (Falcon TOS)
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return always zero
+ *
+ * @note Changes subsequent colour palette entries at once, up to 256.
+ *       Also called by VDI during intialisation.
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
 {
     struct VsetRGBParm
     {
-        uint16_t index;
-        uint16_t cnt;
-        uint32_t pValues;
+        uint16_t index;     // palette table index 0..255
+        uint16_t cnt;       // number of entries to change
+        uint32_t pValues;   // new colour values, 32-bit big-endian each
     } __attribute__((packed));
 
-    VsetRGBParm *theVsetRGBParm = (VsetRGBParm *) (addrOffset68k + params);
+    const VsetRGBParm *theVsetRGBParm = (VsetRGBParm *) (addrOffset68k + params);
     const uint8_t *pValues = (const uint8_t *) (addrOffset68k + be32toh(theVsetRGBParm->pValues));
+    // index of first entry to change
     uint16_t index = be16toh(theVsetRGBParm->index);
+    // number of entries to change
     uint16_t cnt = be16toh(theVsetRGBParm->cnt);
     DebugInfo2("(index=%u, cnt=%u, 0x%02x%02x%02x%02x)",
               (unsigned) index, (unsigned) cnt,
               (unsigned) pValues[0], (unsigned) pValues[1], (unsigned) pValues[2], (unsigned) pValues[3]);
 
-    // durchlaufe alle zu ändernden Farben
-    uint32_t * pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable;
-    int j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
-    int i;
-    for (i = index, pColourTable += index;
-        i < j;
-        i++, pValues += 4,pColourTable++)
+    //
+    // loop over all colours in the palette that shall be changed
+    //
+
+    uint32_t *pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable + index;
+    unsigned j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
+    for (unsigned i = index; i < j; i++, pValues += 4,pColourTable++)
     {
         // Atari: 00rrggbb
         // 0xff000000        black
@@ -2399,41 +2419,49 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
         *pColourTable++ = c;
     }
 
+    // tell GUI thread to update the screen
     atomic_store(&gbAtariVideoBufChanged, true);
 
     return 0;
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: XBIOS VgetRGB
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS VgetRGB (Falcon TOS)
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return always zero
+ *
+ * @note Retrieves subsequent colour palette entries at once, up to 256.
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
 {
-    int i,j;
-    uint32_t *pColourTable;
     struct VgetRGBParm
     {
-        uint16_t index;
-        uint16_t cnt;
-        uint32_t pValues;
+        uint16_t index;     // palette table index 0..255
+        uint16_t cnt;       // number of entries to read
+        uint32_t pValues;   // read buffer for colour values, 32-bit big-endian each
     } __attribute__((packed));
 
-    VgetRGBParm *theVgetRGBParm = (VgetRGBParm *) (addrOffset68k + params);
+    const VgetRGBParm *theVgetRGBParm = (VgetRGBParm *) (addrOffset68k + params);
     uint8_t *pValues = (uint8_t *) (addrOffset68k + be32toh(theVgetRGBParm->pValues));
+    // index of first entry to read
     uint16_t index = be16toh(theVgetRGBParm->index);
     uint16_t cnt = be16toh(theVgetRGBParm->cnt);
+     // number of entries to read
     DebugInfo2("(index=%u, cnt=%u)", index, cnt);
 
-    // durchlaufe alle zu ändernden Farben
-    pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable;
-    j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
-    for (i = index, pColourTable += index;
-        i < j;
-        i++, pValues++, pColourTable++)
+    //
+    // loop over all colours in the palette that shall be read
+    //
+
+    const uint32_t *pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable + index;
+    unsigned j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
+    for (unsigned i = index; i < j; i++, pValues++, pColourTable++)
     {
 #if 0//SDL_BYTEORDER == SDL_BIG_ENDIAN
         pValues[0] = 0;
@@ -2462,7 +2490,7 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
 
 /** **********************************************************************************************
  *
- * @brief Emulator callback: Convert Atari drive to device code TODO: This is not part of XFS, move to CMagiC!
+ * @brief Emulator callback: Convert Atari drive to device code
  *
  * @param[in] params            68k address of parameter structure
  * @param[in] addrOffset68k     Host address of 68k memory

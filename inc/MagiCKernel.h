@@ -1,1 +1,182 @@
-/* * Copyright (C) 1990-2018 Andreas Kromke, andreas.kromke@gmail.com * * This program is free software; you can redistribute it or * modify it under the terms of the GNU General Public License * as published by the Free Software Foundation; either version 3 * of the License, or (at your option) any later version. * * This program is distributed in the hope that it will be useful, * but WITHOUT ANY WARRANTY; without even the implied warranty of * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the * GNU General Public License for more details. * * You should have received a copy of the GNU General Public License * along with this program; if not, write to the Free Software * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. *//*** Enthält alle Konstanten und Strukturen für den MagiC-Kernel**/#ifndef MAGICKERNEL_H_INCLUDED#define MAGICKERNEL_H_INCLUDED#include "osd_cpu.h"   	#pragma options align=packed#define MagiCKernel_MAX_OPEN	32	// Größte Handlenummer-1 (0..31)struct MagiCKernel_PD{	UInt32 p_lowtpa;	void *p_hitpa;	void *p_tbase;	unsigned long p_tlen;	void *p_dbase;	unsigned long p_dlen;	void *p_bbase;	unsigned long p_blen;	void *p_dta;	void *p_parent;	UInt16 p_procid;		/* 0x28: Prozeß- ID */	UInt16 p_status;		/* 0x2a: ab MagiC 5.04 */	void *p_env;	char p_devx[6];	char p_flags;		/* 0x36: Bit 0: Pdomain (MiNT:1/TOS:0) */	char p_defdrv;	char p_res3[8];		/* 0x38: Terminierungskontext für ACC */	char p_drvx[32];		/* 0x40: Tabelle: Default-Path-Hdl. */	UInt32 p_procdata;	/* 0x60: Zeiger auf PROCDATA */	UInt16 p_umask;		/* 0x64: umask für Unix-Dateisysteme */	UInt16 p_procgroup;	/* 0x66: Prozeßgruppe (ab 6.10.96) */	UInt32 p_mem;		/* 0x68: soviel Speicher darf ich holen */	UInt32 p_context;		/* 0x6c: unter MAGIX statt p_reg benutzt */	UInt32 p_mflags;		/* 0x70: Bit 2: Malloc aus AltRAM erlaubt */	UInt32 p_app;		/* 0x74: APPL, die den Prozeß gestartet hat (main thread) */	UInt32 p_ssp;		/* 0x78: ssp bei Start des Prozesses */	UInt32 p_reg;		/* 0x7c: für Kompatibilität mit TOS */	char p_cmdline[128];};struct MagiCKernel_SIGHNDL{	UInt32	sa_handler;		/* 0x00: Signalhandler */	UInt32	sa_sigextra;	/* 0x04: OR-Maske bei AusfÅhrung des Signals */	UInt16	sa_flags;};struct MagiCKernel_FH{	UInt32	fh_fd;	UInt16	fh_flag;};struct MagiCKernel_PROCDATA{	UInt32	pr_magic;		/* magischer Wert, ähnlich wie bei MiNT */	UInt16	pr_ruid;		/* "real user ID" */	UInt16	pr_rgid;		/* "real group ID" */	UInt16	pr_euid;		/* "effective user ID" */	UInt16	pr_egid;		/* "effective group ID" */	UInt16	pr_suid;		/* "saved user ID" */	UInt16	pr_sgid;		/* "saved group ID" */	UInt16	pr_auid;		/* "audit user ID" */	UInt16	pr_pri;		/* "base process priority" (nur dummy) */	UInt32	pr_sigpending;	/* wartende Signale */	UInt32	pr_sigmask;	/* Signalmaske */	struct MagiCKernel_SIGHNDL pr_sigdata[32];	UInt32	pr_usrval;		/* "User"-Wert (ab 9/96) */	UInt32	pr_memlist;		/* Tabelle der "shared memory blocks" */	char		pr_fname[128];	/* Pfad der zugehörigen PRG-Datei */	char		pr_cmdlin[128];	/* Ursprüngliche Kommandozeile */	UInt16	pr_flags;		/* Bit 0: kein Eintrag in u:\proc */						/* Bit 1: durch Pfork() erzeugt */	char		pr_procname[10];	/* Prozeßname für u:\proc\ ohne Ext.		*/	UInt16	pr_bconmap;	/* z.Zt. unbenutzt */	struct MagiCKernel_FH pr_hndm6;	/* Handle -6: unbenutzt */	struct MagiCKernel_FH pr_hndm5;	/* Handle -5: unbenutzt */	struct MagiCKernel_FH pr_hndm4;	/* Handle -4: standardmäßig NUL: */	struct MagiCKernel_FH pr_hndm3;	/* Handle -3: standardmäßig PRN: */	struct MagiCKernel_FH pr_hndm2;	/* Handle -2: standardmäßig AUX: */	struct MagiCKernel_FH pr_hndm1;	/* Handle -1: standardmäßig CON: */	struct MagiCKernel_FH pr_handle[MagiCKernel_MAX_OPEN];	/* Handles 0..31 */}; struct MagiCKernel_APP{	UINT32	ap_next;			// Verkettungszeiger	UINT16	ap_id;			// Application-ID	UINT16	ap_parent;			// tatsächliche parent-ID	UINT16	ap_parent2;		// ggf. die ap_id des VT52, dorthin ->CH_EXIT	UINT16	ap_type;			// 0 = Main Thread/1 = Thread/2 = Signal Handler	UINT32	ap_oldsigmask;		// Alte Signalmaske (für Signal-Handler)	UINT32	ap_sigthr;			// Haupt-Thread: Zeiger auf aktiven Signalhandler							// Signalhandler: Zeiger auf vorherigen oder NULL	UINT16	ap_srchflg;			// für appl_search	UINT32	ap_menutree;		// Menübaum	UINT32	ap_attached;		// NULL oder Liste fÅr menu_attach()	UINT32	ap_desktree;		// Desktop-Hintergrund	UINT16	ap_1stob;			//  dazu erstes Objekt	UINT8		ap_dummy1[2];		// zwei Leerzeichen vor ap_name	UINT8		ap_name[8];		// Name (8 Zeichen mit trailing blanks)	UINT8		ap_dummy2[2];		// Leerstelle und ggf. Ausblendzeichen	UINT8		ap_dummy3;		// Nullbyte für EOS	UINT8		ap_status;			// APSTAT_...	UINT16	ap_hbits;			// eingetroffene Events	UINT16	ap_rbits;			// erwartete Events	UINT32	ap_evparm;			// Event-Daten, z.B. <pid> oder msg-Puffer	UINT32	ap_nxttim;			// Nächste auf Timer wartende APP	UINT32	ap_ms;			// Timer	UINT32	ap_nxtalrm;		// Nächste auf Alarm wartende APP	UINT32	ap_alrmms;			// Alarm	UINT16	ap_isalarm;			// Flag	UINT32	ap_nxtsem;			// Nächste auf Semaphore wartende APP	UINT32	ap_semaph;			// auf diese Semaphore warten wir	UINT16	ap_unselcnt;		// Länge der Tabelle ap_unselx	UINT32	ap_unselx;			// Tabelle für evnt_(m)IO	UINT32	ap_evbut;			// für evnt_button	UINT32	ap_mgrect1;		// für evnt_mouse	UINT32	ap_mgrect2;		// für evnt_mouse	UINT16	ap_kbbuf[8];		// Puffer für 8 Tasten	UINT16	ap_kbhead;			// Nächstes zu lesendes Zeichen	UINT16	ap_kbtail;			// Nächstes zu schreibendes Zeichen	UINT16	ap_kbcnt;			// Anzahl Zeichen im Puffer	UINT16	ap_len;			// Message- Pufferlänge	UINT8		ap_buf[0x300];		// Message- Puffer (768 Bytes = 48 Nachrichten)	UINT16	ap_critic;			// Zähler für "kritische Phase"	UINT8		ap_crit_act;		// Bit 0: killed							// Bit 1: stopped							// Bit 2: Signale testen	UINT8		ap_stpsig;			// Flag "durch Signal gestoppt"	UINT32	ap_sigfreeze;		// Signalhandler für SIGFREEZE	UINT16	ap_recogn;			// Bit 0: verstehe AP_TERM	UINT32	ap_flags;			// Bit 0: will keinen prop. AES-Zeichensatz	UINT16	ap_doex;	UINT16	ap_isgr;	UINT16	ap_wasgr;	UINT16	ap_isover;	UINT32	ap_ldpd;			// PD des Loader-Prozesses	UINT32	ap_env;			// Environment oder NULL	UINT32	ap_xtail;			// Erw. Kommandozeile (> 128 Bytes) od. NULL	UINT32	ap_thr_usp;			// usp für Threads	UINT32	ap_memlimit;	UINT32	ap_nice;			// z.Zt. unbenutzt	UINT8		ap_cmd[128];		// Programmpfad	UINT8		ap_tai[128];		// Programmparameter	UINT16	ap_mhidecnt;		// lokaler Maus-Hide-Counter	UINT16	ap_svd_mouse[37	];	// x/y/planes/bg/fg/msk[32]/moff_cnt	UINT16	ap_prv_mouse[37];	UINT16	ap_act_mouse[37];	UINT32	ap_ssp;	UINT32	ap_pd;	UINT32	ap_etvterm;	UINT32	ap_stkchk;			// magisches Wort für Stacküberprüfung	UINT8		ap_stack[0];		// Stack};  	#pragma options align=reset#endif
+/*
+ * Copyright (C) 1990-2018/2025 Andreas Kromke, andreas.kromke@gmail.com
+ *
+ * This program is free software; you can redistribute it or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 3
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+
+/*
+*
+* Constants and structures for the MagiC kernel
+* (currently unused, only for documentation)
+*
+*/
+
+#ifndef MAGICKERNEL_H_INCLUDED
+#define MAGICKERNEL_H_INCLUDED
+
+#include "Atari.h"
+
+
+#define MagiCKernel_MAX_OPEN    32    // valid handles 0..31
+
+struct MagiCKernel_PD
+{
+    PTR32_BE p_lowtpa;
+    PTR32_BE p_hitpa;
+    PTR32_BE p_tbase;
+    UINT32_BE p_tlen;
+    PTR32_BE p_dbase;
+    UINT32_BE p_dlen;
+    PTR32_BE p_bbase;
+    UINT32_BE p_blen;
+    PTR32_BE p_dta;
+    PTR32_BE p_parent;      // 0x24: Parent process
+    UINT16_BE p_procid;     // 0x28: Process id
+    UINT16_BE p_status;     // 0x2a: >= MagiC 5.04
+    PTR32_BE p_env;
+    char p_devx[6];
+    char p_flags;           // 0x36: Bit 0: Pdomain (MiNT:1/TOS:0)
+    char p_defdrv;
+    char p_res3[8];         // 0x38: Termination context for ACC
+    char p_drvx[32];        // 0x40: Table: default path handles for all drives
+    UINT32_BE p_procdata;   // 0x60: Pointer to PROCDATA
+    UINT16_BE p_umask;      // 0x64: umask for Unix file systems
+    UINT16_BE p_procgroup;  // 0x66: process group (>= 6.10.96)
+    UINT32_BE p_mem;        // 0x68: amount of memory that may be allocated
+    UINT32_BE p_context;    // 0x6c: used by MAGIX instead of p_reg benutzt
+    UINT32_BE p_mflags;     // 0x70: Bit 2: Malloc() allowed from AltRAM
+    UINT32_BE p_app;        // 0x74: APPL that started the process (main thread)
+    UINT32_BE p_ssp;        // 0x78: ssp at process start
+    UINT32_BE p_reg;        // 0x7c: for compatibility with TOS
+    char p_cmdline[128];
+} __attribute__((packed));
+
+struct MagiCKernel_SIGHNDL
+{
+    UINT32_BE    sa_handler;    // 0x00: signal handler
+    UINT32_BE    sa_sigextra;   // 0x04: OR mask during signal processing
+    UINT16_BE    sa_flags;
+} __attribute__((packed));
+
+struct MagiCKernel_FH
+{
+    UINT32_BE    fh_fd;
+    UINT16_BE    fh_flag;
+} __attribute__((packed));
+
+struct MagiCKernel_PROCDATA
+{
+    UINT32_BE    pr_magic;          // magic value, simlar as in MiNT
+    UINT16_BE    pr_ruid;           // "real user ID"
+    UINT16_BE    pr_rgid;           // "real group ID"
+    UINT16_BE    pr_euid;           // "effective user ID"
+    UINT16_BE    pr_egid;           // "effective group ID"
+    UINT16_BE    pr_suid;           // "saved user ID"
+    UINT16_BE    pr_sgid;           // "saved group ID"
+    UINT16_BE    pr_auid;           // "audit user ID"
+    UINT16_BE    pr_pri;            // "base process priority" (only dummy)
+    UINT32_BE    pr_sigpending;     // waiting signals
+    UINT32_BE    pr_sigmask;        // signal mask
+    struct MagiCKernel_SIGHNDL pr_sigdata[32];
+    UINT32_BE    pr_usrval;         // "User" value (>= 9/96)
+    UINT32_BE    pr_memlist;        // table of "shared memory blocks"
+    char         pr_fname[128];     // path of corresponding .prg file
+    char         pr_cmdlin[128];    // initial command line
+    UINT16_BE    pr_flags;          // Bit 0: no entry in u:\proc
+                                    // Bit 1: created by Pfork()
+    char         pr_procname[10];   // process name for u:\proc\, without filename extension
+    UINT16_BE    pr_bconmap;        // (currently unused)
+    struct MagiCKernel_FH pr_hndm6; // Handle -6: unused
+    struct MagiCKernel_FH pr_hndm5; // Handle -5: unused
+    struct MagiCKernel_FH pr_hndm4; // Handle -4: by default this is NUL:
+    struct MagiCKernel_FH pr_hndm3; // Handle -3: by default this is PRN:
+    struct MagiCKernel_FH pr_hndm2; // Handle -2: by default this is AUX:
+    struct MagiCKernel_FH pr_hndm1; // Handle -1: by default this is CON:
+    struct MagiCKernel_FH pr_handle[MagiCKernel_MAX_OPEN];    // handles 0..31
+} __attribute__((packed));
+
+ struct MagiCKernel_APP
+{
+    UINT32_BE    ap_next;           // concatenation pointer
+    UINT16_BE    ap_id;             // Application ID
+    UINT16_BE    ap_parent;         // actual (== tats√§chliche!) parent ID
+    UINT16_BE    ap_parent2;        // if used, the ap_id of VT52, send CH_EXIT there
+    UINT16_BE    ap_type;           // 0 = main thread / 1 = thread / 2 = signal handler
+    UINT32_BE    ap_oldsigmask;     // old signal mask (for signal handler)
+    UINT32_BE    ap_sigthr;         // main thread: pointer to signal handler
+                                    // Signalhandler: pointer to previous or NULL
+    UINT16_BE    ap_srchflg;        // for appl_search()
+    UINT32_BE    ap_menutree;       // menu tree
+    UINT32_BE    ap_attached;       // NULL or list for menu_attach()
+    UINT32_BE    ap_desktree;       // desktop background ..
+    UINT16_BE    ap_1stob;          // .. and its first object
+    UINT8        ap_dummy1[2];      // two spaces before ap_name
+    UINT8        ap_name[8];        // name (8 characters with trailing blanks)
+    UINT8        ap_dummy2[2];      // space and, if used, hide mark
+    UINT8        ap_dummy3;         // zero byte for end-of-string
+    UINT8        ap_status;         // APSTAT_...
+    UINT16_BE    ap_hbits;          // received events
+    UINT16_BE    ap_rbits;          // exptected events
+    UINT32_BE    ap_evparm;         // event data, e.g. <pid> or msg buffer
+    UINT32_BE    ap_nxttim;         // next APP that's waiting for timer
+    UINT32_BE    ap_ms;             // timer
+    UINT32_BE    ap_nxtalrm;        // next APP waiting for alarm
+    UINT32_BE    ap_alrmms;         // alarm
+    UINT16_BE    ap_isalarm;        // flag
+    UINT32_BE    ap_nxtsem;         // next APP waiting for semaphore
+    UINT32_BE    ap_semaph;         // the Semaphore we are waiting for
+    UINT16_BE    ap_unselcnt;       // length of table ap_unselx
+    UINT32_BE    ap_unselx;         // table fur evnt_(m)IO
+    UINT32_BE    ap_evbut;          // for evnt_button
+    UINT32_BE    ap_mgrect1;        // for evnt_mouse
+    UINT32_BE    ap_mgrect2;        // for evnt_mouse
+    UINT16_BE    ap_kbbuf[8];       // buffer for 8 keys
+    UINT16_BE    ap_kbhead;         // next key to read
+    UINT16_BE    ap_kbtail;         // next key to write
+    UINT16_BE    ap_kbcnt;          // number of keys in buffer
+    UINT16_BE    ap_len;            // message buffer length
+    UINT8        ap_buf[0x300];     // message bufferr (768 bytes = 48 messages)
+    UINT16_BE    ap_critic;         // counter for "critical phase"
+    UINT8        ap_crit_act;       // bit 0: killed
+                                    // bit 1: stopped
+                                    // bit 2: test signals
+    UINT8        ap_stpsig;         // Flag "stopped by signal"
+    UINT32_BE    ap_sigfreeze;      // aignal handler for SIGFREEZE
+    UINT16_BE    ap_recogn;         // Bit 0: handles AP_TERM
+    UINT32_BE    ap_flags;          // Bit 0: deny proportional AES font
+    UINT16_BE    ap_doex;
+    UINT16_BE    ap_isgr;
+    UINT16_BE    ap_wasgr;
+    UINT16_BE    ap_isover;
+    UINT32_BE    ap_ldpd;           // PD of loader process
+    PTR32_BE     ap_env;            // environment or NULL
+    PTR32_BE     ap_xtail;          // extended command line (> 128 bytes) or NULL
+    UINT32_BE    ap_thr_usp;        // usp for threads
+    UINT32_BE    ap_memlimit;
+    UINT32_BE    ap_nice;           // (currently unused)
+    UINT8        ap_cmd[128];       // program path
+    UINT8        ap_tai[128];       // program parameters
+    UINT16_BE    ap_mhidecnt;       // local mouse hide counter
+    UINT16_BE    ap_svd_mouse[37];  // x/y/planes/bg/fg/msk[32]/moff_cnt
+    UINT16_BE    ap_prv_mouse[37];
+    UINT16_BE    ap_act_mouse[37];
+    UINT32_BE    ap_ssp;
+    UINT32_BE    ap_pd;
+    UINT32_BE    ap_etvterm;
+    UINT32_BE    ap_stkchk;         // magic guard word for checking stack overflow
+    UINT8        ap_stack[0];       // stack
+} __attribute__((packed));
+
+#endif

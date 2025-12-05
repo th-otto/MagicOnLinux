@@ -77,4 +77,18 @@
     <folder name="atari_drv_y" flags="0" _label="Path for Drive Y:"></folder>
     <folder name="atari_drv_z" flags="0" _label="Path for Drive Z:"></folder>
   </section>
+  <section name="ETH0" _label="Network">
+    <choice name="eth0_type" _label="Type" default="0">
+       <select value="0" name="" _label="None"></select>
+       <select value="1" name="" _label="Bridge"></select>
+       <select value="2" name="" _label="Point-to-Point"></select>
+    </choice>
+    <string name="eth0_tunnel" _label="Tunnel Device" default="tap0"></string>
+    <string name="eth0_host_ip" _label="Host IP" default="192.168.0.1"></string>
+    <string name="eth0_atari_ip" _label="Atari IP" default="192.168.0.2"></string>
+    <string name="eth0_netmask" _label="Netmask" default="255.255.255.0"></string>
+    <string name="eth0_gateway" _label="Gateway" default="192.168.0.1"></string>
+    <string name="eth0_mac" _label="MAC address" default="52:54:00:10:00:04"></string>
+    <int name="eth0_intlevel" _label="Interrupt Level" default="4" minval="3" maxval="6" step="1"></int>
+  </section>
 </preferences>

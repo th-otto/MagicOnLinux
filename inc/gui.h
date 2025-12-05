@@ -35,7 +35,7 @@ extern int showDialogue(const char *msg_text, const char *info_txt, const char *
 extern void send68kExceptionData(
                 unsigned exception_no,
                 uint32_t ErrAddr,
-                char *AccessMode,
+                const char *AccessMode,
                 uint32_t pc,
                 uint16_t sr,
                 uint32_t usp,

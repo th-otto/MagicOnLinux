@@ -40,8 +40,8 @@ const char *descriptions[] =
     "             write configuration file with default values and exit",
     "     e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
     "            e.g. 2x2 or 2 or 2x4, overrides config file",
-    "            language for Atari localisation, either EN or DE or FR",
     "             Atari RAM size, e.g. 512k or 4M or 3m",
+    "            language for Atari localisation, either EN or DE or FR",
     "           choose editor program for -e option, to override '" DEFAULT_EDITOR "'",
     "  convert text file from Atari to host format",
     "   convert text file from host to Atari format"

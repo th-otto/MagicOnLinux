@@ -10,7 +10,6 @@ else()
     find_package(SDL2 REQUIRED)
 endif()
 
-find_package(SDL2 REQUIRED)
 add_compile_options(-Wall -Wextra -Wpedantic -Wno-multichar)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 add_compile_options(-fPIC)

@@ -30,6 +30,7 @@
 */
 
 #include "config.h"
+#include "Globals.h"
 
 #include <string.h>
 #include <fcntl.h>
@@ -43,12 +44,41 @@
 #include <sys/statvfs.h>
 
 #include "Debug.h"
-#include "Globals.h"
 #include "HostXFS.h"
 #include "Atari.h"
 #include "emulation_globals.h"
 #include "conversion.h"
 #include "gui.h"
+
+
+#ifdef __APPLE__
+// AT_EMPTY_PATH is not available on macOS
+#ifndef AT_EMPTY_PATH
+#define AT_EMPTY_PATH 0
+#endif
+// RENAME_NOREPLACE is not available on macOS
+#ifndef RENAME_NOREPLACE
+#define RENAME_NOREPLACE (1 << 0)
+#endif
+
+// macOS doesn't have renameat2, so we provide a simple wrapper
+static int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
+{
+    if (flags & RENAME_NOREPLACE)
+    {
+        // Check if destination exists
+        struct stat st;
+        if (fstatat(newdirfd, newpath, &st, 0) == 0)
+        {
+            errno = EEXIST;
+            return -1;
+        }
+    }
+    return renameat(olddirfd, oldpath, newdirfd, newpath);
+}
+
+#endif  /* defined __APPLE__ */
+
 
 #if !defined(_DEBUG_XFS)
  #undef DebugInfo
@@ -74,31 +104,6 @@ unsigned trigger_ProcessFileLen = 0;
 extern void _DumpAtariMem(const char *filename);
 #endif
 
-#ifdef __APPLE__
-#ifndef AT_EMPTY_PATH
-#define AT_EMPTY_PATH 0
-#endif
-// RENAME_NOREPLACE is not available on macOS
-#ifndef RENAME_NOREPLACE
-#define RENAME_NOREPLACE (1 << 0)
-#endif
-#endif
-
-#ifdef __APPLE__
-// macOS doesn't have renameat2, so we provide a simple wrapper
-static int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
-{
-    if (flags & RENAME_NOREPLACE) {
-        // Check if destination exists
-        struct stat st;
-        if (fstatat(newdirfd, newpath, &st, 0) == 0) {
-            errno = EEXIST;
-            return -1;
-        }
-    }
-    return renameat(olddirfd, oldpath, newdirfd, newpath);
-}
-#endif
 
 /** **********************************************************************************************
  *
@@ -1853,14 +1858,16 @@ INT32 CHostXFS::xfs_xattr
     {
         flags |= AT_SYMLINK_NOFOLLOW;
     }
-    
+
 #ifdef __APPLE__
-    if (mode == 0 && host_name != NULL && strlen(host_name) == 0) {
+    // macOS cannot deal with empty path?!?
+    if ((mode == 0) && (host_name != nullptr) && (strlen(host_name) == 0))
+    {
         host_name[0] = '.';
         host_name[1] = '\0';
     }
 #endif
-    
+
     int res = fstatat(dir_fd, host_name, &statbuf, flags);
     if (res < 0)
     {

@@ -31,7 +31,9 @@
 #include <dirent.h>
 #include <assert.h>
 #include <fcntl.h>
+
 // program headers
+#include "Globals.h"
 #include "Debug.h"
 #include "HostHandles.h"
 

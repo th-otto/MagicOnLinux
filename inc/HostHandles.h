@@ -24,13 +24,10 @@
 
 #include <stdint.h>
 #include <dirent.h>
+#include <sys/types.h>
 
 #define HOST_FH_SIZE MAX_HANDLE_SZ   // 128 bytes, while in fact 8 bytes are enough
 
-
-#pragma GCC diagnostic push
-//#pragma GCC diagnostic ignored "-Wzero-length-array"
-#pragma GCC diagnostic ignored "-Wpedantic"
 /// Host File Descriptor
 /// Describes a file or a directory, without opening it.
 struct HostFD
@@ -42,7 +39,6 @@ struct HostFD
     // Maybe better store the host path here?
     // Maybe also store Atari drive here?
 };
-#pragma GCC diagnostic pop
 
 HostFD *getFreeHostFD();
 uint16_t allocHostFD(HostFD **pfd);

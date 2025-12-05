@@ -1,3 +1,9 @@
+Cmd-Alt-Ctrl-Tab switches Atari applications. Alt-Tab and Alt-Ctrl-Tab are consumed by Linux.
+
+Cmd-Alt-Ctrl-Del shall initiate a warm boot, but currently this ends the emulation. Alt-Ctrl-Del is consumed by Linux.
+
+For 1280x880x32 the screen buffer for the task manager is too small. 1280x864 works fine.
+
 Colours:
 - 32-bit True Colour: OK
 - 16-bit High Colour: OK

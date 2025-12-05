@@ -1680,6 +1680,7 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
         }
 
         // Special handling of Ctrl-Alt-SDL_SCANCODE_GRAVE
+        // TODO: Remove? MagiC task handler can be activated with Cmd-Alt-Ctrl-Esc instead
 
         static const uint8_t kbshift_sh_ctrl_alt_mask = (KBSHIFT_SHIFT_RIGHT + KBSHIFT_SHIFT_LEFT + KBSHIFT_CTRL + KBSHIFT_ALT + KBSHIFT_ALTGR);
         uint8_t kbshift_masked = m_AtariKbData[0] & kbshift_sh_ctrl_alt_mask;

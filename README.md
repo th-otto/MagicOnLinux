@@ -83,6 +83,9 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 # Remarks
 
 * The MagiC task manager is activated via Ctrl-Alt-^ (the key below Esc) on German keyboards, because Ctrl-Alt-Esc is reserved in Linux.
+* Alternatively use Cmd-Ctrl-Alt-Esc (Cmd is the "Windows" key).
+* The MagiC application switcher is activated with Cmd-Alt-Ctrl-Tab.
+* MagiC warmboot/coldboot are activated with Cmd-Alt-Ctrl-Del resp. Cmd-Alt-Ctrl-ShiftR-Del (causing end of emulation).
 * To mount disk image partitions via configuration file, specify the same disk image file multiple times.
 
 # Bugs and Agenda

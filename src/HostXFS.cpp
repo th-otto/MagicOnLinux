@@ -50,11 +50,6 @@
 
 
 #ifdef __APPLE__
-
-// macOS uses st_mtimespec instead of st_mtim
-#define st_mtim st_mtimespec
-#define st_atim st_atimespec
-#define st_ctim st_ctimespec
 // AT_EMPTY_PATH is not available on macOS
 #ifndef AT_EMPTY_PATH
 #define AT_EMPTY_PATH 0
@@ -62,10 +57,6 @@
 // RENAME_NOREPLACE is not available on macOS
 #ifndef RENAME_NOREPLACE
 #define RENAME_NOREPLACE (1 << 0)
-#endif
-// macOS uses S_IWRITE instead of __S_IWRITE
-#ifndef __S_IWRITE
-#define __S_IWRITE S_IWRITE
 #endif
 
 // macOS doesn't have renameat2, so we provide a simple wrapper
@@ -1328,9 +1319,8 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_D
 
     dta->mxdta.dta_attribute = (char) dosname[11];
     hostFnameToAtariFname8p3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, convUpper);
-    const struct timespec *mtime = &statbuf.st_mtim;
     uint16_t time, date;
-    CConversion::hostDateToDosDate(mtime->tv_sec, &time, &date);
+    CConversion::hostDateToDosDate(statbuf.st_mtime, &time, &date);
     dta->mxdta.dta_time = htobe16(time);
     dta->mxdta.dta_date = htobe16(date);
 
@@ -1761,7 +1751,7 @@ void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
         case S_IFSOCK: ast_mode |= 0; break;              // socket
         default:       ast_mode |= 0; break;              // unknown
     }
-    if (!(pstat->st_mode & __S_IWRITE))
+    if (!(pstat->st_mode & S_IWUSR))
     {
         attr |= F_RDONLY;
     }
@@ -1816,13 +1806,13 @@ void CHostXFS::statbuf2xattr(XATTR *pxattr, const struct stat *pstat)
     pxattr->nblocks = htobe32(pstat->st_blocks);  // TODO: check overflow
 
     uint16_t time, date;
-    CConversion::hostDateToDosDate(pstat->st_mtim.tv_sec, &time, &date);
+    CConversion::hostDateToDosDate(pstat->st_mtime, &time, &date);
     pxattr->mtime = htobe16(time);
     pxattr->mdate = htobe16(date);
-    CConversion::hostDateToDosDate(pstat->st_atim.tv_sec, &time, &date);
+    CConversion::hostDateToDosDate(pstat->st_atime, &time, &date);
     pxattr->atime = htobe16(time);
     pxattr->adate = htobe16(date);
-    CConversion::hostDateToDosDate(pstat->st_ctim.tv_sec, &time, &date);
+    CConversion::hostDateToDosDate(pstat->st_ctime, &time, &date);
     pxattr->ctime = htobe16(time);
     pxattr->cdate = htobe16(date);
 
@@ -1931,7 +1921,7 @@ INT32 CHostXFS::xfs_attrib(uint16_t drv, MXFSDD *dd, const unsigned char *name, 
     {
         old_attr |= F_SUBDIR;
     }
-    if (!(statbuf.st_mode & __S_IWRITE))
+    if (!(statbuf.st_mode & S_IWUSR))
     {
         old_attr |= F_RDONLY;
     }

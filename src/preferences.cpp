@@ -430,7 +430,7 @@ static int eval_quotated_str(char *outbuf, unsigned bufsiz, const char **in)
     }
 
     unsigned len = in_end - in_start;
-    if (len < bufsiz - 1)
+    if (len < bufsiz)
     {
         strncpy(outbuf, in_start, len);
         outbuf[len] = '\0';

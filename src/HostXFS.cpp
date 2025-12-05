@@ -2501,8 +2501,8 @@ INT32 CHostXFS::xfs_dpathconf(uint16_t drv, MXFSDD *dd, uint16_t which)
         case DP_MAXREQ:      return DP_XATTRFIELDS ;
         case DP_IOPEN:       return 100;    // ???
         case DP_MAXLINKS:    return 1;
-        case DP_PATHMAX:     return 128;
-        case DP_NAMEMAX:     return (drv_longNames[drv]) ? 63 : 12;     // TODO: why 63? Configurable?
+        case DP_PATHMAX:     return PATH_MAX;
+        case DP_NAMEMAX:     return (drv_longNames[drv]) ? _POSIX_HOST_NAME_MAX : 12;
         case DP_ATOMIC:      return 512;    // ???
         case DP_TRUNC:       return (drv_longNames[drv]) ? DP_AUTOTRUNC : DP_DOSTRUNC;
         case DP_CASE:        return (drv_longNames[drv]) ? ((drv_caseInsens[drv]) ? DP_CASEINSENS : DP_CASESENS) : DP_CASECONV;

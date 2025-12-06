@@ -447,6 +447,14 @@ m68k_data_type m68k_read_memory_16(m68k_addr_type address)
         }
     }
 
+    // Overflow region for graphics driver (MVDI and NVDI)
+    // 4 for mode 2ip
+    // 8 for mode 4ip
+    if (address < addr68kVideoEnd + 8)
+    {
+        return 0;
+    }
+
     uint16_t datum;
     if (CRegisterModel::read_halfword(address, &datum))
     {
@@ -494,6 +502,14 @@ m68k_data_type m68k_read_memory_32(m68k_addr_type address)
         {
             return getAtariBE32(hostVideoAddr + (address - addr68kVideo));
         }
+    }
+
+    // Overflow region for graphics driver (MVDI and NVDI)
+    // 4 for mode 8
+    // 6 for mode 4ip
+    if (address < addr68kVideoEnd + 6)
+    {
+        return 0;
     }
 
     uint32_t datum;
@@ -628,6 +644,14 @@ void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
         return;
     }
 
+    // Overflow region for graphics driver (MVDI and NVDI)
+    // 4 for mode 2ip
+    // 8 for mode 4ip
+    if (address < addr68kVideoEnd + 8)
+    {
+        return;
+    }
+
     if (CRegisterModel::write_halfword(address, (uint16_t) value))
     {
         return;
@@ -685,6 +709,14 @@ void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
         }
 
         atomic_store(&gbAtariVideoBufChanged, true);
+        return;
+    }
+
+    // Overflow region for graphics driver (MVDI and NVDI)
+    // 4 for mode 8
+    // 6 for mode 4ip
+    if (address < addr68kVideoEnd + 6)
+    {
         return;
     }
 

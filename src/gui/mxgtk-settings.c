@@ -11,24 +11,9 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
-/* no translations currently */
-#define _(x) x
-#define N_(x) x
-
 #define EXIT_WINDOW_CLOSED (EXIT_FAILURE + EXIT_SUCCESS + 1)
 
-static char const program_name[] = "magic-on-linux-settings";
-
-enum {
-	TYPE_NONE,
-	TYPE_PATH,
-	TYPE_FOLDER,
-	TYPE_STRING,
-	TYPE_INT,
-	TYPE_UINT,
-	TYPE_BOOL,
-	TYPE_CHOICE
-};
+static char const program_name[] = "mxgtk-settings";
 
 typedef struct {
 	GtkWidget *window;
@@ -46,34 +31,100 @@ typedef struct {
 	int exit_code;
 } GuiWindow;
 
+#include "preferences.c"
 
-struct pref_val {
-	int type;
-	union {
-		char *s;
-		struct {
-			char *p;
-			int flags;
-#define NO_FLAGS -1
-#define DRV_FLAG_RDONLY         1   /* read-only */
-#define DRV_FLAG_8p3            2   /* filenames in 8+3 format, uppercase */
-#define DRV_FLAG_CASE_INSENS    4   /* case insensitive, e.g. (V)FAT or HFS(+) */
-		} p;
-		struct {
-			long v;
-			long minval;
-			long maxval;
-		} i;
-		double d;
-		gboolean b;
-		struct {
-			int c;
-			int minval;
-			int maxval;
-		} c;
-	} u;
-};
+/******************************************************************************/
+/*** ---------------------------------------------------------------------- ***/
+/******************************************************************************/
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+static GtkWidget *gtk_vbox_new(gboolean homogeneous, int spacing)
+{
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, spacing);
+	gtk_box_set_homogeneous(GTK_BOX(box), homogeneous);
+	return box;
+}
+
+/*** ---------------------------------------------------------------------- ***/
+
+static GtkWidget *gtk_hbox_new(gboolean homogeneous, int spacing)
+{
+	GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, spacing);
+	gtk_box_set_homogeneous(GTK_BOX(box), homogeneous);
+	return box;
+}
+
+/*** ---------------------------------------------------------------------- ***/
+
+static void gtk_box_pack_start(GtkBox *box, GtkWidget *child, gboolean expand, gboolean fill, guint padding)
+{
+	gtk_box_prepend(box, child);
+	if (expand)
+	{
+		if (gtk_orientable_get_orientation(GTK_ORIENTABLE(box)) == GTK_ORIENTATION_HORIZONTAL)
+			gtk_widget_set_hexpand(child, TRUE);
+		else
+			gtk_widget_set_vexpand(child, TRUE);
+	}
+	if (fill)
+	{
+		if (gtk_orientable_get_orientation(GTK_ORIENTABLE(box)) == GTK_ORIENTATION_HORIZONTAL)
+			gtk_widget_set_halign(child, GTK_ALIGN_FILL);
+		else
+			gtk_widget_set_valign(child, GTK_ALIGN_FILL);
+	}
+	(void)padding;
+}
+
+/*** ---------------------------------------------------------------------- ***/
+
+static void gtk_box_pack_end(GtkBox *box, GtkWidget *child, gboolean expand, gboolean fill, guint padding)
+{
+	gtk_box_append(box, child);
+	if (expand)
+	{
+		if (gtk_orientable_get_orientation(GTK_ORIENTABLE(box)) == GTK_ORIENTATION_HORIZONTAL)
+			gtk_widget_set_hexpand(child, TRUE);
+		else
+			gtk_widget_set_vexpand(child, TRUE);
+	}
+	if (fill)
+	{
+		if (gtk_orientable_get_orientation(GTK_ORIENTABLE(box)) == GTK_ORIENTATION_HORIZONTAL)
+			gtk_widget_set_halign(child, GTK_ALIGN_FILL);
+		else
+			gtk_widget_set_valign(child, GTK_ALIGN_FILL);
+	}
+	(void)padding;
+}
+
+/*** ---------------------------------------------------------------------- ***/
+
+static const char *gtk_entry_get_text(GtkEntry *entry)
+{
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
+	return gtk_entry_buffer_get_text(buffer);
+}
+
+/*** ---------------------------------------------------------------------- ***/
+
+static void gtk_entry_set_text(GtkEntry *entry, const char *text)
+{
+	GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
+	gtk_entry_buffer_set_text(buffer, text, strlen(text));
+}
+
+
+#define gtk_table_attach_defaults(table, w, left, right, top, bottom) gtk_table_attach(table, w, left, right, top, bottom, GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0)
+#define gtk_check_button_get_active(w) gtk_check_button_get_active(GTK_CHECK_BUTTON(w))
+#define gtk_check_button_set_active(w, b) gtk_check_button_set_active(GTK_CHECK_BUTTON(w), b)
+
+#else
+
+#define gtk_check_button_get_active(w) gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(w))
+#define gtk_check_button_set_active(w, b) gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), b)
+
+#endif
 
 /******************************************************************************/
 /*** ---------------------------------------------------------------------- ***/
@@ -82,27 +133,6 @@ struct pref_val {
 /*
  * Utility functions
  */
-
-static gboolean bool_from_string(const char *str)
-{
-	if (str == NULL || *str == '\0')
-		return FALSE;
-	if (g_ascii_strcasecmp(str, "YES") == 0 ||
-		g_ascii_strcasecmp(str, "ON") == 0 ||
-		g_ascii_strcasecmp(str, "TRUE") == 0 ||
-		strcmp(str, "1") == 0)
-		return TRUE;
-	return FALSE;
-}
-
-/*** ---------------------------------------------------------------------- ***/
-
-static const char *bool_to_string(gboolean b)
-{
-	return b ? "YES" : "NO";
-}
-
-/*** ---------------------------------------------------------------------- ***/
 
 static void widget_set_pref_value(GtkWidget *widget, const struct pref_val *val)
 {
@@ -230,7 +260,15 @@ static void cb_file_changed(GtkWidget *widget, gpointer data)
 	
 	(void)data;
 	val = widget_get_pref_value(widget);
+#if GTK_CHECK_VERSION(4, 0, 0)
+	{
+		GFile *file = gtk_file_chooser_get_file(GTK_FILE_CHOOSER(widget));
+		path = g_file_get_path(file);
+		g_object_unref(G_OBJECT(file));
+	}
+#else
 	path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(widget));
+#endif
 	g_free(val->u.s);
 	val->u.s = path;
 }
@@ -293,25 +331,36 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 		gtk_widget_show(label);
 		g_free(gui->section_name);
 		gui->section_name = g_strdup(name);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gui->section_table = gtk_grid_new();
+#else
 		gui->section_table = gtk_table_new(2, 2, FALSE);
-		gtk_widget_show(gui->section_table);
-		gui->section_row = 0;
 		gtk_table_set_row_spacings(GTK_TABLE(gui->section_table), 4);
 		gtk_table_set_col_spacings(GTK_TABLE(gui->section_table), 4);
+#endif
+		gtk_widget_show(gui->section_table);
+		gui->section_row = 0;
 		if (strcmp(gui->section_name, "ADDITIONAL ATARI DRIVES") == 0)
 		{
 			/*
 			 * put the path list in a scrolled window, it gets too large
 			 */
+#if GTK_CHECK_VERSION(4, 0, 0)
+			GtkWidget *scroller = scroller = gtk_scrolled_window_new();
+
+			gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), gui->section_table);
+#else
 			GtkWidget *scroller = scroller = gtk_scrolled_window_new(NULL, NULL);
 
-			gtk_widget_show(scroller);
+			gtk_container_set_border_width(GTK_CONTAINER(scroller), 0);
 			gtk_container_set_border_width(GTK_CONTAINER(scroller), 0);
 			gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 			gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scroller), GTK_SHADOW_ETCHED_IN);
 			gtk_scrolled_window_set_placement(GTK_SCROLLED_WINDOW(scroller), GTK_CORNER_TOP_LEFT);
 			gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scroller), gui->section_table);
+#endif
 			gtk_notebook_append_page(GTK_NOTEBOOK(gui->notebook), scroller, label);
+			gtk_widget_show(scroller);
 		} else
 		{
 			vbox = gtk_vbox_new(FALSE, 0);
@@ -332,16 +381,26 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 			if (strcmp(attribute_names[i], "flags") == 0)
 				flags = strtol(attribute_values[i], NULL, 0);
 		}
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_grid_attach(GTK_GRID(gui->section_table), label, 0, 1, gui->section_row, gui->section_row + 1);
+		if (type == TYPE_FOLDER)
+			button = gtk_button_new_with_label(_("Select a Folder"));
+		else
+			button = gtk_button_new_with_label(_("Select a File"));
+		gtk_grid_attach(GTK_GRID(gui->section_table), button, 1, 2, gui->section_row, gui->section_row + 1);
+		(void)cb_file_changed;
+#else
 		gtk_table_attach_defaults(GTK_TABLE(gui->section_table), label, 0, 1, gui->section_row, gui->section_row + 1);
 		if (type == TYPE_FOLDER)
 			button = gtk_file_chooser_button_new(_("Select a Folder"), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
 		else
 			button = gtk_file_chooser_button_new(_("Select a File"), GTK_FILE_CHOOSER_ACTION_OPEN);
-		gtk_widget_show(button);
 		gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(button), TRUE);
+		g_signal_connect(G_OBJECT(button), "file-set", G_CALLBACK(cb_file_changed), gui);
 		gtk_table_attach_defaults(GTK_TABLE(gui->section_table), button, 1, 2, gui->section_row, gui->section_row + 1);
+#endif
+		gtk_widget_show(button);
 		settings_widget = button;
-		g_signal_connect(G_OBJECT(settings_widget), "file-set", G_CALLBACK(cb_file_changed), gui);
 		if (strcmp(name, "atari_drv_c") == 0 ||
 			strcmp(name, "atari_drv_h") == 0 ||
 			strcmp(name, "atari_drv_m") == 0)
@@ -353,7 +412,11 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 			gui->section_row++;
 			vbox = gtk_hbox_new(FALSE, 0);
 			gtk_widget_show(vbox);
+#if GTK_CHECK_VERSION(4, 0, 0)
+			gtk_grid_attach(GTK_GRID(gui->section_table), vbox, 1, 3, gui->section_row, gui->section_row + 1);
+#else
 			gtk_table_attach_defaults(GTK_TABLE(gui->section_table), vbox, 1, 3, gui->section_row, gui->section_row + 1);
+#endif
 			
 			button_name = g_strconcat(name, "_rdonly", NULL);
 			button = gtk_check_button_new_with_label(_("read-only"));
@@ -382,10 +445,18 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 		assert(gui->section_table != NULL);
 		label = gtk_label_new(N_(display));
 		gtk_widget_show(label);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_grid_attach(GTK_GRID(gui->section_table), label, 0, 1, gui->section_row, gui->section_row + 1);
+#else
 		gtk_table_attach_defaults(GTK_TABLE(gui->section_table), label, 0, 1, gui->section_row, gui->section_row + 1);
+#endif
 		entry = gtk_entry_new();
 		gtk_widget_show(entry);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_grid_attach(GTK_GRID(gui->section_table), entry, 1, 2, gui->section_row, gui->section_row + 1);
+#else
 		gtk_table_attach_defaults(GTK_TABLE(gui->section_table), entry, 1, 2, gui->section_row, gui->section_row + 1);
+#endif
 		gui->section_row++;
 		settings_widget = entry;
 		type = TYPE_STRING;
@@ -409,11 +480,19 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 				step = strtol(attribute_values[i], NULL, 0);
 		}
 		adjustment = (GtkAdjustment *)gtk_adjustment_new(minval, minval, maxval, step, step * 16, 0);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_grid_attach(GTK_GRID(gui->section_table), label, 0, 1, gui->section_row, gui->section_row + 1);
+#else
 		gtk_table_attach_defaults(GTK_TABLE(gui->section_table), label, 0, 1, gui->section_row, gui->section_row + 1);
+#endif
 		button = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 0, 0);
 		gtk_widget_show(button);
 		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(button), TRUE);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_grid_attach(GTK_GRID(gui->section_table), button, 1, 2, gui->section_row, gui->section_row + 1);
+#else
 		gtk_table_attach_defaults(GTK_TABLE(gui->section_table), button, 1, 2, gui->section_row, gui->section_row + 1);
+#endif
 		gui->section_row++;
 		settings_widget = button;
 		type = TYPE_INT;
@@ -427,7 +506,11 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 		assert(gui->section_table != NULL);
 		button = gtk_check_button_new_with_label(N_(display));
 		gtk_widget_show(button);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_grid_attach(GTK_GRID(gui->section_table), button, 1, 2, gui->section_row, gui->section_row + 1);
+#else
 		gtk_table_attach_defaults(GTK_TABLE(gui->section_table), button, 1, 2, gui->section_row, gui->section_row + 1);
+#endif
 		gui->section_row++;
 		settings_widget = button;
 		type = TYPE_BOOL;
@@ -437,14 +520,22 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 		assert(gui->combo_box == NULL);
 		label = gtk_label_new(N_(display));
 		gtk_widget_show(label);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_grid_attach(GTK_GRID(gui->section_table), label, 0, 1, gui->section_row, gui->section_row + 1);
+#else
 		gtk_table_attach_defaults(GTK_TABLE(gui->section_table), label, 0, 1, gui->section_row, gui->section_row + 1);
+#endif
 #if GTK_CHECK_VERSION(3, 0, 0)
 		gui->combo_box = gtk_combo_box_text_new();
 #else
 		gui->combo_box = gtk_combo_box_new_text();
 #endif
 		gtk_widget_show(gui->combo_box);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_grid_attach(GTK_GRID(gui->section_table), gui->combo_box, 1, 2, gui->section_row, gui->section_row + 1);
+#else
 		gtk_table_attach_defaults(GTK_TABLE(gui->section_table), gui->combo_box, 1, 2, gui->section_row, gui->section_row + 1);
+#endif
 		gui->section_row++;
 		settings_widget = gui->combo_box;
 		type = TYPE_CHOICE;
@@ -695,19 +786,19 @@ static gboolean updatePreferences(GuiWindow *gui)
 				val->u.p.flags = 0;
 				button_name = g_strconcat(name, "_rdonly", NULL);
 				button = g_object_get_data(G_OBJECT(w), button_name);
-				if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button)))
+				if (gtk_check_button_get_active(button))
 					val->u.p.flags |= DRV_FLAG_RDONLY;
 				g_free(button_name);
 
 				button_name = g_strconcat(name, "_dosnames", NULL);
 				button = g_object_get_data(G_OBJECT(w), button_name);
-				if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button)))
+				if (gtk_check_button_get_active(button))
 					val->u.p.flags |= DRV_FLAG_8p3;
 				g_free(button_name);
 
 				button_name = g_strconcat(name, "_insensitive", NULL);
 				button = g_object_get_data(G_OBJECT(w), button_name);
-				if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button)))
+				if (gtk_check_button_get_active(button))
 					val->u.p.flags |= DRV_FLAG_CASE_INSENS;
 				g_free(button_name);
 			}
@@ -721,7 +812,7 @@ static gboolean updatePreferences(GuiWindow *gui)
 			val->u.i.v = gtk_spin_button_get_value(GTK_SPIN_BUTTON(w));
 			break;
 		case TYPE_BOOL:
-			val->u.b = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(w));
+			val->u.b = gtk_check_button_get_active(w);
 			break;
 		case TYPE_CHOICE:
 			val->u.c.c = gtk_combo_box_get_active(GTK_COMBO_BOX(w));
@@ -761,10 +852,20 @@ static gboolean populatePreferences(GuiWindow *gui)
 		case TYPE_FOLDER:
 			if (val->u.p.p)
 			{
+#if GTK_CHECK_VERSION(4, 0, 0)
+				{
+					GFile *file = g_file_new_for_path(val->u.p.p);
+					if (val->type == TYPE_PATH)
+						gtk_file_chooser_set_file(GTK_FILE_CHOOSER(w), file, NULL);
+					else
+						gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(w), file, NULL);
+				}
+#else
 				if (val->type == TYPE_PATH)
 					gtk_file_chooser_set_filename(GTK_FILE_CHOOSER(w), val->u.p.p);
 				else
 					gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(w), val->u.p.p);
+#endif
 			}
 			if (val->u.p.flags != NO_FLAGS)
 			{
@@ -774,30 +875,32 @@ static gboolean populatePreferences(GuiWindow *gui)
 				
 				button_name = g_strconcat(name, "_rdonly", NULL);
 				button = g_object_get_data(G_OBJECT(w), button_name);
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), (val->u.p.flags & DRV_FLAG_RDONLY) != 0);
+				gtk_check_button_set_active(button, (val->u.p.flags & DRV_FLAG_RDONLY) != 0);
 				g_free(button_name);
 
 				button_name = g_strconcat(name, "_dosnames", NULL);
 				button = g_object_get_data(G_OBJECT(w), button_name);
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), (val->u.p.flags & DRV_FLAG_8p3) != 0);
+				gtk_check_button_set_active(button, (val->u.p.flags & DRV_FLAG_8p3) != 0);
 				g_free(button_name);
 
 				button_name = g_strconcat(name, "_insensitive", NULL);
 				button = g_object_get_data(G_OBJECT(w), button_name);
-				gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(button), (val->u.p.flags & DRV_FLAG_CASE_INSENS) != 0);
+				gtk_check_button_set_active(button, (val->u.p.flags & DRV_FLAG_CASE_INSENS) != 0);
 				g_free(button_name);
 			}
 			break;
 		case TYPE_STRING:
 			if (val->u.s)
+			{
 				gtk_entry_set_text(GTK_ENTRY(w), val->u.s);
+			}
 			break;
 		case TYPE_INT:
 		case TYPE_UINT:
 			gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), val->u.i.v);
 			break;
 		case TYPE_BOOL:
-			gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val->u.b);
+			gtk_check_button_set_active(w, val->u.b);
 			break;
 		case TYPE_CHOICE:
 			gtk_combo_box_set_active(GTK_COMBO_BOX(w), val->u.c.c);
@@ -1160,6 +1263,7 @@ static gboolean getPreferences(GuiWindow *gui)
  * GUI
  */
 
+#if !GTK_CHECK_VERSION(4, 0, 0)
 static gboolean cb_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
 	GuiWindow *gui = (GuiWindow *)data;
@@ -1171,6 +1275,19 @@ static gboolean cb_key_press(GtkWidget *widget, GdkEventKey *event, gpointer dat
 		gtk_main_quit();
 	}
 	return FALSE;
+}
+#endif
+
+/*** ---------------------------------------------------------------------- ***/
+
+static void mxgtk_quit(GuiWindow *gui)
+{
+#if GTK_CHECK_VERSION(4, 0, 0)
+	exit(gui->exit_code);
+#else
+	(void)gui;
+	gtk_main_quit();
+#endif
 }
 
 /*** ---------------------------------------------------------------------- ***/
@@ -1184,7 +1301,7 @@ static void cb_ok(GtkWidget *widget, gpointer data)
 	if (writePreferences(gui))
 	{
 		gui->exit_code = EXIT_SUCCESS;
-		gtk_main_quit();
+		mxgtk_quit(gui);
 	}
 }
 
@@ -1196,17 +1313,17 @@ static void cb_cancel(GtkWidget *widget, gpointer data)
 
 	(void)widget;
 	gui->exit_code = EXIT_FAILURE;
-	gtk_main_quit();
+	mxgtk_quit(gui);
 }
 
 /*** ---------------------------------------------------------------------- ***/
 
 static void cb_window_destroy(GtkWidget *widget, GdkEvent *event, gpointer data)
 {
+	GuiWindow *gui = (GuiWindow *)data;
 	(void)widget;
 	(void)event;
-	(void)data;
-	gtk_main_quit();
+	mxgtk_quit(gui);
 }
 
 /*** ---------------------------------------------------------------------- ***/
@@ -1221,41 +1338,69 @@ static void window_create(GuiWindow *gui)
 
 	gtk_window_set_default_icon_name(program_name);
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+	gui->window = gtk_window_new();
+#else
 	gui->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	g_signal_connect(G_OBJECT(gui->window), "destroy", G_CALLBACK(cb_window_destroy), gui);
-	g_signal_connect(G_OBJECT(gui->window), "key_press_event", G_CALLBACK(cb_key_press), gui);
-	gtk_window_set_title(GTK_WINDOW(gui->window), _("MagicOnLinux Settings"));
 	gtk_window_set_accept_focus(GTK_WINDOW(gui->window), TRUE);
 	gtk_container_set_border_width(GTK_CONTAINER(gui->window), 12);
+#endif
+	g_signal_connect(G_OBJECT(gui->window), "destroy", G_CALLBACK(cb_window_destroy), gui);
+#if !GTK_CHECK_VERSION(4, 0, 0)
+	g_signal_connect(G_OBJECT(gui->window), "key_press_event", G_CALLBACK(cb_key_press), gui);
+#endif
+	gtk_window_set_title(GTK_WINDOW(gui->window), _("MagicOnLinux Settings"));
 	vbox = gtk_vbox_new(FALSE, 12);
 	gtk_widget_show(vbox);
+#if GTK_CHECK_VERSION(4, 0, 0)
+	gtk_window_set_child(GTK_WINDOW(gui->window), vbox);
+#else
 	gtk_container_add(GTK_CONTAINER(gui->window), vbox);
+#endif
 
 	vbox2 = gtk_vbox_new(FALSE, 0);
 	gtk_widget_show(vbox2);
 	gtk_box_pack_start(GTK_BOX(vbox), vbox2, TRUE, TRUE, 0);
+#if !GTK_CHECK_VERSION(4, 0, 0)
 	gtk_container_set_border_width(GTK_CONTAINER(vbox2), 0);
+#endif
 
 	hbox = gtk_hbox_new(FALSE, 5);
 	gtk_widget_show(hbox);
 	gtk_box_pack_start(GTK_BOX(vbox2), hbox, TRUE, TRUE, 0);
 	gui->notebook = gtk_notebook_new();
 	gtk_widget_show(gui->notebook);
+#if !GTK_CHECK_VERSION(4, 0, 0)
 	gtk_container_set_border_width(GTK_CONTAINER(gui->notebook), 6);
+#endif
 	gtk_box_pack_end(GTK_BOX(hbox), gui->notebook, FALSE, FALSE, 0);
 	
+#if GTK_CHECK_VERSION(4, 0, 0)
+	btn_box = gtk_hbox_new(FALSE, 0);
+#else
 	btn_box = gtk_hbutton_box_new();
-	gtk_widget_show(btn_box);
 	gtk_button_box_set_layout(GTK_BUTTON_BOX(btn_box), GTK_BUTTONBOX_END);
 	gtk_box_set_spacing(GTK_BOX(btn_box), 6);
+#endif
 	gtk_box_pack_end(GTK_BOX(vbox), btn_box, FALSE, FALSE, 0);
+	gtk_widget_show(btn_box);
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+	btn = gtk_button_new_from_icon_name("gtk-cancel");
+	gtk_button_set_label(GTK_BUTTON(btn), _("Cancel"));
+#else
 	btn = gtk_button_new_from_stock("gtk-cancel");
+#endif
 	gtk_widget_show(btn);
 	g_signal_connect(G_OBJECT(btn), "clicked", G_CALLBACK(cb_cancel), gui);
 	gtk_box_pack_start(GTK_BOX(btn_box), btn, FALSE, FALSE, 0);
 
+#if GTK_CHECK_VERSION(4, 0, 0)
+	btn = gtk_button_new_from_icon_name("gtk-ok");
+	gtk_button_set_label(GTK_BUTTON(btn), _("Ok"));
+#else
 	btn = gtk_button_new_from_stock("gtk-ok");
+#endif
 	gtk_widget_show(btn);
 	g_signal_connect(G_OBJECT(btn), "clicked", G_CALLBACK(cb_ok), gui);
 	gtk_box_pack_start(GTK_BOX(btn_box), btn, FALSE, FALSE, 0);
@@ -1279,13 +1424,18 @@ int main(int argc, char **argv)
 	GMarkupParseContext *context;
 	GuiWindow gui;
 	
+#if GTK_CHECK_VERSION(4, 0, 0)
+	gtk_init();
+	(void)argc;
+	(void)argv;
+#else
 	ok = gtk_init_check(&argc, &argv);
-
 	if (!ok)
 	{
 		g_printerr("%s: unable to initialize GTK\n", program_name);
 		return EXIT_FAILURE;
 	}
+#endif
 
 	/* workaround for org.gtk.vfs.GoaVolumeMonitor sometimes hanging */
 	unsetenv("DBUS_SESSION_BUS_ADDRESS");
@@ -1315,8 +1465,13 @@ int main(int argc, char **argv)
 	populatePreferences(&gui);
 
 	/* open the window */
-	gtk_widget_show_all(gui.window);
+	gtk_widget_show(gui.window);
+#if GTK_CHECK_VERSION(4, 0, 0)
+	while (g_list_model_get_n_items(gtk_window_get_toplevels()) > 0)
+		g_main_context_iteration(NULL, TRUE);
+#else
 	gtk_main();
+#endif
 
 	return gui.exit_code;
 }

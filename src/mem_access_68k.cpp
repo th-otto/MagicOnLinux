@@ -178,6 +178,72 @@ const char *AtariAddr2Description(uint32_t addr)
 
 /** **********************************************************************************************
  *
+ * @brief Convert 68k exception to its name
+ *
+ * @param[in]  exception_no     68k exception number
+ *
+ * @return  human readable description
+ *
+ ************************************************************************************************/
+const char *exception68k_to_name(uint32_t addr)
+{
+    static char buf[64];
+
+    if ((addr >= INTV_32_TRAP_0) && (addr <= INTV_47_TRAP_15))
+    {
+        sprintf(buf, "Trap %u", (addr - INTV_32_TRAP_0) >> 2);
+    }
+    else
+    switch (addr)
+    {
+        case INTV_2_BUS_ERROR:      strcpy(buf, "bus error"); break;
+        case INTV_3_ADDRESS_ERROR:  strcpy(buf, "address error"); break;
+        case INTV_4_ILLEGAL:        strcpy(buf, "illegal instruction"); break;
+        case INTV_5_DIV_BY_ZERO:    strcpy(buf, "division by zero"); break;
+        case INTV_6_CHK:            strcpy(buf, "CHK"); break;
+        case INTV_7_TRAPV:          strcpy(buf, "TRAPV"); break;
+        case INTV_8_PRIV_VIOL:      strcpy(buf, "privilege violation"); break;
+        case INTV_9_TRACE:          strcpy(buf, "TRACE"); break;
+        case INTV_10_LINE_A:        strcpy(buf, "Line A"); break;
+        case INTV_11_LINE_F:        strcpy(buf, "Line F"); break;
+        case INTV_13:               strcpy(buf, "co-proc protocol (68030)"); break;
+        case INTV_14:               strcpy(buf, "format (68030)"); break;
+        case INTV_26_AUTV_2:        strcpy(buf, "ST: HBlank"); break;
+        case INTV_28_AUTV_4:        strcpy(buf, "ST: VBlank"); break;
+        case INTV_56:               strcpy(buf, "MMU configuration"); break;
+        case INTV_MFP5_HZ200:       strcpy(buf, "MFP5: 200 Hz timer"); break;
+        case INTV_MFP6_IKBD_MIDI:   strcpy(buf, "MFP6: IKBD/MIDI"); break;
+        case INTV_MFP7_FDC_ACSI:    strcpy(buf, "MFP7: FDC/ACSI"); break;
+        case INTV_MFP8:             strcpy(buf, "MFP8: display enable (?)"); break;
+        case INTV_MFP9_TX_ERR:      strcpy(buf, "MFP9: transmission fault RS232"); break;
+        case INTV_MFP10_SND_EMPT:   strcpy(buf, "MFP10: RS232 transmission buffer empty"); break;
+        case INTV_MFP11_RX_ERR:     strcpy(buf, "MFP11: receive fault RS232"); break;
+        case INTV_MFP12_RCV_FULL:   strcpy(buf, "MFP12: RS232 receive buffer full"); break;
+        case INTV_MFP13:            strcpy(buf, "MFP13: unused"); break;
+        case INTV_MFP14_RING_IND:   strcpy(buf, "MFP14: RS232: incoming call"); break;
+        case INTV_MFP15_MNCHR:      strcpy(buf, "MFP15: monochrome monitor detect"); break;
+
+        case etv_timer:             strcpy(buf, "etv_timer"); break;
+        case etv_critic:            strcpy(buf, "etv_critic"); break;
+        case resvector:             strcpy(buf, "resvector"); break;
+        case phystop:               strcpy(buf, "phystop"); break;
+        case _membot:               strcpy(buf, "_membot"); break;
+        case _memtop:               strcpy(buf, "_memtop"); break;
+        case _v_bas_ad:             strcpy(buf, "_v_bas_ad: logical VRAM base"); break;
+        case _vblqueue:             strcpy(buf, "_vblqueue"); break;
+        case colorptr:              strcpy(buf, "colorptr"); break;
+        case screenpt:              strcpy(buf, "screenpt"); break;
+
+        default:                    strcpy(buf, "other"); break;
+    }
+
+    return buf;
+}
+
+
+
+/** **********************************************************************************************
+ *
  * @brief Helper to get the Atari process name, including "unknown"
  *
  * @param[in] address        68k address
@@ -219,6 +285,87 @@ static bool is_write_watch(uint32_t address)
 #endif
 
 
+#if defined(EMULATE_NULLPTR_BUSERR)
+
+#define HANDLE_LOWMEM_READ_BUSERR(address, text) \
+    if ((address < 8) && !m68k_get_super()) \
+    { \
+        const char *procName; \
+        uint32_t act_pd; \
+        getAtariPrg(&procName, &act_pd); \
+        DebugError2("() -- User mode read access by process %s at address 0x%08x", \
+                        procName, address); \
+        sendBusError(address, text); \
+        return 0; \
+    }
+
+#define HANDLE_LOWMEM_WRITE_BUSERR(address, text) \
+    if ((address < 8) && !m68k_get_super()) \
+    { \
+        const char *procName; \
+        uint32_t act_pd; \
+        getAtariPrg(&procName, &act_pd); \
+        DebugError2("() -- User mode write access by process %s at address 0x%08x", \
+                        procName, address); \
+        sendBusError(address, text); \
+        return; \
+    }
+
+#else
+
+#define HANDLE_LOWMEM_READ_BUSERR(address, text)
+#define HANDLE_LOWMEM_WRITE_BUSERR(address, text)
+
+#endif
+
+#if defined(_DEBUG_WRITEPROTECT_ATARI_OS)
+
+#define WRITE_PROTECT_OS(address, text) \
+    if ((address >= addrOsRomStart) && (address < addrOsRomEnd)) \
+    { \
+        const char *procName; \
+        uint32_t act_pd; \
+        getAtariPrg(&procName, &act_pd); \
+        DebugError2("() -- Blocked attempt to overwrite MagiC OS by process %s at address 0x%08x", \
+                        procName, address); \
+        sendBusError(address, text); \
+        return; \
+    }
+#else
+
+#define WRITE_PROTECT_OS(address, text)
+
+#endif
+
+#if defined(_DEBUG_WATCH_68K_VECTOR_CHANGE)
+
+#define WATCH_68K_VECTOR_CHANGE(address, value) \
+    if ((address < 0x140) || \
+       (address == _v_bas_ad) || \
+       /*(address = etv_timer) ||*/ \
+       (address == etv_critic) || \
+       (address == resvector) || \
+       (address == phystop) || \
+       (address == _membot) || \
+       (address == _memtop) || \
+       (address == _vblqueue) || \
+       (address == colorptr) || \
+       (address == screenpt)) \
+    { \
+        const char *vecname = exception68k_to_name(address); \
+        const char *procName; \
+        uint32_t act_pd; \
+        getAtariPrg(&procName, &act_pd); \
+        DebugWarning2("() -- 68k vec 0x%08x := 0x%08x (%s) by process %s", \
+                        address, value, vecname, procName); \
+    }
+#else
+
+#define WATCH_68K_VECTOR_CHANGE(address, value)
+
+#endif
+
+
 /** **********************************************************************************************
  *
  * @brief 68k-Emu function: read a single byte
@@ -230,6 +377,7 @@ static bool is_write_watch(uint32_t address)
  ************************************************************************************************/
 m68k_data_type m68k_read_memory_8(m68k_addr_type address)
 {
+    HANDLE_LOWMEM_READ_BUSERR(address, "read byte")
     if (address < addr68kVideo)
     {
         // read regular memory
@@ -278,6 +426,7 @@ m68k_data_type m68k_read_memory_8(m68k_addr_type address)
  ************************************************************************************************/
 m68k_data_type m68k_read_memory_16(m68k_addr_type address)
 {
+    HANDLE_LOWMEM_READ_BUSERR(address, "read 16-bit")
     if (address < addr68kVideo)
     {
         // read regular memory and convert to big-endian
@@ -326,6 +475,7 @@ m68k_data_type m68k_read_memory_16(m68k_addr_type address)
  ************************************************************************************************/
 m68k_data_type m68k_read_memory_32(m68k_addr_type address)
 {
+    HANDLE_LOWMEM_READ_BUSERR(address, "read 32-bit")
     if (address < addr68kVideo)
     {
         // read regular memory and convert to big-endian
@@ -357,7 +507,7 @@ m68k_data_type m68k_read_memory_32(m68k_addr_type address)
     uint32_t act_pd;
     getAtariPrg(&procName, &act_pd);
 
-    DebugError("m68k_read_memory_32(addr = 0x%08lx) --- bus error by process %s", address, procName);
+    DebugError("m68k_read_memory_32(addr = 0x%08lx) --- suppressed bus error by process %s", address, procName);
     return(0xffffffff);        // in fact this was a bus error
 }
 
@@ -379,18 +529,9 @@ void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
     }
 #endif
 
-#ifdef _DEBUG_WRITEPROTECT_ATARI_OS
-    if ((address >= addrOsRomStart) && (address < addrOsRomEnd))
-    {
-        const char *procName;
-        uint32_t act_pd;
-        getAtariPrg(&procName, &act_pd);
-
-        DebugError("m68k_write_memory_8() --- MagiC ROM tried to be overwritten by process %s at address 0x%08x",
-                        procName, address);
-        sendBusError(address, "write byte");
-    }
-#endif
+    HANDLE_LOWMEM_WRITE_BUSERR(address, "write byte")
+    WATCH_68K_VECTOR_CHANGE(address, value);       // although non-32-bit access is improbable...
+    WRITE_PROTECT_OS(address, "write byte")
 
     if (address < addr68kVideo)
     {
@@ -459,18 +600,9 @@ void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
     }
 #endif
 
-#ifdef _DEBUG_WRITEPROTECT_ATARI_OS
-    if ((address >= addrOsRomStart-1) && (address < addrOsRomEnd))
-    {
-        const char *procName;
-        uint32_t act_pd;
-        getAtariPrg(&procName, &act_pd);
-
-        DebugError("m68k_write_memory_16() --- MagiC ROM tried to be overwritten by process %s at address 0x%08x",
-                        procName, address);
-        sendBusError(address, "write word");
-    }
-#endif
+    HANDLE_LOWMEM_WRITE_BUSERR(address, "write 16-bit")
+    WATCH_68K_VECTOR_CHANGE(address, value);       // although non-32-bit access is improbable...
+    WRITE_PROTECT_OS(address, "write 16-bit")
 
     if (address < addr68kVideo)
     {
@@ -528,18 +660,9 @@ void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
     }
 #endif
 
-#ifdef _DEBUG_WRITEPROTECT_ATARI_OS
-    if ((address >= addrOsRomStart - 3) && (address < addrOsRomEnd))
-    {
-        const char *procName;
-        uint32_t act_pd;
-        getAtariPrg(&procName, &act_pd);
-
-        DebugError("m68k_write_memory_32() --- Blocked attempt to overwrite MagiC OS by process %s at address 0x%08x",
-                        procName, address);
-        sendBusError(address, "write long");
-    }
-#endif
+    HANDLE_LOWMEM_WRITE_BUSERR(address, "write 32-bit")
+    WATCH_68K_VECTOR_CHANGE(address, value);       // process changed 68k exception vector
+    WRITE_PROTECT_OS(address, "write 32-bit")
 
     if (address < addr68kVideo)
     {

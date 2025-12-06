@@ -165,48 +165,6 @@ int showAlert(const char *msg_text, const char *info_txt)
 
 /** **********************************************************************************************
  *
- * @brief Convert 68k exception to its name
- *
- * @param[in]  exception_no     68k exception number
- *
- * @return  human readable description
- *
- ************************************************************************************************/
-static const char *exception68kToName(unsigned exception_no)
-{
-    static char buf[32];
-
-    exception_no <<= 2;     // convert from exception number to exception vector
-
-    if ((exception_no >= INTV_32_TRAP_0) && (exception_no <= INTV_47_TRAP_15))
-    {
-        sprintf(buf, "Trap %u", (exception_no - INTV_32_TRAP_0) >> 2);
-    }
-    else
-    switch (exception_no)
-    {
-        case INTV_2_BUS_ERROR:      strcpy(buf, "bus error"); break;
-        case INTV_3_ADDRESS_ERROR:  strcpy(buf, "address error"); break;
-        case INTV_4_ILLEGAL:        strcpy(buf, "illegal instruction"); break;
-        case INTV_5_DIV_BY_ZERO:    strcpy(buf, "division by zero"); break;
-        case INTV_6_CHK:            strcpy(buf, "CHK"); break;
-        case INTV_7_TRAPV:          strcpy(buf, "TRAPV"); break;
-        case INTV_8_PRIV_VIOL:      strcpy(buf, "privilege violation"); break;
-        case INTV_9_TRACE:          strcpy(buf, "TRACE"); break;
-        case INTV_10_LINE_A:        strcpy(buf, "Line A"); break;
-        case INTV_11_LINE_F:        strcpy(buf, "Line F"); break;
-        case INTV_13:               strcpy(buf, "co-proc protocol (68030)"); break;
-        case INTV_14:               strcpy(buf, "format (68030)"); break;
-        case INTV_56:               strcpy(buf, "MMU configuration"); break;
-        default:                    strcpy(buf, "(other)"); break;
-    }
-
-    return buf;
-}
-
-
-/** **********************************************************************************************
- *
  * @brief Show dialogue describing the 68k CPU state when the exception occurred
  *
  * @param[in]  exception_no     68k exception number
@@ -268,7 +226,7 @@ static void GuiAtariCrash
     sprintf(srbits + strlen(srbits), "INT=%u", (sr >> 8) & 7);
 
     bool pc_is_rom = (pc >= addrOsRomStart) && (pc < addrOsRomEnd);
-    sprintf(text + strlen(text), "    exc = %s (%u)\n", exception68kToName(exception_no), exception_no);
+    sprintf(text + strlen(text), "    exc = %s (%u)\n", exception68k_to_name(exception_no << 2), exception_no);
     sprintf(text + strlen(text), "    exception address = 0x%08x (%s)\n", err_addr, AtariAddr2Description(err_addr));
     sprintf(text + strlen(text), "    AccessMode = %s\n", access_mode);
     if (pc_is_rom)

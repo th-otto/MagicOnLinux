@@ -39,10 +39,13 @@ class CRegisterModel
     static bool write_byte(uint32_t addr, uint8_t datum);
     static bool write_halfword(uint32_t addr, uint16_t datum);
     static bool write_word(uint32_t addr, uint32_t datum);
+    static bool read_data(uint32_t addr, unsigned len, uint8_t *data);
+    static bool write_data(uint32_t addr, unsigned len, const uint8_t *data);
 
     const char *name = "base";
     const uint32_t start_addr = 0;
     const uint32_t end_addr = 0;
+    unsigned logcnt = 100;     // maximum debug messages for this model
 
 	CRegisterModel(const char *my_name, uint32_t my_start_addr, uint32_t my_end_addr) :
         name(my_name),

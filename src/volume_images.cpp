@@ -263,6 +263,7 @@ int CVolumeImages::getMbr(const uint8_t *sector, partition *partitions, unsigned
 
         DebugInfo2("() -- Partition #%u type %u (%s) LBA %u .. %u, size %u sectors",
                          i, part->part_type, description, lba_first[i], lba_first[i] + lba_num[i], lba_num[i]);
+        (void) description;
 
         if ((type > 0) && (numparts < maxparts))
         {

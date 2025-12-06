@@ -37,6 +37,7 @@
 #include "MagiCPrint.h"
 #include "Atari.h"
 #include "volume_images.h"
+#include "register_model.h"
 #include "mem_access_68k.h"
 #include "conversion.h"
 #include "gui.h"
@@ -773,22 +774,22 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     // Konfiguration
 
     DebugInfo2("() - MultiThread version for Linux");
-#ifdef EMULATE_68K_TRACE
-    DebugInfo2("() - 68k trace is emulated (slows down the emulator a bit)");
-#else
-    DebugInfo2("() - 68k trace is not emulated (makes the emulator a bit faster)");
-#endif
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
     DebugInfo2("() - 68k ROM is write-protected (slows down the emulator a bit)");
 #else
     DebugInfo2("() - 68k ROM is not write-protected (makes the emulator a bit faster)");
 #endif
-#ifdef WATCH_68K_PC
-    DebugInfo2("() - 68k PC is checked for validity (slows down the emulator a bit)");
+#if defined(EMULATE_NULLPTR_BUSERR)
+    DebugInfo2("() - 68k access to 0 and 4 in user mode is prohibited (slows down the emulator a bit)");
 #else
-    DebugInfo2("() - 68k PC is not checked for validity (makes the emulator a bit faster)");
+    DebugInfo2("() - 68k access to 0 and 4 in user mode is ignored (makes the emulator a bit faster)");
 #endif
-    //DebugInfo2("() - Mac-Menü %s", (CGlobals::s_bShowMacMenu) ? "ein" : "aus");
+#if defined(_DEBUG_WATCH_68K_VECTOR_CHANGE)
+    DebugInfo2("() - Writing to 68k interrupt vectors is logged (slows down the emulator a bit)");
+#else
+    DebugInfo2("() - Writing to 68k interrupt vectors is not logged (makes the emulator a bit faster)");
+#endif
+
     DebugInfo2("() - Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
 
     // Atari screen data
@@ -1068,6 +1069,8 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     m68k_pulse_reset();
 
 #endif
+
+    CRegisterModel::init();
 
     return 0;
 }

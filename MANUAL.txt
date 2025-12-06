@@ -205,6 +205,7 @@ Atari applications that do not work at all (blacklist)
 - ST BASIC (bus error)
 - ST LOGO (overwrites memory)
 - PHOENIX 4.2 (strange file selector recursion)     <<<=== needs debugging
+- Signum 3 (starts in monochrome, 2ip, 4ip, 8 bits, but messes mouse pointer)
 - Scigraph (first complains about missing GDOS, then crashes with access to fffffa42, MC68881 FPU)
 - SED_440
 - SWFŔAK.PRG (system was overwritten)

@@ -39,8 +39,9 @@
 //#define _DEBUG_XFS
 #define _DEBUG_VOLUME_IMAGES
 //#define _DEBUG_HOST_HANDLES 1
-#define EMULATE_68K_TRACE 1
-#define WATCH_68K_PC 1
+#define _DEBUG_WRITEPROTECT_ATARI_OS
+#define _DEBUG_WATCH_68K_VECTOR_CHANGE  // watch write access to addresses 0..0x140
+#define EMULATE_NULLPTR_BUSERR          // block 68k access to addresses 0..8 in user mode
 #endif
 
 // emulator kernel

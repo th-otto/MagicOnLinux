@@ -83,6 +83,16 @@ class CST_TT_IO : public CRegisterModel
 {
   public:
     CST_TT_IO() : CRegisterModel("ST/TT I/O", 0x00ff8000, 0x01000000) { }
+    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    {
+        // kind of recursion
+        return read_data(addr | 0xff000000, len, data);
+    }
+    virtual bool write(uint32_t addr, unsigned len, const uint8_t *data)
+    {
+        // kind of recursion
+        return write_data(addr | 0xff000000, len, data);
+    }
 };
 
 class CTTFastRam : public CRegisterModel
@@ -108,20 +118,6 @@ class CStShadow : public CRegisterModel
   public:
     CStShadow() : CRegisterModel("ST 24 bit compatible shadow", 0xff000000, 0xffffffff) { }
     // TODO: one-off
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
-    {
-        (void) addr;
-        (void) len;
-        (void) data;
-        return false;   // bus error
-    }
-    virtual bool write(uint32_t addr, unsigned len, const uint8_t *data)
-    {
-        (void) addr;
-        (void) len;
-        (void) data;
-        return false;   // bus error
-    }
 };
 
 
@@ -140,7 +136,10 @@ class CStMmuConf : public CRegisterModel
 class CVideoScreenMemoryPositionHigh : public CRegisterModel
 {
   public:
-    CVideoScreenMemoryPositionHigh() : CRegisterModel("Video screen memory position (High byte)", 0xffff8201, 0xffff8202) { }
+    CVideoScreenMemoryPositionHigh() : CRegisterModel("Video screen memory position (High byte)", 0xffff8201, 0xffff8202)
+    {
+        logcnt = 20;
+    }
     virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
     {
         (void) addr;
@@ -153,7 +152,10 @@ class CVideoScreenMemoryPositionHigh : public CRegisterModel
 class CVideoScreenMemoryPositionMid : public CRegisterModel
 {
   public:
-    CVideoScreenMemoryPositionMid() : CRegisterModel("Video screen memory position (Mid byte)", 0xffff8203, 0xffff8204) { }
+    CVideoScreenMemoryPositionMid() : CRegisterModel("Video screen memory position (Mid byte)", 0xffff8203, 0xffff8204)
+    {
+        logcnt = 20;
+    }
     virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
     {
         (void) addr;
@@ -166,7 +168,10 @@ class CVideoScreenMemoryPositionMid : public CRegisterModel
 class CVideoAddressPointer : public CRegisterModel
 {
   public:
-    CVideoAddressPointer() : CRegisterModel("Video address pointer", 0xffff8205, 0xffff820a) { }
+    CVideoAddressPointer() : CRegisterModel("Video address pointer", 0xffff8205, 0xffff820a)
+    {
+        logcnt = 20;
+    }
     virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
     {
         (void) len;
@@ -254,19 +259,112 @@ int CRegisterModel::init()
     models[num_models++] = new CFpu;
     models[num_models++] = new CMfp2;
     models[num_models++] = new CAcia;
-    // ranges
-    models[num_models++] = new CTosRom512k;
-    models[num_models++] = new CReservedIO_1;
-    models[num_models++] = new CRomCartridge;
-    models[num_models++] = new CTosRom192k;
-    models[num_models++] = new CReservedIO_2;
-    models[num_models++] = new CST_TT_IO;
+    // ranges in 24-bit address range may interfere with large emulated RAM and VRAM
+    if (addr68kVideoEnd < 0x01000000)
+    {
+        models[num_models++] = new CTosRom512k;
+        models[num_models++] = new CReservedIO_1;
+        models[num_models++] = new CRomCartridge;
+        models[num_models++] = new CTosRom192k;
+        models[num_models++] = new CReservedIO_2;
+        models[num_models++] = new CST_TT_IO;
+    }
+    else
+    {
+        DebugWarning2("() -- 68k RAM + VRAM overlaps 24-bit ST I/O address range");
+    }
+    // ranges for 32-bit addresses
     models[num_models++] = new CTTFastRam;
     models[num_models++] = new CReserved;
     models[num_models++] = new CVme;
     models[num_models++] = new CStShadow;
 
     return 0;
+}
+
+
+bool CRegisterModel::read_data(uint32_t addr, unsigned len, uint8_t *data)
+{
+    for (unsigned n = 0; n < num_models; n++)
+    {
+        CRegisterModel *model = models[n];
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        {
+            bool ret = model->read(addr, len, data);
+            if (ret)
+            {
+                if (model->logcnt)
+                {
+                    if (len == 1)
+                        DebugInfo("m68k (0x%08x) -> 0x%02x (%s)", addr, data[0], model->name);
+                    else
+                    if (len == 2)
+                        DebugInfo("m68k (0x%08x) -> 0x%02x%02x (%s)", addr, data[0], data[1], model->name);
+                    else
+                    if (len == 4)
+                        DebugInfo("m68k (0x%08x) -> 0x%02x%02x%02x%02x (%s)", addr, data[0], data[1], data[2], data[3], model->name);
+                    model->logcnt--;
+                    if (model->logcnt == 0)
+                    {
+                        DebugWarning("     suppress further messages for this model");
+                    }
+                }
+            }
+            else
+            {
+                DebugInfo("m68k (0x%08x) -> BUSERR (%s)", addr, model->name);
+            }
+            return ret;
+        }
+    }
+
+    return false;
+}
+
+
+bool CRegisterModel::write_data(uint32_t addr, unsigned len, const uint8_t *data)
+{
+    for (unsigned n = 0; n < num_models; n++)
+    {
+        CRegisterModel *model = models[n];
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        {
+            bool ret = model->write(addr, len, data);
+            if (ret)
+            {
+                if (model->logcnt)
+                {
+                    if (len == 1)
+                        DebugInfo("m68k (0x%08x) := 0x%02x (%s)", addr, data[0], model->name);
+                    else
+                    if (len == 2)
+                        DebugInfo("m68k (0x%08x) := 0x%02x%02x (%s)", addr, data[0], data[1], model->name);
+                    else
+                    if (len == 4)
+                        DebugInfo("m68k (0x%08x) := 0x%02x%02x%02x%02x (%s)", addr, data[0], data[1], data[2], data[3], model->name);
+                    model->logcnt--;
+                    if (model->logcnt == 0)
+                    {
+                        DebugWarning("     suppress further messages for this model");
+                    }
+                }
+            }
+            else
+            {
+                    if (len == 1)
+                        DebugInfo("m68k (0x%08x) := 0x%02x -> BUSERR (%s)", addr, data[0], model->name);
+                    else
+                    if (len == 2)
+                        DebugInfo("m68k (0x%08x) := 0x%02x%02x -> BUSERR (%s)", addr, data[0], data[1], model->name);
+                    else
+                    if (len == 4)
+                        DebugInfo("m68k (0x%08x) := 0x%02x%02x%02x%02x -> BUSERR (%s)", addr, data[0], data[1], data[2], data[3], model->name);
+            }
+            return ret;
+        }
+    }
+
+    return false;
 }
 
 
@@ -280,9 +378,21 @@ bool CRegisterModel::read_byte(uint32_t addr, uint8_t *datum)
         {
             bool ret = model->read(addr, 1, datum);
             if (ret)
-                DebugInfo("m68k (0x%08x) -> 0x%02x (%s)", addr, *datum, model->name);
+            {
+                if (model->logcnt)
+                {
+                    DebugInfo("m68k (0x%08x) -> 0x%02x (%s)", addr, *datum, model->name);
+                    model->logcnt--;
+                    if (model->logcnt == 0)
+                    {
+                        DebugWarning("     suppress further messages for this model");
+                    }
+                }
+            }
             else
+            {
                 DebugInfo("m68k (0x%08x) -> BUSERR (%s)", addr, model->name);
+            }
             return ret;
         }
     }
@@ -298,8 +408,24 @@ bool CRegisterModel::read_halfword(uint32_t addr, uint16_t *datum)
         CRegisterModel *model = models[n];
         if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
         {
-            DebugInfo("m68k (0x%08x) -> 0x???? (%s)", addr, model->name);
-            return model->read(addr, 2, (uint8_t *) datum);
+            bool ret = model->read(addr, 2, (uint8_t *) datum);
+            if (ret)
+            {
+                if (model->logcnt)
+                {
+                    DebugInfo("m68k (0x%08x) -> 0x%04x (%s)", addr, *datum, model->name);
+                    model->logcnt--;
+                    if (model->logcnt == 0)
+                    {
+                        DebugWarning("     suppress further messages for this model");
+                    }
+                }
+            }
+            else
+            {
+                DebugInfo("m68k (0x%08x) -> BUSERR (%s)", addr, model->name);
+            }
+            return ret;
         }
     }
 
@@ -314,8 +440,24 @@ bool CRegisterModel::read_word(uint32_t addr, uint32_t *datum)
         CRegisterModel *model = models[n];
         if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
         {
-            DebugInfo("m68k (0x%08x) -> 0x???????? (%s)", addr, model->name);
-            return model->read(addr, 4, (uint8_t *) datum);
+            bool ret = model->read(addr, 4, (uint8_t *) datum);
+            if (ret)
+            {
+                if (model->logcnt)
+                {
+                    DebugInfo("m68k (0x%08x) -> 0x%08x (%s)", addr, *datum, model->name);
+                    model->logcnt--;
+                    if (model->logcnt == 0)
+                    {
+                        DebugWarning("     suppress further messages for this model");
+                    }
+                }
+            }
+            else
+            {
+                DebugInfo("m68k (0x%08x) -> BUSERR (%s)", addr, model->name);
+            }
+            return ret;
         }
     }
 
@@ -331,8 +473,24 @@ bool CRegisterModel::write_byte(uint32_t addr, uint8_t datum)
         CRegisterModel *model = models[n];
         if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
         {
-            DebugInfo("m68k (0x%08x) := 0x%02x (%s)", addr, datum, model->name);
-            return model->write(addr, 1, &datum);
+            bool ret = model->write(addr, 1, &datum);
+            if (ret)
+            {
+                if (model->logcnt)
+                {
+                    DebugInfo("m68k (0x%08x) := 0x%02x (%s)", addr, datum, model->name);
+                    model->logcnt--;
+                    if (model->logcnt == 0)
+                    {
+                        DebugWarning("     suppress further messages for this model");
+                    }
+                }
+            }
+            else
+            {
+                DebugInfo("m68k (0x%08x) := 0x%02x -> BUSERR (%s)", addr, datum, model->name);
+            }
+            return ret;
         }
     }
 
@@ -347,8 +505,24 @@ bool CRegisterModel::write_halfword(uint32_t addr, uint16_t datum)
         CRegisterModel *model = models[n];
         if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
         {
-            DebugInfo("m68k (0x%08x) := 0x%04x (%s)", addr, datum, model->name);
-            return model->write(addr, 2, (uint8_t *) &datum);
+            bool ret = model->write(addr, 2, (uint8_t *) &datum);
+            if (ret)
+            {
+                if (model->logcnt)
+                {
+                    DebugInfo("m68k (0x%08x) := 0x%04x (%s)", addr, datum, model->name);
+                    model->logcnt--;
+                    if (model->logcnt == 0)
+                    {
+                        DebugWarning("     suppress further messages for this model");
+                    }
+                }
+            }
+            else
+            {
+                DebugInfo("m68k (0x%08x) := 0x%04x -> BUSERR (%s)", addr, datum, model->name);
+            }
+            return ret;
         }
     }
 
@@ -363,8 +537,24 @@ bool CRegisterModel::write_word(uint32_t addr, uint32_t datum)
         CRegisterModel *model = models[n];
         if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
         {
-            DebugInfo("m68k (0x%08x) := 0x%08x (%s)", addr, datum, model->name);
-            return model->write(addr, 4, (uint8_t *) &datum);
+            bool ret = model->write(addr, 4, (uint8_t *) &datum);
+            if (ret)
+            {
+                if (model->logcnt)
+                {
+                    DebugInfo("m68k (0x%08x) := 0x%08x (%s)", addr, datum, model->name);
+                    model->logcnt--;
+                    if (model->logcnt == 0)
+                    {
+                        DebugWarning("     suppress further messages for this model");
+                    }
+                }
+            }
+            else
+            {
+                DebugInfo("m68k (0x%08x) := 0x%08x -> BUSERR (%s)", addr, datum, model->name);
+            }
+            return ret;
         }
     }
 

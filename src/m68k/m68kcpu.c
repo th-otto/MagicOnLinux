@@ -932,6 +932,12 @@ static void m68k_dump_state(void)
 /* ================================= API ================================== */
 /* ======================================================================== */
 
+// hack
+int m68k_get_super()
+{
+    return m68ki_cpu.s_flag;
+}
+
 /* Access the internals of the CPU */
 unsigned int m68k_get_reg(void* context, m68k_register_t regnum)
 {

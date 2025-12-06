@@ -44,13 +44,13 @@ class CRegisterModel
 
     const char *name = "base";
     const uint32_t start_addr = 0;
-    const uint32_t end_addr = 0;
+    const uint32_t last_addr = 0;
     unsigned logcnt = 100;     // maximum debug messages for this model
 
-	CRegisterModel(const char *my_name, uint32_t my_start_addr, uint32_t my_end_addr) :
+	CRegisterModel(const char *my_name, uint32_t my_start_addr, uint32_t my_last_addr) :
         name(my_name),
         start_addr(my_start_addr),
-        end_addr(my_end_addr)
+        last_addr(my_last_addr)
     {
     }
 	virtual ~CRegisterModel()

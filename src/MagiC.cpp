@@ -932,6 +932,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     pMacXSysHdr->MacSys_VideoAddr = 0x80000000;        // on 32-bit host: m_pMagiCScreen->m_PixMap.baseAddr
     setHostCallback(&pMacXSysHdr->MacSys_gettime,    AtariGettime);
     setHostCallback(&pMacXSysHdr->MacSys_settime,    AtariSettime);
+    setHostCallback(&pMacXSysHdr->MacSys_Setscreen,  AtariSetscreen);
     setHostCallback(&pMacXSysHdr->MacSys_Setpalette, AtariSetpalette);
     setHostCallback(&pMacXSysHdr->MacSys_Setcolor,   AtariSetcolor);
     setHostCallback(&pMacXSysHdr->MacSys_VsetRGB,    AtariVsetRGB);
@@ -2341,6 +2342,36 @@ uint32_t CMagiC::AtariSettime(uint32_t params, uint8_t *addrOffset68k)
 
 /** **********************************************************************************************
  *
+ * @brief Emulator callback: XBIOS Setcreen
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return not supported, always zero
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct SetscreenParm
+    {
+        PTR32_BE log;       // palette table index 0..255
+        PTR32_BE phys;       // number of entries to change
+        UINT16_BE res;   // new colour values, 32-bit big-endian each
+    } __attribute__((packed));
+
+    const SetscreenParm *theParm = (SetscreenParm *) (addrOffset68k + params);
+    uint32_t log = be32toh(theParm->log);
+    uint32_t phys = be32toh(theParm->phys);
+    uint16_t res = be16toh(theParm->res);
+    (void) params;
+    (void) addrOffset68k;
+    DebugError2("(0x%08x, 0x%08x, %d) -- not supported", log, phys, res);
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Emulator callback: XBIOS Setpalette
  *
  * @param[in] param             68k address of parameter structure
@@ -2351,9 +2382,16 @@ uint32_t CMagiC::AtariSettime(uint32_t params, uint8_t *addrOffset68k)
  ************************************************************************************************/
 uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
 {
+    struct SetpaletteParm
+    {
+        PTR32_BE ptr;       // 68k pointer to 16 16-bit values (big-endian)
+    } __attribute__((packed));
+
+    const SetpaletteParm *theParm = (SetpaletteParm *) (addrOffset68k + params);
+    uint32_t table = be32toh(theParm->ptr);
     (void) params;
     (void) addrOffset68k;
-    DebugWarning2("() -- not supported");
+    DebugError2("(0x%08x) -- not supported", table);
     return 0;
 }
 
@@ -2365,14 +2403,23 @@ uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
  * @param[in] param             68k address of parameter structure
  * @param[in] addrOffset68k     Host address of 68k memory
  *
- * @return not supported, always zero
+ * @return should return previous value, but not supported, always zero
  *
  ************************************************************************************************/
 uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
 {
+    struct SetcolorParm
+    {
+        UINT16_BE no;       // colour to change (0..15)
+        UINT16_BE val;      // new value
+    } __attribute__((packed));
+
+    const SetcolorParm *theParm = (SetcolorParm *) (addrOffset68k + params);
+    uint16_t no = be16toh(theParm->no);
+    uint16_t val = be16toh(theParm->val);
     (void) params;
     (void) addrOffset68k;
-    DebugWarning2("() -- not supported");
+    DebugError2("(%d, 0x%04x) -- not supported", no, val);
     return 0;
 }
 

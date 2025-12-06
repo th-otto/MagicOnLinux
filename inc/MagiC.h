@@ -99,6 +99,7 @@ class CMagiC
     static uint32_t AtariSettime(uint32_t params, uint8_t *addrOffset68k);
     static void *_Remote_AtariSysHalt( void *param );
     static uint32_t AtariSysHalt(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSetscreen(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetpalette(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetcolor(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k);

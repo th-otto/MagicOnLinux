@@ -61,8 +61,8 @@ MacSysX_drv2devcode: DS.L PTRLEN	; umrechnen Laufwerk->Devicenummer
 MacSysX_rawdrvr:	DS.L PTRLEN	; LONG RawDrvr({int, long} *) Raw-Driver (Eject) fÅr Mac
 MacSysX_Daemon:	DS.L 1		; Aufruf fÅr den mmx-Daemon
 MacSysX_BlockDev:   DS.L 1         ; MagicOnLinux soll hier disk images verwalten
-MacSysX_resvd1:     DS.L 1         ; reserved for future
-MacSysX_resvd2:     DS.L 1         ; reserved for future
+MacSysX_Network:    DS.L 1         ; Netzwerkfunktionen
+MacSysX_Setscreen:  DS.L 1         ; XBIOS #5, void Setscreen(void *log, void *phys, int res) 
 MacSysX_Yield:		DS.L 1		; Aufruf fÅr Rechenzeit abgeben
 MacSys_OldHdr:		DS.L	49		; KompatibilitÑt mit Behnes
 MacSysX_sizeof:

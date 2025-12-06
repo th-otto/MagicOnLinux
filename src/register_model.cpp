@@ -58,31 +58,31 @@ class CTosRom512k : public CRegisterModel
 class CReservedIO_1 : public CRegisterModel
 {
   public:
-    CReservedIO_1() : CRegisterModel("Reserved I/O Space #1", 0x00f00000, 0x00fa0000) { }
+    CReservedIO_1() : CRegisterModel("Reserved I/O Space #1", 0x00f00000, 0x00fa0000 - 1) { }
 };
 
 class CRomCartridge : public CRegisterModel
 {
   public:
-    CRomCartridge() : CRegisterModel("128k ROM cartridge expansion port", 0x00fa0000, 0x00fc0000) { }
+    CRomCartridge() : CRegisterModel("128k ROM cartridge expansion port", 0x00fa0000, 0x00fc0000 - 1) { }
 };
 
 class CTosRom192k : public CRegisterModel
 {
   public:
-    CTosRom192k() : CRegisterModel("192k System ROM", 0x00fc0000, 0x00ff0000) { }
+    CTosRom192k() : CRegisterModel("192k System ROM", 0x00fc0000, 0x00ff0000 - 1) { }
 };
 
 class CReservedIO_2 : public CRegisterModel
 {
   public:
-    CReservedIO_2() : CRegisterModel("Reserved I/O Space #2", 0x00ff0000, 0x00ff8000) { }
+    CReservedIO_2() : CRegisterModel("Reserved I/O Space #2", 0x00ff0000, 0x00ff8000 - 1) { }
 };
 
 class CST_TT_IO : public CRegisterModel
 {
   public:
-    CST_TT_IO() : CRegisterModel("ST/TT I/O", 0x00ff8000, 0x01000000) { }
+    CST_TT_IO() : CRegisterModel("ST/TT I/O", 0x00ff8000, 0x01000000 - 1) { }
     virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
     {
         // kind of recursion
@@ -98,45 +98,44 @@ class CST_TT_IO : public CRegisterModel
 class CTTFastRam : public CRegisterModel
 {
   public:
-    CTTFastRam() : CRegisterModel("TT Fast RAM", 0x01000000, 0x01400000) { }
+    CTTFastRam() : CRegisterModel("TT Fast RAM", 0x01000000, 0x01400000 - 1) { }
 };
 
 class CReserved : public CRegisterModel
 {
   public:
-    CReserved() : CRegisterModel("Reserved", 0x01400000, 0xfe000000) { }
+    CReserved() : CRegisterModel("Reserved", 0x01400000, 0xfe000000 - 1) { }
 };
 
 class CVme : public CRegisterModel
 {
   public:
-    CVme() : CRegisterModel("VME", 0xfe000000, 0xff000000) { }
+    CVme() : CRegisterModel("VME", 0xfe000000, 0xff000000 - 1) { }
 };
 
 class CStShadow : public CRegisterModel
 {
   public:
     CStShadow() : CRegisterModel("ST 24 bit compatible shadow", 0xff000000, 0xffffffff) { }
-    // TODO: one-off
 };
 
 
 class CTtMmuConf : public CRegisterModel
 {
   public:
-    CTtMmuConf() : CRegisterModel("TT MMU memory configuration", 0xffff8000, 0xffff8001) { }
+    CTtMmuConf() : CRegisterModel("TT MMU memory configuration", 0xffff8000, 0xffff8000) { }
 };
 
 class CStMmuConf : public CRegisterModel
 {
   public:
-    CStMmuConf() : CRegisterModel("ST MMU memory configuration", 0xffff8001, 0xffff8002) { }
+    CStMmuConf() : CRegisterModel("ST MMU memory configuration", 0xffff8001, 0xffff8001) { }
 };
 
 class CVideoScreenMemoryPositionHigh : public CRegisterModel
 {
   public:
-    CVideoScreenMemoryPositionHigh() : CRegisterModel("Video screen memory position (High byte)", 0xffff8201, 0xffff8202)
+    CVideoScreenMemoryPositionHigh() : CRegisterModel("Video screen memory position (High byte)", 0xffff8201, 0xffff8201)
     {
         logcnt = 20;
     }
@@ -152,7 +151,7 @@ class CVideoScreenMemoryPositionHigh : public CRegisterModel
 class CVideoScreenMemoryPositionMid : public CRegisterModel
 {
   public:
-    CVideoScreenMemoryPositionMid() : CRegisterModel("Video screen memory position (Mid byte)", 0xffff8203, 0xffff8204)
+    CVideoScreenMemoryPositionMid() : CRegisterModel("Video screen memory position (Mid byte)", 0xffff8203, 0xffff8203)
     {
         logcnt = 20;
     }
@@ -168,7 +167,7 @@ class CVideoScreenMemoryPositionMid : public CRegisterModel
 class CVideoAddressPointer : public CRegisterModel
 {
   public:
-    CVideoAddressPointer() : CRegisterModel("Video address pointer", 0xffff8205, 0xffff820a)
+    CVideoAddressPointer() : CRegisterModel("Video address pointer", 0xffff8205, 0xffff8209)
     {
         logcnt = 20;
     }
@@ -191,13 +190,13 @@ class CVideoAddressPointer : public CRegisterModel
 class CVideoSyncMode : public CRegisterModel
 {
   public:
-    CVideoSyncMode() : CRegisterModel("Video Synchronisation mode", 0xffff820a, 0xffff820b) { }
+    CVideoSyncMode() : CRegisterModel("Video Synchronisation mode", 0xffff820a, 0xffff820a) { }
 };
 
 class CVideoScreenMemoryPositionLow : public CRegisterModel
 {
   public:
-    CVideoScreenMemoryPositionLow() : CRegisterModel("Video screen memory position (Low byte)", 0xffff820d, 0xffff820e) { }
+    CVideoScreenMemoryPositionLow() : CRegisterModel("Video screen memory position (Low byte)", 0xffff820d, 0xffff820d) { }
     virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
     {
         (void) addr;
@@ -210,37 +209,37 @@ class CVideoScreenMemoryPositionLow : public CRegisterModel
 class CYM2149Read : public CRegisterModel
 {
   public:
-    CYM2149Read() : CRegisterModel("YM2149 Read data/Register select", 0xffff8800, 0xffff8801) { }
+    CYM2149Read() : CRegisterModel("YM2149 Read data/Register select", 0xffff8800, 0xffff8800) { }
 };
 
 class CYM2149Write : public CRegisterModel
 {
   public:
-    CYM2149Write() : CRegisterModel("YM2149 Write data", 0xffff8802, 0xffff8803) { }
+    CYM2149Write() : CRegisterModel("YM2149 Write data", 0xffff8802, 0xffff8802) { }
 };
 
 class CMfp : public CRegisterModel
 {
   public:
-    CMfp() : CRegisterModel("MFP 68901 - Multi Function Peripheral Chip", 0xfffffa01, 0xfffffa30) { }
+    CMfp() : CRegisterModel("MFP 68901 - Multi Function Peripheral Chip", 0xfffffa01, 0xfffffa2f) { }
 };
 
 class CFpu : public CRegisterModel
 {
   public:
-    CFpu() : CRegisterModel("Floating Point Coprocessor", 0xfffffa, 0xfffffa60) { }
+    CFpu() : CRegisterModel("Floating Point Coprocessor", 0xfffffa, 0xfffffa5f) { }
 };
 
 class CMfp2 : public CRegisterModel
 {
   public:
-    CMfp2() : CRegisterModel("MFP 68901 #2 - Multi Function Peripheral Chip #2 (TT)", 0xfffffa81, 0xfffffab0) { }
+    CMfp2() : CRegisterModel("MFP 68901 #2 - Multi Function Peripheral Chip #2 (TT)", 0xfffffa81, 0xfffffaaf) { }
 };
 
 class CAcia : public CRegisterModel
 {
   public:
-    CAcia() : CRegisterModel("6850 ACIA I/O Chips", 0xfffffc00, 0xfffffc07) { }
+    CAcia() : CRegisterModel("6850 ACIA I/O Chips", 0xfffffc00, 0xfffffc06) { }
 };
 
 int CRegisterModel::init()
@@ -288,7 +287,7 @@ bool CRegisterModel::read_data(uint32_t addr, unsigned len, uint8_t *data)
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
             bool ret = model->read(addr, len, data);
             if (ret)
@@ -327,7 +326,7 @@ bool CRegisterModel::write_data(uint32_t addr, unsigned len, const uint8_t *data
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
             bool ret = model->write(addr, len, data);
             if (ret)
@@ -374,7 +373,7 @@ bool CRegisterModel::read_byte(uint32_t addr, uint8_t *datum)
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
             bool ret = model->read(addr, 1, datum);
             if (ret)
@@ -406,7 +405,7 @@ bool CRegisterModel::read_halfword(uint32_t addr, uint16_t *datum)
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
             bool ret = model->read(addr, 2, (uint8_t *) datum);
             if (ret)
@@ -438,7 +437,7 @@ bool CRegisterModel::read_word(uint32_t addr, uint32_t *datum)
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
             bool ret = model->read(addr, 4, (uint8_t *) datum);
             if (ret)
@@ -471,7 +470,7 @@ bool CRegisterModel::write_byte(uint32_t addr, uint8_t datum)
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
             bool ret = model->write(addr, 1, &datum);
             if (ret)
@@ -503,7 +502,7 @@ bool CRegisterModel::write_halfword(uint32_t addr, uint16_t datum)
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
             bool ret = model->write(addr, 2, (uint8_t *) &datum);
             if (ret)
@@ -535,7 +534,7 @@ bool CRegisterModel::write_word(uint32_t addr, uint32_t datum)
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr < model->end_addr))
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
             bool ret = model->write(addr, 4, (uint8_t *) &datum);
             if (ret)

@@ -2711,12 +2711,9 @@ Getrez:
 *
 
 Setscreen:
- move.l	(a0),d0			    ; *log
- moveq	#-1,d1
- cmp.l	d0,d1
- beq.b	setscr_nolog		    ; log. Adr. nicht „ndern
- move.l	d0,_v_bas_ad
-setscr_nolog:
+ lea		(a0),a1				; Params
+ lea		MSysX+MacSysX_Setscreen(pc),a0
+ MACPPC
  rte
 
 

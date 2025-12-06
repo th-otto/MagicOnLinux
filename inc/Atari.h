@@ -967,8 +967,8 @@ MacSysX_rawdrvr:        DS.L PTRLEN   ; LONG RawDrvr({int, long} *) Raw driver (
 // previously MacSysX_Daemon:         DS.L PTRLEN   ; call for the mmx daemon
 MacSysX_Daemon:	        DS.L 1		  ; MagicOnLinux: call for the mmx daemon
 MacSysX_BlockDev:       DS.L 1        ; MagicOnLinux: disk image management
-MacSysX_resvd1:         DS.L 1        ; MagicOnLinux: reserved for future use
-MacSysX_resvd2:         DS.L 1        ; MagicOnLinux: reserved for future use
+MacSysX_Network:        DS.L 1        ; MagicOnLinux: network
+MacSysX_Setscreen:      DS.L 1        ; MagicOnLinux: Xbios #5
 MacSysX_Yield:          DS.L 1        ; call to yield CPU time (idle)
 MacSys_OldHdr:          DS.L 49       ; for compatibility with Behne's code
 MacSysX_sizeof:
@@ -997,6 +997,9 @@ MACRO    MACPPCE
 // additionally takes a "this" pointer that is located behind the
 // host callback function pointer and passes this as first parameter
 // of a class method.
+
+// !!! WARNING: Keep consistent with MSysX IN MAGXBIOS.S and offsets MAGXKER.INC!!!
+// (The symbol MSys of the old header is exported to MVDI)
 
 #define MAGICLIN 1
 struct MacXSysHdr
@@ -1061,8 +1064,8 @@ struct MacXSysHdr
 #if defined(MAGICLIN)
     PTR32_HOST   MacSys_Daemon;             // call for the mmx daemon
     PTR32_HOST   MacSys_BlockDevice;        // new for MagicOnLinux
-    PTR32_HOST   MacSys_resvd1;
-    PTR32_HOST   MacSys_resvd2;
+    PTR32_HOST   MacSys_Network;            // network functions
+    PTR32_HOST   MacSys_Setscreen;          // XBIOS #5, void Setscreen(void *log, void *phys, int res)
 #else
     PTR32x4_HOST MacSys_Daemon;             // call for the mmx daemon
 #endif

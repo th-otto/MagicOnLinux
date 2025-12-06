@@ -58,6 +58,23 @@ typedef enum
 #define DRV_FLAG_8p3            2   ///< filenames in 8+3 format, uppercase
 #define DRV_FLAG_CASE_INSENS    4   ///< case insensitive, e.g. (V)FAT or HFS(+)
 
+#define MAX_ETH 4
+struct ethernet_options
+{
+    unsigned int type;
+    char tunnel[16];
+    char host_ip[16];
+    char atari_ip[16];
+    char netmask[16];
+    char gateway[16];
+    char mac_addr[18];
+    unsigned int intlevel;
+};
+
+// Network types
+#define ETH_TYPE_NONE   0
+#define ETH_TYPE_BRIDGE 1
+#define ETH_TYPE_PTP    2
 
 /// @brief  static class, no constructor etc.
 class Preferences
@@ -96,6 +113,7 @@ class Preferences
     static unsigned AtariScreenStretchY;            // vertical stretch
     static unsigned ScreenRefreshFrequency;
     //static bool m_bPPC_VDI_Patch;                 // used for native VDI output on PPC
+    static struct ethernet_options eth[MAX_ETH];
 
     static const char *drvPath[NDRIVES];
     static unsigned drvFlags[NDRIVES];              // see above (read-only, ...)

@@ -64,7 +64,15 @@
 #define VAR_SHOW_HOST_MENU              21
 #define VAR_ATARI_AUTOSTART             22
 #define VAR_ATARI_DRV_                  23
-#define VAR_NUMBER                      24
+#define VAR_ETH0_TYPE                   24
+#define VAR_ETH0_TUNNEL                 25
+#define VAR_ETH0_HOST_IP                26
+#define VAR_ETH0_ATARI_IP               27
+#define VAR_ETH0_NETMASK                28
+#define VAR_ETH0_GATEWAY                29
+#define VAR_ETH0_MAC                    30
+#define VAR_ETH0_INTLEVEL               31
+#define VAR_NUMBER                      32
 
 // variable names in preferences
 static const char *var_name[VAR_NUMBER] =
@@ -98,7 +106,16 @@ static const char *var_name[VAR_NUMBER] =
     "show_host_menu",
     "atari_autostart",
     //[ADDITIONAL ATARI DRIVES]
-    "atari_drv_"
+    "atari_drv_",
+    //[ETH0]
+    "eth0_type",
+    "eth0_tunnel",
+    "eth0_host_ip",
+    "eth0_atari_ip",
+    "eth0_netmask",
+    "eth0_gateway",
+    "eth0_mac",
+    "eth0_intlevel"
 };
 
 
@@ -128,6 +145,13 @@ unsigned Preferences::AtariScreenStretchX = 2;
 unsigned Preferences::AtariScreenStretchY = 2;
 unsigned Preferences::ScreenRefreshFrequency = 60;
 //bool Preferences::bPPC_VDI_Patch;
+struct ethernet_options Preferences::eth[MAX_ETH] =
+{
+    { ETH_TYPE_NONE, "tap0", "192.168.0.1", "192.168.0.2", "255.255.255.0", "192.168.0.1", "00:41:45:54:48:30", 4 },
+    { ETH_TYPE_NONE, "", "", "", "", "", "", 3 },
+    { ETH_TYPE_NONE, "", "", "", "", "", "", 3 },
+    { ETH_TYPE_NONE, "", "", "", "", "", "", 3 }
+};
 
 // derived
 char Preferences::AtariScrapFileUnixPath[1024];
@@ -376,6 +400,15 @@ int Preferences::writePreferences(const char *cfgfile)
             fprintf(f, "%s%c = %u \"%s\"\n", var_name[VAR_ATARI_DRV_], n + 'a', drvFlags[n], drvPath[n]);
         }
     }
+    fprintf(f, "[ETH0]\n");
+    fprintf(f, "%s = %u\n",     var_name[VAR_ETH0_TYPE], eth[0].type);
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ETH0_TUNNEL], eth[0].tunnel);
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ETH0_HOST_IP], eth[0].host_ip);
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ETH0_ATARI_IP], eth[0].atari_ip);
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ETH0_NETMASK], eth[0].netmask);
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ETH0_GATEWAY], eth[0].gateway);
+    fprintf(f, "%s = \"%s\"\n", var_name[VAR_ETH0_MAC], eth[0].mac_addr);
+    fprintf(f, "%s = %u\n",     var_name[VAR_ETH0_INTLEVEL], eth[0].intlevel);
 
     fclose(f);
     return 0;
@@ -805,6 +838,38 @@ int Preferences::evaluatePreferencesLine(const char *line)
                     }
                 }
             }
+            break;
+
+        case VAR_ETH0_TYPE:
+            num_errors += eval_unsigned(&eth[0].type, 0, 2, &line);
+            break;
+
+        case VAR_ETH0_TUNNEL:
+            num_errors += eval_quotated_str(eth[0].tunnel, sizeof(eth[0].tunnel), &line);
+            break;
+
+        case VAR_ETH0_HOST_IP:
+            num_errors += eval_quotated_str(eth[0].host_ip, sizeof(eth[0].host_ip), &line);
+            break;
+
+        case VAR_ETH0_ATARI_IP:
+            num_errors += eval_quotated_str(eth[0].atari_ip, sizeof(eth[0].atari_ip), &line);
+            break;
+
+        case VAR_ETH0_NETMASK:
+            num_errors += eval_quotated_str(eth[0].netmask, sizeof(eth[0].netmask), &line);
+            break;
+
+        case VAR_ETH0_GATEWAY:
+            num_errors += eval_quotated_str(eth[0].netmask, sizeof(eth[0].gateway), &line);
+            break;
+
+        case VAR_ETH0_MAC:
+            num_errors += eval_quotated_str(eth[0].mac_addr, sizeof(eth[0].mac_addr), &line);
+            break;
+
+        case VAR_ETH0_INTLEVEL:
+            num_errors += eval_unsigned(&eth[0].intlevel, 3, 6, &line);
             break;
 
         default:

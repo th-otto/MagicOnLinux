@@ -470,24 +470,25 @@ struct SYSHDR
 
 /* BIOS level errors */
 
-#define E_OK        0L    // OK, no error
-#define ERROR      -1L    // basic, fundamental error
-#define EDRVNR     -2L    // drive not ready
-#define EUNCMD     -3L    // unknown command
-#define E_CRC      -4L    // CRC error
-#define EBADRQ     -5L    // bad request
-#define E_SEEK     -6L    // seek error
-#define EMEDIA     -7L    // unknown media
-#define ESECNF     -8L    // sector not found
-#define EPAPER     -9L    // no paper
-#define EWRITF    -10L    // write fault
-#define EREADF    -11L    // read fault
-#define EGENRL    -12L    // general error
-#define EWRPRO    -13L    // write protect
-#define E_CHNG    -14L    // media change
-#define EUNDEV    -15L    // unknown device
-#define EBADSF    -16L    // bad sectors on format
-#define EOTHER    -17L    // insert other disk
+#define E_OK         0    // OK, no error
+#define ERROR       -1    // basic, fundamental error
+#define EDRVNR      -2    // drive not ready
+#define EUNCMD      -3    // unknown command
+#define E_CRC       -4    // CRC error
+#define EBADRQ      -5    // bad request
+#define E_SEEK      -6    // seek error
+#define EMEDIA      -7    // unknown media
+#define ESECNF      -8    // sector not found
+#define EPAPER      -9    // no paper
+#define EWRITF     -10    // write fault
+#define EREADF     -11    // read fault
+#define EGENRL     -12    // general error
+#define EWRPRO     -13    // write protect
+#define E_CHNG     -14    // media change
+#define EUNDEV     -15    // unknown device
+#define EBADSF     -16    // bad sectors on format
+#define EOTHER     -17    // insert other disk
+#define TOS_EINVAL -25    // Invalid argument (TODO: where does this come from?)
 
 /* BDOS level errors */
 

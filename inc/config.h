@@ -21,6 +21,7 @@
 #define _CONFIG_H_
 
 #define PROGRAM_NAME "MagicOnLinux v0.3"
+#define VERSION_STRING "0.3"
 #define PROGRAM_VERSION_MAJOR 0
 #define PROGRAM_VERSION_MINOR 3
 

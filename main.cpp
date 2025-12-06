@@ -4,6 +4,7 @@
 #include "Debug.h"
 #include "conversion.h"
 #include "preferences.h"
+#include "register_model.h"
 #include "MagiCPrint.h"
 #include "MagiCSerial.h"
 #include "EmulationRunner.h"
@@ -515,6 +516,7 @@ int main(int argc, char *argv[])
     CConversion::init();
     CMagiCPrint::init();
     CMagiCSerial::init();
+    CRegisterModel::init();
     m68k_init();
     if (EmulationRunner::init())
     {

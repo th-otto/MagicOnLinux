@@ -34,6 +34,7 @@
 #include "Globals.h"
 #include "Atari.h"
 #include "gui.h"
+#include "register_model.h"
 
 // compile time switches
 
@@ -229,34 +230,31 @@ static bool is_write_watch(uint32_t address)
  ************************************************************************************************/
 m68k_data_type m68k_read_memory_8(m68k_addr_type address)
 {
-#if !COUNT_CYCLES
     if (address < addr68kVideo)
     {
         // read regular memory
         return(*((uint8_t *) (addrOpcodeROM + address)));
     }
-    else
-#endif
+
     if (address < addr68kVideoEnd)
     {
         // read from host's video memory
         return(*((uint8_t *) (hostVideoAddr + (address - addr68kVideo))));
     }
-    else
-    if (address == 0xffff820a)
-    {
-        DebugWarning2("() --- Reading of \"Video Sync Mode\" returns zero!");
-        return 0;
-    }
-    else
-    {
-        // handle access error
-        const char *procName;
-        uint32_t act_pd;
-        getAtariPrg(&procName, &act_pd);
 
-        DebugError("m68k_read_memory_8(addr = 0x%08lx) --- bus error (%s) by process %s",
-                     address, AtariAddr2Description(address), procName);
+    uint8_t datum;
+    if (CRegisterModel::read_byte(address, &datum))
+    {
+        return datum;
+    }
+
+    // handle access error
+    const char *procName;
+    uint32_t act_pd;
+    getAtariPrg(&procName, &act_pd);
+
+    DebugError("m68k_read_memory_8(addr = 0x%08lx) --- bus error (%s) by process %s",
+                    address, AtariAddr2Description(address), procName);
         /*
         if (address == 0xfffffa11)
         {
@@ -264,10 +262,8 @@ m68k_data_type m68k_read_memory_8(m68k_addr_type address)
         }
         else
         */
-            sendBusError(address, "read byte");
-
-        return 0xff;
-    }
+    sendBusError(address, "read byte");
+    return 0xff;
 }
 
 
@@ -282,14 +278,12 @@ m68k_data_type m68k_read_memory_8(m68k_addr_type address)
  ************************************************************************************************/
 m68k_data_type m68k_read_memory_16(m68k_addr_type address)
 {
-#if !COUNT_CYCLES
     if (address < addr68kVideo)
     {
         // read regular memory and convert to big-endian
         return getAtariBE16(addrOpcodeROM + address);
     }
-    else
-#endif
+
     if (address < addr68kVideoEnd)
     {
         // read from host's video memory
@@ -303,17 +297,21 @@ m68k_data_type m68k_read_memory_16(m68k_addr_type address)
             return getAtariBE16(hostVideoAddr + (address - addr68kVideo));
         }
     }
-    else
-    {
-        const char *procName;
-        uint32_t act_pd;
-        getAtariPrg(&procName, &act_pd);
 
-        DebugError("m68k_read_memory_16(addr = 0x%08lx) --- bus error (%s) by process %s",
-                     address, AtariAddr2Description(address), procName);
-        sendBusError(address, "read word");
-        return(0xffff);        // in fact this was a bus error
+    uint16_t datum;
+    if (CRegisterModel::read_halfword(address, &datum))
+    {
+        return datum;
     }
+
+    const char *procName;
+    uint32_t act_pd;
+    getAtariPrg(&procName, &act_pd);
+
+    DebugError("m68k_read_memory_16(addr = 0x%08lx) --- bus error (%s) by process %s",
+                    address, AtariAddr2Description(address), procName);
+    sendBusError(address, "read word");
+    return(0xffff);        // in fact this was a bus error
 }
 
 
@@ -328,14 +326,12 @@ m68k_data_type m68k_read_memory_16(m68k_addr_type address)
  ************************************************************************************************/
 m68k_data_type m68k_read_memory_32(m68k_addr_type address)
 {
-#if !COUNT_CYCLES
     if (address < addr68kVideo)
     {
         // read regular memory and convert to big-endian
         return getAtariBE32(addrOpcodeROM + address);
     }
-    else
-#endif
+
     if (address < addr68kVideoEnd)
     {
         // read from host's video memory
@@ -349,16 +345,20 @@ m68k_data_type m68k_read_memory_32(m68k_addr_type address)
             return getAtariBE32(hostVideoAddr + (address - addr68kVideo));
         }
     }
-    else
-    {
-        // handle access error
-        const char *procName;
-        uint32_t act_pd;
-        getAtariPrg(&procName, &act_pd);
 
-        DebugError("m68k_read_memory_32(addr = 0x%08lx) --- bus error by process %s", address, procName);
-        return(0xffffffff);        // in fact this was a bus error
+    uint32_t datum;
+    if (CRegisterModel::read_word(address, &datum))
+    {
+        return datum;
     }
+
+    // handle access error
+    const char *procName;
+    uint32_t act_pd;
+    getAtariPrg(&procName, &act_pd);
+
+    DebugError("m68k_read_memory_32(addr = 0x%08lx) --- bus error by process %s", address, procName);
+    return(0xffffffff);        // in fact this was a bus error
 }
 
 
@@ -391,51 +391,53 @@ void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
         sendBusError(address, "write byte");
     }
 #endif
-#if !COUNT_CYCLES
+
     if (address < addr68kVideo)
     {
         // write regular memory
         *((uint8_t *) (addrOpcodeROM + address)) = (uint8_t) value;
+        return;
     }
-    else
-#endif
+
     if (address < addr68kVideoEnd)
     {
         address -= addr68kVideo;
         *((uint8_t *) (hostVideoAddr + address)) = (uint8_t) value;
         atomic_store(&gbAtariVideoBufChanged, true);
-        //DebugInfo("vchg");
-        //usleep(100000);
+        return;
+    }
+
+    if (CRegisterModel::write_byte(address, (uint8_t) value))
+    {
+        return;
+    }
+
+    const char *procName;
+    uint32_t act_pd;
+    getAtariPrg(&procName, &act_pd);
+
+    DebugError2("(adr = 0x%08lx, dat = 0x%02hx) --- access error (%s) by process %s",
+                    address, (uint8_t) value, AtariAddr2Description(address), procName);
+
+    if ((address == 0xffff8201) || (address == 0xffff8203) || (address == 0xffff820d))
+    {
+        DebugWarning2("() --- Access to \"Video Base Register\" ignored to make PD.PRG working!");
+    }
+    else
+    if (address == 0xfffffa11)
+    {
+        DebugWarning2("() --- Access to \"MFP ISRB\" ignored to make ZBENCH.APP working!");
+    }
+    else
+    if (address == 0xffff820a)
+    {
+        DebugWarning2("() --- Access to \"Video Sync Mode\" ignored!");
     }
     else
     {
-        const char *procName;
-        uint32_t act_pd;
-        getAtariPrg(&procName, &act_pd);
-
-        DebugError2("(adr = 0x%08lx, dat = 0x%02hx) --- access error (%s) by process %s",
-                     address, (uint8_t) value, AtariAddr2Description(address), procName);
-
-        if ((address == 0xffff8201) || (address == 0xffff8203) || (address == 0xffff820d))
-        {
-            DebugWarning2("() --- Access to \"Video Base Register\" ignored to make PD.PRG working!");
-        }
-        else
-        if (address == 0xfffffa11)
-        {
-            DebugWarning2("() --- Access to \"MFP ISRB\" ignored to make ZBENCH.APP working!");
-        }
-        else
-        if (address == 0xffff820a)
-        {
-            DebugWarning2("() --- Access to \"Video Sync Mode\" ignored!");
-        }
-        else
-        {
-            DebugError2("(adr = 0x%08lx, dat = 0x%02hx) --- bus error (%s) by process %s",
-                        address, (uint8_t) value, AtariAddr2Description(address), procName);
-            sendBusError(address, "write byte");
-        }
+        DebugError2("(adr = 0x%08lx, dat = 0x%02hx) --- bus error (%s) by process %s",
+                    address, (uint8_t) value, AtariAddr2Description(address), procName);
+        sendBusError(address, "write byte");
     }
 }
 
@@ -469,14 +471,14 @@ void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
         sendBusError(address, "write word");
     }
 #endif
-#if !COUNT_CYCLES
+
     if (address < addr68kVideo)
     {
         // write regular 68k memory (big endian)
         setAtariBE16(addrOpcodeROM + address, value);
+        return;
     }
-    else
-#endif
+
     if (address < addr68kVideoEnd)
     {
         address -= addr68kVideo;
@@ -491,17 +493,21 @@ void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
         }
 
         atomic_store(&gbAtariVideoBufChanged, true);
+        return;
     }
-    else
-    {
-        const char *procName;
-        uint32_t act_pd;
-        getAtariPrg(&procName, &act_pd);
 
-        DebugError("m68k_write_memory_16(addr = 0x%08lx, dat = 0x%04hx) --- bus error (%s) by process %s",
-                     address, (uint16_t) value, AtariAddr2Description(address), procName);
-        sendBusError(address, "write word");
+    if (CRegisterModel::write_halfword(address, (uint16_t) value))
+    {
+        return;
     }
+
+    const char *procName;
+    uint32_t act_pd;
+    getAtariPrg(&procName, &act_pd);
+
+    DebugError("m68k_write_memory_16(addr = 0x%08lx, dat = 0x%04hx) --- bus error (%s) by process %s",
+                    address, (uint16_t) value, AtariAddr2Description(address), procName);
+    sendBusError(address, "write word");
 }
 
 
@@ -534,332 +540,16 @@ void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
         sendBusError(address, "write long");
     }
 #endif
-#if !COUNT_CYCLES
+
     if (address < addr68kVideo)
     {
         // write regular 68k memory (big endian)
         setAtariBE32(addrOpcodeROM + address, value);
+        return;
     }
-    else
-#endif
+
     if (address < addr68kVideoEnd)
     {
-#ifdef MAGICMACX_DEBUG_SCREEN_ACCESS
-        if ((DebugCurrentPC >= p68k_ScreenDriver + 0x97a) &&
-             (DebugCurrentPC <= p68k_ScreenDriver + 0xa96))
-        {
-            (WriteCounters[0])++;
-            // Screen driver
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_ScreenDriver + 0xbd8)
-        {
-            (WriteCounters[1])++;
-            // Screen driver
-            // 8*16 Text im Textmodus (echter VT52)
-            //value = 0x00ff0000;
-        }
-        else
-        if (DebugCurrentPC == p68k_ScreenDriver + 0xbec)
-        {
-            (WriteCounters[2])++;
-            // 8*16 Texthintergrund im Textmodus (echter VT52)
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_ScreenDriver + 0xfe4) &&
-             (DebugCurrentPC <= p68k_ScreenDriver + 0xff2))
-        {
-            (WriteCounters[3])++;
-            //value = 0x00ff0000;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_ScreenDriver + 0x1018) &&
-             (DebugCurrentPC <= p68k_ScreenDriver + 0x1026))
-        {
-            (WriteCounters[4])++;
-            // gelöschter Bildschirm im Textmodus (echter VT52)
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_ScreenDriver + 0x107c) &&
-             (DebugCurrentPC <= p68k_ScreenDriver + 0x1084))
-        {
-            (WriteCounters[5])++;
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_ScreenDriver + 0x10ac) &&
-             (DebugCurrentPC <= p68k_ScreenDriver + 0x10ca))
-        {
-            (WriteCounters[6])++;
-            // Maushintergrund
-            //value = 0x00ff0000;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_ScreenDriver + 0x1188) &&
-             (DebugCurrentPC <= p68k_ScreenDriver + 0x11a6))
-        {
-            (WriteCounters[7])++;
-            // Bildschirm-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_ScreenDriver + 0x11ea)
-        {
-            (WriteCounters[8])++;
-            // Bildschirm-Treiber
-            // Mauszeiger-Umriß
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_ScreenDriver + 0x11f8)
-        {
-            (WriteCounters[9])++;
-            // Bildschirm-Treiber
-            // Mauszeiger-Inneres
-            //value = 0x00ffff00;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0xf7a)
-        {
-            (WriteCounters[10])++;
-            // Offscreen-Treiber
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0xfac)
-        {
-            (WriteCounters[11])++;
-            // Offscreen-Treiber
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0xfca)
-        {
-            (WriteCounters[12])++;
-            // Offscreen-Treiber
-            //value = 0x00ff0000;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0xff6)
-        {
-            (WriteCounters[13])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x100a)
-        {
-            (WriteCounters[14])++;
-            // Offscreen-Treiber
-            // Linien
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x108a) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x10c6))
-        {
-            (WriteCounters[15])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x10e8)
-        {
-            (WriteCounters[16])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x1126) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x1162))
-        {
-            (WriteCounters[17])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x11ae) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x11ee))
-        {
-            (WriteCounters[18])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x1212) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x124e))
-        {
-            (WriteCounters[19])++;
-            // senkrechte Linien
-            // Offscreen-Treiber
-            //value = 0x00ff0000;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x1306)
-        {
-            (WriteCounters[20])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x1312)
-        {
-            (WriteCounters[21])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x1328)
-        {
-            (WriteCounters[22])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x1344)
-        {
-            (WriteCounters[23])++;
-            // Offscreen-Treiber
-            //value = 0x00ff0000;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x136c)
-        {
-            (WriteCounters[24])++;
-            // Offscreen-Treiber
-            //value = 0x00ff0000;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x13c0)
-        {
-            (WriteCounters[25])++;
-            // Offscreen-Treiber
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x13de)
-        {
-            (WriteCounters[26])++;
-            // Offscreen-Treiber
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x1444) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x1452))
-        {
-            (WriteCounters[27])++;
-            // Offscreen-Treiber
-            // gefüllte Flächen (schon PPC)
-            //value = 0x00ff0000;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x1668) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x1686))
-        {
-            (WriteCounters[28])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x1690) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x16ae))
-        {
-            (WriteCounters[29])++;
-            // Offscreen-Treiber
-            // Teile gefüllter Flächen
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x16c4) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x16e2))
-        {
-            (WriteCounters[30])++;
-            // Offscreen-Treiber
-            //value = 0x00ff0000;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x1742) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x1760))
-        {
-            (WriteCounters[31])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x18f8) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x1916))
-        {
-            (WriteCounters[32])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x19ec) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x1a28))
-        {
-            (WriteCounters[33])++;
-            // Offscreen-Treiber
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x1b34)
-        {
-            (WriteCounters[34])++;
-            // Offscreen-Treiber
-            // Textvordergrund
-            //value = 0x00ff0000;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x1b3c)
-        {
-            (WriteCounters[35])++;
-            // Offscreen-Treiber
-            // Texthintergrund
-            //value = 0x000000ff;
-        }
-        else
-        if (DebugCurrentPC == p68k_OffscreenDriver + 0x1b6a)
-        {
-            (WriteCounters[36])++;
-            // Offscreen-Treiber
-            // value = 0x000000ff;
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x1d6e) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x1d74))
-        {
-            (WriteCounters[37])++;
-            // Offscreen-Treiber
-            // Fenster verschieben!
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x207a) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x2086))
-        {
-            (WriteCounters[38])++;
-            // Rasterkopie im Modus "Quelle AND Ziel"
-            // Offscreen-Treiber
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x20cc) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x20d2))
-        {
-            (WriteCounters[39])++;
-            // Offscreen-Treiber
-        }
-        else
-        if ((DebugCurrentPC >= p68k_OffscreenDriver + 0x211a) &&
-             (DebugCurrentPC <= p68k_OffscreenDriver + 0x2126))
-        {
-            (WriteCounters[40])++;
-            // Offscreen-Treiber
-        }
-        else
-        {
-            (WriteCounters[41])++;
-            CDebug::DebugError("#### falscher Bildspeicherzugriff bei PC = 0x%08x", DebugCurrentPC);
-        }
-
-#endif
         address -= addr68kVideo;
         if (gbAtariVideoRamHostEndian)
         {
@@ -871,21 +561,22 @@ void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
             setAtariBE32(hostVideoAddr + address, value);
         }
 
-// //        *((uint32_t*) (HostVideo2Addr + address)) = value;        // x86 has brg instead of rgb
-//        *((uint32_t *) (HostVideo2Addr + address)) = htobe32(value);
         atomic_store(&gbAtariVideoBufChanged, true);
-        //DebugInfo("vchg");
+        return;
     }
-    else
-    {
-        const char *procName;
-        uint32_t act_pd;
-        getAtariPrg(&procName, &act_pd);
 
-        DebugError("m68k_write_memory_32(addr = 0x%08lx, dat = 0x%08lx) --- bus error (%s) by process %s",
-                     address, value, AtariAddr2Description(address), procName);
-        sendBusError(address, "write long");
+    if (CRegisterModel::write_word(address, (uint32_t) value))
+    {
+        return;
     }
+
+    const char *procName;
+    uint32_t act_pd;
+    getAtariPrg(&procName, &act_pd);
+
+    DebugError("m68k_write_memory_32(addr = 0x%08lx, dat = 0x%08lx) --- bus error (%s) by process %s",
+                    address, value, AtariAddr2Description(address), procName);
+    sendBusError(address, "write long");
 }
 
 } // end extern "C"

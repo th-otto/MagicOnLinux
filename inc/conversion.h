@@ -25,6 +25,7 @@
 #include "Atari.h"
 #include "Globals.h"
 
+#include <time.h>   // necessary for macOS
 
 class CConversion
 {

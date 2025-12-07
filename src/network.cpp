@@ -18,7 +18,6 @@
 #include "conversion.h"
 #include "m68kcpu.h"
 #include "natfeat.h"
-#include <netinet/in.h>
 
 #define MXETH_API_VERSION 1
 
@@ -476,7 +475,7 @@ void *CNetwork::receiveFunc(void *arg)
         }
 
         /*
-         * The atari driver does not like to see negative values here
+         * The Atari driver does not like to see negative values here
          */
         if (handler->packet_length < 0)
             handler->packet_length = 0;
@@ -552,54 +551,54 @@ void CNetwork::dump_ether_packet(const uint8_t *buf, int len)
         /* ttl/protocol */
         switch (buf[9])
         {
-            case IPPROTO_IP: proto = "IP"; break;
-            case IPPROTO_ICMP: proto = "ICMP"; break;
-            case IPPROTO_IGMP: proto = "IGMP"; break;
+            case 0: proto = "IP"; break;
+            case 1: proto = "ICMP"; break;
+            case 2: proto = "IGMP"; break;
             case 3: proto = "GGP"; break;
-            case IPPROTO_IPIP: proto = "IPinIP"; break;
+            case 4: proto = "IPinIP"; break;
             case 5: proto = "ST"; break;
-            case IPPROTO_TCP: proto = "TCP"; break;
+            case 6: proto = "TCP"; break;
             case 7: proto = "CBT"; break;
-            case IPPROTO_EGP: proto = "EGP"; break;
+            case 8: proto = "EGP"; break;
             case 9: proto = "IGP"; break;
             case 10: proto = "BBN"; break;
             case 11: proto = "NVP"; break;
-            case IPPROTO_PUP: proto = "PUP"; break;
+            case 12: proto = "PUP"; break;
             case 13: proto = "ARGUS"; break;
             case 14: proto = "EMCON"; break;
             case 15: proto = "XNET"; break;
             case 16: proto = "CHAOS"; break;
-            case IPPROTO_UDP: proto = "UDP"; break;
+            case 17: proto = "UDP"; break;
             case 18: proto = "MUX"; break;
             case 21: proto = "PRM"; break;
-            case IPPROTO_IDP: proto = "IDP"; break;
-            case IPPROTO_TP: proto = "TP"; break;
+            case 22: proto = "IDP"; break;
+            case 29: proto = "TP"; break;
             case 31: proto = "DCCP"; break;
             case 40: proto = "IL"; break;
-            case IPPROTO_IPV6: proto = "IPv6"; break;
+            case 41: proto = "IPv6"; break;
             case 42: proto = "SDRP"; break;
             case 43: proto = "IPv6-Route"; break;
             case 44: proto = "IPv6-Frag"; break;
-            case IPPROTO_RSVP: proto = "RSVP"; break;
-            case IPPROTO_GRE: proto = "GRE"; break;
-            case IPPROTO_ESP: proto = "ESP"; break;
-            case IPPROTO_AH: proto = "AH"; break;
+            case 46: proto = "RSVP"; break;
+            case 47: proto = "GRE"; break;
+            case 50: proto = "ESP"; break;
+            case 51: proto = "AH"; break;
             case 56: proto = "TLSP"; break;
-            case IPPROTO_MTP: proto = "MTP"; break;
-            case IPPROTO_BEETPH: proto = "BEETPH"; break;
+            case 92: proto = "MTP"; break;
+            case 94: proto = "BEETPH"; break;
             case 97: proto = "ETHERIP"; break;
-            case IPPROTO_ENCAP: proto = "ENCAP"; break;
-            case IPPROTO_PIM: proto = "PIM"; break;
-            case IPPROTO_COMP: proto = "COMP"; break;
-            case IPPROTO_L2TP: proto = "L2TP"; break;
+            case 98: proto = "ENCAP"; break;
+            case 103: proto = "PIM"; break;
+            case 108: proto = "COMP"; break;
+            case 115: proto = "L2TP"; break;
             case 121: proto = "SMP"; break;
             case 122: proto = "SM"; break;
-            case IPPROTO_SCTP: proto = "SCTP"; break;
-            case IPPROTO_UDPLITE: proto = "UDPLITE"; break;
-            case IPPROTO_MPLS: proto = "MPLS"; break;
-            case IPPROTO_ETHERNET: proto = "ETHERNET"; break;
-            case IPPROTO_RAW: proto = "RAW"; break;
-            /* case IPPROTO_MPTCP: proto = "MPTCP"; break; 262 does not fit in uint8 */
+            case 132: proto = "SCTP"; break;
+            case 136: proto = "UDPLITE"; break;
+            case 137: proto = "MPLS"; break;
+            case 143: proto = "ETHERNET"; break;
+            case 255: proto = "RAW"; break;
+            /* case 262: proto = "MPTCP"; break; 262 does not fit in uint8 */
             default: proto = "unknown"; break;
         }
         fprintf(stderr, "ttl %02x proto %02x(%s) ", buf[8], buf[9], proto);
@@ -611,7 +610,9 @@ void CNetwork::dump_ether_packet(const uint8_t *buf, int len)
         fprintf(stderr, "dst %d.%d.%d.%d  ", buf[16], buf[17], buf[18], buf[19]);
         len -= 20;
         buf += 20;
-    } else if (len >= 28 && (type == 0x0806 || type == 0x8035)) /* ARP/RARP */
+    }
+    else
+    if ((len >= 28) && (type == 0x0806 || type == 0x8035)) /* ARP/RARP */
     {
         if (type == 0x0806)
             fprintf(stderr, "arp: ");

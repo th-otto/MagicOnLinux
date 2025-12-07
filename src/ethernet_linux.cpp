@@ -27,6 +27,7 @@
 #include <sys/socket.h>
 #include <net/if.h>
 #include <errno.h>
+#include <unistd.h>
 
 /****************************
  * Configuration zone begins

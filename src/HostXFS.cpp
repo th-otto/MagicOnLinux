@@ -1158,7 +1158,7 @@ INT32 CHostXFS::xfs_path2DD
     const char *atari_p;
 
     bool upperCase = drv_caseInsens[drv];   // 8+3 drives usually also are case-insensitive
-    atariFnameToHostFname((const uint8_t *) pathname, upperCase, host_pathbuf, 1024);
+    atariFnameToHostFname((const uint8_t *) pathname, upperCase, host_pathbuf, sizeof(host_pathbuf));
     DebugInfo2("() - host path is \"%s\"", host_pathbuf);
     if (mode == 0)
     {
@@ -2096,7 +2096,7 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 
     // We cannot remove the directory via its DD or fd, instead we need a path
     char pathbuf[1024];
-    INT32 aret = xfs_DD2hostPath(dd, pathbuf, 1023);
+    INT32 aret = xfs_DD2hostPath(dd, pathbuf, sizeof(pathbuf) - 1);
     if (aret != E_OK)
     {
         DebugError2("() -> %d", aret);
@@ -2168,7 +2168,7 @@ INT32 CHostXFS::xfs_DD2name(uint16_t drv, MXFSDD *dd, char *buf, uint16_t bufsiz
 
     // first get host path ...
     char pathbuf[1024];
-    INT32 aret = xfs_DD2hostPath(dd, pathbuf, 1023);
+    INT32 aret = xfs_DD2hostPath(dd, pathbuf, sizeof(pathbuf) - 1);
     if (aret < 0)
     {
         DebugError2("() -> %d", aret);
@@ -2646,7 +2646,7 @@ INT32 CHostXFS::xfs_symlink(uint16_t drv, MXFSDD *dd, const unsigned char *name,
 
     // convert Atari path to host path
     char host_target[1024];
-    if (atariPath2HostPath((const unsigned char *) target, drv, host_target, 1024) >= 0)
+    if (atariPath2HostPath((const unsigned char *) target, drv, host_target, sizeof(host_target)) >= 0)
     {
         target = (const unsigned char *) host_target;
     }

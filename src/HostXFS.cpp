@@ -40,6 +40,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
 
 #include "Debug.h"
 #include "HostXFS.h"
@@ -2540,16 +2541,54 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE(drv)
-
     (void) dirID;
-    (void) data;
 
-    // TODO: this is dummy so far
-    // 1G free from 1.5G
-    data[0] = htobe32(2 * 1024 * 1024);   // # free blocks
-    data[1] = htobe32(3 * 1024 * 1024);   // # total blocks
-    data[2] = htobe32(512); // sector size in bytes
-    data[3] = htobe32(1);   // sectors per cluster
+    struct statvfs buf;
+    if (statvfs(drv_host_path[drv], &buf) != 0)
+    {
+        return CConversion::host2AtariError(errno);
+    }
+
+    //
+    // saturate 32-bit unsigned overflow
+    //
+
+    uint32_t num_free_blocks  = (buf.f_bavail >= 0x100000000) ? -1 : (uint32_t) buf.f_bavail;
+    uint32_t num_total_blocks = (buf.f_blocks >= 0x100000000) ? -1 : (uint32_t) buf.f_blocks;
+    uint32_t block_size       = (buf.f_bsize  >= 0x100000000) ? -1 : (uint32_t) buf.f_bsize;
+
+    if (block_size == 0)
+    {
+        DebugError2("() -- Host blocksize reported as zero. Assume 512.");
+        block_size = 512;
+    }
+
+    //
+    // saturate 32-bit signed overflow for resulting number of bytes
+    //
+
+    if ((uint64_t) num_free_blocks * (uint64_t) block_size > 0x7fffffff)
+    {
+        num_free_blocks = 0x7fffffff / block_size;
+    }
+    if ((uint64_t) num_total_blocks * (uint64_t) num_total_blocks > 0x7fffffff)
+    {
+        num_total_blocks = 0x7fffffff / block_size;
+    }
+
+    if (buf.f_bavail > num_free_blocks)
+    {
+        DebugWarning2("() -- number of free blocks saturated from %llu to %u", buf.f_bavail, num_free_blocks);
+    }
+    if (buf.f_blocks > num_total_blocks)
+    {
+        DebugWarning2("() -- number of free blocks saturated from %llu to %u", buf.f_blocks, num_total_blocks);
+    }
+
+    data[0] = htobe32(num_free_blocks);     // # free blocks
+    data[1] = htobe32(num_total_blocks);    // # total blocks
+    data[2] = htobe32(block_size);          // sector size in bytes
+    data[3] = htobe32(1);                   // sectors per cluster
 
     DebugInfo2("() -> E_OK");
     return E_OK;
@@ -2757,9 +2796,9 @@ INT32 CHostXFS::xfs_dcntl
     struct stat statbuf;
     if ((cmd == FUTIME) || (cmd == FSTAT))
     {
-		if (!pArg)
+        if (!pArg)
         {
-		    return EINVFN;
+            return EINVFN;
         }
         int res = fstatat(dir_fd, host_name, &statbuf, AT_EMPTY_PATH);
         if (res < 0)

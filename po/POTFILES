@@ -1,0 +1,3 @@
+../src/gui/gxmessage.c
+../src/gui/mxgtk-settings.c
+../src/gui/mxqt-settings.cc

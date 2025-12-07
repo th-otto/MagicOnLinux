@@ -1,3 +1,6 @@
 gxmessage
 mxgtk-settings
+mxqt-settings
 preferences.xml.h
+*.moc
+qrc.cc

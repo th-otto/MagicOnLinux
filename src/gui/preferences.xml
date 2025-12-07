@@ -1,94 +1,150 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <preferences name="magixlinux.conf">
-  <section name="HOST PATHS" _label="Host Paths">
-    <path name="atari_kernel_path" _label="Path for Kernel" default="~/Documents/MAGIC_C/MAGICLIN.OS"></path>
-    <folder name="atari_rootfs_path" _label="Path for boot filesystem" default="~/Documents/MAGIC_C"></folder>
-    <bool name="atari_h_home" _label="Mount $HOME directory" default="1"></bool>
-    <bool name="atari_h_rdonly" _label="Set HOME directory read-only" default="1"></bool>
-    <bool name="atari_m_host_root" _label="Mount host root Directory" default="1"></bool>
-    <bool name="atari_m_host_root_rdonly" _label="Set root directory read-only" default="1"></bool>
-    <folder name="atari_temp_path" _label="Path for temp files" default="/tmp"></folder>
+  <section name="HOST PATHS" _label="Host Paths" _desc="Configure kernel, rootfs, and temporary paths on the host system" icon="folder">
+    <path name="atari_kernel_path" _label="Kernel File (ROM)" default="~/Documents/MAGIC_C/MAGICLIN.OS" _tooltip="Path to the Atari Kernel/ROM file (e.g., MAGICLIN.OS)"></path>
+    <folder name="atari_rootfs_path" _label="Path for boot filesystem (Folder)" default="~/Documents/MAGIC_C" _tooltip="Path to the host directory containing the root filesystem of the emulation"/>
+    <bool name="atari_h_home" _label="Mount $HOME directory as drive H:" default="1" _tooltip="If enabled, mounts the host home directory (~/) as U:/home inside the emulation"></bool>
+    <bool name="atari_h_rdonly" _label="Set HOME directory read-only" default="1" _tooltip="Mounts the host home directory as read-only. Requires 'Mount $HOME...' to be enabled"></bool>
+    <bool name="atari_m_host_root" _label="Mount host root directory (/)" default="1" _tooltip="If enabled, mounts the host root directory (/) for full system access"></bool>
+    <bool name="atari_m_host_root_rdonly" _label="Set root directory read-only" default="1" _tooltip="Mounts the host root directory as read-only. Requires 'Mount Host Root Path' to be enabled"></bool>
+    <folder name="atari_temp_path" _label="Path for temp files" default="/tmp" _tooltip="Host directory used by the emulation for temporary files"/>
   </section>
-  <section name="HOST DEVICES" _label="Host Devices">
-    <string name="atari_print_cmd" _label="Print command" default="echo printing not yet implemented"></string>
-    <path name="atari_serial_dev_path" _label="Serial device" default=""></path>
+  <section name="HOST DEVICES" _label="Host Devices" _desc="Set the host device paths for serial communication and printing" icon="drive-harddisk">
+    <string name="atari_print_cmd" _label="Print command (program/file)" default="echo printing not yet implemented" _tooltip="Command or device path used to handle printing output from the emulation"></string>
+    <path name="atari_serial_dev_path" _label="Serial device (e.g., /dev/ttyS0)" default="" _tooltip="Path to the host serial device (e.g., /dev/ttyS0) for serial communication"></path>
   </section>
-  <section name="ATARI SCREEN" _label="Atari Screen">
-    <int name="atari_screen_width" _label="Atari screen width" default="1024" minval="320" maxval="4096" step="8"></int>
-    <int name="atari_screen_height" _label="Atari screen height" default="768" minval="200" maxval="4096" step="16"></int>
-    <int name="atari_screen_stretch_x" _label="X-scale factor" default="1" minval="1" maxval="8"></int>
-    <int name="atari_screen_stretch_y" _label="Y-scale factor" default="1" minval="1" maxval="16"></int>
-    <int name="atari_screen_rate_hz" _label="Screen frefresh frequency" default="60" minval="1" maxval="120"></int>
-    <choice name="atari_screen_colour_mode" _label="Screen color mode" default="0">
-       <select value="0" name="" _label="24-bit true color"></select>
-       <select value="1" name="" _label="16-bit high color"></select>
-       <select value="2" name="" _label="256 colors packed pixels"></select>
-       <select value="3" name="" _label="16 colors, packed pixels"></select>
-       <select value="4" name="" _label="16 colors, interleaved planes"></select>
-       <select value="5" name="" _label="4 colors, interleaved planes"></select>
-       <select value="6" name="" _label="monochrome"></select>
+  <section name="ATARI SCREEN" _label="Atari Screen" _desc="Adjust the Atari screen resolution, refresh rate, scaling, and mouse hiding" icon="video-display">
+    <int name="atari_screen_width" _label="Resolution (Width in Pixels)" default="1024" minval="320" maxval="4096" step="8" _tooltip="The display resolution in pixels for the Atari screen window"></int>
+    <int name="atari_screen_height" _label="Resolution (Height in Pixels)" default="768" minval="200" maxval="4096" step="16" _tooltip="The display resolution in pixels for the Atari screen window"></int>
+    <int name="atari_screen_stretch_x" _label="X Stretch Factor (Scaling)" default="1" minval="1" maxval="8" _tooltip="Horizontal scaling factor (1 = normal, 2 = double width, etc.)"></int>
+    <int name="atari_screen_stretch_y" _label="Y Stretch Factor (Scaling)" default="1" minval="1" maxval="16" _tooltip="Vertical scaling factor (1 = normal, 2 = double height, etc"></int>
+    <int name="atari_screen_rate_hz" _label="Refresh Rate (Hz)" default="60" minval="1" maxval="120" _tooltip="Target screen refresh rate in Hertz (Hz)"></int>
+    <choice name="atari_screen_colour_mode" _label="Screen color mode" default="0" _tooltip="Select the color depth or graphics mode used for the screen">
+       <select value="0" _label="24-bit true color"/>
+       <select value="1" _label="16-bit high color"/>
+       <select value="2" _label="256 colors, packed pixels"/>
+       <select value="3" _label="16 colors, packed pixels"/>
+       <select value="4" _label="16 colors, interleaved planes"/>
+       <select value="5" _label="4 colors, interleaved planes"/>
+       <select value="6" _label="monochrome"/>
     </choice>
-    <bool name="hide_host_mouse" _label="Hide host mouse" default="0"></bool>
+    <bool name="hide_host_mouse" _label="Hide host mouse" default="0" _tooltip="Hides the host operating system's mouse pointer when it is over the emulation window"></bool>
   </section>
-  <section name="SCREEN PLACEMENT" _label="Screen Placement">
-    <int name="app_display_number" _label="Monitor" default="0"></int>
-    <int name="app_window_x" _label="Window position X" default="-1" minval="-1"></int>
-    <int name="app_window_y" _label="Window position Y" default="-1" minval="-1"></int>
+  <section name="SCREEN PLACEMENT" _label="Window Placement" _desc="Define the window's position (X/Y) and which display it should appear on" icon="view-fullscreen">
+    <int name="app_display_number" _label="Monitor" default="0" _tooltip="The display number (e.g., 0, 1, 2) on which the window should appear"></int>
+    <int name="app_window_x" _label="Window position X (left)" default="-1" minval="-1" _tooltip="Window position coordinates relative to the top-left corner of the screen"></int>
+    <int name="app_window_y" _label="Window position Y (top)" default="-1" minval="-1" _tooltip="Window position coordinates relative to the top-left corner of the screen"></int>
   </section>
-  <section name="ATARI EMULATION" _label="Atari Emulation">
-    <int name="atari_memory_size" _label="Memory size" default="8388608" minval="819200" maxval="2147483648" step="4096"></int>
-    <choice name="atari_language" _label="Atari language" default="0">
-       <select value="0" name="" _label="English"></select>
-       <select value="1" name="" _label="German"></select>
-       <select value="2" name="" _label="French"></select>
+  <section name="ATARI EMULATION" _label="Atari Emulation" _desc="General emulation settings, including RAM size, language ROM, and menu behavior" icon="preferences-system">
+    <int name="atari_memory_size" _label="Memory size (RAM in bytes)" default="8388608" minval="819200" maxval="2147483648" step="4096" _tooltip="Amount of RAM allocated to the emulated system (e.g., 8MB, 32MB)"></int>
+    <choice name="atari_language" _label="Atari language" default="0" _tooltip="Selects the language ROM to be used by the emulation (affects keyboard layout and startup language)">
+       <select value="0" _label="English (USA)" icon="flag-us"/>
+       <select value="1" _label="German" icon="flag-de"/>
+       <select value="2" _label="French" icon="flag-fr"/>
     </choice>
-    <bool name="show_host_menu" _label="Show host menu" default="1"></bool>
-    <bool name="atari_autostart" _label="Auto start MagiC" default="1"></bool>
+    <choice name="gui_language" _label="Application language" default="-1" _tooltip="Selects the language for this application" gui="1">
+       <select value="-1" _label="System Default"/>
+       <select value="0" _label="English (USA)" icon="flag-us"/>
+       <select value="1" _label="German" icon="flag-de"/>
+       <select value="2" _label="French" icon="flag-fr"/>
+       <select value="3" _label="English (UK)" icon="flag-gb"/>
+       <!-- not supported yet:
+       <select value="4" _label="Spanish" icon="flag-es"/>
+       <select value="5" _label="Italian" icon="flag-it"/>
+       <select value="6" _label="Swedish" icon="flag-se"/>
+       <select value="7" _label="French (Switzerland)" icon="flag-ch"/>
+       <select value="8" _label="German (Switzerland)" icon="flag-ch"/>
+       <select value="9" _label="French" icon="flag-fr"/>
+       <select value="10" _label="Finnish" icon="flag-fi"/>
+       <select value="11" _label="Norwegian" icon="flag-no"/>
+       <select value="12" _label="Danish" icon="flag-dk"/>
+       <select value="13" _label="Arabic" icon="flag-sa"/>
+       <select value="14" _label="Dutch" icon="flag-nl"/>
+       <select value="15" _label="Hungarian" icon="flag-hu"/>
+       <select value="16" _label="Polish" icon="flag-pl"/>
+       <select value="17" _label="Lithuanian" icon="flag-lt"/>
+       <select value="18" _label="Russian" icon="flag-ru"/>
+       <select value="19" _label="Lithuanian" icon="flag-lt"/>
+       <select value="20" _label="Estonian" icon="flag-ee"/>
+       <select value="21" _label="Belarusian" icon="flag-by"/>
+       <select value="22" _label="Ukrainian" icon="flag-ua"/>
+       <select value="23" _label="Slovak" icon="flag-sk"/>
+       <select value="24" _label="Romanian" icon="flag-ro"/>
+       <select value="25" _label="Bulgarian" icon="flag-bg"/>
+       <select value="26" _label="Slovenian" icon="flag-si"/>
+       <select value="27" _label="Croatian" icon="flag-hr"/>
+       <select value="28" _label="Serbian" icon="flag-rs"/>
+       <select value="29" _label="Serbian (Montenegro)" icon="flag-me"/>
+       <select value="30" _label="Macedonian" icon="flag-mk"/>
+       <select value="31" _label="Greek" icon="flag-gr"/>
+       <select value="32" _label="Latvian" icon="flag-lv"/>
+       <select value="33" _label="Hebrew" icon="flag-il"/>
+       <select value="34" _label="Afrikaans" icon="flag-za"/>
+       <select value="35" _label="Portuguese" icon="flag-pt"/>
+       <select value="36" _label="Walloon" icon="flag-be"/>
+       <select value="37" _label="Japanese" icon="flag-jp"/>
+       <select value="38" _label="Chinese" icon="flag-cn"/>
+       <select value="39" _label="Korean" icon="flag-kr"/>
+       <select value="40" _label="Vietnamese" icon="flag-vn"/>
+       <select value="41" _label="Hindi" icon="flag-in"/>
+       <select value="42" _label="Persian" icon="flag-ir"/>
+       <select value="43" _label="Mongolian" icon="flag-mn"/>
+       <select value="44" _label="Nepali" icon="flag-np"/>
+       <select value="45" _label="Lao" icon="flag-la"/>
+       <select value="46" _label="Khmer" icon="flag-kh"/>
+       <select value="47" _label="Indonesian" icon="flag-id"/>
+       <select value="48" _label="Bengali" icon="flag-bd"/>
+       <select value="54" _label="Catalan" icon="flag-ca"/>
+       -->
+    </choice>
+    <bool name="show_host_menu" _label="Show host menu" default="1" _tooltip="If enabled, the host menu bar (File, View, Help, etc.) is visible"></bool>
+    <bool name="atari_autostart" _label="Auto start MagiC" default="1" _tooltip="If enabled, the emulation starts immediately upon application launch"></bool>
+    <bool name="show_tooltips" _label="Show Help Tooltips" default="1" _tooltip="Toggle help tooltips for all widgets" gui="1"></bool>
   </section>
-  <section name="ADDITIONAL ATARI DRIVES" _label="Additional Drives">
-    <folder name="atari_drv_a" flags="6" _label="Path for Drive A:"></folder>
-    <folder name="atari_drv_b" flags="6" _label="Path for Drive B:"></folder>
+  <section name="ADDITIONAL ATARI DRIVES" _label="Additional Drives" scrolled="1" _desc="Manage additional mounted host folders or disk image files (A-Z) for the emulation" icon="drive-removable-media">
+    <folder name="atari_drv_a" flags="6" _label="Path for Drive A:"/>
+    <folder name="atari_drv_b" flags="6" _label="Path for Drive B:"/>
     <!-- C: is used for the boot drive -->
-    <!-- <folder name="atari_drv_c" flags="6" _label="Path for boot filesystem"></folder> -->
-    <folder name="atari_drv_d" flags="0" _label="Path for Drive D:"></folder>
-    <folder name="atari_drv_e" flags="0" _label="Path for Drive E:"></folder>
-    <folder name="atari_drv_f" flags="0" _label="Path for Drive F:"></folder>
-    <folder name="atari_drv_g" flags="0" _label="Path for Drive G:"></folder>
+    <!-- <folder name="atari_drv_c" flags="6" _label="Path for boot filesystem"/> -->
+    <folder name="atari_drv_d" flags="0" _label="Path for Drive D:"/>
+    <folder name="atari_drv_e" flags="0" _label="Path for Drive E:"/>
+    <folder name="atari_drv_f" flags="0" _label="Path for Drive F:"/>
+    <folder name="atari_drv_g" flags="0" _label="Path for Drive G:"/>
     <!-- H: is used for the home directory -->
-    <!-- <folder name="atari_drv_h" flags="1" _label="Path for home directory"></folder> -->
-    <folder name="atari_drv_i" flags="0" _label="Path for Drive I:"></folder>
-    <folder name="atari_drv_j" flags="0" _label="Path for Drive J:"></folder>
-    <folder name="atari_drv_k" flags="0" _label="Path for Drive K:"></folder>
-    <folder name="atari_drv_l" flags="0" _label="Path for Drive L:"></folder>
+    <!-- <folder name="atari_drv_h" flags="1" _label="Path for home directory"/> -->
+    <folder name="atari_drv_i" flags="0" _label="Path for Drive I:"/>
+    <folder name="atari_drv_j" flags="0" _label="Path for Drive J:"/>
+    <folder name="atari_drv_k" flags="0" _label="Path for Drive K:"/>
+    <folder name="atari_drv_l" flags="0" _label="Path for Drive L:"/>
     <!-- M: is used for the root filesystem -->
-    <!-- <folder name="atari_drv_m" flags="1" _label="Path for root filesystem"></folder> -->
-    <folder name="atari_drv_n" flags="0" _label="Path for Drive N:"></folder>
-    <folder name="atari_drv_o" flags="0" _label="Path for Drive O:"></folder>
-    <folder name="atari_drv_p" flags="0" _label="Path for Drive P:"></folder>
-    <folder name="atari_drv_q" flags="0" _label="Path for Drive Q:"></folder>
-    <folder name="atari_drv_r" flags="0" _label="Path for Drive R:"></folder>
-    <folder name="atari_drv_s" flags="0" _label="Path for Drive S:"></folder>
-    <folder name="atari_drv_t" flags="0" _label="Path for Drive T:"></folder>
+    <!-- <folder name="atari_drv_m" flags="1" _label="Path for root filesystem"/> -->
+    <folder name="atari_drv_n" flags="0" _label="Path for Drive N:"/>
+    <folder name="atari_drv_o" flags="0" _label="Path for Drive O:"/>
+    <folder name="atari_drv_p" flags="0" _label="Path for Drive P:"/>
+    <folder name="atari_drv_q" flags="0" _label="Path for Drive Q:"/>
+    <folder name="atari_drv_r" flags="0" _label="Path for Drive R:"/>
+    <folder name="atari_drv_s" flags="0" _label="Path for Drive S:"/>
+    <folder name="atari_drv_t" flags="0" _label="Path for Drive T:"/>
     <!-- U: is used for the mint universal filesystem -->
-    <!-- <folder name="atari_drv_u" flags="0" _label="Path for Drive U:"></folder> -->
-    <folder name="atari_drv_v" flags="0" _label="Path for Drive V:"></folder>
-    <folder name="atari_drv_w" flags="0" _label="Path for Drive W:"></folder>
-    <folder name="atari_drv_x" flags="0" _label="Path for Drive X:"></folder>
-    <folder name="atari_drv_y" flags="0" _label="Path for Drive Y:"></folder>
-    <folder name="atari_drv_z" flags="0" _label="Path for Drive Z:"></folder>
+    <!-- <folder name="atari_drv_u" flags="0" _label="Path for Drive U:"/> -->
+    <folder name="atari_drv_v" flags="0" _label="Path for Drive V:"/>
+    <folder name="atari_drv_w" flags="0" _label="Path for Drive W:"/>
+    <folder name="atari_drv_x" flags="0" _label="Path for Drive X:"/>
+    <folder name="atari_drv_y" flags="0" _label="Path for Drive Y:"/>
+    <folder name="atari_drv_z" flags="0" _label="Path for Drive Z:"/>
   </section>
-  <section name="ETH0" _label="Network">
-    <choice name="eth0_type" _label="Type" default="0">
-       <select value="0" name="" _label="None"></select>
-       <select value="1" name="" _label="Bridge"></select>
-       <select value="2" name="" _label="Point-to-Point"></select>
+  <section name="ETH0" _label="Network" _desc="Configure network settings for the emulated Ethernet device (ETH0)" icon="network-wired">
+    <choice name="eth0_type" _label="Network Type" default="0" _tooltip="Select the Ethernet emulation mode (e.g., Disabled, TAP/Tunnel)">
+       <select value="0" _label="Disabled"/>
+       <select value="1" _label="Bridge"/>
+       <select value="2" _label="Point-to-Point"/>
     </choice>
-    <string name="eth0_tunnel" _label="Tunnel Device" default="tap0"></string>
-    <string name="eth0_host_ip" _label="Host IP" default="192.168.0.1"></string>
-    <string name="eth0_atari_ip" _label="Atari IP" default="192.168.0.2"></string>
-    <string name="eth0_netmask" _label="Netmask" default="255.255.255.0"></string>
-    <string name="eth0_gateway" _label="Gateway" default="192.168.0.1"></string>
-    <string name="eth0_mac" _label="MAC address" default="52:54:00:10:00:04"></string>
-    <int name="eth0_intlevel" _label="Interrupt Level" default="4" minval="3" maxval="6" step="1"></int>
+    <string name="eth0_tunnel" _label="Tunnel Device" default="tap0" _tooltip="The host's virtual network interface name (e.g., tap0)"></string>
+    <string name="eth0_host_ip" _label="Host IP" default="192.168.0.1" _tooltip="The IP address of the Host's side of the virtual link"></string>
+    <string name="eth0_atari_ip" _label="Atari IP" default="192.168.0.2" _tooltip="The IP address assigned to the emulated Atari device"></string>
+    <string name="eth0_netmask" _label="Netmask" default="255.255.255.0" _tooltip="The network mask for the virtual subnet"></string>
+    <string name="eth0_gateway" _label="Gateway" default="192.168.0.1" _tooltip="The gateway IP address (usually the host IP)"></string>
+    <string name="eth0_mac" _label="MAC address" default="52:54:00:10:00:04" _tooltip="The unique MAC address for the emulated device"></string>
+    <int name="eth0_intlevel" _label="Interrupt Level" default="4" minval="3" maxval="6" step="1" _tooltip="The interrupt level used by the emulated device (4 is standard)"></int>
   </section>
 </preferences>

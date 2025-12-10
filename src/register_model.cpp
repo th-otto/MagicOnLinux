@@ -227,7 +227,7 @@ class CMfp : public CRegisterModel
 class CFpu : public CRegisterModel
 {
   public:
-    CFpu() : CRegisterModel("Floating Point Coprocessor", 0xfffffa, 0xfffffa5f) { }
+    CFpu() : CRegisterModel("Floating Point Coprocessor", 0xfffffa40, 0xfffffa5f) { }
 };
 
 class CMfp2 : public CRegisterModel

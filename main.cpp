@@ -23,7 +23,7 @@ const char *argnames[] =
     "config-file",
     nullptr,
     nullptr,
-    "wxh[xb][ip]",
+    "[wxh][x][b][ip]",
     "w[xh]",
     "size",
     "EN|DE|FR",
@@ -38,7 +38,7 @@ const char *descriptions[] =
     "       open configuration file in editor and exit",
     "              configuration file (default: ~/.config/magiclinux.conf)",
     "             write configuration file with default values and exit",
-    "     e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
+    " e.g. 640x400x2ip or 800x600 or 8, overrides config file",
     "            e.g. 2x2 or 2 or 2x4, overrides config file",
     "             Atari RAM size, e.g. 512k or 4M or 3m",
     "            language for Atari localisation, either EN or DE or FR",
@@ -84,8 +84,10 @@ static int eval_geometry(const char *geometry, int *mode, int *width, int *heigh
     unsigned w, h, b;
     char c1, c2;
     bool ip;
+    bool wh = true;
 
     int n = sscanf(geometry, "%ux%ux%u%c%c", &w, &h, &b, &c1, &c2);
+
     if ((n == 5) && (tolower(c1) == 'i') && (tolower(c2) == 'p'))
     {
         ip = true;
@@ -102,16 +104,27 @@ static int eval_geometry(const char *geometry, int *mode, int *width, int *heigh
         b = 24;
     }
     else
+    if ((n == 1) && ((n = sscanf(geometry, "%u%c%c", &b, &c1, &c2)) >= 1))
+    {
+        ip = ((n == 3) && (tolower(c1) == 'i') && (tolower(c2) == 'p'));
+        w = -1;
+        h = -1;
+        wh = false;
+    }
+    else
     {
         printf("malformed geometry argument\n");
         return 3;
     }
 
-    if ((w < ATARI_SCREEN_WIDTH_MIN)  || (w > ATARI_SCREEN_WIDTH_MAX) ||
-        (h < ATARI_SCREEN_HEIGHT_MIN) || (h > ATARI_SCREEN_HEIGHT_MAX))
+    if (wh)
     {
-        printf("Invalid Atari screen size\n");
-        return 4;
+        if ((w < ATARI_SCREEN_WIDTH_MIN)  || (w > ATARI_SCREEN_WIDTH_MAX) ||
+            (h < ATARI_SCREEN_HEIGHT_MIN) || (h > ATARI_SCREEN_HEIGHT_MAX))
+        {
+            printf("Invalid Atari screen size\n");
+            return 4;
+        }
     }
 
     if (b == 24)
@@ -444,7 +457,7 @@ int main(int argc, char *argv[])
         return 5;
     }
 
-    //geometry = "800x600x1";
+    //arg_geometry = "2ip";   // test code
     if ((arg_geometry != nullptr) && eval_geometry(arg_geometry, &mode, &width, &height))
     {
         return 3;

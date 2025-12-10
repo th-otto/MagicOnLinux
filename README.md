@@ -49,6 +49,10 @@ You might replace CMAKE_BUILD_TYPE with "Debug" (to get debug log output) or omi
 
 Alternatively you can put your Atari root file system (drive C:) and kernel (MAGICLIN.OS) anywhere and configure the emulator accordingly.
 
+# How To Install
+
+You might install the program with "sudo make install". This copies the executable file, a ".desktop" file and an icon file to "/usr/local/". Note that the created ".desktop" file contains an absolute path to the icon, because I could not find out how to do this in a correct way.
+
 # How To Run
 
 Run the application with "magiclinux/build/magic-on-linux".

@@ -7,10 +7,13 @@ if(APPLE)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SDL2 REQUIRED sdl2)
 else()
-find_package(SDL2 REQUIRED)
+    find_package(SDL2 REQUIRED)
 endif()
 
 add_compile_options(-Wall -Wextra -Wpedantic -Wno-multichar)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(-fPIC)
+endif()
 
 file(GLOB_RECURSE m68k src/m68k/*.c src/m68k/*.h)
 file(GLOB_RECURSE sources main.cpp src/*.cpp inc/*.h)
@@ -36,6 +39,11 @@ else()
 )
 endif()
 
+if(NOT APPLE)
 # Installs the executable to /usr/local/bin/
-# For e.g. "/opt/bin/": cmake -DCMAKE_INSTALL_PREFIX:PATH=/opt ..
+# For e.g. "/opt/bin/": cmake .. -DCMAKE_INSTALL_PREFIX:PATH=/opt ..
+#                       make install
 install(TARGETS magic-on-linux)
+install(FILES assets/magic-on-linux.desktop DESTINATION share/applications)
+install(FILES assets/magic-on-linux.png DESTINATION share/icons/hicolor/512x512/apps)
+endif()

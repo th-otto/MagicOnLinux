@@ -101,6 +101,8 @@ This and That
 
 NVDI seems to freeze during start when ASSIGN.SYS is missing.
 
+Network driver for Atari side: https://github.com/th-otto/magxnet/tree/master
+
 Thanks to Thorsten Otto for the DFS_FAT FAT32 endianess bugfix (meta data on disk are always little-endian).
 
 

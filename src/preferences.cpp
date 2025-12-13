@@ -128,7 +128,7 @@ bool Preferences::bAutoStartMagiC = true;
 unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3 / 4 == case insensitive, ...
 const char *Preferences::drvPath[NDRIVES];
 char Preferences::AtariKernelPath[1024] = "";       // empty: used default path
-char Preferences::AtariRootfsPath[1024] = DEFAULT_ATARI_ROOT;
+char Preferences::AtariRootfsPath[PATH_MAX] = DEFAULT_ATARI_ROOT;
 bool Preferences::AtariHostHome = true;                      // Atari H: as host home
 bool Preferences::AtariHostHomeRdOnly = true;
 bool Preferences::AtariHostRoot = true;                      // Atari M: as host root
@@ -198,6 +198,7 @@ int Preferences::init
     int stretch_x_override,
     int stretch_y_override,
     int memsize_override,
+    const char *rootfs_override,
     bool rewrite_conf
 )
 {
@@ -248,6 +249,23 @@ int Preferences::init
     {
         AtariMemSize = memsize_override;
     }
+    if ((rootfs_override != nullptr) && (strlen(rootfs_override) < sizeof(AtariRootfsPath)))
+    {
+        strcpy(AtariRootfsPath, rootfs_override);
+    }
+
+    //
+    // rootfs path: make absolute, without trailing "/"
+    //
+
+    char *abspath = realpath(AtariRootfsPath, nullptr);
+    if (abspath == nullptr)
+    {
+        fprintf(stderr, "Invalid rootfs path: \"%s\"\n", AtariRootfsPath);
+        return 1;
+    }
+    strcpy(AtariRootfsPath, abspath);
+    free(abspath);
 
     //
     // Kernel path: get default value, if not specified

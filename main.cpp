@@ -27,6 +27,7 @@ const char *argnames[] =
     "w[xh]",
     "size",
     "EN|DE|FR",
+    "path",
     "program",
     "atari_txtfile",
     "host_txtfile"
@@ -42,6 +43,7 @@ const char *descriptions[] =
     "            e.g. 2x2 or 2 or 2x4, overrides config file",
     "             Atari RAM size, e.g. 512k or 4M or 3m",
     "            language for Atari localisation, either EN or DE or FR",
+    "              location of C: drive (root fs)",
     "           choose editor program for -e option, to override xdg-open",
     "  convert text file from Atari to host format",
     "   convert text file from host to Atari format"
@@ -274,7 +276,7 @@ static int localise(const char *arg_lang)
     if ((arg_lang[0] != '\0') && (arg_lang[0] != '0'))
     {
         // Note that the shell script converts language code to uppercase.
-        char cmd[1200];
+        char cmd[PATH_MAX + 32];
         // cut long string to 10 characters, avoiding overflow
         sprintf(cmd, "%s/LANG/LOCALISE.SH %.10s", Preferences::AtariRootfsPath, arg_lang);
         //puts(cmd);
@@ -298,6 +300,7 @@ int main(int argc, char *argv[])
     const char *arg_stretch = nullptr;
     const char *arg_memsize = nullptr;
     const char *arg_lang = nullptr;
+    const char *arg_rootfs = nullptr;
     int mode = -1;
     int width = -1;
     int height = -1;
@@ -326,12 +329,13 @@ int main(int argc, char *argv[])
             {"stretch",      required_argument, nullptr, 's' },
             {"memsize",      required_argument, nullptr, 'm' },
             {"lang",         required_argument, nullptr, 'l' },
+            {"rootfs",       required_argument, nullptr, 'r' },
             {"editor",       required_argument, nullptr,  0 },      // long_option_index 7
             {"tconv-a2h",    required_argument, nullptr,  0 },      // long_option_index 8
             {"tconv-h2a",    required_argument, nullptr,  0 },      // long_option_index 9
             {nullptr,        0,                 nullptr,  0 }
         };
-        c = getopt_long(argc, argv, "hc:ewg:s:m:l:",
+        c = getopt_long(argc, argv, "hc:ewg:s:m:l:r:",
                         long_options, &long_option_index);
         //printf("getopt_long() -> %d (c = '%c'), long_option_index = %d\n", c, c, long_option_index);
 
@@ -394,6 +398,10 @@ int main(int argc, char *argv[])
 
             case 'l':
                 arg_lang = optarg;
+                break;
+
+            case 'r':
+                arg_rootfs = optarg;
                 break;
 
             case 'w':
@@ -481,7 +489,7 @@ int main(int argc, char *argv[])
 
     if (bWriteConf)
     {
-        Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, true);
+        Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, arg_rootfs, true);
         return 0;
     }
 
@@ -512,7 +520,7 @@ int main(int argc, char *argv[])
     #endif
 
     DebugInit(NULL /* stderr */);
-    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, false))
+    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, arg_rootfs, false))
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }

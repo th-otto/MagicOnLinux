@@ -27,6 +27,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #define NDRIVES ('Z'-'A' + 1)
 #define ATARIDRIVEISMAPPABLE(d)    ((d != 'C'-'A') && (d != 'M'-'A') && (d != 'U'-'A'))
@@ -85,6 +86,7 @@ class Preferences
                     int width_override, int height_override,
                     int stretch_x_override, int stretch_y_override,
                     int memsize_override,
+                    const char *rootfs_override,
                     bool rewrite_conf);
     static const char *videoModeToString(enAtariScreenColourMode mode);
 
@@ -95,7 +97,7 @@ class Preferences
     static bool bHideHostMouse;
     static bool bAutoStartMagiC;
 	static char AtariKernelPath[1024];              // "MAGICLIN.OS" file
-	static char AtariRootfsPath[1024];              // Atari C:
+	static char AtariRootfsPath[PATH_MAX];          // Atari C:
     static bool AtariHostHome;                      // Atari H: is home
     static bool AtariHostHomeRdOnly;                // Atari H: is write protected
     static bool AtariHostRoot;                      // Atari M: as host root

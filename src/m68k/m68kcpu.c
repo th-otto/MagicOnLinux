@@ -1199,40 +1199,36 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 }
 
 #if defined(M68K_TRACE)
-uint32_t m68k_trace[M68K_TRACE];
+uint32_t m68k_trace[M68K_TRACE][2];     // PC and d0
 unsigned m68k_trace_i = 0;
 void m68k_trace_print()
 {
 	// Note that addresses from MEMEXAMN include the header, i.e.
 	// NVDI basepage starts at 0x1db9c + 0x10
-	const uint32_t p_os = 0x007c9bf8;
 	for (unsigned i = 0; i < M68K_TRACE; i++)
 	{
-		uint32_t prevpc = m68k_trace[(M68K_TRACE + m68k_trace_i - i - 1) % M68K_TRACE];
+        unsigned index = (M68K_TRACE + m68k_trace_i - i - 1) % M68K_TRACE;
+		uint32_t prevpc = m68k_trace[index][0];
+        uint32_t rd0    = m68k_trace[index][1];
 		uint16_t instr = (mem68k[prevpc] << 8) + (mem68k[prevpc + 1]);
-		if (prevpc >= p_os)
+		if ((prevpc >= addrOsRomStart) && (prevpc < addrOsRomEnd))
 		{
-			printf(" PC was 0x%08x, instr 0x%04x (OS rel 0x%06x)\n", prevpc, instr, prevpc - p_os);
+			printf(" PC was 0x%08x, d0 = 0x%08x, instr 0x%04x (OS rel 0x%06x)\n", prevpc, rd0, instr, prevpc - addrOsRomStart);
 		}
 		else
-		if ((prevpc >= 0x1818c + 0x10) && (prevpc < 0x18cdc))
+		if ((prevpc >= 0x18144 + 0x10) && (prevpc < 0x18c94))
 		{
 			// size 0xb40, owner = boot
-			printf(" PC was 0x%08x, instr 0x%04x (MFM4IP.SYS rel 0x%06x)\n", prevpc, instr, prevpc - (0x1818c + 0x10));
+			printf(" PC was 0x%08x, d0 = 0x%08x, instr 0x%04x (MFM4IP.SYS rel 0x%06x)\n", prevpc, rd0, instr, prevpc - (0x18144 + 0x10));
 		}
 		else
-		if ((prevpc >= 0x1db9c + 0x10) && (prevpc < 0x75d2c))
+		if ((prevpc >= 0x1db54 + 0x10) && (prevpc < 0x75ec4))
 		{
-			printf(" PC was 0x%08x, instr 0x%04x (NVDI.PRG rel 0x%06x)\n", prevpc, instr, prevpc - (0x1db9c + 0x10) - 0x100);
-		}
-		else
-		if ((prevpc >= 0x1d834) && (prevpc < 0x10c994))
-		{
-			printf(" PC was 0x%08x, instr 0x%04x (NVDI)\n", prevpc, instr);
+			printf(" PC was 0x%08x, d0 = 0x%08x, instr 0x%04x (NVDI.PRG rel 0x%06x)\n", prevpc, rd0, instr, prevpc - (0x1db54 + 0x10) - 0x100);
 		}
 		else
 		{
-			printf(" PC was 0x%08x, instr 0x%04x\n", prevpc, instr);
+			printf(" PC was 0x%08x, d0 = 0x%08x, instr 0x%04x\n", prevpc, rd0, instr);
 		}
 	}
 }
@@ -1302,7 +1298,9 @@ void m68k_execute(void)
         #endif  // M68K_BREAKPOINTS
 
 		#if defined(M68K_TRACE)
-		m68k_trace[m68k_trace_i++] = REG_PC;
+		m68k_trace[m68k_trace_i][0] = REG_PC;
+		m68k_trace[m68k_trace_i][1] = REG_D[0];
+        m68k_trace_i++;
 		m68k_trace_i %= M68K_TRACE;
 		#endif
 

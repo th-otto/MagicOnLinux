@@ -40,7 +40,7 @@ extern const char *exception68k_to_name(uint32_t addr);
 //#define M68K_TRACE  1024
 
 #if defined(M68K_TRACE)
-extern uint32_t m68k_trace[M68K_TRACE];
+extern uint32_t m68k_trace[M68K_TRACE][2];
 #if defined(__cplusplus)
 extern "C" {
 #endif

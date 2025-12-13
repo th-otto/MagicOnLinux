@@ -37,6 +37,18 @@ extern const char *exception68k_to_name(uint32_t addr);
 #ifndef NDEBUG
 //#define M68K_BREAKPOINTS   4            // for debugging 68k code
 //#define M68K_WRITE_WATCHES 3            // for debugging 68k code
+//#define M68K_TRACE  1024
+
+#if defined(M68K_TRACE)
+extern uint32_t m68k_trace[M68K_TRACE];
+#if defined(__cplusplus)
+extern "C" {
+#endif
+extern void m68k_trace_print();
+#if defined(__cplusplus)
+}
+#endif
+#endif
 
 #if defined(M68K_BREAKPOINTS)
 extern uint32_t m68k_breakpoints[M68K_BREAKPOINTS][2];      //  68k address and range, usually 0

@@ -1080,6 +1080,11 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 #endif
 
     CRegisterModel::init();
+    /*
+    // test model
+    uint32_t dummy;
+    CRegisterModel::read_word(0x0d2155c2, &dummy);
+    */
 
     return 0;
 }
@@ -2130,6 +2135,10 @@ uint32_t CMagiC::AtariInit(uint32_t params, uint8_t *addrOffset68k)
 uint32_t CMagiC::AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k)
 {
     DebugInfo2("() - ATARI: BIOS initialisation done.");
+#if defined(M68K_BREAKPOINTS)
+    m68k_breakpoints[0][0] = 0x7c9bf8 + 0x1F5E;   // VsetRGB
+    m68k_breakpoints[0][1] = m68k_breakpoints[0][0] + 16;   // range
+#endif
     (void) params;
     (void) addrOffset68k;
     return 0;
@@ -2153,7 +2162,7 @@ uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
     //breakpoint2 = 0x007c9c68 + 0x17ee;   // print_bombs10
     //breakpoint2_range = 0x180a - 0x17ee;   // print_bombs10
     //breakpoint3 = 0x007c9c68 + 0x1e2f2;   // pgm_loader
-    m68k_breakpoints[0][0] = 0x007c9c68 + 0x1793a;   // draw_spr
+    //m68k_breakpoints[0][0] = 0x007c9bf8 /* system TEXT segment */ + 0x1F5E;   // VsetRGB
 #endif
 //    (void) params;
 //    (void) addrOffset68k;
@@ -2478,8 +2487,29 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
         // 0xffff0000        red
         // 0xff00ff00        green
         // 0xff0000ff        blue
-        uint32_t c = (pValues[1] << 16) | (pValues[2] << 8) | (pValues[3] << 0) | (0xff000000);
-        *pColourTable++ = c;
+        uint32_t c = (pValues[1] << 16) | (pValues[2] << 8) | (pValues[3] << 0);
+
+        //
+        // Hack for NVDI in mode "four colours interleaved":
+        //  changing colour #3 from black to yellow must be blocked twice
+        //
+
+        static unsigned bHacked = 2;
+        if (bHacked && (i == 3) && (c == 0x00ffff00) && (Preferences::atariScreenColourMode == atariScreenMode4ip))
+        {
+            DebugWarning2("() -- suppressed setting colour #3 to yellow (NVDI bug workaround, round %u/2)", 2 - bHacked + 1);
+            c = *pColourTable;  // value unchanged
+            bHacked--;
+            #if defined(M68K_TRACE)
+            static int done = 0;
+            if (!done)
+            {
+                m68k_trace_print();
+                done = 1;
+            }
+            #endif
+        }
+        *pColourTable++ = c | (0xff000000);
     }
 
     // tell GUI thread to update the screen

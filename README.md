@@ -27,6 +27,9 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - popd
 - cp -rp AtariX/src/AtariX-MT/AtariX/rootfs-common Atari-rootfs
 - rm Atari-rootfs/GEMSYS/MFM16M-1fff.SYS
+- rm -rf Atari-rootfs/GEMSYS/OLD
+- mv Atari-rootfs/GEMSYS/NEU/OFF16MOV.OSD Atari-rootfs/GEMSYS/
+- rmdir Atari-rootfs/GEMSYS/NEU
 - mkdir Atari-rootfs/GEMSYS/GEMSCRAP
 - mkdir Atari-rootfs/LANG Atari-rootfs/LANG/DE Atari-rootfs/LANG/EN Atari-rootfs/LANG/FR
 - rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/LANG/EN/

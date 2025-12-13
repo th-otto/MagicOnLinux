@@ -110,7 +110,35 @@ Das scheint ein Speicher des AES zu sein, mit Nettogröße 200 Bytes:
   61    8a1e4  ANDR       74   1cfc34     MAGXDESK.APP    8a114    Environment
 
 
+lbl40884 wird aufgerufen in der Funktion lbl175C4.
+Den Einsprung findet man in Zeile 3318 der Trace-Datei.
 
+lbl175C4 wird aufgerufen in der Funktion lbl16900.
+Den Einsprung findet man in Zeile 7160 der Trace-Datei.
+
+lbl16900 wird aufgerufen in der Funktion lbl1661A.
+Den Einsprung findet man in Zeile 8519 der Trace-Datei.
+
+lbl1661A wird aufgerufen in der Funktion lbl40988
+Den Einsprung findet man in Zeile 8522 der Trace-Datei.
+
+lbl40988 wird aufgerufen in der Funktion lbl45FF2.
+Den Einsprung findet man in Zeile 8558 der Trace-Datei.
+
+lbl45FF2 ist vermutlich der Trap-#2-Einsprung, denn es wird auf 0x73 abgefragt.
+Das kommt aus dem OS, und zwar AESEVT.S, Funktion aes_trap2.
+
+Der Trap #2 fürs VDI wird aufgerufen vom OS, Adresse 0x022676.
+Vermutlich AESOBJ.S, Funktion vdi_quick.
+
+vdi_quick() wird aufgerufen in der Funktion lbl227EA.
+Das ist open_wstn in AESOBJ.S.
+
+
+
+MFM4IP.SYS rel 0x0000dc ist MFM4IP.S:get_opnwkinfo
+MFM4IP.SYS rel 0x0003da ist MFM4IP.S:wk_init
+MFM4IP.SYS rel 0x000174 ist MFM4IP.S:get_scrninfo
 
 Drag&Drop of a volume (e.g. floppy disk) image mounts the image only to drive A: or B:.
 Maybe it should look for the first free logical drive.

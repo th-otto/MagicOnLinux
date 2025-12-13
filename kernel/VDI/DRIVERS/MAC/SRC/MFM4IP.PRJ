@@ -1,0 +1,10 @@
+MFM4IP.SYS
+
+.S [-D=DUMMY=0]
+
+.L [-S=0]			;Stacksize 0
+
+=
+
+MFM4IP.S
+

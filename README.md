@@ -28,7 +28,6 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - cp -rp AtariX/src/AtariX-MT/AtariX/rootfs-common Atari-rootfs
 - rm Atari-rootfs/GEMSYS/MFM16M-1fff.SYS
 - mkdir Atari-rootfs/GEMSYS/GEMSCRAP
-- cp -p magiclinux/kernel/HOSTBIOS/EN/MAGICLIN.OS Atari-rootfs/
 - mkdir Atari-rootfs/LANG Atari-rootfs/LANG/DE Atari-rootfs/LANG/EN Atari-rootfs/LANG/FR
 - rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/LANG/EN/
 - rsync -a AtariX/src/AtariX-MT/AtariX/de.lproj/rootfs/ Atari-rootfs/LANG/DE/
@@ -37,9 +36,11 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - cp -p magiclinux/kernel/HOSTBIOS/DE/MAGICLIN.OS Atari-rootfs/LANG/DE/
 - cp -p magiclinux/kernel/HOSTBIOS/FR/MAGICLIN.OS Atari-rootfs/LANG/FR/
 - cp -p magiclinux/kernel/LOCALISE.SH Atari-rootfs/LANG/
+- touch Atari-rootfs/MAGICLIN.OS
+- Atari-rootfs/LANG/LOCALISE.SH EN
 - mv Atari-rootfs MAGIC_C
 
-Replace "HOSTBIOS/EN" with "HOSTBIOS/DE" or "HOSTBIOS/FR" for German or French. Replace "English" with "de" or "fr" for German or French. But, however, the Atari's language can be changed later via config file or command line.
+Replace "LOCALISE.SH EN" with "LOCALISE.SH DE" or "LOCALISE.SH FR" for German or French as initial language. However, the Atari's language can be changed later via config file or command line.
 
 Optionally adapt some default values in "CMakeLists.txt".
 

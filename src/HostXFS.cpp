@@ -1257,7 +1257,7 @@ INT32 CHostXFS::xfs_path2DD
  * @note The drive number is needed to determine, if the file system is case-insensitive
  *
  ************************************************************************************************/
-int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_DTA *dta)
+int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MX_DTA *dta)
 {
     unsigned char atariname[256];   // long filename in Atari charset
     unsigned char dosname[14];      // internal, 8+3
@@ -1287,7 +1287,7 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_D
         return -2;   // unhandled file type
     }
 
-    if (!filename8p3_match(dta->macdta.sname, (char *) dosname, convUpper))
+    if (!filename8p3_match(dta->sname, (char *) dosname, convUpper))
     {
         return 1;
     }
@@ -1314,26 +1314,26 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_D
 
     if (dosname[11] == F_SUBDIR)
     {
-        dta->mxdta.dta_len = 0;
+        dta->dta_len = 0;
     }
     else
     if (statbuf.st_size > 0xffffffff)
     {
         DebugWarning2("() -- file size > 4 GB, shown as zero length");
-        dta->mxdta.dta_len = 0;
+        dta->dta_len = 0;
     }
     else
     {
-        dta->mxdta.dta_len = htobe32((uint32_t) statbuf.st_size);
+        dta->dta_len = htobe32((uint32_t) statbuf.st_size);
     }
 
-    dta->mxdta.dta_attribute = (char) dosname[11];
-    hostFnameToAtariFname8p3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, convUpper);
+    dta->dta_attribute = (char) dosname[11];
+    hostFnameToAtariFname8p3(entry->d_name, (unsigned char *) dta->dta_name, convUpper);
     const struct timespec *mtime = &statbuf.st_mtim;
     uint16_t time, date;
     CConversion::hostDateToDosDate(mtime->tv_sec, &time, &date);
-    dta->mxdta.dta_time = htobe16(time);
-    dta->mxdta.dta_date = htobe16(date);
+    dta->dta_time = htobe16(time);
+    dta->dta_date = htobe16(date);
 
     return 0;
 }
@@ -1372,17 +1372,17 @@ INT32 CHostXFS::xfs_sfirst
     uint16_t drv,
     const MXFSDD *dd,
     const char *name,
-    MAC_DTA *dta,
+    MX_DTA *dta,
     uint16_t attrib
 )
 {
     DebugInfo2("(drv = %u, name = \"%s\")", drv, name);
 
-    dta->mxdta.dta_drive = (char) drv;
+    dta->dta_drive = (char) drv;
     bool convUpper = !drv_longNames[drv] || drv_caseInsens[drv];
-    pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname, convUpper);    // search pattern -> DTA
-    dta->mxdta.dta_name[0] = 0;                    // nothing found yet
-    dta->macdta.sattr = (char) attrib;            // search attribute
+    pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->sname, convUpper);    // search pattern -> DTA
+    dta->dta_name[0] = 0;                    // nothing found yet
+    dta->sattr = (char) attrib;            // search attribute
 
     CHK_DRIVE(drv)
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
@@ -1432,19 +1432,19 @@ INT32 CHostXFS::xfs_sfirst
             //long pos = telldir(dir);
             //DebugInfo2("() : directory read position %ld", pos);
 
-            dta->macdta.vRefNum = (int16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd());
-            dta->macdta.dirID = hhdl;
-            dta->macdta.index = 0;  // unused
+            dta->vRefNum = (int16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd());
+            dta->dirID = hhdl;
+            dta->index = 0;  // unused
 
             DebugInfo2("() -> E_OK");
             return E_OK;
         }
     }
 
-    dta->macdta.sname[0] = EOS;     // invalidate DTA
-    dta->macdta.dirID = -1;
-    dta->macdta.vRefNum = -1;
-    dta->macdta.index = -1;
+    dta->sname[0] = EOS;     // invalidate DTA
+    dta->dirID = -1;
+    dta->vRefNum = -1;
+    dta->index = -1;
 
     closedir(dir);  // also closes dup_dir_fd
 
@@ -1463,20 +1463,20 @@ INT32 CHostXFS::xfs_sfirst
  * @return 0 for OK, ELINK for symbolic link or negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
+INT32 CHostXFS::xfs_snext(uint16_t drv, MX_DTA *dta)
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE(drv)
     (void) dta;
 
-    if (!dta->macdta.sname[0])
+    if (!dta->sname[0])
     {
         DebugWarning2("() -> ENMFIL");
         return ENMFIL;
     }
 
     DIR *dir;
-    uint16_t snextHdl = (uint16_t) dta->macdta.vRefNum;
+    uint16_t snextHdl = (uint16_t) dta->vRefNum;
     int dup_fd;
     if (HostHandles::getOpendir(snextHdl, getActPd(), &dir, &dup_fd))
     {
@@ -1507,10 +1507,10 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
         }
     }
 
-    dta->macdta.sname[0] = EOS;     // invalidate DTA
-    dta->macdta.dirID = -1;
-    dta->macdta.vRefNum = -1;
-    dta->macdta.index = -1;
+    dta->sname[0] = EOS;     // invalidate DTA
+    dta->dirID = -1;
+    dta->vRefNum = -1;
+    dta->index = -1;
 
     HostHandles::closeOpendir(snextHdl);  // also does closedir()
 
@@ -3499,7 +3499,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
                     be16toh(psfirstparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(psfirstparm->dd)),
                     (char *) (addrOffset68k + be32toh(psfirstparm->name)),
-                    (MAC_DTA *) (addrOffset68k + be32toh(psfirstparm->dta)),
+                    (MX_DTA *) (addrOffset68k + be32toh(psfirstparm->dta)),
                     be16toh(psfirstparm->attrib)
                     );
             break;
@@ -3515,7 +3515,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             snextparm *psnextparm = (snextparm *) params;
             doserr = xfs_snext(
                     be16toh(psnextparm->drv),
-                    (MAC_DTA *) (addrOffset68k + be32toh(psnextparm->dta))
+                    (MX_DTA *) (addrOffset68k + be32toh(psnextparm->dta))
                     );
             break;
         }

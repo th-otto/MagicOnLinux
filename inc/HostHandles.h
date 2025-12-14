@@ -26,7 +26,6 @@
 #include <dirent.h>
 #include <sys/types.h>
 
-#define HOST_FH_SIZE MAX_HANDLE_SZ   // 128 bytes, while in fact 8 bytes are enough
 
 // Platform compatibility for device and inode types
 typedef dev_t host_dev_t;
@@ -48,12 +47,6 @@ struct HostFD
 };
 #pragma GCC diagnostic pop
 
-HostFD *getFreeHostFD();
-uint16_t allocHostFD(HostFD **pfd);
-void freeHostFD(HostFD *fd);
-HostFD *getHostFD(uint16_t hhdl);
-HostFD *findHostFD(host_dev_t dev, host_ino_t ino, uint16_t *hhdl);
-
 
 #define HOST_HANDLE_NUM     1024            // number of memory blocks
 #define HOST_HANDLE_INVALID 0xffffffff
@@ -69,20 +62,18 @@ class HostHandles
 {
   public:
     static void init();
-    #if 0
-    static uint32_t alloc(unsigned size);
-    static uint32_t allocInt(int v);
-    static void *getData(HostHandle_t hhdl);
-    static int getInt(HostHandle_t hhdl);
-    static void putInt(HostHandle_t hhdl, int v);
-    static void free(HostHandle_t hhdl);
-    #endif
-    static uint16_t snextSet(DIR *dir, int dup_fd, uint32_t act_pd);
-    static int snextGet(uint16_t snextHdl, DIR **dir, int *dup_fd);
-    static void snextClose(uint16_t snextHdl);
-    static void snextPterm(uint32_t term_pd);
+
+    static HostFD *getFreeHostFD();
+    static uint16_t allocHostFD(HostFD **pfd);
+    static void freeHostFD(HostFD *fd);
+    static HostFD *getHostFD(uint16_t hhdl);
+    static HostFD *findHostFD(host_dev_t dev, host_ino_t ino, uint16_t *hhdl);
+
+    static uint16_t allocOpendir(DIR *dir, int dup_fd, uint32_t act_pd);
+    static int getOpendir(uint16_t snextHdl, uint32_t act_pd, DIR **dir, int *dup_fd);
+    static void closeOpendir(uint16_t snextHdl);
+    static void ptermOpendir(uint32_t term_pd);
 
   private:
-    static uint8_t *memblock;
-    static uint8_t *memblock_free;
+    static HostFD fdTab[HOST_HANDLE_NUM];
 };

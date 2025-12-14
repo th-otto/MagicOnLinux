@@ -863,7 +863,7 @@ void CHostXFS::xfs_pterm(uint32_t pd, uint8_t *addrOffset68k)
     uint32_t act_pd = getActPd();
     DebugInfo2("() -- PD 0x%08x terminated, act_pd = 0x%08x", pd, act_pd);
     (void) act_pd;
-    HostHandles::snextPterm(pd);
+    HostHandles::ptermOpendir(pd);
 }
 
 
@@ -887,14 +887,14 @@ void CHostXFS::xfs_freeDD(XFS_DD *dd, uint8_t *addrOffset68k)
     DebugInfo2("() : dirID = %u", hdd->dirID);
     DebugInfo2("() : vRefNum = %u", hdd->vRefNum);
     HostHandle_t hhdl = hdd->dirID;  // host endian
-    HostFD *hostFD = getHostFD(hhdl);
+    HostFD *hostFD = HostHandles::getHostFD(hhdl);
     if (hostFD == nullptr)
     {
         DebugWarning2("%s() -- invalid hostFD");
     }
     else
     {
-        freeHostFD(hostFD);
+        HostHandles::freeHostFD(hostFD);
     }
     (void) dd;
 }
@@ -924,7 +924,7 @@ INT32 CHostXFS::hostpath2HostFD
     HostHandle_t *hhdl
 )
 {
-    HostFD *hostFD = getFreeHostFD();   // note that this is not allocated, yet
+    HostFD *hostFD = HostHandles::getFreeHostFD();   // note that this is not allocated, yet
     if (hostFD == nullptr)
     {
         DebugError2("() : No host FDs left");
@@ -953,7 +953,7 @@ INT32 CHostXFS::hostpath2HostFD
         }
         DebugInfo2("() : dev=%d, ino=%d)", statbuf.st_dev, statbuf.st_ino);
         uint16_t nhhdl;
-        HostFD *hostFD_exist = findHostFD(statbuf.st_dev, statbuf.st_ino, &nhhdl);
+        HostFD *hostFD_exist = HostHandles::findHostFD(statbuf.st_dev, statbuf.st_ino, &nhhdl);
         if (hostFD_exist != nullptr)
         {
              DebugInfo2("() : already opened host fd = %d", hostFD_exist->fd);
@@ -1007,7 +1007,7 @@ INT32 CHostXFS::hostpath2HostFD
         hostFD->dev = statbuf.st_dev;
         hostFD->ino = statbuf.st_ino;
 
-        *hhdl = allocHostFD(&hostFD);
+        *hhdl = HostHandles::allocHostFD(&hostFD);
         DebugInfo2("() : host fd = %d", hostFD->fd);
     }
 
@@ -1186,7 +1186,7 @@ INT32 CHostXFS::xfs_path2DD
     }
 
     HostHandle_t hhdl_rel = rel_dd->dirID;  // host endian
-    HostFD *rel_hostFD = getHostFD(hhdl_rel);
+    HostFD *rel_hostFD = HostHandles::getHostFD(hhdl_rel);
     if (rel_hostFD == nullptr)
     {
         DebugWarning2("%s() -> EINTRN");
@@ -1342,7 +1342,7 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_D
 // perform various checks to the directory file descriptor
 #define GET_hhdl_hostFD_dir_fd(DD, HHDL, HOST_FD, DIR_FD) \
     HostHandle_t HHDL = DD->dirID; \
-    HostFD *HOST_FD = getHostFD(HHDL); \
+    HostFD *HOST_FD = HostHandles::getHostFD(HHDL); \
     if (HOST_FD == nullptr) \
     { \
         return EINTRN; \
@@ -1432,7 +1432,7 @@ INT32 CHostXFS::xfs_sfirst
             //long pos = telldir(dir);
             //DebugInfo2("() : directory read position %ld", pos);
 
-            dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(dir, dup_dir_fd, getActPd());
+            dta->macdta.vRefNum = (int16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd());
             dta->macdta.dirID = hhdl;
             dta->macdta.index = 0;  // unused
 
@@ -1478,7 +1478,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
     DIR *dir;
     uint16_t snextHdl = (uint16_t) dta->macdta.vRefNum;
     int dup_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dup_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), &dir, &dup_fd))
     {
         DebugWarning2("() -> EINTRN");
         return EINTRN;
@@ -1512,7 +1512,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
     dta->macdta.vRefNum = -1;
     dta->macdta.index = -1;
 
-    HostHandles::snextClose(snextHdl);  // also does closedir()
+    HostHandles::closeOpendir(snextHdl);  // also does closedir()
 
     DebugInfo2("() -> ENMFIL");
 
@@ -1608,7 +1608,7 @@ INT32 CHostXFS::xfs_fopen
     #define _ATARI_O_EXCL      0x800
    */
 
-    HostFD *file_hostFD = getFreeHostFD();
+    HostFD *file_hostFD = HostHandles::getFreeHostFD();
     if (file_hostFD == nullptr)
     {
         return ENHNDL;
@@ -1633,7 +1633,7 @@ INT32 CHostXFS::xfs_fopen
     file_hostFD->dev = statbuf.st_dev;
     file_hostFD->ino = statbuf.st_ino;
 
-    hhdl = allocHostFD(&file_hostFD);
+    hhdl = HostHandles::allocHostFD(&file_hostFD);
 
     assert(hhdl <= 0xfffff);
     DebugInfo2("() -> %d", hhdl);
@@ -2254,7 +2254,7 @@ INT32 CHostXFS::xfs_dopendir
         return CConversion::host2AtariError(errno);
     }
 
-    dirh->hostDirHdl = (uint16_t) HostHandles::snextSet(dir, dup_dir_fd, getActPd());
+    dirh->hostDirHdl = (uint16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd());
     dirh ->tosflag = tosflag;
 
     DebugInfo2("() -> E_OK");
@@ -2309,7 +2309,7 @@ INT32 CHostXFS::xfs_dreaddir
     DIR *dir;
     uint16_t snextHdl = dirh->hostDirHdl;
     int dir_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dir_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), &dir, &dir_fd))
     {
         DebugWarning2("() -> EINTRN");
         return EINTRN;
@@ -2408,7 +2408,7 @@ INT32 CHostXFS::xfs_drewinddir(HOST_DIRHANDLE *dirh, uint16_t drv)
     DIR *dir;
     uint16_t snextHdl = dirh->hostDirHdl;
     int dir_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dir_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), &dir, &dir_fd))
     {
         DebugWarning2("s() -> EINTRN");
         dirh->hostDirHdl = -1;
@@ -2447,14 +2447,14 @@ INT32 CHostXFS::xfs_dclosedir(HOST_DIRHANDLE *dirh, uint16_t drv)
     DIR *dir;
     uint16_t snextHdl = dirh->hostDirHdl;
     int dir_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dir_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), &dir, &dir_fd))
     {
         DebugWarning2("() -> EINTRN");
         dirh->hostDirHdl = -1;
         return EINTRN;
     }
 
-    HostHandles::snextClose(snextHdl);  // also does closedir()
+    HostHandles::closeOpendir(snextHdl);  // also does closedir()
     dirh->hostDirHdl = -1;
 
     DebugInfo2("() -> E_OK");
@@ -2867,7 +2867,7 @@ INT32 CHostXFS::xfs_dcntl
 /// Helper to get the host file handle
 #define GET_hhdl_AND_fd \
     uint32_t hhdl = be16toh(f->refnum); \
-    HostFD *hostFD = getHostFD(hhdl); \
+    HostFD *hostFD = HostHandles::getHostFD(hhdl); \
     if (hostFD == nullptr) \
     { \
         return EINTRN; \
@@ -2936,7 +2936,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
             }
             f->mod_tdate_dirty = 0;
         }
-        freeHostFD(hostFD);     // also closes hostFD->fd
+        HostHandles::freeHostFD(hostFD);     // also closes hostFD->fd
     }
 
     return aret;

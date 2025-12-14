@@ -50,8 +50,19 @@
  */
 
 
-static HostFD fdTab[HOST_HANDLE_NUM];
-HostFD *getFreeHostFD()
+/// table of host FDs
+HostFD HostHandles::fdTab[HOST_HANDLE_NUM];
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get a free host FD, but do not allocate it, yet
+ *
+ * @return free host FD
+ * @retval nullptr      none is available
+ *
+ ************************************************************************************************/
+HostFD *HostHandles::getFreeHostFD()
 {
     HostFD *p = fdTab;
     for (unsigned n = 0; n < HOST_HANDLE_NUM; n++, p++)
@@ -63,7 +74,21 @@ HostFD *getFreeHostFD()
     }
     return nullptr;
 }
-uint16_t allocHostFD(HostFD **pfd)
+
+
+/** **********************************************************************************************
+ *
+ * @brief Allocate a free host FD or co-use an already opened one
+ *
+ * @param[in,out] pfd       in: host FD, whose refcnt is still zero, out: allocated host FD
+ *
+ * @return host FD handle, 16 bits are suitable for old MAC_XFS API
+ *
+ * @note When using an already opened host FD, its reference counter is incremented,
+ *       and the pointer is changed to that one.
+ *
+ ************************************************************************************************/
+uint16_t HostHandles::allocHostFD(HostFD **pfd)
 {
     HostFD *fd = *pfd;
     assert(fd->ref_cnt == 0);
@@ -107,7 +132,21 @@ uint16_t allocHostFD(HostFD **pfd)
     fd->ref_cnt++;
     return handle;
 }
-HostFD *findHostFD(host_dev_t dev, host_ino_t ino, uint16_t *hhdl)
+
+
+/** **********************************************************************************************
+ *
+ * @brief Find an open host FD by providing host's device and inode
+ *
+ * @param[in]  dev      host device descriptor
+ * @param[in]  ino      host inode
+ * @param[out] hhdl     handle of found host FD
+ *
+ * @return host FD
+ * @retval nullptr      none has been found
+ *
+ ************************************************************************************************/
+HostFD *HostHandles::findHostFD(host_dev_t dev, host_ino_t ino, uint16_t *hhdl)
 {
     HostFD *p = fdTab;
     for (unsigned n = 0; n < HOST_HANDLE_NUM; n++, p++)
@@ -128,11 +167,31 @@ HostFD *findHostFD(host_dev_t dev, host_ino_t ino, uint16_t *hhdl)
     return nullptr;
 }
 
-HostFD *getHostFD(uint16_t hhdl)
+
+/** **********************************************************************************************
+ *
+ * @brief Get (opened or free) host FD from 16-bit handle
+ *
+ * @param[in] hhdl      16-bit handle, suitable for old MAC_XFS
+ *
+ * @return host FD
+ * @retval nullptr      invalid handle
+ *
+ ************************************************************************************************/
+HostFD *HostHandles::getHostFD(uint16_t hhdl)
 {
     return (hhdl < HOST_HANDLE_NUM) ? &fdTab[hhdl] : nullptr;
 }
-void freeHostFD(HostFD *fd)
+
+
+/** **********************************************************************************************
+ *
+ * @brief Free an open host FD
+ *
+ * @param[in] HostFD    host FD
+ *
+ ************************************************************************************************/
+void HostHandles::freeHostFD(HostFD *fd)
 {
     assert(fd->ref_cnt > 0);
     fd->ref_cnt--;
@@ -145,37 +204,50 @@ void freeHostFD(HostFD *fd)
 
 
 /*
- * Fsfirst / Fsnext handling
+ * Fsfirst/Fsnext and Dopendir/Dreaddir/Drewinddir/Dclosedir handling with LRU management
+ *
+ * LRU is necessary, because the Fsfirst/Fsnext mechanism, copied from MS-DOS
+ * does not have any kind of close() mechanism.
  */
 
-// maximum allowed number of parallel Ffirst/next runs
-#define SNEXT_N     64
 
-
-uint8_t *HostHandles::memblock = nullptr;
-uint8_t *HostHandles::memblock_free = nullptr;
-
-// Fsfirst/Fsnext LRU management
-
-
-struct SnextEntry
+/// descriptor for open Dopendir/Dreaddir and Fsfirst/Fsnext searches
+struct opendirDescriptor
 {
     time_t lru;         // filled with time()
     uint32_t atari_pd;  // Atari process, used for tidy-up
     int dup_fd;         // fd that is generated from dir_fd and used for dopendir()
-    DIR *dir;
+    DIR *dir;           // host directory descriptor for dreaddir()
 };
 
-static SnextEntry snextTab[SNEXT_N];
+/// maximum allowed number of parallel Dopendir/Dreaddir and Ffirst/next runs
+#define OPENDIR_N     64
+
+/// table of all Snext descriptors
+static opendirDescriptor snextTab[OPENDIR_N];
 
 
-uint16_t HostHandles::snextSet(DIR *dir, int dup_fd, uint32_t act_pd)
+/** **********************************************************************************************
+ *
+ * @brief Allocate a descriptor for successful Atari Dopendir() or Fsfirst()
+ *
+ * @param[in] dir       host directory descriptor for dreaddir()
+ * @param[in] dup_fd    directory file descriptor, dup-ed from directory descriptor
+ * @param[in] act_pd    owning Atari process, used for tidy-up after GEMDOS Pterm()
+ *
+ * @return 16-bit handle for Snext descriptor, suitable for Atari DTA storage
+ *
+ * @note Due to last-recently-used (LRU) strategy, this function cannot fail. If all
+ *       descriptors are in use, the oldest one will be occupied.
+ *
+ ************************************************************************************************/
+uint16_t HostHandles::allocOpendir(DIR *dir, int dup_fd, uint32_t act_pd)
 {
     DebugInfo2("(dir = %p, dup_fd = %d)", dir, dup_fd);
     uint16_t snextHdl = 0xffff;
     time_t oldest_time;
 
-    for (uint16_t i = 0; i < SNEXT_N; i++)
+    for (uint16_t i = 0; i < OPENDIR_N; i++)
     {
         if (snextTab[i].lru == 0)
         {
@@ -189,12 +261,13 @@ uint16_t HostHandles::snextSet(DIR *dir, int dup_fd, uint32_t act_pd)
         }
     }
 
-    SnextEntry *entry = &snextTab[snextHdl];
+    opendirDescriptor *entry = &snextTab[snextHdl];
     if (entry->lru != 0)
     {
         // overwrite oldest entry -> close old file directory handle
-        snextClose(snextHdl);
+        closeOpendir(snextHdl);
     }
+
     entry->dir = dir;
     entry->dup_fd = dup_fd;
     entry->lru = time(NULL);
@@ -202,61 +275,82 @@ uint16_t HostHandles::snextSet(DIR *dir, int dup_fd, uint32_t act_pd)
     DebugInfo2("() => %u", snextHdl);
     return snextHdl;
 }
-int HostHandles::snextGet(uint16_t snextHdl, DIR **dir, int *dup_fd)
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get a descriptor for Atari Dreaddir(), Drewinddir() or Fsnext()
+ *
+ * @param[in]  snextHdl     16-bit handle for Snext descriptor, suitable for Atari DTA storage
+ * @param[in]  act_pd       active Atari process, used for ownership check
+ * @param[out] dir          host directory descriptor for dreaddir()
+ * @param[out] dup_fd       directory file descriptor, dup-ed from directory descriptor
+ *
+ * @return 0 for OK or -1 for error (invalid Snext handle)
+ *
+ * @note For the last-recently-used (LRU) strategy, the descriptor usage time is refreshed.
+ *
+ ************************************************************************************************/
+int HostHandles::getOpendir(uint16_t snextHdl, uint32_t act_pd, DIR **dir, int *dup_fd)
 {
-    if (snextHdl < SNEXT_N)
+    if (snextHdl < OPENDIR_N)
     {
         // handle is valid -> update
-        SnextEntry *entry = &snextTab[snextHdl];
+        opendirDescriptor *entry = &snextTab[snextHdl];
         if (entry->lru != 0)
         {
-            *dir = entry->dir;
-            *dup_fd = entry->dup_fd;
-            entry->lru = time(NULL);
-            DebugInfo2("() => dup_fd = %d", *dup_fd);
-            return 0;
+            if (entry->atari_pd == act_pd)
+            {
+                *dir = entry->dir;
+                *dup_fd = entry->dup_fd;
+                entry->lru = time(NULL);
+                DebugInfo2("() => dup_fd = %d", *dup_fd);
+                return 0;
+            }
         }
     }
 
-    DebugError2("() -- Invalid snext handle %d", snextHdl);
+    DebugError2("() -- Invalid snext handle %d or owner mismatch", snextHdl);
     return -1;  // error
 }
-void HostHandles::snextClose(uint16_t snextHdl)
+
+
+/** **********************************************************************************************
+ *
+ * @brief Close a descriptor, used by Dclosedir or in case of Atari Fsnext() failure
+ *
+ * @param[in]  snextHdl     16-bit handle for Snext descriptor, suitable for Atari DTA storage
+ *
+ * @note This is only called in Dclosedir() or in case of a complete Fsfirst/Fsnext loop, i.e.
+ *       until the last Fsnext() fails with "no more files" error.
+ *       Otherwise the descriptor remains open.
+ *
+ ************************************************************************************************/
+void HostHandles::closeOpendir(uint16_t snextHdl)
 {
     DebugInfo2("(snextHdl = %u)", snextHdl);
-    if (snextHdl < SNEXT_N)
+    if (snextHdl < OPENDIR_N)
     {
-        SnextEntry *entry = &snextTab[snextHdl];
+        opendirDescriptor *entry = &snextTab[snextHdl];
         closedir(entry->dir);   // also closes dup_fd
-        // entry->dup
-        /*
-        HostHandle_t hhdl = entry->hhdl;
-        HostFD *hostFD = getHostFD(hhdl);
-        if (hostFD == nullptr)
-        {
-            return;
-        }
-        int dir_fd = hostFD->fd;
-        if (dir_fd == -1)
-        {
-            DebugError("Invalid directory file descriptor");
-        }
-        else
-        {
-            DebugInfo("Closing directory file descriptor %d", dir_fd);
-            close(dir_fd);
-        }
-        freeHostFD(hostFD);
-        */
         entry->lru = 0;
     }
 }
-void HostHandles::snextPterm(uint32_t term_pd)
+
+
+/** **********************************************************************************************
+ *
+ * @brief Close all descriptors belonging to the terminated Atari process
+ *
+ * @param[in]  term_pd      Atari process descriptor
+ *
+ ************************************************************************************************/
+void HostHandles::ptermOpendir(uint32_t term_pd)
 {
     uint16_t oldestHdl = 0xffff;
     time_t oldest_time;
 
-    for (uint16_t i = 0; i < SNEXT_N; i++)
+    for (uint16_t i = 0; i < OPENDIR_N; i++)
     {
         if (snextTab[i].lru == 0)
         {
@@ -271,7 +365,7 @@ void HostHandles::snextPterm(uint32_t term_pd)
         if (snextTab[i].atari_pd == term_pd)
         {
             DebugInfo2("() Closing orphaned snext handle %u", i);
-            snextClose(i);
+            closeOpendir(i);
         }
     }
 
@@ -296,120 +390,4 @@ void HostHandles::snextPterm(uint32_t term_pd)
  ************************************************************************************************/
 void HostHandles::init(void)
 {
-    assert(memblock == nullptr);        // not yet initialised
-
-    // allocate blocks
-    memblock = (uint8_t *) malloc(HOST_HANDLE_NUM * HOST_HANDLE_SIZE);
-    // allocate free-flags
-    memblock_free = (uint8_t *) calloc(HOST_HANDLE_NUM, 1);
 }
-
-
-#if 0
-/** **********************************************************************************************
-*
-* @brief Allocate
-*
- ************************************************************************************************/
-uint32_t HostHandles::alloc(unsigned size)
-{
-    assert(size <= HOST_HANDLE_SIZE);
-
-    // search for free block
-    uint8_t *pfree = memblock_free;
-    for (unsigned i = 0; i < HOST_HANDLE_NUM; i++, pfree++)
-    {
-        if (*pfree == 0)
-        {
-            *pfree = 1;
-            return i;
-        }
-    }
-
-    DebugError("No host handles left");
-    return HOST_HANDLE_INVALID;
-}
-
-
-/** **********************************************************************************************
-*
-* @brief Allocate
-*
- ************************************************************************************************/
-uint32_t HostHandles::allocInt(int v)
-{
-    HostHandle_t hhdl = alloc(sizeof(v));
-    if (hhdl != HOST_HANDLE_INVALID)
-    {
-        HostHandles::putInt(hhdl, v);
-    }
-    return hhdl;
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Get raw data from handle
- *
- * @param[in]  hhdl    32-bit value passed from MagiC kernel
- *
- * @return nullptr in case of an error
- *
- ************************************************************************************************/
-void *HostHandles::getData(HostHandle_t hhdl)
-{
-    if ((hhdl >= HOST_HANDLE_NUM) || (memblock_free[hhdl] == 0))
-    {
-        DebugError("Invalid host handle %d", hhdl);
-        return nullptr;
-    }
-    return memblock + hhdl * HOST_HANDLE_SIZE;
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Get integer value from handle
- *
- * @param[in]  hhdl    32-bit value passed from or to MagiC kernel
- *
- * @return -1 in case of an error, otherwise the read value
- *
- ************************************************************************************************/
-int HostHandles::getInt(HostHandle_t hhdl)
-{
-    int *p = (int *) getData(hhdl);
-    return (p == nullptr) ? -1 : *p;
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Put integer value to handle
- *
- * @param[in]  hhdl    32-bit value passed from or to MagiC kernel
- * @param[in]  v       value to store
- *
- ************************************************************************************************/
-void HostHandles::putInt(HostHandle_t hhdl, int v)
-{
-    int *p = (int *) getData(hhdl);
-    if (p != nullptr)
-    {
-        *p = v;
-    }
-}
-
-
-/** **********************************************************************************************
-*
-* @brief free handle
-*
-*************************************************************************************************/
-void HostHandles::free(HostHandle_t hhdl)
-{
-    assert(hhdl < HOST_HANDLE_NUM);
-    assert(memblock_free[hhdl] == 1);
-    memblock_free[hhdl] = 0;
-}
-#endif

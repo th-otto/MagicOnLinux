@@ -216,6 +216,7 @@ struct opendirDescriptor
 {
     time_t lru;         // filled with time()
     uint32_t atari_pd;  // Atari process, used for tidy-up
+    uint32_t hash;      // ownership check
     int dup_fd;         // fd that is generated from dir_fd and used for dopendir()
     DIR *dir;           // host directory descriptor for dreaddir()
 };
@@ -223,57 +224,65 @@ struct opendirDescriptor
 /// maximum allowed number of parallel Dopendir/Dreaddir and Ffirst/next runs
 #define OPENDIR_N     64
 
-/// table of all Snext descriptors
-static opendirDescriptor snextTab[OPENDIR_N];
+/// table of all openDir descriptors
+static opendirDescriptor opendirTable[OPENDIR_N];
 
 
 /** **********************************************************************************************
  *
  * @brief Allocate a descriptor for successful Atari Dopendir() or Fsfirst()
  *
- * @param[in] dir       host directory descriptor for dreaddir()
- * @param[in] dup_fd    directory file descriptor, dup-ed from directory descriptor
- * @param[in] act_pd    owning Atari process, used for tidy-up after GEMDOS Pterm()
+ * @param[in]  dir      host directory descriptor for dreaddir()
+ * @param[in]  dup_fd   directory file descriptor, dup-ed from directory descriptor
+ * @param[in]  act_pd   owning Atari process, used for tidy-up after GEMDOS Pterm()
+ * @param[out] p_hash   if not nullptr, then used for ownership check
  *
- * @return 16-bit handle for Snext descriptor, suitable for Atari DTA storage
+ * @return 16-bit handle for opendir descriptor, suitable for Atari DTA storage
  *
  * @note Due to last-recently-used (LRU) strategy, this function cannot fail. If all
  *       descriptors are in use, the oldest one will be occupied.
  *
+ * @note Ownership test via hash is only used for Fsfirst/next, not for Dopendir.
+ *
  ************************************************************************************************/
-uint16_t HostHandles::allocOpendir(DIR *dir, int dup_fd, uint32_t act_pd)
+uint16_t HostHandles::allocOpendir(DIR *dir, int dup_fd, uint32_t act_pd, uint32_t *p_hash)
 {
     DebugInfo2("(dir = %p, dup_fd = %d)", dir, dup_fd);
-    uint16_t snextHdl = 0xffff;
+    uint16_t opendirHdl = 0xffff;
     time_t oldest_time;
 
     for (uint16_t i = 0; i < OPENDIR_N; i++)
     {
-        if (snextTab[i].lru == 0)
+        if (opendirTable[i].lru == 0)
         {
-            snextHdl = i;
+            opendirHdl = i;
             break;  // free entry found
         }
-        if ((snextHdl == 0xffff) || (snextTab[i].lru < oldest_time))
+        if ((opendirHdl == 0xffff) || (opendirTable[i].lru < oldest_time))
         {
-            snextHdl = i;
-            oldest_time = snextTab[i].lru;
+            opendirHdl = i;
+            oldest_time = opendirTable[i].lru;
         }
     }
 
-    opendirDescriptor *entry = &snextTab[snextHdl];
+    opendirDescriptor *entry = &opendirTable[opendirHdl];
     if (entry->lru != 0)
     {
         // overwrite oldest entry -> close old file directory handle
-        closeOpendir(snextHdl);
+        closeOpendir(opendirHdl, entry->hash);
     }
 
     entry->dir = dir;
     entry->dup_fd = dup_fd;
     entry->lru = time(NULL);
     entry->atari_pd = act_pd;
-    DebugInfo2("() => %u", snextHdl);
-    return snextHdl;
+    entry->hash = (uint32_t) rand();    // for later ownership test
+    if (p_hash)
+    {
+        *p_hash = entry->hash;
+    }
+    DebugInfo2("() => %u", opendirHdl);
+    return opendirHdl;
 }
 
 
@@ -281,25 +290,26 @@ uint16_t HostHandles::allocOpendir(DIR *dir, int dup_fd, uint32_t act_pd)
  *
  * @brief Get a descriptor for Atari Dreaddir(), Drewinddir() or Fsnext()
  *
- * @param[in]  snextHdl     16-bit handle for Snext descriptor, suitable for Atari DTA storage
+ * @param[in]  opendirHdl   16-bit handle for opendir descriptor, suitable for Atari DTA storage
  * @param[in]  act_pd       active Atari process, used for ownership check
+ * @param[in]  p_hash       if not nullptr, then used for ownership check
  * @param[out] dir          host directory descriptor for dreaddir()
  * @param[out] dup_fd       directory file descriptor, dup-ed from directory descriptor
  *
- * @return 0 for OK or -1 for error (invalid Snext handle)
+ * @return 0 for OK or -1 for error (invalid handle or hash or pd mismatch)
  *
  * @note For the last-recently-used (LRU) strategy, the descriptor usage time is refreshed.
  *
  ************************************************************************************************/
-int HostHandles::getOpendir(uint16_t snextHdl, uint32_t act_pd, DIR **dir, int *dup_fd)
+int HostHandles::getOpendir(uint16_t opendirHdl, uint32_t act_pd, uint32_t hash, DIR **dir, int *dup_fd)
 {
-    if (snextHdl < OPENDIR_N)
+    if (opendirHdl < OPENDIR_N)
     {
         // handle is valid -> update
-        opendirDescriptor *entry = &snextTab[snextHdl];
+        opendirDescriptor *entry = &opendirTable[opendirHdl];
         if (entry->lru != 0)
         {
-            if (entry->atari_pd == act_pd)
+            if ((entry->atari_pd == act_pd) && (hash == entry->hash))
             {
                 *dir = entry->dir;
                 *dup_fd = entry->dup_fd;
@@ -310,7 +320,7 @@ int HostHandles::getOpendir(uint16_t snextHdl, uint32_t act_pd, DIR **dir, int *
         }
     }
 
-    DebugError2("() -- Invalid snext handle %d or owner mismatch", snextHdl);
+    DebugError2("() -- Invalid opendir handle %d or owner mismatch", opendirHdl);
     return -1;  // error
 }
 
@@ -319,22 +329,28 @@ int HostHandles::getOpendir(uint16_t snextHdl, uint32_t act_pd, DIR **dir, int *
  *
  * @brief Close a descriptor, used by Dclosedir or in case of Atari Fsnext() failure
  *
- * @param[in]  snextHdl     16-bit handle for Snext descriptor, suitable for Atari DTA storage
+ * @param[in]  opendirHdl     16-bit handle for opendir descriptor, suitable for Atari DTA storage
  *
  * @note This is only called in Dclosedir() or in case of a complete Fsfirst/Fsnext loop, i.e.
  *       until the last Fsnext() fails with "no more files" error.
  *       Otherwise the descriptor remains open.
  *
  ************************************************************************************************/
-void HostHandles::closeOpendir(uint16_t snextHdl)
+void HostHandles::closeOpendir(uint16_t opendirHdl, uint32_t hash)
 {
-    DebugInfo2("(snextHdl = %u)", snextHdl);
-    if (snextHdl < OPENDIR_N)
+    DebugInfo2("(opendirHdl = %u)", opendirHdl);
+    if (opendirHdl < OPENDIR_N)
     {
-        opendirDescriptor *entry = &snextTab[snextHdl];
-        closedir(entry->dir);   // also closes dup_fd
-        entry->lru = 0;
+        opendirDescriptor *entry = &opendirTable[opendirHdl];
+        if (entry->hash == hash)
+        {
+            closedir(entry->dir);   // also closes dup_fd
+            entry->lru = 0;
+            return;
+        }
     }
+
+    DebugError2("() -- Invalid opendir handle %d or owner mismatch", opendirHdl);
 }
 
 
@@ -352,20 +368,20 @@ void HostHandles::ptermOpendir(uint32_t term_pd)
 
     for (uint16_t i = 0; i < OPENDIR_N; i++)
     {
-        if (snextTab[i].lru == 0)
+        if (opendirTable[i].lru == 0)
         {
             continue;  // skip free entries
         }
-        if ((oldestHdl == 0xffff) || (snextTab[i].lru < oldest_time))
+        if ((oldestHdl == 0xffff) || (opendirTable[i].lru < oldest_time))
         {
             oldestHdl = i;
-            oldest_time = snextTab[i].lru;
+            oldest_time = opendirTable[i].lru;
         }
 
-        if (snextTab[i].atari_pd == term_pd)
+        if (opendirTable[i].atari_pd == term_pd)
         {
-            DebugInfo2("() Closing orphaned snext handle %u", i);
-            closeOpendir(i);
+            DebugInfo2("() Closing orphaned opendirHdl %u", i);
+            closeOpendir(i, opendirTable[i].hash);
         }
     }
 
@@ -376,7 +392,7 @@ void HostHandles::ptermOpendir(uint32_t term_pd)
         uint32_t oldest_time_min = (uint32_t) (oldest_time / 60);
         if (oldest_time > 10)
         {
-            DebugWarning2("() -- Oldest snext handle is %u:%02u minutes. Consider auto close?", oldest_time_min, oldest_time % 60);
+            DebugWarning2("() -- Oldest opendirHdl is %u:%02u minutes. Consider auto close?", oldest_time_min, oldest_time % 60);
             (void) oldest_time_min;
         }
     }

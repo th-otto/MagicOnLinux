@@ -120,6 +120,14 @@ extern void _DumpAtariMem(const char *filename);
  ************************************************************************************************/
 CHostXFS::CHostXFS()
 {
+    /*
+    // check, if host descriptor fits internal MagiC memory block
+    printf("sizeof(HOST_DIRHANDLE) = %u\n", (unsigned) sizeof(HOST_DIRHANDLE));
+    printf("sizeof(IMB) = %u\n", (unsigned) sizeof(IMB));
+    exit(0);
+    assert(sizeof(HOST_DIRHANDLE) <= sizeof(IMB));
+    */
+
     xfs_drvbits = 0;
     for (int i = 0; i < NDRIVES; i++)
     {
@@ -1432,8 +1440,9 @@ INT32 CHostXFS::xfs_sfirst
             //long pos = telldir(dir);
             //DebugInfo2("() : directory read position %ld", pos);
 
-            dta->vRefNum = (int16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd());
-            dta->dirID = hhdl;
+            uint32_t hash;
+            dta->vRefNum = (int16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd(), &hash);
+            dta->hash = hash;
             dta->index = 0;  // unused
 
             DebugInfo2("() -> E_OK");
@@ -1442,7 +1451,7 @@ INT32 CHostXFS::xfs_sfirst
     }
 
     dta->sname[0] = EOS;     // invalidate DTA
-    dta->dirID = -1;
+    dta->hash = -1;         // just to be sure ...
     dta->vRefNum = -1;
     dta->index = -1;
 
@@ -1478,7 +1487,7 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MX_DTA *dta)
     DIR *dir;
     uint16_t snextHdl = (uint16_t) dta->vRefNum;
     int dup_fd;
-    if (HostHandles::getOpendir(snextHdl, getActPd(), &dir, &dup_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), dta->hash, &dir, &dup_fd))
     {
         DebugWarning2("() -> EINTRN");
         return EINTRN;
@@ -1508,11 +1517,11 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MX_DTA *dta)
     }
 
     dta->sname[0] = EOS;     // invalidate DTA
-    dta->dirID = -1;
+    dta->hash = -1;         // just to be sure...
     dta->vRefNum = -1;
     dta->index = -1;
 
-    HostHandles::closeOpendir(snextHdl);  // also does closedir()
+    HostHandles::closeOpendir(snextHdl, dta->hash);  // also does closedir()
 
     DebugInfo2("() -> ENMFIL");
 
@@ -2254,8 +2263,10 @@ INT32 CHostXFS::xfs_dopendir
         return CConversion::host2AtariError(errno);
     }
 
-    dirh->hostDirHdl = (uint16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd());
-    dirh ->tosflag = tosflag;
+    uint32_t hash;
+    dirh->hostDirHdl = (uint16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd(), &hash);
+    dirh->tosflag = tosflag;
+    dirh->hash = hash;
 
     DebugInfo2("() -> E_OK");
 
@@ -2309,7 +2320,7 @@ INT32 CHostXFS::xfs_dreaddir
     DIR *dir;
     uint16_t snextHdl = dirh->hostDirHdl;
     int dir_fd;
-    if (HostHandles::getOpendir(snextHdl, getActPd(), &dir, &dir_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), dirh->hash, &dir, &dir_fd))
     {
         DebugWarning2("() -> EINTRN");
         return EINTRN;
@@ -2408,7 +2419,7 @@ INT32 CHostXFS::xfs_drewinddir(HOST_DIRHANDLE *dirh, uint16_t drv)
     DIR *dir;
     uint16_t snextHdl = dirh->hostDirHdl;
     int dir_fd;
-    if (HostHandles::getOpendir(snextHdl, getActPd(), &dir, &dir_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), dirh->hash, &dir, &dir_fd))
     {
         DebugWarning2("s() -> EINTRN");
         dirh->hostDirHdl = -1;
@@ -2447,14 +2458,14 @@ INT32 CHostXFS::xfs_dclosedir(HOST_DIRHANDLE *dirh, uint16_t drv)
     DIR *dir;
     uint16_t snextHdl = dirh->hostDirHdl;
     int dir_fd;
-    if (HostHandles::getOpendir(snextHdl, getActPd(), &dir, &dir_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), dirh->hash, &dir, &dir_fd))
     {
         DebugWarning2("() -> EINTRN");
         dirh->hostDirHdl = -1;
         return EINTRN;
     }
 
-    HostHandles::closeOpendir(snextHdl);  // also does closedir()
+    HostHandles::closeOpendir(snextHdl, dirh->hash);  // also does closedir()
     dirh->hostDirHdl = -1;
 
     DebugInfo2("() -> E_OK");

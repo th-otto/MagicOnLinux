@@ -120,18 +120,18 @@ class CHostXFS
     struct MX_DTA
     {
         // The first 20 bytes are officially "reserved"
-        char    sname[11];          // name to search for
-        uint8_t sattr;              // search attribute
-        int32_t dirID;              // directory (host-endian)
-        int16_t vRefNum;            // MacOS volume (host-endian)
-        int16_t index;              // Index inside that directory (host-endian)
+        char     sname[11];         // name to search for, first byte zero means "invalidated"
+        uint8_t  sattr;             // search attribute
+        uint32_t hash;              // magic value to check ownership (host-endian)
+        int16_t  vRefNum;           // MacOS volume (host-endian)
+        int16_t  index;             // Index inside that directory (host-endian)
         // This is the public part
-        uint8_t dta_drive;          // officially reserved, but in fact the drive A..Z
-        uint8_t dta_attribute;      // file attribute
-        UINT16  dta_time;           // file modification time (big endian)
-        UINT16  dta_date;           // file modification date (big endian)
-        UINT32  dta_len;            // file length (big endian)
-        char    dta_name[14];       // file name, maximum 8+3 plus "." plus NUL
+        uint8_t  dta_drive;         // officially reserved, but in fact the drive A..Z
+        uint8_t  dta_attribute;     // file attribute
+        UINT16   dta_time;          // file modification time (big endian)
+        UINT16   dta_date;          // file modification date (big endian)
+        UINT32   dta_len;           // file length (big endian)
+        char     dta_name[14];      // file name, maximum 8+3 plus "." plus NUL
     } __attribute__((packed));
 
     /// non XFS specific part of a Drive Media Descriptor
@@ -194,9 +194,10 @@ class CHostXFS
     // store a host handle.
     struct HOST_DIRHANDLE
     {
-         MX_DHD    dhd;             // common part, big endian
-         uint16_t  hostDirHdl;      // host directory handle id (host native endian)
-         uint16_t  tosflag;         // TOS mode, i.e. 8+3 and without inode (host native endian)
+        MX_DHD   dhd;               // common part, big endian
+        uint16_t hostDirHdl;        // host directory handle id (host native endian)
+        uint16_t tosflag;           // TOS mode, i.e. 8+3 and without inode (host native endian)
+        uint32_t hash;              // magic value to check ownership (host-endian)
     } __attribute__((packed));
 
     struct MX_SYMLINK

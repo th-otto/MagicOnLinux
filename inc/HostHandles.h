@@ -69,9 +69,9 @@ class HostHandles
     static HostFD *getHostFD(uint16_t hhdl);
     static HostFD *findHostFD(host_dev_t dev, host_ino_t ino, uint16_t *hhdl);
 
-    static uint16_t allocOpendir(DIR *dir, int dup_fd, uint32_t act_pd);
-    static int getOpendir(uint16_t snextHdl, uint32_t act_pd, DIR **dir, int *dup_fd);
-    static void closeOpendir(uint16_t snextHdl);
+    static uint16_t allocOpendir(DIR *dir, int dup_fd, uint32_t act_pd, uint32_t *p_hash);
+    static int getOpendir(uint16_t opendirHdl, uint32_t act_pd, uint32_t hash, DIR **dir, int *dup_fd);
+    static void closeOpendir(uint16_t opendirHdl, uint32_t hash);
     static void ptermOpendir(uint32_t term_pd);
 
   private:

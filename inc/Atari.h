@@ -1273,7 +1273,6 @@ struct XFS_FD
 } __attribute__((packed));
 
 
-#if 1
 /// DMDs, FDs and DDs are stored in MagiC in "internal memory blocks",
 /// each of size 100 bytes, including header. Thus we have 94 bytes of payload.
 /// Unfortunately, we currently cannot make use of the full size of these
@@ -1289,7 +1288,7 @@ struct IMB
     UINT32      pLink;      // 68k pointer to next IMB
     uint8_t     bUsed;      // flag
     uint8_t     bSwitch;    // unused?
-    union HostXFS
+    union
     {
         // FD = File Descriptor
         struct
@@ -1299,7 +1298,7 @@ struct IMB
             UINT16 fd_mode;     // 0x06: open modus (0,1,2) and flags
             UINT32 fd_dev;      // 0x08: 68k pointer to MAGX_DEVDRVR
             uint8_t data[94 - 12];
-        } fd;
+        } __attribute__((packed)) fd;
 
         // DD = Directory Descriptor
         struct
@@ -1307,7 +1306,7 @@ struct IMB
             UINT32 dd_dmd;      // 68k pointer
             UINT16 dd_refcnt;
             uint8_t data[94 - 6];   // private part, i.e. MXFSDD (6 bytes)
-        } dd;
+        } __attribute__((packed)) dd;
 
         // DMD = Drive Media Descriptor
         struct
@@ -1316,12 +1315,11 @@ struct IMB
             UINT16 d_drive;     // 0x04: drive number 0..31
             UINT32 d_root;      // 0x06: 68k pointer to DD of root directory
             uint8_t data[94 - 10];
-        } dmd;
+        } __attribute__((packed)) dmd;
 
         uint8_t     data[94];   // depending
-    };
-};
-#endif
+    }  __attribute__((packed)) HostXFS;
+} __attribute__((packed));
 
 
 #pragma GCC diagnostic pop

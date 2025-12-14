@@ -2489,6 +2489,7 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
         // 0xff0000ff        blue
         uint32_t c = (pValues[1] << 16) | (pValues[2] << 8) | (pValues[3] << 0);
 
+        #if 0
         //
         // Hack for NVDI in mode "four colours interleaved":
         //  changing colour #3 from black to yellow must be blocked twice
@@ -2509,6 +2510,7 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
             }
             #endif
         }
+        #endif
         *pColourTable++ = c | (0xff000000);
     }
 

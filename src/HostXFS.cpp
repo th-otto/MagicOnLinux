@@ -1516,12 +1516,12 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MX_DTA *dta)
         }
     }
 
+    HostHandles::closeOpendir(snextHdl, dta->hash);  // also does closedir()
+
     dta->sname[0] = EOS;     // invalidate DTA
     dta->hash = -1;         // just to be sure...
     dta->vRefNum = -1;
     dta->index = -1;
-
-    HostHandles::closeOpendir(snextHdl, dta->hash);  // also does closedir()
 
     DebugInfo2("() -> ENMFIL");
 

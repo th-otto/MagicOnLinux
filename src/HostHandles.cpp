@@ -372,16 +372,17 @@ void HostHandles::ptermOpendir(uint32_t term_pd)
         {
             continue;  // skip free entries
         }
+
+        if (opendirTable[i].atari_pd == term_pd)
+        {
+            DebugWarning2("() Closing orphaned opendirHdl %u", i);
+            closeOpendir(i, opendirTable[i].hash);
+        }
+        else
         if ((oldestHdl == 0xffff) || (opendirTable[i].lru < oldest_time))
         {
             oldestHdl = i;
             oldest_time = opendirTable[i].lru;
-        }
-
-        if (opendirTable[i].atari_pd == term_pd)
-        {
-            DebugInfo2("() Closing orphaned opendirHdl %u", i);
-            closeOpendir(i, opendirTable[i].hash);
         }
     }
 

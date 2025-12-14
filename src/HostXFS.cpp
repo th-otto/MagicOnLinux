@@ -120,13 +120,9 @@ extern void _DumpAtariMem(const char *filename);
  ************************************************************************************************/
 CHostXFS::CHostXFS()
 {
-    /*
-    // check, if host descriptor fits internal MagiC memory block
-    printf("sizeof(HOST_DIRHANDLE) = %u\n", (unsigned) sizeof(HOST_DIRHANDLE));
-    printf("sizeof(IMB) = %u\n", (unsigned) sizeof(IMB));
-    exit(0);
+    // check, if host descriptor fits internal MagiC memory block of 100 bytes
+    assert(sizeof(IMB) == 100);
     assert(sizeof(HOST_DIRHANDLE) <= sizeof(IMB));
-    */
 
     xfs_drvbits = 0;
     for (int i = 0; i < NDRIVES; i++)

@@ -258,14 +258,19 @@ int Preferences::init
     // rootfs path: make absolute, without trailing "/"
     //
 
-    char *abspath = realpath(AtariRootfsPath, nullptr);
-    if (abspath == nullptr)
+    if (AtariRootfsPath[0] != '~')
     {
-        fprintf(stderr, "Invalid rootfs path: \"%s\"\n", AtariRootfsPath);
-        return 1;
+        // Note that realpath() cannot evaluate '~' for the home directory,
+        // but evaluation should already have been done by the shell, hopefully.
+        char *abspath = realpath(AtariRootfsPath, nullptr);
+        if (abspath == nullptr)
+        {
+            fprintf(stderr, "Invalid rootfs path: \"%s\"\n", AtariRootfsPath);
+            return 1;
+        }
+        strcpy(AtariRootfsPath, abspath);
+        free(abspath);
     }
-    strcpy(AtariRootfsPath, abspath);
-    free(abspath);
 
     //
     // Kernel path: get default value, if not specified

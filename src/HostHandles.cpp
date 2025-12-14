@@ -223,6 +223,8 @@ struct opendirDescriptor
 
 /// maximum allowed number of parallel Dopendir/Dreaddir and Ffirst/next runs
 #define OPENDIR_N     64
+/// time limit for auto close, in seconds
+#define OPENDIR_AUTO_CLOSE_SEC     60
 
 /// table of all openDir descriptors
 static opendirDescriptor opendirTable[OPENDIR_N];
@@ -363,38 +365,31 @@ void HostHandles::closeOpendir(uint16_t opendirHdl, uint32_t hash)
  ************************************************************************************************/
 void HostHandles::ptermOpendir(uint32_t term_pd)
 {
-    uint16_t oldestHdl = 0xffff;
-    time_t oldest_time;
+    time_t curr_time = time(NULL);
 
-    for (uint16_t i = 0; i < OPENDIR_N; i++)
+    for (uint16_t opendirHdl = 0; opendirHdl < OPENDIR_N; opendirHdl++)
     {
-        if (opendirTable[i].lru == 0)
+        opendirDescriptor *entry = &opendirTable[opendirHdl];
+
+        if (entry->lru == 0)
         {
             continue;  // skip free entries
         }
 
-        if (opendirTable[i].atari_pd == term_pd)
+        if (entry->atari_pd == term_pd)
         {
-            DebugWarning2("() Closing orphaned opendirHdl %u", i);
-            closeOpendir(i, opendirTable[i].hash);
+            DebugWarning2("() -- Closing orphaned opendirHdl %u for process 0x%08x", opendirHdl, term_pd);
+            closeOpendir(opendirHdl, entry->hash);
         }
         else
-        if ((oldestHdl == 0xffff) || (opendirTable[i].lru < oldest_time))
         {
-            oldestHdl = i;
-            oldest_time = opendirTable[i].lru;
-        }
-    }
-
-    // TODO: consider adding an auto-close mechanism, maybe also for fsfirst()
-    if (oldestHdl != 0xffff)
-    {
-        oldest_time = time(NULL) - oldest_time;
-        uint32_t oldest_time_min = (uint32_t) (oldest_time / 60);
-        if (oldest_time > 10)
-        {
-            DebugWarning2("() -- Oldest opendirHdl is %u:%02u minutes. Consider auto close?", oldest_time_min, oldest_time % 60);
-            (void) oldest_time_min;
+            uint32_t age = curr_time - entry->lru;
+            if (age > OPENDIR_AUTO_CLOSE_SEC)
+            {
+                DebugWarning2("() -- Auto closing opendirHdl %u for process 0x%08x, age is %u:%02u minutes",
+                                opendirHdl, entry->atari_pd, age / 60, age % 60);
+                closeOpendir(opendirHdl, entry->hash);
+            }
         }
     }
 }

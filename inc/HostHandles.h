@@ -50,7 +50,6 @@ struct HostFD
 
 #define HOST_HANDLE_NUM     1024            // number of memory blocks
 #define HOST_HANDLE_INVALID 0xffffffff
-#define HOST_HANDLE_SIZE    64                // size of one memory block
 
 typedef uint32_t HostHandle_t;
 

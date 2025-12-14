@@ -489,7 +489,14 @@ int main(int argc, char *argv[])
 
     if (bWriteConf)
     {
-        Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, arg_rootfs, true);
+        if ((mode != -1) || (width != -1) || (height = -1) ||
+            (stretch_x != -1) || (stretch_y != -1) ||
+            (atari_memsize != -1) || (arg_rootfs != nullptr))
+        {
+            printf("Just writing default values, additional options ignored!\n");
+        }
+        // just write defaults and ignore all other settings
+        Preferences::init(config, -1, -1, -1, -1, -1, -1, nullptr, true);
         return 0;
     }
 

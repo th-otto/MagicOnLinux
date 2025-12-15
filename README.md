@@ -46,6 +46,8 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 
 Replace "LOCALISE.SH EN" with "LOCALISE.SH DE" or "LOCALISE.SH FR" for German or French as initial language. However, the Atari's language can be changed later via config file or command line.
 
+If you like, add cmake parameter -DCMAKE_INSTALL_PREFIX:PATH=/opt for changing the installation directory tree from "/usr/local" to "/opt". Note that installation is an additional, optional, but recommended step, see below.
+
 Optionally adapt some default values in "CMakeLists.txt".
 
 Without gxmessage you will not see error message dialogues, instead the text will be printed to stderr only.
@@ -56,7 +58,7 @@ Alternatively you can put your Atari root file system (drive C:) and kernel (MAG
 
 # How To Install
 
-You might install the program with "sudo make install". This copies the executable file, a ".desktop" file and an icon file to "/usr/local/". Note that the created ".desktop" file contains an absolute path to the icon, because I could not find out how to do this in a correct way.
+You can install the program with "sudo make install". This copies the executable file, a ".desktop" file and an icon file to usually "/usr/local/", if not otherwise specified (see above). Otherwise, MagicOnLinux will always show your system theme's default icon for uninstalled applications.
 
 # How To Run
 

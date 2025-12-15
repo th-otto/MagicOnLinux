@@ -46,4 +46,7 @@ if(NOT APPLE)
 install(TARGETS magic-on-linux)
 install(FILES assets/magic-on-linux.desktop DESTINATION share/applications)
 install(FILES assets/magic-on-linux.png DESTINATION share/icons/hicolor/512x512/apps)
+# index and cache are mandatory, otherwise the .desktop file must specify an absolute path to the icon
+install(CODE "execute_process(COMMAND sh -c \"cp --update=none -p ${CMAKE_SOURCE_DIR}/assets/index.theme ${CMAKE_INSTALL_PREFIX}/share/icons/hicolor\")")
+install(CODE "execute_process(COMMAND update-icon-caches \"${CMAKE_INSTALL_PREFIX}/share/icons/hicolor\")")
 endif()

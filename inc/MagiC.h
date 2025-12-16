@@ -55,7 +55,7 @@ class CMagiC
     int SendKeyboardShift(uint32_t modifiers);
     #endif
     int SendMousePosition(int x, int y);
-    int SendMouseMovement(int xrel, int yrel);
+    int SendMouseMovement(double xrel, double yrel);
     int SendMouseButton(unsigned int NumOfButton, bool bIsDown);
     int SendHz200(void);
     int SendVBL(void);
@@ -147,7 +147,9 @@ class CMagiC
     bool m_bInterrupt200HzPending;
     bool m_bInterruptVBLPending;
     bool m_bInterruptMouseKeyboardPending;
-    Point m_InterruptMouseWhere;
+    Point m_InterruptMouseWhere;        // for absolute mouse mode
+    double m_InterruptMouseMoveRelX;    // for relative mouse mode
+    double m_InterruptMouseMoveRelY;
     bool m_bInterruptMouseButton[2];
     bool m_bInterruptPending;
     bool m_bWaitEmulatorForIRQCallback;

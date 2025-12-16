@@ -263,6 +263,7 @@ CMagiC::CMagiC()
     m_bInterruptMouseKeyboardPending = false;
     m_bInterruptMouseButton[0] = m_bInterruptMouseButton[1] = false;
     m_InterruptMouseWhere.y = m_InterruptMouseWhere.x = 0;
+    m_InterruptMouseMoveRelX = m_InterruptMouseMoveRelY = 0.0;
     m_bInterruptPending = false;
     m_LineAVars = nullptr;
     m_pMagiCScreen = nullptr;
@@ -1435,7 +1436,7 @@ int CMagiC::EmuThread( void )
                 bNewBstate[1] = CMagiCMouse::setNewButtonState(1, m_bInterruptMouseButton[1]);
                 if (Preferences::bRelativeMouse)
                 {
-                    bNewMpos = CMagiCMouse::setNewMovement(m_InterruptMouseWhere);
+                    bNewMpos = CMagiCMouse::setNewMovement(m_InterruptMouseMoveRelX, m_InterruptMouseMoveRelY);
                 }
                 else
                 {
@@ -1945,13 +1946,13 @@ int CMagiC::SendMousePosition(int x, int y)
 * Rückgabe != 0, wenn die letzte Nachricht noch aussteht.
 *
 **********************************************************************/
-int CMagiC::SendMouseMovement(int xrel, int yrel)
+int CMagiC::SendMouseMovement(double xrel, double yrel)
 {
     if (m_bEmulatorIsRunning)
     {
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
-        m_InterruptMouseWhere.x = (short) xrel;
-        m_InterruptMouseWhere.y = (short) yrel;
+        m_InterruptMouseMoveRelX = xrel;
+        m_InterruptMouseMoveRelY = yrel;
         m_bInterruptMouseKeyboardPending = true;
     #if defined(USE_ASGARD_PPC_68K_EMU)
         Asgard68000SetExitImmediately();

@@ -40,6 +40,8 @@
 uint8_t *CMagiCMouse::m_pLineAVars;
 Point CMagiCMouse::m_PtActAtariPos;             // current position
 Point CMagiCMouse::m_PtActHostPos;              // desired position
+double CMagiCMouse::mPtActHostMovPosX;
+double CMagiCMouse::mPtActHostMovPosY;
 bool CMagiCMouse::m_bActAtariMouseButton[2];    // current state
 bool CMagiCMouse::m_bActHostMouseButton[2];     // desired state
 
@@ -75,13 +77,13 @@ int CMagiCMouse::init(uint8_t *pLineAVars, Point PtPos)
  * @return true: Atari mouse must be moved, false: no movement necessary
  *
  ************************************************************************************************/
-bool CMagiCMouse::setNewMovement(Point PtPos)
+bool CMagiCMouse::setNewMovement(double vx, double vy)
 {
     if (m_pLineAVars != nullptr)
     {
-        m_PtActHostPos.x += PtPos.x;
-        m_PtActHostPos.y += PtPos.y;
-        return (m_PtActHostPos.y != 0) || (m_PtActHostPos.x != 0);
+        mPtActHostMovPosX += vx;        // accumulate fractions
+        mPtActHostMovPosY += vy;
+        return ((int) mPtActHostMovPosX != 0) || ((int) mPtActHostMovPosY != 0);
     }
     else
         return false;
@@ -155,8 +157,8 @@ bool CMagiCMouse::getNewPositionAndButtonState(int8_t packet[3])
     // Determine the way to go to the desired mouse pointer position
     if (Preferences::bRelativeMouse)
     {
-        xdiff = m_PtActHostPos.x;
-        ydiff = m_PtActHostPos.y;
+        xdiff = (int) mPtActHostMovPosX;
+        ydiff = (int) mPtActHostMovPosY;
     }
     else
     {
@@ -191,7 +193,7 @@ bool CMagiCMouse::getNewPositionAndButtonState(int8_t packet[3])
             *packet = (xdiff > 0) ? (int8_t) 127 : (int8_t) -127;
         if (Preferences::bRelativeMouse)
         {
-            m_PtActHostPos.x -= *packet++;
+           mPtActHostMovPosX -= *packet++;
         }
         else
         {
@@ -205,7 +207,7 @@ bool CMagiCMouse::getNewPositionAndButtonState(int8_t packet[3])
             *packet = (ydiff > 0) ? (int8_t) 127 : (int8_t) -127;
         if (Preferences::bRelativeMouse)
         {
-            m_PtActHostPos.y -= *packet++;
+            mPtActHostMovPosY -= *packet++;
         }
         else
         {

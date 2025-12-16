@@ -1090,10 +1090,8 @@ void EmulationRunner::EventLoop(void)
 
                     if (Preferences::bRelativeMouse)
                     {
-                        double xd = (double) (ev->xrel) / m_hostScreenStretchX;
-                        double yd = (double) (ev->yrel) / m_hostScreenStretchY;
-                        int xrel = (int) (xd + 0.5);   // rounding
-                        int yrel = (int) (yd + 0.5);
+                        double xrel = (double) (ev->xrel) / m_hostScreenStretchX;
+                        double yrel = (double) (ev->yrel) / m_hostScreenStretchY;
                         m_Emulator.SendMouseMovement(xrel, yrel);
                     }
                     else

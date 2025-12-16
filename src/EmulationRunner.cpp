@@ -1086,7 +1086,7 @@ void EmulationRunner::EventLoop(void)
             case SDL_MOUSEMOTION:
                 {
                     const SDL_MouseMotionEvent *ev = &event.motion;
-                    DebugWarning2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
+                    //DebugWarning2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
 
                     if (Preferences::bRelativeMouse)
                     {

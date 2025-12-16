@@ -27,6 +27,7 @@
 #include "Globals.h"
 #include "osd_cpu.h"
 #include "Debug.h"
+#include "preferences.h"
 #include "MagiCMouse.h"
 
 
@@ -62,6 +63,28 @@ int CMagiCMouse::init(uint8_t *pLineAVars, Point PtPos)
     m_PtActAtariPos = PtPos;
 
     return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Pass new mouse pointer movement from host to emulated system
+ *
+ * @param[in]  PtPos    new relative mouse pointer movement vector
+ *
+ * @return true: Atari mouse must be moved, false: no movement necessary
+ *
+ ************************************************************************************************/
+bool CMagiCMouse::setNewMovement(Point PtPos)
+{
+    if (m_pLineAVars != nullptr)
+    {
+        m_PtActHostPos.x += PtPos.x;
+        m_PtActHostPos.y += PtPos.y;
+        return (m_PtActHostPos.y != 0) || (m_PtActHostPos.x != 0);
+    }
+    else
+        return false;
 }
 
 
@@ -130,8 +153,16 @@ bool CMagiCMouse::getNewPositionAndButtonState(int8_t packet[3])
     int8_t packetcode;
 
     // Determine the way to go to the desired mouse pointer position
-    xdiff = m_PtActHostPos.x - m_PtActAtariPos.x;
-    ydiff = m_PtActHostPos.y - m_PtActAtariPos.y;
+    if (Preferences::bRelativeMouse)
+    {
+        xdiff = m_PtActHostPos.x;
+        ydiff = m_PtActHostPos.y;
+    }
+    else
+    {
+        xdiff = m_PtActHostPos.x - m_PtActAtariPos.x;
+        ydiff = m_PtActHostPos.y - m_PtActAtariPos.y;
+    }
 
     // Check if we already reached the desired position and if
     // the Atari has also been informed about the current mouse
@@ -158,14 +189,28 @@ bool CMagiCMouse::getNewPositionAndButtonState(int8_t packet[3])
             *packet = (int8_t) xdiff;
         else
             *packet = (xdiff > 0) ? (int8_t) 127 : (int8_t) -127;
-        m_PtActAtariPos.x += *packet++;
+        if (Preferences::bRelativeMouse)
+        {
+            m_PtActHostPos.x -= *packet++;
+        }
+        else
+        {
+            m_PtActAtariPos.x += *packet++;
+        }
 
         // The mouse packet allows vertical movements up to 127 pixels.
         if (abs(ydiff) < 128)
             *packet = (int8_t) ydiff;
         else
             *packet = (ydiff > 0) ? (int8_t) 127 : (int8_t) -127;
-        m_PtActAtariPos.y += *packet++;
+        if (Preferences::bRelativeMouse)
+        {
+            m_PtActHostPos.y -= *packet++;
+        }
+        else
+        {
+            m_PtActAtariPos.y += *packet++;
+        }
     }
 
     return true;

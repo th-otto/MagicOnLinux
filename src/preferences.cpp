@@ -56,23 +56,24 @@
 #define VAR_ATARI_SCREEN_RATE_HZ        13
 #define VAR_ATARI_SCREEN_COLOUR_MODE    14
 #define VAR_HIDE_HOST_MOUSE             15
-#define VAR_APP_DISPLAY_NUMBER          16
-#define VAR_APP_WINDOW_X                17
-#define VAR_APP_WINDOW_Y                18
-#define VAR_ATARI_MEMORY_SIZE           19
-#define VAR_ATARI_LANGUAGE              20
-#define VAR_SHOW_HOST_MENU              21
-#define VAR_ATARI_AUTOSTART             22
-#define VAR_ATARI_DRV_                  23
-#define VAR_ETH0_TYPE                   24
-#define VAR_ETH0_TUNNEL                 25
-#define VAR_ETH0_HOST_IP                26
-#define VAR_ETH0_ATARI_IP               27
-#define VAR_ETH0_NETMASK                28
-#define VAR_ETH0_GATEWAY                29
-#define VAR_ETH0_MAC                    30
-#define VAR_ETH0_INTLEVEL               31
-#define VAR_NUMBER                      32
+#define VAR_RELATIVE_MOUSE              16
+#define VAR_APP_DISPLAY_NUMBER          17
+#define VAR_APP_WINDOW_X                18
+#define VAR_APP_WINDOW_Y                19
+#define VAR_ATARI_MEMORY_SIZE           20
+#define VAR_ATARI_LANGUAGE              21
+#define VAR_SHOW_HOST_MENU              22
+#define VAR_ATARI_AUTOSTART             23
+#define VAR_ATARI_DRV_                  24
+#define VAR_ETH0_TYPE                   25
+#define VAR_ETH0_TUNNEL                 26
+#define VAR_ETH0_HOST_IP                27
+#define VAR_ETH0_ATARI_IP               28
+#define VAR_ETH0_NETMASK                29
+#define VAR_ETH0_GATEWAY                30
+#define VAR_ETH0_MAC                    31
+#define VAR_ETH0_INTLEVEL               32
+#define VAR_NUMBER                      33
 
 // variable names in preferences
 static const char *var_name[VAR_NUMBER] =
@@ -96,6 +97,7 @@ static const char *var_name[VAR_NUMBER] =
     "atari_screen_rate_hz",
     "atari_screen_colour_mode",
     "hide_host_mouse",
+    "relative_mouse",
     //[SCREEN PLACEMENT]
     "app_display_number",
     "app_window_x",
@@ -124,6 +126,7 @@ unsigned Preferences::AtariMemSize = (8 * 1024 * 1024);
 bool Preferences::bShowHostMenu = true;
 enAtariScreenColourMode Preferences::atariScreenColourMode = atariScreenMode16M;
 bool Preferences::bHideHostMouse = false;
+bool Preferences::bRelativeMouse = false;
 bool Preferences::bAutoStartMagiC = true;
 unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3 / 4 == case insensitive, ...
 const char *Preferences::drvPath[NDRIVES];
@@ -405,6 +408,7 @@ int Preferences::writePreferences(const char *cfgfile)
     fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_SCREEN_COLOUR_MODE], atariScreenColourMode);
     fprintf(f, "# 0:24b 1:16b 2:256 3:16 4:16ip 5:4ip 6:mono\n");
     fprintf(f, "%s = %s\n",     var_name[VAR_HIDE_HOST_MOUSE], bHideHostMouse ? "YES" : "NO");
+    fprintf(f, "%s = %s\n",     var_name[VAR_RELATIVE_MOUSE], bRelativeMouse ? "YES" : "NO");
     fprintf(f, "[SCREEN PLACEMENT]\n");
     fprintf(f, "%s = %u\n",     var_name[VAR_APP_DISPLAY_NUMBER], Monitor);
     fprintf(f, "%s = %u\n",     var_name[VAR_APP_WINDOW_X], AtariScreenX);
@@ -803,6 +807,10 @@ int Preferences::evaluatePreferencesLine(const char *line)
 
         case VAR_HIDE_HOST_MOUSE:
             num_errors += eval_quotated_str_bool(&bHideHostMouse, &line);
+            break;
+
+        case VAR_RELATIVE_MOUSE:
+            num_errors += eval_quotated_str_bool(&bRelativeMouse, &line);
             break;
 
         case VAR_APP_DISPLAY_NUMBER:

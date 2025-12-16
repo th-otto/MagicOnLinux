@@ -31,6 +31,7 @@ class CMagiCMouse
    public:
     static int init(uint8_t *pLineAVars, Point PtPos);
     static bool setNewPosition(Point PtPos);
+    static bool setNewMovement(Point PtPos);
     static bool setNewButtonState(unsigned int NumOfButton, bool bIsDown);
     static bool getNewPositionAndButtonState(int8_t packet[3]);
 

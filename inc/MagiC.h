@@ -55,6 +55,7 @@ class CMagiC
     int SendKeyboardShift(uint32_t modifiers);
     #endif
     int SendMousePosition(int x, int y);
+    int SendMouseMovement(int xrel, int yrel);
     int SendMouseButton(unsigned int NumOfButton, bool bIsDown);
     int SendHz200(void);
     int SendVBL(void);

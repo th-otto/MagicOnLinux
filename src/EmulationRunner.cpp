@@ -105,6 +105,10 @@ int EmulationRunner::init(void)
         assert(!ret);
         // For whatever reason we need this to make non-US-keys working in X11.
         SDL_StopTextInput();
+        if (Preferences::bRelativeMouse)
+        {
+            SDL_SetRelativeMouseMode(SDL_TRUE);
+        }
     }
 
     return ret;
@@ -1082,21 +1086,24 @@ void EmulationRunner::EventLoop(void)
             case SDL_MOUSEMOTION:
                 {
                     const SDL_MouseMotionEvent *ev = &event.motion;
-                    // TOO OFTEN DebugInfo2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
-                    int x = ev->x;
-                    int y = ev->y;
-                    double xd = (double) (ev->x) / m_hostScreenStretchX;
-                    double yd = (double) (ev->y) / m_hostScreenStretchY;
-                    x = (int) (xd + 0.5);   // rounding
-                    y = (int) (yd + 0.5);
-                    /*
-                    // old stuff without dynamic resizing
-                    if (Preferences::AtariScreenStretchX > 1)
-                        x /= Preferences::AtariScreenStretchX;
-                    if (Preferences::AtariScreenStretchY > 1)
-                        y /= Preferences::AtariScreenStretchY;
-                    */
-                    m_Emulator.SendMousePosition(x, y);
+                    DebugWarning2("() - mouse motion x = %d, y = %d, xrel = %d, yrel = %d", ev->x, ev->y, ev->xrel, ev->yrel);
+
+                    if (Preferences::bRelativeMouse)
+                    {
+                        double xd = (double) (ev->xrel) / m_hostScreenStretchX;
+                        double yd = (double) (ev->yrel) / m_hostScreenStretchY;
+                        int xrel = (int) (xd + 0.5);   // rounding
+                        int yrel = (int) (yd + 0.5);
+                        m_Emulator.SendMouseMovement(xrel, yrel);
+                    }
+                    else
+                    {
+                        double xd = (double) (ev->x) / m_hostScreenStretchX;
+                        double yd = (double) (ev->y) / m_hostScreenStretchY;
+                        int x = (int) (xd + 0.5);   // rounding
+                        int y = (int) (yd + 0.5);
+                        m_Emulator.SendMousePosition(x, y);
+                    }
                 }
                 break;
 

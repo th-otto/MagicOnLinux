@@ -1433,7 +1433,14 @@ int CMagiC::EmuThread( void )
             {
                 bNewBstate[0] = CMagiCMouse::setNewButtonState(0, m_bInterruptMouseButton[0]);
                 bNewBstate[1] = CMagiCMouse::setNewButtonState(1, m_bInterruptMouseButton[1]);
-                bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhere);
+                if (Preferences::bRelativeMouse)
+                {
+                    bNewMpos = CMagiCMouse::setNewMovement(m_InterruptMouseWhere);
+                }
+                else
+                {
+                    bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhere);
+                }
                 bNewKey = (m_pKbRead != m_pKbWrite);
                 if (bNewBstate[0] || bNewBstate[1] || bNewMpos || bNewKey)
                 {
@@ -1925,6 +1932,39 @@ int CMagiC::SendMousePosition(int x, int y)
     #ifdef _DEBUG_KB_CRITICAL_REGION
         CDebug::DebugInfo("CMagiC::SendMousePosition() --- Exited critical region m_KbCriticalRegionId");
     #endif
+    }
+
+    return 0;    // OK
+}
+
+
+/**********************************************************************
+*
+* Mausbewegung schicken
+*
+* Rückgabe != 0, wenn die letzte Nachricht noch aussteht.
+*
+**********************************************************************/
+int CMagiC::SendMouseMovement(int xrel, int yrel)
+{
+    if (m_bEmulatorIsRunning)
+    {
+        OS_EnterCriticalRegion(&m_KbCriticalRegionId);
+        m_InterruptMouseWhere.x = (short) xrel;
+        m_InterruptMouseWhere.y = (short) yrel;
+        m_bInterruptMouseKeyboardPending = true;
+    #if defined(USE_ASGARD_PPC_68K_EMU)
+        Asgard68000SetExitImmediately();
+    #else
+        m68k_StopExecution();
+    #endif
+
+        // wake up emulator, if in "idle task"
+        OS_SetEvent(
+                &m_InterruptEventsId,
+                EMU_INTPENDING_KBMOUSE);
+
+        OS_ExitCriticalRegion(&m_KbCriticalRegionId);
     }
 
     return 0;    // OK

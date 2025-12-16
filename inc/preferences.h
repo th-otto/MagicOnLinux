@@ -95,6 +95,7 @@ class Preferences
     static bool bShowHostMenu;
     static enAtariScreenColourMode atariScreenColourMode;
     static bool bHideHostMouse;
+    static bool bRelativeMouse;
     static bool bAutoStartMagiC;
 	static char AtariKernelPath[1024];              // "MAGICLIN.OS" file
 	static char AtariRootfsPath[PATH_MAX];          // Atari C:

@@ -25,7 +25,9 @@
 #include "config.h"
 #include "Debug.h"
 #include "emulation_globals.h"
+#include "MagiCScreen.h"
 #include "register_model.h"
+#include <assert.h>
 
 #define MAX_REG_MODELS  32
 
@@ -206,6 +208,72 @@ class CVideoScreenMemoryPositionLow : public CRegisterModel
     }
 };
 
+class CVideoPalette : public CRegisterModel
+{
+  public:
+    CVideoPalette() : CRegisterModel("Video colour palette (ST(e))", 0xffff8240, 0xffff825f)
+    {
+        logcnt = 20;
+    }
+    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    {
+        if ((addr & 1) || (len == 1))
+        {
+            // only support 16-bit and 32-bit read on even address
+            return false;
+        }
+        addr -= start_addr;
+        unsigned index = addr >> 1;
+        assert(index < 16);
+
+        if (len == 2)
+        {
+            // read one entry
+
+            uint16_t val = CMagiCScreen::getColourPaletteEntry(index);
+            *((uint16_t *) data) = val;
+        }
+        else
+        {
+            // read two entries
+
+            uint32_t val0 = CMagiCScreen::getColourPaletteEntry(index);
+            uint32_t val1 = CMagiCScreen::getColourPaletteEntry(index + 1);
+            *((uint32_t *) data) = (val0 << 16) | val1;
+        }
+
+        return true;
+    }
+    virtual bool write(uint32_t addr, unsigned len, const uint8_t *data)
+    {
+        if ((addr & 1) || (len == 1))
+        {
+            // only support 16-bit and 32-bit write on even address
+            return false;
+        }
+        addr -= start_addr;
+        unsigned index = addr >> 1;
+        assert(index < 16);
+
+        if (len == 2)
+        {
+            // write one entry
+
+            uint16_t val = *((uint16_t *) data);
+            CMagiCScreen::setColourPaletteEntry(index, val);
+        }
+        else
+        {
+            // write two entries
+
+            uint32_t val = *((uint32_t *) data);
+            CMagiCScreen::setColourPaletteEntry(index, (uint16_t) (val >> 16));
+            CMagiCScreen::setColourPaletteEntry(index + 1, (uint16_t) val);
+        }
+        return true;
+    }
+};
+
 class CYM2149Read : public CRegisterModel
 {
   public:
@@ -254,6 +322,7 @@ int CRegisterModel::init()
     models[num_models++] = new CVideoSyncMode;
     models[num_models++] = new CVideoAddressPointer;
     models[num_models++] = new CVideoScreenMemoryPositionLow;
+    models[num_models++] = new CVideoPalette;
     models[num_models++] = new CMfp;
     models[num_models++] = new CFpu;
     models[num_models++] = new CMfp2;
@@ -367,7 +436,18 @@ bool CRegisterModel::write_data(uint32_t addr, unsigned len, const uint8_t *data
 }
 
 
-// return false for bus error
+/** **********************************************************************************************
+ *
+ * @brief Read 8-bit value from hardware register address range
+ *
+ * @param[in]  addr     absolute 68k address, 32-bit or 24-bit
+ * @param[out] datum    datum to read
+ *
+ * @return success
+ * @retval true     access granted
+ * @retval false    illegal access
+ *
+ ************************************************************************************************/
 bool CRegisterModel::read_byte(uint32_t addr, uint8_t *datum)
 {
     for (unsigned n = 0; n < num_models; n++)
@@ -390,7 +470,7 @@ bool CRegisterModel::read_byte(uint32_t addr, uint8_t *datum)
             }
             else
             {
-                DebugInfo("m68k (0x%08x) -> BUSERR (%s)", addr, model->name);
+                DebugInfo("m68k (0x%02x) -> BUSERR (%s)", addr, model->name);
             }
             return ret;
         }
@@ -400,6 +480,18 @@ bool CRegisterModel::read_byte(uint32_t addr, uint8_t *datum)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Read 16-bit value from hardware register address range
+ *
+ * @param[in]  addr     absolute 68k address, 32-bit or 24-bit
+ * @param[out] datum    datum to read
+ *
+ * @return success
+ * @retval true     access granted
+ * @retval false    illegal access
+ *
+ ************************************************************************************************/
 bool CRegisterModel::read_halfword(uint32_t addr, uint16_t *datum)
 {
     for (unsigned n = 0; n < num_models; n++)
@@ -422,7 +514,7 @@ bool CRegisterModel::read_halfword(uint32_t addr, uint16_t *datum)
             }
             else
             {
-                DebugInfo("m68k (0x%08x) -> BUSERR (%s)", addr, model->name);
+                DebugInfo("m68k (0x%04x) -> BUSERR (%s)", addr, model->name);
             }
             return ret;
         }
@@ -432,6 +524,18 @@ bool CRegisterModel::read_halfword(uint32_t addr, uint16_t *datum)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Read 32-bit value from hardware register address range
+ *
+ * @param[in]  addr     absolute 68k address, 32-bit or 24-bit
+ * @param[out] datum    datum to read
+ *
+ * @return success
+ * @retval true     access granted
+ * @retval false    illegal access
+ *
+ ************************************************************************************************/
 bool CRegisterModel::read_word(uint32_t addr, uint32_t *datum)
 {
     for (unsigned n = 0; n < num_models; n++)
@@ -464,7 +568,18 @@ bool CRegisterModel::read_word(uint32_t addr, uint32_t *datum)
 }
 
 
-// return false for bus error
+/** **********************************************************************************************
+ *
+ * @brief Write 8-bit value to hardware register address range
+ *
+ * @param[in] addr      absolute 68k address, 32-bit or 24-bit
+ * @param[in] datum     datum to write
+ *
+ * @return success
+ * @retval true     access granted
+ * @retval false    illegal access
+ *
+ ************************************************************************************************/
 bool CRegisterModel::write_byte(uint32_t addr, uint8_t datum)
 {
     for (unsigned n = 0; n < num_models; n++)
@@ -497,6 +612,18 @@ bool CRegisterModel::write_byte(uint32_t addr, uint8_t datum)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Write 16-bit value to hardware register address range
+ *
+ * @param[in] addr      absolute 68k address, 32-bit or 24-bit
+ * @param[in] datum     datum to write
+ *
+ * @return success
+ * @retval true     access granted
+ * @retval false    illegal access
+ *
+ ************************************************************************************************/
 bool CRegisterModel::write_halfword(uint32_t addr, uint16_t datum)
 {
     for (unsigned n = 0; n < num_models; n++)
@@ -529,6 +656,18 @@ bool CRegisterModel::write_halfword(uint32_t addr, uint16_t datum)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Write 32-bit value to hardware register address range
+ *
+ * @param[in] addr      absolute 68k address, 32-bit or 24-bit
+ * @param[in] datum     datum to write
+ *
+ * @return success
+ * @retval true     access granted
+ * @retval false    illegal access
+ *
+ ************************************************************************************************/
 bool CRegisterModel::write_word(uint32_t addr, uint32_t datum)
 {
     for (unsigned n = 0; n < num_models; n++)

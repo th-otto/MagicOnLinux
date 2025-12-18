@@ -2408,18 +2408,51 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
 {
     struct SetscreenParm
     {
-        PTR32_BE log;       // palette table index 0..255
-        PTR32_BE phys;       // number of entries to change
-        UINT16_BE res;   // new colour values, 32-bit big-endian each
+        PTR32_BE log;       // logical screen address
+        PTR32_BE phys;      // physical screen address
+        UINT16_BE res;      // resolution: 0=ST low, 1=ST mid, 2=ST high
     } __attribute__((packed));
 
     const SetscreenParm *theParm = (SetscreenParm *) (addrOffset68k + params);
     uint32_t log = be32toh(theParm->log);
     uint32_t phys = be32toh(theParm->phys);
     uint16_t res = be16toh(theParm->res);
-    (void) params;
-    (void) addrOffset68k;
-    DebugError2("(0x%08x, 0x%08x, %d) -- not supported", log, phys, res);
+    //DebugError2("(0x%08x, 0x%08x, %u) -- not supported", log, phys, res);
+    if (log != 0xffffffff)
+    {
+        if (log > mem68kSize - 32000)
+        {
+            DebugError2("() -- invalid 68k address 0x%08x", log);
+        }
+        else
+        {
+            CMagiCScreen::m_logAddr = log;
+            DebugError2("() -- changing of logical screen to 0x%08x not supported, yet", log);
+        }
+    }
+    if (phys != 0xffffffff)
+    {
+        if (phys == addr68kVideo)
+        {
+            DebugWarning2("() -- physical screen address reset to 0x%08x", phys);
+            CMagiCScreen::m_physAddr = 0;
+        }
+        else
+        if (phys > mem68kSize - 32000)
+        {
+            DebugError2("() -- invalid 68k address 0x%08x", phys);
+        }
+        else
+        {
+            CMagiCScreen::m_physAddr = phys;
+            DebugWarning2("() -- changing of physical screen to 0x%08x is experimental", phys);
+        }
+    }
+    if (res != 0xffff)
+    {
+        CMagiCScreen::m_res = res;
+        DebugError2("() -- changing of screen resolution to %ux not supported, yet", res);
+    }
     return 0;
 }
 
@@ -2436,6 +2469,8 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
  ************************************************************************************************/
 uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
 {
+    DebugWarning2("() -- partially supported");
+
     struct SetpaletteParm
     {
         PTR32_BE ptr;       // 68k pointer to 16 16-bit values (big-endian)
@@ -2443,9 +2478,32 @@ uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
 
     const SetpaletteParm *theParm = (SetpaletteParm *) (addrOffset68k + params);
     uint32_t table = be32toh(theParm->ptr);
-    (void) params;
-    (void) addrOffset68k;
-    DebugError2("(0x%08x) -- not supported", table);
+    if (table > mem68kSize - 16 * 2)
+    {
+        DebugError2("() -- invalid 68k address 0x%08x", table);
+        return 0;
+    }
+
+    //
+    // loop over all 16 colours in the palette that shall be changed
+    //
+
+    const uint8_t *newColours = addrOffset68k + table;
+    for (unsigned i = 0; i < 16; i++)
+    {
+        // Atari: 16'bxxxxrrrrggggbbbb
+        // 0xf000        ignored
+        // 0x0f00        red
+        // 0x00f0        green
+        // 0x000f        blue
+        uint16_t ac = *newColours++;     // read 16-bit big-endian
+        ac <<= 8;
+        ac |= *newColours++;
+        CMagiCScreen::setColourPaletteEntry(i, ac);
+    }
+
+    // tell GUI thread to update the screen
+    atomic_store(&gbAtariVideoBufChanged, true);
     return 0;
 }
 
@@ -2457,24 +2515,36 @@ uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
  * @param[in] param             68k address of parameter structure
  * @param[in] addrOffset68k     Host address of 68k memory
  *
- * @return should return previous value, but not supported, always zero
+ * @return previous value
  *
  ************************************************************************************************/
 uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
 {
+    (void) addrOffset68k;
     struct SetcolorParm
     {
-        UINT16_BE no;       // colour to change (0..15)
+        UINT16_BE index;    // colour to change (0..15)
         UINT16_BE val;      // new value
     } __attribute__((packed));
 
     const SetcolorParm *theParm = (SetcolorParm *) (addrOffset68k + params);
-    uint16_t no = be16toh(theParm->no);
+    uint16_t index = be16toh(theParm->index);
     uint16_t val = be16toh(theParm->val);
-    (void) params;
-    (void) addrOffset68k;
-    DebugError2("(%d, 0x%04x) -- not supported", no, val);
-    return 0;
+
+    if (index > 15)
+    {
+        DebugError2("() -- invalid colour number %u", index);
+        return 0;
+    }
+
+    uint16_t prev_val = CMagiCScreen::getColourPaletteEntry(index);
+    if (val != 0xffff)
+    {
+        CMagiCScreen::setColourPaletteEntry(index, val);
+    }
+
+    DebugWarning2("(%2d, 0x%04x) -- partially supported", index, val);
+    return prev_val;
 }
 
 

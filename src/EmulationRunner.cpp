@@ -262,6 +262,10 @@ static void ConvertAtari2HostSurface
 
     int x,y;
     const uint8_t *ps8 = (const uint8_t *) pSrc->pixels;
+    if (CMagiCScreen::m_physAddr != 0)
+    {
+        ps8 = mem68k + CMagiCScreen::m_physAddr;
+    }
     uint8_t *pd8 = (uint8_t *) pDst->pixels;
     const uint8_t *ps8x;
     uint32_t *pd32x;

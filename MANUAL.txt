@@ -144,6 +144,8 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - GSTFRAKT (single-app mode)
 - Highwire (needs NVDI or GDOS)
 - Intrface v2.29beta
+- Krieg der Kerne (2/1987)
+- Kubis (5/1992)
 - LATTICE_C (single-app mode)
 - MAPS (8+3 case-insensitive drive)
 - MATRIX (naturally...)

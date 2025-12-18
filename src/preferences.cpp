@@ -200,6 +200,7 @@ int Preferences::init
     int height_override,
     int stretch_x_override,
     int stretch_y_override,
+    int relative_mouse_override,
     int memsize_override,
     const char *rootfs_override,
     bool rewrite_conf
@@ -247,6 +248,10 @@ int Preferences::init
     if (stretch_y_override >= 0)
     {
         AtariScreenStretchY = stretch_y_override;
+    }
+    if (relative_mouse_override >= 0)
+    {
+        bRelativeMouse = (relative_mouse_override) ? true : false;
     }
     if (memsize_override >= 0)
     {

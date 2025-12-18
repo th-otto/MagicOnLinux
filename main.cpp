@@ -25,6 +25,7 @@ const char *argnames[] =
     nullptr,
     "[wxh][x][b][ip]",
     "w[xh]",
+    "abs|rel",
     "size",
     "EN|DE|FR",
     "path",
@@ -41,6 +42,7 @@ const char *descriptions[] =
     "             write configuration file with default values and exit",
     " e.g. 640x400x2ip or 800x600 or 8, overrides config file",
     "            e.g. 2x2 or 2 or 2x4, overrides config file",
+    "       mouse mode: absolute or relative",
     "             Atari RAM size, e.g. 512k or 4M or 3m",
     "            language for Atari localisation, either EN or DE or FR",
     "              location of C: drive (root fs)",
@@ -218,6 +220,26 @@ static int eval_stretch(const char *stretch, int *stretch_x, int *stretch_y)
 
 
 // return 0 if OK
+static int eval_mouse_mode(const char *str, int *p_relative_mouse)
+{
+    if (!strcasecmp(str, "abs"))
+    {
+        *p_relative_mouse = 0;
+        return 0;
+    }
+    else
+    if (!strcasecmp(str, "rel"))
+    {
+        *p_relative_mouse = 1;
+        return 0;
+    }
+
+    printf("Invalid mouse mode: %s\n", str);
+    return 5;
+}
+
+
+// return 0 if OK
 static int eval_memsize(const char *str, int *atari_memsize)
 {
     unsigned m;
@@ -298,6 +320,7 @@ int main(int argc, char *argv[])
     int c;
     const char *arg_geometry = nullptr;
     const char *arg_stretch = nullptr;
+    const char *arg_mouse_mode = nullptr;
     const char *arg_memsize = nullptr;
     const char *arg_lang = nullptr;
     const char *arg_rootfs = nullptr;
@@ -313,6 +336,7 @@ int main(int argc, char *argv[])
     const char *file_h2a = nullptr;
     bool bRunEditor = false;
     bool bWriteConf = false;
+    int relativeMouse = -1;     // -1: default
 
     for (;;)
     {
@@ -327,12 +351,13 @@ int main(int argc, char *argv[])
             {"config-write", no_argument,       nullptr, 'w' },
             {"geometry",     required_argument, nullptr, 'g' },
             {"stretch",      required_argument, nullptr, 's' },
+            {"mouse-mode",   required_argument, nullptr,  0 },      // long_option_index 6
             {"memsize",      required_argument, nullptr, 'm' },
             {"lang",         required_argument, nullptr, 'l' },
             {"rootfs",       required_argument, nullptr, 'r' },
-            {"editor",       required_argument, nullptr,  0 },      // long_option_index 7
-            {"tconv-a2h",    required_argument, nullptr,  0 },      // long_option_index 8
-            {"tconv-h2a",    required_argument, nullptr,  0 },      // long_option_index 9
+            {"editor",       required_argument, nullptr,  0 },      // long_option_index 10
+            {"tconv-a2h",    required_argument, nullptr,  0 },      // long_option_index 11
+            {"tconv-h2a",    required_argument, nullptr,  0 },      // long_option_index 12
             {nullptr,        0,                 nullptr,  0 }
         };
         c = getopt_long(argc, argv, "hc:ewg:s:m:l:r:",
@@ -349,23 +374,28 @@ int main(int argc, char *argv[])
         switch (c)
         {
             case 0:
-                /*
-                printf("option %s", long_options[long_option_index].name);
+                #if 0
+                printf("option %d (%s)", long_option_index, long_options[long_option_index].name);
                 if (optarg)
                     printf(" with arg %s", optarg);
                 printf("\n");
-                */
-                if (long_option_index == 7)
+                #endif
+                if (long_option_index == 6)
+                {
+                    arg_mouse_mode = optarg;
+                }
+                else
+                if (long_option_index == 10)
                 {
                     editor_command = optarg;
                 }
                 else
-                if (long_option_index == 8)
+                if (long_option_index == 11)
                 {
                     file_a2h = optarg;
                 }
                 else
-                if (long_option_index == 9)
+                if (long_option_index == 12)
                 {
                     file_h2a = optarg;
                 }
@@ -439,7 +469,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    //file_h2a = "/tmp/bla.txt";
+    //file_h2a = "nothing";
     if (file_h2a != nullptr)
     {
         const char *outname = "/tmp/atari.txt";
@@ -477,6 +507,11 @@ int main(int argc, char *argv[])
         return 4;
     }
 
+    if ((arg_mouse_mode != nullptr) && eval_mouse_mode(arg_mouse_mode, &relativeMouse))
+    {
+        return 5;
+    }
+
     if (optind < argc)
     {
         printf("additional options ignored: ");
@@ -496,7 +531,7 @@ int main(int argc, char *argv[])
             printf("Just writing default values, additional options ignored!\n");
         }
         // just write defaults and ignore all other settings
-        Preferences::init(config, -1, -1, -1, -1, -1, -1, nullptr, true);
+        Preferences::init(config, -1, -1, -1, -1, -1, -1, -1, nullptr, true);
         return 0;
     }
 
@@ -527,7 +562,7 @@ int main(int argc, char *argv[])
     #endif
 
     DebugInit(NULL /* stderr */);
-    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, arg_rootfs, false))
+    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, relativeMouse, atari_memsize, arg_rootfs, false))
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }

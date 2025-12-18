@@ -85,6 +85,7 @@ class Preferences
                     int mode_override,
                     int width_override, int height_override,
                     int stretch_x_override, int stretch_y_override,
+                    int relative_mouse_override,
                     int memsize_override,
                     const char *rootfs_override,
                     bool rewrite_conf);

@@ -304,7 +304,7 @@ int Preferences::init
         AtariScreenWidth &= ~7;
         fprintf(stderr, "Atari screen width justified to %u (multiple of 8)\n", AtariScreenWidth);
     }
-    if (atariScreenColourMode == atariScreenMode4ip)
+    if ((atariScreenColourMode == atariScreenMode4ip) || (atariScreenColourMode == atariScreenMode16ip))
     {
         if (AtariScreenHeight & 7)
         {

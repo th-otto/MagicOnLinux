@@ -183,8 +183,16 @@ static const char *get_home()
  *
  * @brief Write, load and evaluate the configuration file
  *
- * @param[in] config_file       configuration text file, may start with '~'
- * @param[in] rewrite_conf      overwrite existing configuration file with default values
+ * @param[in] config_file               configuration text file, may start with '~'
+ * @param[in] mode_override             override prerence value
+ * @param[in] width_override            override prerence value
+ * @param[in] height_override           override prerence value
+ * @param[in] stretch_x_override        override prerence value
+ * @param[in] stretch_y_override        override prerence value
+ * @param[in] relative_mouse_override   override prerence value
+ * @param[in] memsize_override          override prerence value
+ * @param[in] rootfs_override           override prerence value
+ * @param[in] rewrite_conf              overwrite existing configuration file with default values
  *
  * @return zero or number of errors
  *

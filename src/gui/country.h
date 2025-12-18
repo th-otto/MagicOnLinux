@@ -61,6 +61,7 @@ typedef enum {
 extern "C" {
 #endif
 
+language_t language_from_name(const char *lang_id);
 language_t language_get_default(void);
 const char *language_get_name(language_t id);
 

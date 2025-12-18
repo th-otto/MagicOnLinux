@@ -4,7 +4,7 @@ CFLAGS = -O2 -Wall -W
 CXXFLAGS = $(CFLAGS) -Wno-attributes
 LDFLAGS = -s
 
-PROGRAMS = 
+PROGRAMS = nlsdump
 
 # default values
 GTK = 2
@@ -45,19 +45,20 @@ ifneq ($(QT_LIBS),)
 PROGRAMS += mxqt-settings
 endif
 
+NLSDUMP_OBJS = nlsdump.o pofile.o country.o
 
 all:: $(PROGRAMS)
 
 gxmessage: gxmessage.c $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
-mxgtk-settings: mxgtk-settings.c country.c preferences.xml.h $(MAKEFILE_LIST)
+mxgtk-settings: mxgtk-settings.c country.c preferences.xml.h langs.c $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
 preferences.xml.h: preferences.xml $(MAKEFILE_LIST)
 	sed -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/"/' $< > $@
 
-mxqt-settings:	mxqt-settings.cc country.c preferences.xml.h mxqt-settings.moc qrc.cc $(MAKEFILE_LIST)
+mxqt-settings:	mxqt-settings.cc country.c preferences.xml.h mxqt-settings.moc langs.c qrc.cc $(MAKEFILE_LIST)
 	$(CXX) $(CXXFLAGS) -o $@ $(QT_CFLAGS) $< $(QT_LIBS) $(LDFLAGS)
 
 mxqt-settings.moc: mxqt-settings.cc $(MAKEFILE_LIST)
@@ -65,6 +66,14 @@ mxqt-settings.moc: mxqt-settings.cc $(MAKEFILE_LIST)
 
 qrc.cc: icons.qrc $(wildcard icons/*) $(MAKEFILE_LIST)
 	$(RCC) --namespace -g cpp -o $@ $<
+
+$(NLSDUMP_OBJS): pofile.h nls.h $(MAKEFILE_LIST)
+
+nlsdump: $(NLSDUMP_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(NLSDUMP_OBJS) $(LDFLAGS)
+
+langs.c: nlsdump
+	./nlsdump -p ../../po -o $@
 
 clean::
 	$(RM) $(PROGRAMS) preferences.xml.h *.moc qrc.cc

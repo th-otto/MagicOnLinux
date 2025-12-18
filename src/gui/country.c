@@ -1,5 +1,6 @@
 #include "country.h"
 #include <string.h>
+#include <stdlib.h>
 #include <locale.h>
 
 static struct {
@@ -67,12 +68,31 @@ static struct {
 };
 #undef QT
 
-const char *language_get_name(language_t id);
+language_t language_from_name(const char *lang_id)
+{
+	size_t i;
+
+	for (i = 0; i < sizeof(languages) / sizeof(languages[0]); i++)
+	{
+		if (strncmp(lang_id, languages[i].full_code, 5) == 0)
+		{
+			return languages[i].id;
+		}
+	}
+	for (i = 0; i < sizeof(languages) / sizeof(languages[0]); i++)
+	{
+		if (strncmp(lang_id, languages[i].short_code, 2) == 0)
+		{
+			return languages[i].id;
+		}
+	}
+	return LANG_SYSTEM;
+}
+
 
 language_t language_get_default(void)
 {
 	const char *locale;
-	size_t i;
 	
 	locale = setlocale(LC_MESSAGES, NULL);
 	if (locale == NULL || locale[0] == '\0')
@@ -89,20 +109,9 @@ language_t language_get_default(void)
 	}
 	if (locale != NULL)
 	{
-		for (i = 0; i < sizeof(languages) / sizeof(languages[0]); i++)
-		{
-			if (strncmp(locale, languages[i].full_code, 5) == 0)
-			{
-				return languages[i].id;
-			}
-		}
-		for (i = 0; i < sizeof(languages) / sizeof(languages[0]); i++)
-		{
-			if (strncmp(locale, languages[i].short_code, 2) == 0)
-			{
-				return languages[i].id;
-			}
-		}
+		language_t id = language_from_name(locale);
+		if (id != LANG_SYSTEM)
+			return id;
 	}	
 	return COUNTRY_US;
 }

@@ -4,3 +4,5 @@ mxqt-settings
 preferences.xml.h
 *.moc
 qrc.cc
+nlsdump
+langs.c

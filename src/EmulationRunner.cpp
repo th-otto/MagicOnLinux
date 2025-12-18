@@ -69,7 +69,6 @@ SDL_Surface *EmulationRunner::m_sdl_surface;                // surface in host n
 SDL_Window  *EmulationRunner::m_sdl_window;
 SDL_Renderer *EmulationRunner::m_sdl_renderer;
 SDL_Texture *EmulationRunner::m_sdl_texture;
-CMagiCScreen EmulationRunner::m_EmulatorScreen;
 CXCmd EmulationRunner::m_EmulatorXcmd;
 CMagiC EmulationRunner::m_Emulator;
 SDL_Thread *EmulationRunner::m_EmulatorThread = nullptr;
@@ -1309,7 +1308,7 @@ int EmulationRunner::EmulatorThread(void *param)
     DebugInfo2("()");
     int err;
 
-    err = m_Emulator.Init(&m_EmulatorScreen, &m_EmulatorXcmd);
+    err = m_Emulator.init(&m_EmulatorXcmd);
     if (err)
     {
         DebugError2("() => %d", err);

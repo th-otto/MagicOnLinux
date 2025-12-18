@@ -4,6 +4,7 @@
 #include "Debug.h"
 #include "conversion.h"
 #include "preferences.h"
+#include "MagiCScreen.h"
 #include "MagiCPrint.h"
 #include "MagiCSerial.h"
 #include "EmulationRunner.h"
@@ -579,6 +580,7 @@ int main(int argc, char *argv[])
     CMagiCPrint::init();
     CMagiCSerial::init();
     m68k_init();
+    CMagiCScreen::init();
     if (EmulationRunner::init())
     {
         return -1;

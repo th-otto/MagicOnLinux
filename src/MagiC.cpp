@@ -266,7 +266,6 @@ CMagiC::CMagiC()
     m_InterruptMouseMoveRelX = m_InterruptMouseMoveRelY = 0.0;
     m_bInterruptPending = false;
     m_LineAVars = nullptr;
-    m_pMagiCScreen = nullptr;
 //    m_PrintFileRefNum = 0;
     pTheMagiC = this;
     m_bEmulatorHasEnded = false;
@@ -767,7 +766,7 @@ void CMagiC::DumpAtariMem(const char *filename)
 *
 **********************************************************************/
 
-int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
+int CMagiC::init(CXCmd *pXCmd)
 {
     int err;
     Atari68kData *pAtari68kData;
@@ -799,17 +798,13 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
 
     DebugInfo2("() - Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
 
-    // Atari screen data
-
-    m_pMagiCScreen = pMagiCScreen;
-
     // Tastaturtabelle lesen
 
     (void) CMagiCKeyboard::init();
 
     mem68kSize = Preferences::AtariMemSize;
-    numVideoLines = m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top;
-    unsigned bufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
+    numVideoLines = CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top;
+    unsigned bufferLineLenInBytes = (CMagiCScreen::m_PixMap.rowBytes & 0x3fff);
     memVideo68kSize = bufferLineLenInBytes * numVideoLines;
     // get Atari memory
     // TODO: In fact we do not have to add m_Video68ksize here, because video memory
@@ -881,7 +876,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     // Atari-68k-Daten setzen
 
     pAtari68kData = (Atari68kData *) (mem68k + AtariMemtop);        // Pixmap inside Atari memory
-    pAtari68kData->m_PixMap = m_pMagiCScreen->m_PixMap;             // copy host Pixmap to Atari memory
+    pAtari68kData->m_PixMap = CMagiCScreen::m_PixMap;             // copy host Pixmap to Atari memory
     // left and top seem to be ignored, i.e. only  right and bottom are relevant
     pAtari68kData->m_PixMap.baseAddr = (PTR32_BE) addr68kVideo;        // virtual 68k address
 
@@ -936,7 +931,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     pMacXSysHdr->MacSys_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) mem68k));
     setCXCmdHostCallback(&pMacXSysHdr->MacSys_Xcmd, &CXCmd::Command, pXCmd);
     pMacXSysHdr->MacSys_PPCAddr = 0;                // on 32-bit host: mem68k
-    pMacXSysHdr->MacSys_VideoAddr = 0x80000000;        // on 32-bit host: m_pMagiCScreen->m_PixMap.baseAddr
+    pMacXSysHdr->MacSys_VideoAddr = 0x80000000;        // on 32-bit host: CMagiCScreen::m_PixMap.baseAddr
     setHostCallback(&pMacXSysHdr->MacSys_gettime,    AtariGettime);
     setHostCallback(&pMacXSysHdr->MacSys_settime,    AtariSettime);
     setHostCallback(&pMacXSysHdr->MacSys_Setscreen,  AtariSetscreen);
@@ -2211,8 +2206,8 @@ uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
 
     m_LineAVars = addrOffset68k + params;
     // Aktuelle Mausposition: Bildschirmmitte
-    PtAtariMousePos.x = (short) ((m_pMagiCScreen->m_PixMap.bounds_right - m_pMagiCScreen->m_PixMap.bounds_left) >> 1);
-    PtAtariMousePos.y = (short) ((m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top) >> 1);
+    PtAtariMousePos.x = (short) ((CMagiCScreen::m_PixMap.bounds_right - CMagiCScreen::m_PixMap.bounds_left) >> 1);
+    PtAtariMousePos.y = (short) ((CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top) >> 1);
     CMagiCKeyboard::init();
     CMagiCMouse::init(m_LineAVars, PtAtariMousePos);
 
@@ -2519,7 +2514,7 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
     // loop over all colours in the palette that shall be changed
     //
 
-    uint32_t *pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable + index;
+    uint32_t *pColourTable = CMagiCScreen::m_pColourTable + index;
     unsigned j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
     for (unsigned i = index; i < j; i++, pValues += 4,pColourTable++)
     {
@@ -2595,7 +2590,7 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
     // loop over all colours in the palette that shall be read
     //
 
-    const uint32_t *pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable + index;
+    const uint32_t *pColourTable = CMagiCScreen::m_pColourTable + index;
     unsigned j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
     for (unsigned i = index; i < j; i++, pValues++, pColourTable++)
     {

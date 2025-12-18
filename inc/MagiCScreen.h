@@ -32,11 +32,9 @@
 class CMagiCScreen
 {
   public:
-	CMagiCScreen();
-	~CMagiCScreen();
-
-	MXVDI_PIXMAP m_PixMap;
-	uint32_t m_pColourTable[MAGIC_COLOR_TABLE_LEN];
+    static int init();
+	static MXVDI_PIXMAP m_PixMap;
+	static uint32_t m_pColourTable[MAGIC_COLOR_TABLE_LEN];
 };
 
 #endif

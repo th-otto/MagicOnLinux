@@ -43,7 +43,7 @@ class CMagiC
     ~CMagiC();      // destructor
 
     // initialisation
-    int Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd);
+    int init(CXCmd *pXCmd);
     int CreateThread(void);         // create emulator thread
     void StartExec(void);           // ... let it run
     void StopExec(void);            // ... pause it
@@ -125,7 +125,6 @@ class CMagiC
     uint32_t RawDrvr(uint32_t params, uint8_t *addrOffset68k);
 
     // private attributes
-    CMagiCScreen *m_pMagiCScreen;   // data for emulated screen
     uint8_t *m_AtariKbData;         // [0] = kbshift, [1] = kbrepeat
     uint32_t *m_pAtariActPd;        // active Atari process
     uint32_t *m_pAtariActAppl;      // active Atari application

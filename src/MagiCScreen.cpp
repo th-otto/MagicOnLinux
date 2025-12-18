@@ -27,11 +27,12 @@
 #include "MagiCScreen.h"
 
 
-CMagiCScreen::CMagiCScreen(void)
-{
-    memset(this, 0, sizeof(*this));
-}
+MXVDI_PIXMAP CMagiCScreen::m_PixMap;
+uint32_t CMagiCScreen::m_pColourTable[MAGIC_COLOR_TABLE_LEN];
 
-CMagiCScreen::~CMagiCScreen(void)
+int CMagiCScreen::init(void)
 {
+    memset(&m_PixMap, 0, sizeof(m_PixMap));
+    memset(&m_pColourTable, 0, sizeof(m_pColourTable));
+    return 0;
 }

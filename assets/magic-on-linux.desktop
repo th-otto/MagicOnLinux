@@ -1,0 +1,13 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=MagicOnLinux
+Comment=High Level Emulator for running Atari/MagiC programs
+Comment[de]=High-Level-Emulator für Atari/MagiC-Programme
+Exec=magic-on-linux
+Icon=magic-on-linux
+#use absolute path in case the icon is not found:
+#Icon=/usr/local/share/icons/hicolor/512x512/apps/magic-on-linux.png
+Terminal=false
+Type=Application
+Categories=System;Emulator;
+Keywords=Emulator;Atari;Atari ST

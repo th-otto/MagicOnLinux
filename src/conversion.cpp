@@ -46,7 +46,7 @@
 // 0xe0 =  α   β   Γ   π   Σ   σ   µ   τ   Φ   Θ   Ω   δ   ∮   φ   ∈   ∩
 // 0xf0 =  ≡   ±   ≥   ≤   ⌠   ⌡   ÷   ≈   °   •   ·   √   ⁿ   ²   ³   ¯
 
-// Atari characters from 0x80 to 0xff, separated by a zero byte. As some of these
+// Atari characters from 0x80 to 0xff, separated by a space byte. As some of these
 // characters are encoded in one byte, others in two, this string is converted to
 // a table on startup.
 // Hewbrew characters are translated as '_'. TODO: Find a better solution.
@@ -105,8 +105,8 @@ static unsigned utf8Len(unsigned char c)
  ************************************************************************************************/
 void CConversion::init(void)
 {
-    static const char *tab = atari2utf8;
-    static const char *tab_e = atari2utf8 + strlen(atari2utf8);
+    const char *tab = atari2utf8;
+    const char *tab_e = atari2utf8 + strlen(atari2utf8);
 
     unsigned index = 0;
     while ((tab < tab_e) && (index < 128))
@@ -604,7 +604,7 @@ void CConversion::convTextFileAtari2Host(const char *filename, char **pBuffer)
     char *dst_buf = (char *) malloc(dst_len + 1);
     unsigned done = CConversion::strAtari2Host(src_buf, dst_buf, dst_len + 1, true);
     assert(done == dst_len);
-    (void)done;
+    (void) done;
 
     free(src_buf);
     *pBuffer = dst_buf;
@@ -648,7 +648,7 @@ void CConversion::convTextFileHost2Atari(const char *filename, uint8_t **pBuffer
     assert(dst_buf != nullptr);
     unsigned done = CConversion::strHost2Atari(src_buf, dst_buf, stringlen + 1, true);
     assert(done == stringlen);
-    (void)done;
+    (void) done;
 
     free(src_buf);
     *pBuffer = dst_buf;

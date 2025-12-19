@@ -116,16 +116,22 @@ class CHostXFS
         UINT16  dd_refcnt;
     } __attribute__((packed));
 
-    // Atari DTA Buffer (Disk Transfer Address)
+    // Atari DTA Buffer (Disk Transfer Address) for Fsfirst/Fsnext
     struct MX_DTA
     {
-        char    dta_res[20];        // reserved
-        uint8_t dta_drive;          // officially reserved, but in fact the drive A..Z
-        uint8_t dta_attribute;      // file attribute
-        UINT16  dta_time;           // file modification time (big endian)
-        UINT16  dta_date;           // file modification date (big endian)
-        UINT32  dta_len;            // file length (big endian)
-        char    dta_name[14];       // file name, maximum 8+3 plus "." plus NUL
+        // The first 20 bytes are officially "reserved"
+        char     sname[11];         // name to search for, first byte zero means "invalidated"
+        uint8_t  sattr;             // search attribute
+        uint32_t hash;              // magic value to check ownership (host-endian)
+        int16_t  vRefNum;           // MacOS volume (host-endian)
+        int16_t  index;             // Index inside that directory (host-endian)
+        // This is the public part
+        uint8_t  dta_drive;         // officially reserved, but in fact the drive A..Z
+        uint8_t  dta_attribute;     // file attribute
+        UINT16   dta_time;          // file modification time (big endian)
+        UINT16   dta_date;          // file modification date (big endian)
+        UINT32   dta_len;           // file length (big endian)
+        char     dta_name[14];      // file name, maximum 8+3 plus "." plus NUL
     } __attribute__((packed));
 
     /// non XFS specific part of a Drive Media Descriptor
@@ -163,15 +169,6 @@ class CHostXFS
     #define   OM_WDENY       32
     #define   OM_NOCHECK     64
 
-    struct _MAC_DTA
-    {
-         char     sname[11];    // name to search for
-         uint8_t  sattr;        // search attribute
-         int32_t  dirID;        // directory (host-endian)
-         int16_t  vRefNum;      // MacOS volume (host-endian)
-         int16_t  index;        // Index inside that directory (host-endian)
-    } __attribute__((packed));
-
 
     /// File Descriptor for the Host XFS.
     /// Theoretically this could be expanded, because the Atari side of the XFS (MACXFS.S)
@@ -197,16 +194,10 @@ class CHostXFS
     // store a host handle.
     struct HOST_DIRHANDLE
     {
-         MX_DHD    dhd;             // common part, big endian
-         uint16_t  hostDirHdl;      // host directory handle id (host native endian)
-         uint16_t  tosflag;         // TOS mode, i.e. 8+3 and without inode (host native endian)
-    } __attribute__((packed));
-
-    /// DTA buffer for xfs_sfirst() and xfs_snext()
-    union MAC_DTA
-    {
-         MX_DTA    mxdta;           // public part, big endian
-         _MAC_DTA  macdta;          // private part
+        MX_DHD   dhd;               // common part, big endian
+        uint16_t hostDirHdl;        // host directory handle id (host native endian)
+        uint16_t tosflag;           // TOS mode, i.e. 8+3 and without inode (host native endian)
+        uint32_t hash;              // magic value to check ownership (host-endian)
     } __attribute__((packed));
 
     struct MX_SYMLINK
@@ -283,8 +274,8 @@ class CHostXFS
         const char **remain_path, MXFSDD *symlink_dd, const char **symlink,
         MXFSDD *dd,
         UINT16 *dir_drive);
-    INT32 xfs_sfirst(uint16_t drv, const MXFSDD *dd, const char *name, MAC_DTA *dta, uint16_t attrib);
-    INT32 xfs_snext(uint16_t drv, MAC_DTA *dta);
+    INT32 xfs_sfirst(uint16_t drv, const MXFSDD *dd, const char *name, MX_DTA *dta, uint16_t attrib);
+    INT32 xfs_snext(uint16_t drv, MX_DTA *dta);
     INT32 xfs_fopen(const unsigned char *name, uint16_t drv, MXFSDD *dd,
                 uint16_t omode, uint16_t attrib);
     INT32 xfs_fdelete(uint16_t drv, MXFSDD *dd, const unsigned char *name);
@@ -330,7 +321,7 @@ class CHostXFS
     // auxiliar functions
 
     INT32 hostpath2HostFD(uint16_t drv, HostFD *reldir, uint16_t rel_hhdl, const char *path, int flags, HostHandle_t *hhdl);
-    int _snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_DTA *dta);
+    int _snext(uint16_t drv, int dir_fd, const struct dirent *entry, MX_DTA *dta);
 };
 
 #endif

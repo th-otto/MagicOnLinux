@@ -153,7 +153,7 @@ uninstall:
 check: all $(srcdir)/$(GETTEXT_PACKAGE).pot
 
 mostlyclean:
-	$(RM) $(GETTEXT_PACKAGE).po *.old.po cat-id-tbl.tmp
+	$(RM) *.old.po cat-id-tbl.tmp *.mo *.gmo
 
 clean: mostlyclean
 

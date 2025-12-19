@@ -4,10 +4,18 @@
 #include "Debug.h"
 #include "conversion.h"
 #include "preferences.h"
-#include "register_model.h"
+#include "MagiCScreen.h"
 #include "MagiCPrint.h"
 #include "MagiCSerial.h"
 #include "EmulationRunner.h"
+
+#if !defined(DEFAULT_EDITOR)
+#define DEFAULT_EDITOR "xdg-open"
+#endif
+
+#if !defined(DEFAULT_CONFIG)
+#define DEFAULT_CONFIG "~/.config/magiclinux.conf"
+#endif
 
 
 const char *argnames[] =
@@ -16,10 +24,12 @@ const char *argnames[] =
     "config-file",
     nullptr,
     nullptr,
-    "wxh[xb][ip]",
+    "[wxh][x][b][ip]",
     "w[xh]",
+    "abs|rel",
     "size",
     "EN|DE|FR",
+    "path",
     "program",
     "atari_txtfile",
     "host_txtfile"
@@ -39,10 +49,12 @@ const char *descriptions[] =
     "       open configuration file in editor and exit",
     "              configuration file (default: " DEFAULT_CONFIG ")",
     "             write configuration file with default values and exit",
-    "     e.g. 640x400x2 or 800x600 or 640x200x4ip, overrides config file",
+    " e.g. 640x400x2ip or 800x600 or 8, overrides config file",
     "            e.g. 2x2 or 2 or 2x4, overrides config file",
+    "       mouse mode: absolute or relative",
     "             Atari RAM size, e.g. 512k or 4M or 3m",
     "            language for Atari localisation, either EN or DE or FR",
+    "              location of C: drive (root fs)",
     "           choose editor program for -e option, to override '" DEFAULT_EDITOR "'",
     "  convert text file from Atari to host format",
     "   convert text file from host to Atari format"
@@ -85,8 +97,10 @@ static int eval_geometry(const char *geometry, int *mode, int *width, int *heigh
     unsigned w, h, b;
     char c1, c2;
     bool ip;
+    bool wh = true;
 
     int n = sscanf(geometry, "%ux%ux%u%c%c", &w, &h, &b, &c1, &c2);
+
     if ((n == 5) && (tolower(c1) == 'i') && (tolower(c2) == 'p'))
     {
         ip = true;
@@ -103,16 +117,27 @@ static int eval_geometry(const char *geometry, int *mode, int *width, int *heigh
         b = 24;
     }
     else
+    if ((n == 1) && ((n = sscanf(geometry, "%u%c%c", &b, &c1, &c2)) >= 1))
+    {
+        ip = ((n == 3) && (tolower(c1) == 'i') && (tolower(c2) == 'p'));
+        w = -1;
+        h = -1;
+        wh = false;
+    }
+    else
     {
         printf("malformed geometry argument\n");
         return 3;
     }
 
-    if ((w < ATARI_SCREEN_WIDTH_MIN)  || (w > ATARI_SCREEN_WIDTH_MAX) ||
-        (h < ATARI_SCREEN_HEIGHT_MIN) || (h > ATARI_SCREEN_HEIGHT_MAX))
+    if (wh)
     {
-        printf("Invalid Atari screen size\n");
-        return 4;
+        if ((w < ATARI_SCREEN_WIDTH_MIN)  || (w > ATARI_SCREEN_WIDTH_MAX) ||
+            (h < ATARI_SCREEN_HEIGHT_MIN) || (h > ATARI_SCREEN_HEIGHT_MAX))
+        {
+            printf("Invalid Atari screen size\n");
+            return 4;
+        }
     }
 
     if (b == 24)
@@ -204,6 +229,26 @@ static int eval_stretch(const char *stretch, int *stretch_x, int *stretch_y)
 
 
 // return 0 if OK
+static int eval_mouse_mode(const char *str, int *p_relative_mouse)
+{
+    if (!strcasecmp(str, "abs"))
+    {
+        *p_relative_mouse = 0;
+        return 0;
+    }
+    else
+    if (!strcasecmp(str, "rel"))
+    {
+        *p_relative_mouse = 1;
+        return 0;
+    }
+
+    printf("Invalid mouse mode: %s\n", str);
+    return 5;
+}
+
+
+// return 0 if OK
 static int eval_memsize(const char *str, int *atari_memsize)
 {
     unsigned m;
@@ -262,7 +307,7 @@ static int localise(const char *arg_lang)
     if ((arg_lang[0] != '\0') && (arg_lang[0] != '0'))
     {
         // Note that the shell script converts language code to uppercase.
-        char cmd[1200];
+        char cmd[PATH_MAX + 32];
         // cut long string to 10 characters, avoiding overflow
         sprintf(cmd, "%s/LANG/LOCALISE.SH %.10s", Preferences::AtariRootfsPath, arg_lang);
         //puts(cmd);
@@ -284,8 +329,10 @@ int main(int argc, char *argv[])
     int c;
     const char *arg_geometry = nullptr;
     const char *arg_stretch = nullptr;
+    const char *arg_mouse_mode = nullptr;
     const char *arg_memsize = nullptr;
     const char *arg_lang = nullptr;
+    const char *arg_rootfs = nullptr;
     int mode = -1;
     int width = -1;
     int height = -1;
@@ -293,11 +340,12 @@ int main(int argc, char *argv[])
     int stretch_y = -1;
     int atari_memsize = -1;
     const char *config = DEFAULT_CONFIG;
-    const char *editor_command = DEFAULT_EDITOR;        //  "xdg-open"
+    const char *editor_command = DEFAULT_EDITOR;    // xdg-open
     const char *file_a2h = nullptr;
     const char *file_h2a = nullptr;
     bool bRunEditor = false;
     bool bWriteConf = false;
+    int relativeMouse = -1;     // -1: default
 
     for (;;)
     {
@@ -312,14 +360,16 @@ int main(int argc, char *argv[])
             {"config-write", no_argument,       nullptr, 'w' },
             {"geometry",     required_argument, nullptr, 'g' },
             {"stretch",      required_argument, nullptr, 's' },
+            {"mouse-mode",   required_argument, nullptr,  0 },      // long_option_index 6
             {"memsize",      required_argument, nullptr, 'm' },
             {"lang",         required_argument, nullptr, 'l' },
-            {"editor",       required_argument, nullptr,  0 },      // long_option_index 7
-            {"tconv-a2h",    required_argument, nullptr,  0 },      // long_option_index 8
-            {"tconv-h2a",    required_argument, nullptr,  0 },      // long_option_index 9
+            {"rootfs",       required_argument, nullptr, 'r' },
+            {"editor",       required_argument, nullptr,  0 },      // long_option_index 10
+            {"tconv-a2h",    required_argument, nullptr,  0 },      // long_option_index 11
+            {"tconv-h2a",    required_argument, nullptr,  0 },      // long_option_index 12
             {nullptr,        0,                 nullptr,  0 }
         };
-        c = getopt_long(argc, argv, "hc:ewg:s:m:l:",
+        c = getopt_long(argc, argv, "hc:ewg:s:m:l:r:",
                         long_options, &long_option_index);
         //printf("getopt_long() -> %d (c = '%c'), long_option_index = %d\n", c, c, long_option_index);
 
@@ -333,23 +383,28 @@ int main(int argc, char *argv[])
         switch (c)
         {
             case 0:
-                /*
-                printf("option %s", long_options[long_option_index].name);
+                #if 0
+                printf("option %d (%s)", long_option_index, long_options[long_option_index].name);
                 if (optarg)
                     printf(" with arg %s", optarg);
                 printf("\n");
-                */
-                if (long_option_index == 7)
+                #endif
+                if (long_option_index == 6)
+                {
+                    arg_mouse_mode = optarg;
+                }
+                else
+                if (long_option_index == 10)
                 {
                     editor_command = optarg;
                 }
                 else
-                if (long_option_index == 8)
+                if (long_option_index == 11)
                 {
                     file_a2h = optarg;
                 }
                 else
-                if (long_option_index == 9)
+                if (long_option_index == 12)
                 {
                     file_h2a = optarg;
                 }
@@ -382,6 +437,10 @@ int main(int argc, char *argv[])
 
             case 'l':
                 arg_lang = optarg;
+                break;
+
+            case 'r':
+                arg_rootfs = optarg;
                 break;
 
             case 'w':
@@ -419,7 +478,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    //file_h2a = "/tmp/bla.txt";
+    //file_h2a = "nothing";
     if (file_h2a != nullptr)
     {
         const char *outname = "/tmp/atari.txt";
@@ -445,7 +504,7 @@ int main(int argc, char *argv[])
         return 5;
     }
 
-    //geometry = "800x600x1";
+    //arg_geometry = "2ip";   // test code
     if ((arg_geometry != nullptr) && eval_geometry(arg_geometry, &mode, &width, &height))
     {
         return 3;
@@ -455,6 +514,11 @@ int main(int argc, char *argv[])
     if ((arg_stretch != nullptr) && eval_stretch(arg_stretch, &stretch_x, &stretch_y))
     {
         return 4;
+    }
+
+    if ((arg_mouse_mode != nullptr) && eval_mouse_mode(arg_mouse_mode, &relativeMouse))
+    {
+        return 5;
     }
 
     if (optind < argc)
@@ -469,7 +533,14 @@ int main(int argc, char *argv[])
 
     if (bWriteConf)
     {
-        Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, true);
+        if ((mode != -1) || (width != -1) || (height = -1) ||
+            (stretch_x != -1) || (stretch_y != -1) ||
+            (atari_memsize != -1) || (arg_rootfs != nullptr))
+        {
+            printf("Just writing default values, additional options ignored!\n");
+        }
+        // just write defaults and ignore all other settings
+        Preferences::init(config, -1, -1, -1, -1, -1, -1, -1, nullptr, true);
         return 0;
     }
 
@@ -500,7 +571,7 @@ int main(int argc, char *argv[])
     #endif
 
     DebugInit(NULL /* stderr */);
-    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, atari_memsize, false))
+    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, relativeMouse, atari_memsize, arg_rootfs, false))
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }
@@ -516,8 +587,8 @@ int main(int argc, char *argv[])
     CConversion::init();
     CMagiCPrint::init();
     CMagiCSerial::init();
-    CRegisterModel::init();
     m68k_init();
+    CMagiCScreen::init();
     if (EmulationRunner::init())
     {
         return -1;
@@ -528,6 +599,7 @@ int main(int argc, char *argv[])
     }
     EmulationRunner::StartEmulatorThread();
     EmulationRunner::EventLoop();
+    CMagiCScreen::exit();
     CMagiCPrint::exit();
     CMagiCSerial::exit();
 

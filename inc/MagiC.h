@@ -43,7 +43,7 @@ class CMagiC
     ~CMagiC();      // destructor
 
     // initialisation
-    int Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd);
+    int init(CXCmd *pXCmd);
     int CreateThread(void);         // create emulator thread
     void StartExec(void);           // ... let it run
     void StopExec(void);            // ... pause it
@@ -55,6 +55,7 @@ class CMagiC
     int SendKeyboardShift(uint32_t modifiers);
     #endif
     int SendMousePosition(int x, int y);
+    int SendMouseMovement(double xrel, double yrel);
     int SendMouseButton(unsigned int NumOfButton, bool bIsDown);
     int SendHz200(void);
     int SendVBL(void);
@@ -99,6 +100,7 @@ class CMagiC
     static uint32_t AtariSettime(uint32_t params, uint8_t *addrOffset68k);
     static void *_Remote_AtariSysHalt( void *param );
     static uint32_t AtariSysHalt(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariSetscreen(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetpalette(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetcolor(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k);
@@ -123,7 +125,6 @@ class CMagiC
     uint32_t RawDrvr(uint32_t params, uint8_t *addrOffset68k);
 
     // private attributes
-    CMagiCScreen *m_pMagiCScreen;   // data for emulated screen
     uint8_t *m_AtariKbData;         // [0] = kbshift, [1] = kbrepeat
     uint32_t *m_pAtariActPd;        // active Atari process
     uint32_t *m_pAtariActAppl;      // active Atari application
@@ -157,7 +158,9 @@ class CMagiC
     bool m_bInterrupt200HzPending;
     bool m_bInterruptVBLPending;
     bool m_bInterruptMouseKeyboardPending;
-    Point m_InterruptMouseWhere;
+    Point m_InterruptMouseWhere;        // for absolute mouse mode
+    double m_InterruptMouseMoveRelX;    // for relative mouse mode
+    double m_InterruptMouseMoveRelY;
     bool m_bInterruptMouseButton[2];
     bool m_bInterruptPending;
     bool m_bWaitEmulatorForIRQCallback;

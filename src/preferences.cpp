@@ -56,23 +56,24 @@
 #define VAR_ATARI_SCREEN_RATE_HZ        13
 #define VAR_ATARI_SCREEN_COLOUR_MODE    14
 #define VAR_HIDE_HOST_MOUSE             15
-#define VAR_APP_DISPLAY_NUMBER          16
-#define VAR_APP_WINDOW_X                17
-#define VAR_APP_WINDOW_Y                18
-#define VAR_ATARI_MEMORY_SIZE           19
-#define VAR_ATARI_LANGUAGE              20
-#define VAR_SHOW_HOST_MENU              21
-#define VAR_ATARI_AUTOSTART             22
-#define VAR_ATARI_DRV_                  23
-#define VAR_ETH0_TYPE                   24
-#define VAR_ETH0_TUNNEL                 25
-#define VAR_ETH0_HOST_IP                26
-#define VAR_ETH0_ATARI_IP               27
-#define VAR_ETH0_NETMASK                28
-#define VAR_ETH0_GATEWAY                29
-#define VAR_ETH0_MAC                    30
-#define VAR_ETH0_INTLEVEL               31
-#define VAR_NUMBER                      32
+#define VAR_RELATIVE_MOUSE              16
+#define VAR_APP_DISPLAY_NUMBER          17
+#define VAR_APP_WINDOW_X                18
+#define VAR_APP_WINDOW_Y                19
+#define VAR_ATARI_MEMORY_SIZE           20
+#define VAR_ATARI_LANGUAGE              21
+#define VAR_SHOW_HOST_MENU              22
+#define VAR_ATARI_AUTOSTART             23
+#define VAR_ATARI_DRV_                  24
+#define VAR_ETH0_TYPE                   25
+#define VAR_ETH0_TUNNEL                 26
+#define VAR_ETH0_HOST_IP                27
+#define VAR_ETH0_ATARI_IP               28
+#define VAR_ETH0_NETMASK                29
+#define VAR_ETH0_GATEWAY                30
+#define VAR_ETH0_MAC                    31
+#define VAR_ETH0_INTLEVEL               32
+#define VAR_NUMBER                      33
 
 // variable names in preferences
 static const char *var_name[VAR_NUMBER] =
@@ -96,6 +97,7 @@ static const char *var_name[VAR_NUMBER] =
     "atari_screen_rate_hz",
     "atari_screen_colour_mode",
     "hide_host_mouse",
+    "relative_mouse",
     //[SCREEN PLACEMENT]
     "app_display_number",
     "app_window_x",
@@ -124,16 +126,17 @@ unsigned Preferences::AtariMemSize = (8 * 1024 * 1024);
 bool Preferences::bShowHostMenu = true;
 enAtariScreenColourMode Preferences::atariScreenColourMode = atariScreenMode16M;
 bool Preferences::bHideHostMouse = false;
+bool Preferences::bRelativeMouse = false;
 bool Preferences::bAutoStartMagiC = true;
 unsigned Preferences::drvFlags[NDRIVES];    // 1 == RdOnly / 2 == 8+3 / 4 == case insensitive, ...
 const char *Preferences::drvPath[NDRIVES];
-char Preferences::AtariKernelPath[1024] = "";       // empty: used default path
-char Preferences::AtariRootfsPath[1024] = DEFAULT_ATARI_ROOT;
+char Preferences::AtariKernelPath[PATH_MAX] = "";       // empty: used default path
+char Preferences::AtariRootfsPath[PATH_MAX] = DEFAULT_ATARI_ROOT;
 bool Preferences::AtariHostHome = true;                      // Atari H: as host home
 bool Preferences::AtariHostHomeRdOnly = true;
 bool Preferences::AtariHostRoot = true;                      // Atari M: as host root
 bool Preferences::AtariHostRootRdOnly = true;                // Atari M: is write protected
-char Preferences::AtariTempFilesUnixPath[1024] = "/tmp";
+char Preferences::AtariTempFilesUnixPath[PATH_MAX] = "/tmp";
 char Preferences::szPrintingCommand[256] = "echo printing not yet implemented";
 char Preferences::szAuxPath[256];
 unsigned Preferences::Monitor = 0;
@@ -145,15 +148,16 @@ unsigned Preferences::AtariScreenStretchX = 2;
 unsigned Preferences::AtariScreenStretchY = 2;
 unsigned Preferences::ScreenRefreshFrequency = 60;
 //bool Preferences::bPPC_VDI_Patch;
-struct ethernet_options Preferences::eth[MAX_ETH] = {
-	{ ETH_TYPE_NONE, "tap0", "192.168.0.1", "192.168.0.2", "255.255.255.0", "192.168.0.1", "00:41:45:54:48:30", 4 },
-	{ ETH_TYPE_NONE, "", "", "", "", "", "", 3 },
-	{ ETH_TYPE_NONE, "", "", "", "", "", "", 3 },
-	{ ETH_TYPE_NONE, "", "", "", "", "", "", 3 }
+struct ethernet_options Preferences::eth[MAX_ETH] =
+{
+    { ETH_TYPE_NONE, "tap0", "192.168.0.1", "192.168.0.2", "255.255.255.0", "192.168.0.1", "00:41:45:54:48:30", 4 },
+    { ETH_TYPE_NONE, "", "", "", "", "", "", 3 },
+    { ETH_TYPE_NONE, "", "", "", "", "", "", 3 },
+    { ETH_TYPE_NONE, "", "", "", "", "", "", 3 }
 };
 
 // derived
-char Preferences::AtariScrapFileUnixPath[1024];
+char Preferences::AtariScrapFileUnixPath[PATH_MAX];
 
 
 /** **********************************************************************************************
@@ -179,8 +183,16 @@ static const char *get_home()
  *
  * @brief Write, load and evaluate the configuration file
  *
- * @param[in] config_file       configuration text file, may start with '~'
- * @param[in] rewrite_conf      overwrite existing configuration file with default values
+ * @param[in] config_file               configuration text file, may start with '~'
+ * @param[in] mode_override             override prerence value
+ * @param[in] width_override            override prerence value
+ * @param[in] height_override           override prerence value
+ * @param[in] stretch_x_override        override prerence value
+ * @param[in] stretch_y_override        override prerence value
+ * @param[in] relative_mouse_override   override prerence value
+ * @param[in] memsize_override          override prerence value
+ * @param[in] rootfs_override           override prerence value
+ * @param[in] rewrite_conf              overwrite existing configuration file with default values
  *
  * @return zero or number of errors
  *
@@ -196,7 +208,9 @@ int Preferences::init
     int height_override,
     int stretch_x_override,
     int stretch_y_override,
+    int relative_mouse_override,
     int memsize_override,
+    const char *rootfs_override,
     bool rewrite_conf
 )
 {
@@ -206,7 +220,7 @@ int Preferences::init
         drvFlags[i] = 0;        // long names, read-write, case sensitive
     }
 
-    char path[1024] = "";
+    char path[PATH_MAX] = "";
     const char *home = get_home();
     if (config_file[0] == '~')
     {
@@ -243,9 +257,35 @@ int Preferences::init
     {
         AtariScreenStretchY = stretch_y_override;
     }
+    if (relative_mouse_override >= 0)
+    {
+        bRelativeMouse = (relative_mouse_override) ? true : false;
+    }
     if (memsize_override >= 0)
     {
         AtariMemSize = memsize_override;
+    }
+    if ((rootfs_override != nullptr) && (strlen(rootfs_override) < sizeof(AtariRootfsPath)))
+    {
+        strcpy(AtariRootfsPath, rootfs_override);
+    }
+
+    //
+    // rootfs path: make absolute, without trailing "/"
+    //
+
+    if (AtariRootfsPath[0] != '~')
+    {
+        // Note that realpath() cannot evaluate '~' for the home directory,
+        // but evaluation should already have been done by the shell, hopefully.
+        char *abspath = realpath(AtariRootfsPath, nullptr);
+        if (abspath == nullptr)
+        {
+            fprintf(stderr, "Invalid rootfs path: \"%s\"\n", AtariRootfsPath);
+            return 1;
+        }
+        strcpy(AtariRootfsPath, abspath);
+        free(abspath);
     }
 
     //
@@ -272,7 +312,7 @@ int Preferences::init
         AtariScreenWidth &= ~7;
         fprintf(stderr, "Atari screen width justified to %u (multiple of 8)\n", AtariScreenWidth);
     }
-    if (atariScreenColourMode == atariScreenMode4ip)
+    if ((atariScreenColourMode == atariScreenMode4ip) || (atariScreenColourMode == atariScreenMode16ip))
     {
         if (AtariScreenHeight & 7)
         {
@@ -346,6 +386,31 @@ const char *Preferences::videoModeToString(enAtariScreenColourMode mode)
 
 /** **********************************************************************************************
  *
+ * @brief Get short text description of video mode for window title
+ *
+ * @param[in]  mode     video mode
+ *
+ * @return text
+ *
+ ************************************************************************************************/
+const char *Preferences::videoModeToShortString(enAtariScreenColourMode mode)
+{
+    switch(mode)
+    {
+        case atariScreenMode16M:    return "16M";
+        case atariScreenModeHC:     return "32k";
+        case atariScreenMode256:    return "256";
+        case atariScreenMode16:     return "16";
+        case atariScreenMode16ip:   return "16ip";
+        case atariScreenMode4ip:    return "4ip";
+        case atariScreenMode2:      return "monochrome";
+        default:                    return "== UNKNOWN ==";
+    }
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Write configuration file
  *
  * @param[in]  cfgfile   path
@@ -381,6 +446,7 @@ int Preferences::writePreferences(const char *cfgfile)
     fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_SCREEN_COLOUR_MODE], atariScreenColourMode);
     fprintf(f, "# 0:24b 1:16b 2:256 3:16 4:16ip 5:4ip 6:mono\n");
     fprintf(f, "%s = %s\n",     var_name[VAR_HIDE_HOST_MOUSE], bHideHostMouse ? "YES" : "NO");
+    fprintf(f, "%s = %s\n",     var_name[VAR_RELATIVE_MOUSE], bRelativeMouse ? "YES" : "NO");
     fprintf(f, "[SCREEN PLACEMENT]\n");
     fprintf(f, "%s = %u\n",     var_name[VAR_APP_DISPLAY_NUMBER], Monitor);
     fprintf(f, "%s = %u\n",     var_name[VAR_APP_WINDOW_X], AtariScreenX);
@@ -781,6 +847,10 @@ int Preferences::evaluatePreferencesLine(const char *line)
             num_errors += eval_quotated_str_bool(&bHideHostMouse, &line);
             break;
 
+        case VAR_RELATIVE_MOUSE:
+            num_errors += eval_quotated_str_bool(&bRelativeMouse, &line);
+            break;
+
         case VAR_APP_DISPLAY_NUMBER:
             num_errors += eval_unsigned(&Monitor, 0, 0xffffffff, &line);
             break;
@@ -821,7 +891,7 @@ int Preferences::evaluatePreferencesLine(const char *line)
                 {
                     line++;
                 }
-                char pathbuf[1024];
+                char pathbuf[PATH_MAX];
                 num_errors += eval_quotated_str_path(pathbuf, sizeof(pathbuf), &line);
                 if (num_errors == 0)
                 {

@@ -26,23 +26,6 @@
 static char const program_name[] = "mxgtk-settings";
 static char const program_version[] = "1.0";
 
-/*
- "folder"
- "drive-harddisk"
- "video-display"
- "view-fullscreen"
- "preferences-system"
- "network-wired"
- "dialog-information"
- "dialog-ok-apply"
- "folder-saved-search"
- "view-fullscreen"
- "preferences-desktop-display"
- "network-server"
- "network-wired"
- "drive-removable-media"
- */
-
 enum {
 	TYPE_NONE,
 	TYPE_PATH,

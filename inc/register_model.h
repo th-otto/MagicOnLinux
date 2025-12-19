@@ -33,40 +33,38 @@ class CRegisterModel
 {
   public:
     static int init();
-    static bool read_byte(uint32_t addr, uint8_t *datum);
-    static bool read_halfword(uint32_t addr, uint16_t *datum);
-    static bool read_word(uint32_t addr, uint32_t *datum);
-    static bool write_byte(uint32_t addr, uint8_t datum);
-    static bool write_halfword(uint32_t addr, uint16_t datum);
-    static bool write_word(uint32_t addr, uint32_t datum);
+    static uint32_t read_reg(uint32_t addr, unsigned len, bool *p_success);
+    static void write_reg(uint32_t addr, unsigned len, uint32_t datum, bool *p_success);
 
     const char *name = "base";
     const uint32_t start_addr = 0;
-    const uint32_t end_addr = 0;
+    const uint32_t last_addr = 0;
+    unsigned logcnt = 100;     // maximum debug messages for this model
 
-	CRegisterModel(const char *my_name, uint32_t my_start_addr, uint32_t my_end_addr) :
+	CRegisterModel(const char *my_name, uint32_t my_start_addr, uint32_t my_last_addr) :
         name(my_name),
         start_addr(my_start_addr),
-        end_addr(my_end_addr)
+        last_addr(my_last_addr)
     {
     }
 	virtual ~CRegisterModel()
     {
     }
-    virtual bool write(uint32_t addr, unsigned len, const uint8_t *data)
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
     {
         // default: ignore write, no bus error
         (void) addr;
         (void) len;
-        (void) data;
-        return true;
+        (void) datum;
+        *p_success = true;
     }
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
         // default: read zeros, no bus error
         (void) addr;
-        memset(data, 0, len);
-        return true;
+        (void) len;
+        *p_success = true;
+        return 0;
     }
 };
 

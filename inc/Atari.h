@@ -471,25 +471,25 @@ struct SYSHDR
 
 /* BIOS level errors */
 
-#define E_OK        0L    // OK, no error
-#define ERROR      -1L    // basic, fundamental error
-#define EDRVNR     -2L    // drive not ready
-#define EUNCMD     -3L    // unknown command
-#define E_CRC      -4L    // CRC error
-#define EBADRQ     -5L    // bad request
-#define E_SEEK     -6L    // seek error
-#define EMEDIA     -7L    // unknown media
-#define ESECNF     -8L    // sector not found
-#define EPAPER     -9L    // no paper
-#define EWRITF    -10L    // write fault
-#define EREADF    -11L    // read fault
-#define EGENRL    -12L    // general error
-#define EWRPRO    -13L    // write protect
-#define E_CHNG    -14L    // media change
-#define EUNDEV    -15L    // unknown device
-#define EBADSF    -16L    // bad sectors on format
-#define EOTHER    -17L    // insert other disk
-#define TOS_EINVAL  -25 /* Invalid argument. */
+#define E_OK         0    // OK, no error
+#define ERROR       -1    // basic, fundamental error
+#define EDRVNR      -2    // drive not ready
+#define EUNCMD      -3    // unknown command
+#define E_CRC       -4    // CRC error
+#define EBADRQ      -5    // bad request
+#define E_SEEK      -6    // seek error
+#define EMEDIA      -7    // unknown media
+#define ESECNF      -8    // sector not found
+#define EPAPER      -9    // no paper
+#define EWRITF     -10    // write fault
+#define EREADF     -11    // read fault
+#define EGENRL     -12    // general error
+#define EWRPRO     -13    // write protect
+#define E_CHNG     -14    // media change
+#define EUNDEV     -15    // unknown device
+#define EBADSF     -16    // bad sectors on format
+#define EOTHER     -17    // insert other disk
+#define TOS_EINVAL -25    // Invalid argument (TODO: where does this come from?)
 
 /* BDOS level errors */
 
@@ -919,8 +919,8 @@ MacSysX_rawdrvr:        DS.L PTRLEN   ; LONG RawDrvr({int, long} *) Raw driver (
 // previously MacSysX_Daemon:         DS.L PTRLEN   ; call for the mmx daemon
 MacSysX_Daemon:	        DS.L 1		  ; MagicOnLinux: call for the mmx daemon
 MacSysX_BlockDev:       DS.L 1        ; MagicOnLinux: disk image management
-MacSysX_Network:        DS.L 1        ; MagicOnLinux: network management
-MacSysX_resvd2:         DS.L 1        ; MagicOnLinux: reserved for future use
+MacSysX_Network:        DS.L 1        ; MagicOnLinux: network
+MacSysX_Setscreen:      DS.L 1        ; MagicOnLinux: Xbios #5
 MacSysX_Yield:          DS.L 1        ; call to yield CPU time (idle)
 MacSys_OldHdr:          DS.L 49       ; for compatibility with Behne's code
 MacSysX_sizeof:
@@ -949,6 +949,9 @@ MACRO    MACPPCE
 // additionally takes a "this" pointer that is located behind the
 // host callback function pointer and passes this as first parameter
 // of a class method.
+
+// !!! WARNING: Keep consistent with MSysX IN MAGXBIOS.S and offsets MAGXKER.INC!!!
+// (The symbol MSys of the old header is exported to MVDI)
 
 #define MAGICLIN 1
 struct MacXSysHdr
@@ -1013,8 +1016,8 @@ struct MacXSysHdr
 #if defined(MAGICLIN)
     PTR32_HOST   MacSys_Daemon;             // call for the mmx daemon
     PTR32_HOST   MacSys_BlockDevice;        // new for MagicOnLinux
-    PTR32_HOST   MacSys_Network;            // new for MagicOnLinux
-    PTR32_HOST   MacSys_resvd2;
+    PTR32_HOST   MacSys_Network;            // network functions
+    PTR32_HOST   MacSys_Setscreen;          // XBIOS #5, void Setscreen(void *log, void *phys, int res)
 #else
     PTR32x4_HOST MacSys_Daemon;             // call for the mmx daemon
 #endif
@@ -1221,7 +1224,6 @@ struct XFS_FD
 } __attribute__((packed));
 
 
-#if 1
 /// DMDs, FDs and DDs are stored in MagiC in "internal memory blocks",
 /// each of size 100 bytes, including header. Thus we have 94 bytes of payload.
 /// Unfortunately, we currently cannot make use of the full size of these
@@ -1237,7 +1239,7 @@ struct IMB
     UINT32      pLink;      // 68k pointer to next IMB
     uint8_t     bUsed;      // flag
     uint8_t     bSwitch;    // unused?
-    union HostXFS
+    union
     {
         // FD = File Descriptor
         struct
@@ -1247,7 +1249,7 @@ struct IMB
             UINT16 fd_mode;     // 0x06: open modus (0,1,2) and flags
             UINT32 fd_dev;      // 0x08: 68k pointer to MAGX_DEVDRVR
             uint8_t data[94 - 12];
-        } fd;
+        } __attribute__((packed)) fd;
 
         // DD = Directory Descriptor
         struct
@@ -1255,7 +1257,7 @@ struct IMB
             UINT32 dd_dmd;      // 68k pointer
             UINT16 dd_refcnt;
             uint8_t data[94 - 6];   // private part, i.e. MXFSDD (6 bytes)
-        } dd;
+        } __attribute__((packed)) dd;
 
         // DMD = Drive Media Descriptor
         struct
@@ -1264,12 +1266,11 @@ struct IMB
             UINT16 d_drive;     // 0x04: drive number 0..31
             UINT32 d_root;      // 0x06: 68k pointer to DD of root directory
             uint8_t data[94 - 10];
-        } dmd;
+        } __attribute__((packed)) dmd;
 
         uint8_t     data[94];   // depending
-    };
-};
-#endif
+    }  __attribute__((packed)) HostXFS;
+} __attribute__((packed));
 
 
 #pragma GCC diagnostic pop

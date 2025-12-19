@@ -112,6 +112,10 @@ extern void _DumpAtariMem(const char *filename);
  ************************************************************************************************/
 CHostXFS::CHostXFS()
 {
+    // check, if host descriptor fits internal MagiC memory block of 100 bytes
+    static_assert(sizeof(IMB) == 100, "");
+    static_assert(sizeof(HOST_DIRHANDLE) <= sizeof(IMB), "");
+
     xfs_drvbits = 0;
     for (int i = 0; i < NDRIVES; i++)
     {
@@ -855,7 +859,7 @@ void CHostXFS::xfs_pterm(uint32_t pd, uint8_t *addrOffset68k)
     uint32_t act_pd = getActPd();
     DebugInfo2("() -- PD 0x%08x terminated, act_pd = 0x%08x", pd, act_pd);
     (void) act_pd;
-    HostHandles::snextPterm(pd);
+    HostHandles::ptermOpendir(pd);
 }
 
 
@@ -879,14 +883,14 @@ void CHostXFS::xfs_freeDD(XFS_DD *dd, uint8_t *addrOffset68k)
     DebugInfo2("() : dirID = %u", hdd->dirID);
     DebugInfo2("() : vRefNum = %u", hdd->vRefNum);
     HostHandle_t hhdl = hdd->dirID;  // host endian
-    HostFD *hostFD = getHostFD(hhdl);
+    HostFD *hostFD = HostHandles::getHostFD(hhdl);
     if (hostFD == nullptr)
     {
         DebugWarning2("%s() -- invalid hostFD");
     }
     else
     {
-        freeHostFD(hostFD);
+        HostHandles::freeHostFD(hostFD);
     }
     (void) dd;
 }
@@ -916,7 +920,7 @@ INT32 CHostXFS::hostpath2HostFD
     HostHandle_t *hhdl
 )
 {
-    HostFD *hostFD = getFreeHostFD();   // note that this is not allocated, yet
+    HostFD *hostFD = HostHandles::getFreeHostFD();   // note that this is not allocated, yet
     if (hostFD == nullptr)
     {
         DebugError2("() : No host FDs left");
@@ -945,7 +949,7 @@ INT32 CHostXFS::hostpath2HostFD
         }
         DebugInfo2("() : dev=%d, ino=%d)", statbuf.st_dev, statbuf.st_ino);
         uint16_t nhhdl;
-        HostFD *hostFD_exist = findHostFD(statbuf.st_dev, statbuf.st_ino, &nhhdl);
+        HostFD *hostFD_exist = HostHandles::findHostFD(statbuf.st_dev, statbuf.st_ino, &nhhdl);
         if (hostFD_exist != nullptr)
         {
              DebugInfo2("() : already opened host fd = %d", hostFD_exist->fd);
@@ -999,7 +1003,7 @@ INT32 CHostXFS::hostpath2HostFD
         hostFD->dev = statbuf.st_dev;
         hostFD->ino = statbuf.st_ino;
 
-        *hhdl = allocHostFD(&hostFD);
+        *hhdl = HostHandles::allocHostFD(&hostFD);
         DebugInfo2("() : host fd = %d", hostFD->fd);
     }
 
@@ -1178,7 +1182,7 @@ INT32 CHostXFS::xfs_path2DD
     }
 
     HostHandle_t hhdl_rel = rel_dd->dirID;  // host endian
-    HostFD *rel_hostFD = getHostFD(hhdl_rel);
+    HostFD *rel_hostFD = HostHandles::getHostFD(hhdl_rel);
     if (rel_hostFD == nullptr)
     {
         DebugWarning2("%s() -> EINTRN");
@@ -1249,7 +1253,7 @@ INT32 CHostXFS::xfs_path2DD
  * @note The drive number is needed to determine, if the file system is case-insensitive
  *
  ************************************************************************************************/
-int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_DTA *dta)
+int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MX_DTA *dta)
 {
     unsigned char atariname[PATH_MAX];   // long filename in Atari charset
     unsigned char dosname[14];      // internal, 8+3
@@ -1279,7 +1283,7 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_D
         return -2;   // unhandled file type
     }
 
-    if (!filename8p3_match(dta->macdta.sname, (char *) dosname, convUpper))
+    if (!filename8p3_match(dta->sname, (char *) dosname, convUpper))
     {
         return 1;
     }
@@ -1306,25 +1310,25 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_D
 
     if (dosname[11] == F_SUBDIR)
     {
-        dta->mxdta.dta_len = 0;
+        dta->dta_len = 0;
     }
     else
     if (statbuf.st_size > 0xffffffff)
     {
         DebugWarning2("() -- file size > 4 GB, shown as zero length");
-        dta->mxdta.dta_len = 0;
+        dta->dta_len = 0;
     }
     else
     {
-        dta->mxdta.dta_len = htobe32((uint32_t) statbuf.st_size);
+        dta->dta_len = htobe32((uint32_t) statbuf.st_size);
     }
 
-    dta->mxdta.dta_attribute = (char) dosname[11];
-    hostFnameToAtariFname8p3(entry->d_name, (unsigned char *) dta->mxdta.dta_name, convUpper);
+    dta->dta_attribute = (char) dosname[11];
+    hostFnameToAtariFname8p3(entry->d_name, (unsigned char *) dta->dta_name, convUpper);
     uint16_t time, date;
     CConversion::hostDateToDosDate(statbuf.st_mtime, &time, &date);
-    dta->mxdta.dta_time = htobe16(time);
-    dta->mxdta.dta_date = htobe16(date);
+    dta->dta_time = htobe16(time);
+    dta->dta_date = htobe16(date);
 
     return 0;
 }
@@ -1333,7 +1337,7 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MAC_D
 // perform various checks to the directory file descriptor
 #define GET_hhdl_hostFD_dir_fd(DD, HHDL, HOST_FD, DIR_FD) \
     HostHandle_t HHDL = DD->dirID; \
-    HostFD *HOST_FD = getHostFD(HHDL); \
+    HostFD *HOST_FD = HostHandles::getHostFD(HHDL); \
     if (HOST_FD == nullptr) \
     { \
         return EINTRN; \
@@ -1363,17 +1367,17 @@ INT32 CHostXFS::xfs_sfirst
     uint16_t drv,
     const MXFSDD *dd,
     const char *name,
-    MAC_DTA *dta,
+    MX_DTA *dta,
     uint16_t attrib
 )
 {
     DebugInfo2("(drv = %u, name = \"%s\")", drv, name);
 
-    dta->mxdta.dta_drive = (char) drv;
+    dta->dta_drive = (char) drv;
     bool convUpper = !drv_longNames[drv] || drv_caseInsens[drv];
-    pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->macdta.sname, convUpper);    // search pattern -> DTA
-    dta->mxdta.dta_name[0] = 0;                    // nothing found yet
-    dta->macdta.sattr = (char) attrib;            // search attribute
+    pathElemToDTA8p3((const unsigned char *) name, (unsigned char *) dta->sname, convUpper);    // search pattern -> DTA
+    dta->dta_name[0] = 0;                    // nothing found yet
+    dta->sattr = (char) attrib;            // search attribute
 
     CHK_DRIVE(drv)
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
@@ -1423,19 +1427,20 @@ INT32 CHostXFS::xfs_sfirst
             //long pos = telldir(dir);
             //DebugInfo2("() : directory read position %ld", pos);
 
-            dta->macdta.vRefNum = (int16_t) HostHandles::snextSet(dir, dup_dir_fd, getActPd());
-            dta->macdta.dirID = hhdl;
-            dta->macdta.index = 0;  // unused
+            uint32_t hash;
+            dta->vRefNum = (int16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd(), &hash);
+            dta->hash = hash;
+            dta->index = 0;  // unused
 
             DebugInfo2("() -> E_OK");
             return E_OK;
         }
     }
 
-    dta->macdta.sname[0] = EOS;     // invalidate DTA
-    dta->macdta.dirID = -1;
-    dta->macdta.vRefNum = -1;
-    dta->macdta.index = -1;
+    dta->sname[0] = EOS;     // invalidate DTA
+    dta->hash = -1;         // just to be sure ...
+    dta->vRefNum = -1;
+    dta->index = -1;
 
     closedir(dir);  // also closes dup_dir_fd
 
@@ -1454,22 +1459,22 @@ INT32 CHostXFS::xfs_sfirst
  * @return 0 for OK, ELINK for symbolic link or negative error code
  *
  ************************************************************************************************/
-INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
+INT32 CHostXFS::xfs_snext(uint16_t drv, MX_DTA *dta)
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE(drv)
     (void) dta;
 
-    if (!dta->macdta.sname[0])
+    if (!dta->sname[0])
     {
         DebugWarning2("() -> ENMFIL");
         return ENMFIL;
     }
 
     DIR *dir;
-    uint16_t snextHdl = (uint16_t) dta->macdta.vRefNum;
+    uint16_t snextHdl = (uint16_t) dta->vRefNum;
     int dup_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dup_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), dta->hash, &dir, &dup_fd))
     {
         DebugWarning2("() -> EINTRN");
         return EINTRN;
@@ -1498,12 +1503,12 @@ INT32 CHostXFS::xfs_snext(uint16_t drv, MAC_DTA *dta)
         }
     }
 
-    dta->macdta.sname[0] = EOS;     // invalidate DTA
-    dta->macdta.dirID = -1;
-    dta->macdta.vRefNum = -1;
-    dta->macdta.index = -1;
+    HostHandles::closeOpendir(snextHdl, dta->hash);  // also does closedir()
 
-    HostHandles::snextClose(snextHdl);  // also does closedir()
+    dta->sname[0] = EOS;     // invalidate DTA
+    dta->hash = -1;         // just to be sure...
+    dta->vRefNum = -1;
+    dta->index = -1;
 
     DebugInfo2("() -> ENMFIL");
 
@@ -1599,7 +1604,7 @@ INT32 CHostXFS::xfs_fopen
     #define _ATARI_O_EXCL      0x800
    */
 
-    HostFD *file_hostFD = getFreeHostFD();
+    HostFD *file_hostFD = HostHandles::getFreeHostFD();
     if (file_hostFD == nullptr)
     {
         return ENHNDL;
@@ -1624,7 +1629,7 @@ INT32 CHostXFS::xfs_fopen
     file_hostFD->dev = statbuf.st_dev;
     file_hostFD->ino = statbuf.st_ino;
 
-    hhdl = allocHostFD(&file_hostFD);
+    hhdl = HostHandles::allocHostFD(&file_hostFD);
 
     assert(hhdl <= 0xfffff);
     DebugInfo2("() -> %d", hhdl);
@@ -2245,8 +2250,10 @@ INT32 CHostXFS::xfs_dopendir
         return CConversion::host2AtariError(errno);
     }
 
-    dirh->hostDirHdl = (uint16_t) HostHandles::snextSet(dir, dup_dir_fd, getActPd());
-    dirh ->tosflag = tosflag;
+    uint32_t hash;
+    dirh->hostDirHdl = (uint16_t) HostHandles::allocOpendir(dir, dup_dir_fd, getActPd(), &hash);
+    dirh->tosflag = tosflag;
+    dirh->hash = hash;
 
     DebugInfo2("() -> E_OK");
 
@@ -2300,7 +2307,7 @@ INT32 CHostXFS::xfs_dreaddir
     DIR *dir;
     uint16_t snextHdl = dirh->hostDirHdl;
     int dir_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dir_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), dirh->hash, &dir, &dir_fd))
     {
         DebugWarning2("() -> EINTRN");
         return EINTRN;
@@ -2399,7 +2406,7 @@ INT32 CHostXFS::xfs_drewinddir(HOST_DIRHANDLE *dirh, uint16_t drv)
     DIR *dir;
     uint16_t snextHdl = dirh->hostDirHdl;
     int dir_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dir_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), dirh->hash, &dir, &dir_fd))
     {
         DebugWarning2("s() -> EINTRN");
         dirh->hostDirHdl = -1;
@@ -2438,14 +2445,14 @@ INT32 CHostXFS::xfs_dclosedir(HOST_DIRHANDLE *dirh, uint16_t drv)
     DIR *dir;
     uint16_t snextHdl = dirh->hostDirHdl;
     int dir_fd;
-    if (HostHandles::snextGet(snextHdl, &dir, &dir_fd))
+    if (HostHandles::getOpendir(snextHdl, getActPd(), dirh->hash, &dir, &dir_fd))
     {
         DebugWarning2("() -> EINTRN");
         dirh->hostDirHdl = -1;
         return EINTRN;
     }
 
-    HostHandles::snextClose(snextHdl);  // also does closedir()
+    HostHandles::closeOpendir(snextHdl, dirh->hash);  // also does closedir()
     dirh->hostDirHdl = -1;
 
     DebugInfo2("() -> E_OK");
@@ -2532,17 +2539,56 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE(drv)
-
     (void) dirID;
-	struct statvfs buff;
-	int res = statvfs(drv_host_path[drv], &buff);
-	if (res != 0)
-		return CConversion::host2AtariError(errno);
 
-    data[0] = htobe32(buff.f_bavail);   // # free blocks
-    data[1] = htobe32(buff.f_blocks);   // # total blocks
-    data[2] = htobe32(buff.f_bsize);    // sector size in bytes
-    data[3] = htobe32(1);   // sectors per cluster
+    struct statvfs buf;
+    if (statvfs(drv_host_path[drv], &buf) != 0)
+    {
+        return CConversion::host2AtariError(errno);
+    }
+
+    //
+    // saturate 32-bit unsigned overflow
+    //
+
+    uint32_t num_free_blocks  = (buf.f_bavail >= 0x100000000) ? -1 : (uint32_t) buf.f_bavail;
+    uint32_t num_total_blocks = (buf.f_blocks >= 0x100000000) ? -1 : (uint32_t) buf.f_blocks;
+    uint32_t block_size       = (buf.f_bsize  >= 0x100000000) ? -1 : (uint32_t) buf.f_bsize;
+
+    if (block_size == 0)
+    {
+        DebugError2("() -- Host blocksize reported as zero. Assume 512.");
+        block_size = 512;
+    }
+
+    //
+    // saturate 32-bit signed overflow for resulting number of bytes
+    //
+
+#if 0
+    if ((uint64_t) num_free_blocks * (uint64_t) block_size > 0x7fffffff)
+    {
+        num_free_blocks = 0x7fffffff / block_size;
+    }
+    if ((uint64_t) num_total_blocks * (uint64_t) num_total_blocks > 0x7fffffff)
+    {
+        num_total_blocks = 0x7fffffff / block_size;
+    }
+#endif
+
+    if (buf.f_bavail > num_free_blocks)
+    {
+        DebugWarning2("() -- number of free blocks saturated from %llu to %u", buf.f_bavail, num_free_blocks);
+    }
+    if (buf.f_blocks > num_total_blocks)
+    {
+        DebugWarning2("() -- number of free blocks saturated from %llu to %u", buf.f_blocks, num_total_blocks);
+    }
+
+    data[0] = htobe32(num_free_blocks);     // # free blocks
+    data[1] = htobe32(num_total_blocks);    // # total blocks
+    data[2] = htobe32(block_size);          // sector size in bytes
+    data[3] = htobe32(1);                   // sectors per cluster
 
     DebugInfo2("() -> E_OK");
     return E_OK;
@@ -2750,9 +2796,9 @@ INT32 CHostXFS::xfs_dcntl
     struct stat statbuf;
     if ((cmd == FUTIME) || (cmd == FSTAT))
     {
-		if (!pArg)
+        if (!pArg)
         {
-		    return EINVFN;
+            return EINVFN;
         }
         int res = fstatat(dir_fd, host_name, &statbuf, AT_EMPTY_PATH);
         if (res < 0)
@@ -2821,7 +2867,7 @@ INT32 CHostXFS::xfs_dcntl
 /// Helper to get the host file handle
 #define GET_hhdl_AND_fd \
     uint32_t hhdl = be16toh(f->refnum); \
-    HostFD *hostFD = getHostFD(hhdl); \
+    HostFD *hostFD = HostHandles::getHostFD(hhdl); \
     if (hostFD == nullptr) \
     { \
         return EINTRN; \
@@ -2890,7 +2936,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
             }
             f->mod_tdate_dirty = 0;
         }
-        freeHostFD(hostFD);     // also closes hostFD->fd
+        HostHandles::freeHostFD(hostFD);     // also closes hostFD->fd
     }
 
     return aret;
@@ -3453,7 +3499,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
                     be16toh(psfirstparm->drv),
                     (MXFSDD *) (addrOffset68k + be32toh(psfirstparm->dd)),
                     (char *) (addrOffset68k + be32toh(psfirstparm->name)),
-                    (MAC_DTA *) (addrOffset68k + be32toh(psfirstparm->dta)),
+                    (MX_DTA *) (addrOffset68k + be32toh(psfirstparm->dta)),
                     be16toh(psfirstparm->attrib)
                     );
             break;
@@ -3469,7 +3515,7 @@ INT32 CHostXFS::XFSFunctions(UINT32 param, uint8_t *addrOffset68k)
             snextparm *psnextparm = (snextparm *) params;
             doserr = xfs_snext(
                     be16toh(psnextparm->drv),
-                    (MAC_DTA *) (addrOffset68k + be32toh(psnextparm->dta))
+                    (MX_DTA *) (addrOffset68k + be32toh(psnextparm->dta))
                     );
             break;
         }

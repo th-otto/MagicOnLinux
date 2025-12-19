@@ -38,6 +38,7 @@
 #include "Atari.h"
 #include "volume_images.h"
 #include "network.h"
+#include "register_model.h"
 #include "mem_access_68k.h"
 #include "conversion.h"
 #include "gui.h"
@@ -196,9 +197,9 @@ CMagiC::CMagiC()
     m_bInterruptMouseKeyboardPending = false;
     m_bInterruptMouseButton[0] = m_bInterruptMouseButton[1] = false;
     m_InterruptMouseWhere.y = m_InterruptMouseWhere.x = 0;
+    m_InterruptMouseMoveRelX = m_InterruptMouseMoveRelY = 0.0;
     m_bInterruptPending = false;
     m_LineAVars = nullptr;
-    m_pMagiCScreen = nullptr;
 //    m_PrintFileRefNum = 0;
     pTheMagiC = this;
     m_bEmulatorHasEnded = false;
@@ -749,7 +750,7 @@ uint32_t CMagiC::thunk_XCmdCommand(uint32_t params, unsigned char *AdrOffset68k)
 *
 **********************************************************************/
 
-int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
+int CMagiC::init(CXCmd *pXCmd)
 {
     int err;
     Atari68kData *pAtari68kData;
@@ -757,42 +758,41 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     struct SYSHDR *pSysHdr;
     uint32_t AtariMemtop;        // Ende Atari-Benutzerspeicher
     uint32_t chksum;
-    unsigned numVideoLines;
 
 
     // Konfiguration
 
     DebugInfo2("() - MultiThread version for Linux");
-#ifdef EMULATE_68K_TRACE
-    DebugInfo2("() - 68k trace is emulated (slows down the emulator a bit)");
-#else
-    DebugInfo2("() - 68k trace is not emulated (makes the emulator a bit faster)");
-#endif
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
     DebugInfo2("() - 68k ROM is write-protected (slows down the emulator a bit)");
 #else
     DebugInfo2("() - 68k ROM is not write-protected (makes the emulator a bit faster)");
 #endif
-#ifdef WATCH_68K_PC
-    DebugInfo2("() - 68k PC is checked for validity (slows down the emulator a bit)");
+#if defined(EMULATE_NULLPTR_BUSERR)
+    DebugInfo2("() - 68k access to 0 and 4 in user mode is prohibited (slows down the emulator a bit)");
 #else
-    DebugInfo2("() - 68k PC is not checked for validity (makes the emulator a bit faster)");
+    DebugInfo2("() - 68k access to 0 and 4 in user mode is ignored (makes the emulator a bit faster)");
 #endif
-    //DebugInfo2("() - Mac-Menü %s", (CGlobals::s_bShowMacMenu) ? "ein" : "aus");
+#if defined(_DEBUG_WATCH_68K_VECTOR_CHANGE)
+    DebugInfo2("() - Writing to 68k interrupt vectors is logged (slows down the emulator a bit)");
+#else
+    DebugInfo2("() - Writing to 68k interrupt vectors is not logged (makes the emulator a bit faster)");
+#endif
+
     DebugInfo2("() - Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
-
-    // Atari screen data
-
-    m_pMagiCScreen = pMagiCScreen;
 
     // Tastaturtabelle lesen
 
     (void) CMagiCKeyboard::init();
 
     mem68kSize = Preferences::AtariMemSize;
-    numVideoLines = m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top;
-    unsigned bufferLineLenInBytes = (m_pMagiCScreen->m_PixMap.rowBytes & 0x3fff);
+    #if 0
+    unsigned numVideoLines = CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top;
+    unsigned bufferLineLenInBytes = (CMagiCScreen::m_PixMap.rowBytes & 0x3fff);
     memVideo68kSize = bufferLineLenInBytes * numVideoLines;
+    #else
+    memVideo68kSize = CMagiCScreen::pixels_size;
+    #endif
     // get Atari memory
     // TODO: In fact we do not have to add m_Video68ksize here, because video memory
     //       is allocated separately as SDL surface in EmulatorRunner.
@@ -863,7 +863,7 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     // Atari-68k-Daten setzen
 
     pAtari68kData = (Atari68kData *) (mem68k + AtariMemtop);        // Pixmap inside Atari memory
-    pAtari68kData->m_PixMap = m_pMagiCScreen->m_PixMap;             // copy host Pixmap to Atari memory
+    pAtari68kData->m_PixMap = CMagiCScreen::m_PixMap;             // copy host Pixmap to Atari memory
     // left and top seem to be ignored, i.e. only  right and bottom are relevant
     pAtari68kData->m_PixMap.baseAddr = (PTR32_BE) addr68kVideo;        // virtual 68k address
 
@@ -922,9 +922,10 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     pMacXSysHdr->MacSys_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) mem68k));
     setCXCmdHostCallback(&pMacXSysHdr->MacSys_Xcmd, thunk_XCmdCommand);
     pMacXSysHdr->MacSys_PPCAddr = 0;                // on 32-bit host: mem68k
-    pMacXSysHdr->MacSys_VideoAddr = 0x80000000;        // on 32-bit host: m_pMagiCScreen->m_PixMap.baseAddr
+    pMacXSysHdr->MacSys_VideoAddr = 0x80000000;        // on 32-bit host: CMagiCScreen::m_PixMap.baseAddr
     setHostCallback(&pMacXSysHdr->MacSys_gettime,    AtariGettime);
     setHostCallback(&pMacXSysHdr->MacSys_settime,    AtariSettime);
+    setHostCallback(&pMacXSysHdr->MacSys_Setscreen,  AtariSetscreen);
     setHostCallback(&pMacXSysHdr->MacSys_Setpalette, AtariSetpalette);
     setHostCallback(&pMacXSysHdr->MacSys_Setcolor,   AtariSetcolor);
     setHostCallback(&pMacXSysHdr->MacSys_VsetRGB,    AtariVsetRGB);
@@ -1064,6 +1065,13 @@ int CMagiC::Init(CMagiCScreen *pMagiCScreen, CXCmd *pXCmd)
     m68k_pulse_reset();
 
 #endif
+
+    CRegisterModel::init();
+    /*
+    // test model
+    uint32_t dummy;
+    CRegisterModel::read_word(0x0d2155c2, &dummy);
+    */
 
     return 0;
 }
@@ -1412,7 +1420,14 @@ int CMagiC::EmuThread( void )
             {
                 bNewBstate[0] = CMagiCMouse::setNewButtonState(0, m_bInterruptMouseButton[0]);
                 bNewBstate[1] = CMagiCMouse::setNewButtonState(1, m_bInterruptMouseButton[1]);
-                bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhere);
+                if (Preferences::bRelativeMouse)
+                {
+                    bNewMpos = CMagiCMouse::setNewMovement(m_InterruptMouseMoveRelX, m_InterruptMouseMoveRelY);
+                }
+                else
+                {
+                    bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhere);
+                }
                 bNewKey = (m_pKbRead != m_pKbWrite);
                 if (bNewBstate[0] || bNewBstate[1] || bNewMpos || bNewKey)
                 {
@@ -1912,6 +1927,39 @@ int CMagiC::SendMousePosition(int x, int y)
 
 /**********************************************************************
 *
+* Mausbewegung schicken
+*
+* Rückgabe != 0, wenn die letzte Nachricht noch aussteht.
+*
+**********************************************************************/
+int CMagiC::SendMouseMovement(double xrel, double yrel)
+{
+    if (m_bEmulatorIsRunning)
+    {
+        OS_EnterCriticalRegion(&m_KbCriticalRegionId);
+        m_InterruptMouseMoveRelX = xrel;
+        m_InterruptMouseMoveRelY = yrel;
+        m_bInterruptMouseKeyboardPending = true;
+    #if defined(USE_ASGARD_PPC_68K_EMU)
+        Asgard68000SetExitImmediately();
+    #else
+        m68k_StopExecution();
+    #endif
+
+        // wake up emulator, if in "idle task"
+        OS_SetEvent(
+                &m_InterruptEventsId,
+                EMU_INTPENDING_KBMOUSE);
+
+        OS_ExitCriticalRegion(&m_KbCriticalRegionId);
+    }
+
+    return 0;    // OK
+}
+
+
+/**********************************************************************
+*
 * Mausknopf schicken.
 *
 * Wird von der "main event loop" aufgerufen.
@@ -2114,6 +2162,10 @@ uint32_t CMagiC::AtariInit(uint32_t params, uint8_t *addrOffset68k)
 uint32_t CMagiC::AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k)
 {
     DebugInfo2("() - ATARI: BIOS initialisation done.");
+#if defined(M68K_BREAKPOINTS)
+    m68k_breakpoints[0][0] = 0x7c9bf8 + 0x1F5E;   // VsetRGB
+    m68k_breakpoints[0][1] = m68k_breakpoints[0][0] + 16;   // range
+#endif
     (void) params;
     (void) addrOffset68k;
     return 0;
@@ -2137,7 +2189,7 @@ uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
     //breakpoint2 = 0x007c9c68 + 0x17ee;   // print_bombs10
     //breakpoint2_range = 0x180a - 0x17ee;   // print_bombs10
     //breakpoint3 = 0x007c9c68 + 0x1e2f2;   // pgm_loader
-    m68k_breakpoints[0][0] = 0x007c9c68 + 0x1793a;   // draw_spr
+    //m68k_breakpoints[0][0] = 0x007c9bf8 /* system TEXT segment */ + 0x1F5E;   // VsetRGB
 #endif
 //    (void) params;
 //    (void) addrOffset68k;
@@ -2145,8 +2197,8 @@ uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
 
     m_LineAVars = addrOffset68k + params;
     // Aktuelle Mausposition: Bildschirmmitte
-    PtAtariMousePos.x = (short) ((m_pMagiCScreen->m_PixMap.bounds_right - m_pMagiCScreen->m_PixMap.bounds_left) >> 1);
-    PtAtariMousePos.y = (short) ((m_pMagiCScreen->m_PixMap.bounds_bottom - m_pMagiCScreen->m_PixMap.bounds_top) >> 1);
+    PtAtariMousePos.x = (short) ((CMagiCScreen::m_PixMap.bounds_right - CMagiCScreen::m_PixMap.bounds_left) >> 1);
+    PtAtariMousePos.y = (short) ((CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top) >> 1);
     CMagiCKeyboard::init();
     CMagiCMouse::init(m_LineAVars, PtAtariMousePos);
 
@@ -2335,6 +2387,69 @@ uint32_t CMagiC::AtariSettime(uint32_t params, uint8_t *addrOffset68k)
 
 /** **********************************************************************************************
  *
+ * @brief Emulator callback: XBIOS Setcreen
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return not supported, always zero
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct SetscreenParm
+    {
+        PTR32_BE log;       // logical screen address
+        PTR32_BE phys;      // physical screen address
+        UINT16_BE res;      // resolution: 0=ST low, 1=ST mid, 2=ST high
+    } __attribute__((packed));
+
+    const SetscreenParm *theParm = (SetscreenParm *) (addrOffset68k + params);
+    uint32_t log = be32toh(theParm->log);
+    uint32_t phys = be32toh(theParm->phys);
+    uint16_t res = be16toh(theParm->res);
+    //DebugError2("(0x%08x, 0x%08x, %u) -- not supported", log, phys, res);
+    if (log != 0xffffffff)
+    {
+        if (log > mem68kSize - 32000)
+        {
+            DebugError2("() -- invalid 68k address 0x%08x", log);
+        }
+        else
+        {
+            CMagiCScreen::m_logAddr = log;
+            DebugError2("() -- changing of logical screen to 0x%08x not supported, yet", log);
+        }
+    }
+    if (phys != 0xffffffff)
+    {
+        if (phys == addr68kVideo)
+        {
+            DebugWarning2("() -- physical screen address reset to 0x%08x", phys);
+            CMagiCScreen::m_physAddr = 0;
+        }
+        else
+        if (phys > mem68kSize - 32000)
+        {
+            DebugError2("() -- invalid 68k address 0x%08x", phys);
+        }
+        else
+        {
+            CMagiCScreen::m_physAddr = phys;
+            DebugWarning2("() -- changing of physical screen to 0x%08x is experimental", phys);
+        }
+    }
+    if (res != 0xffff)
+    {
+        CMagiCScreen::m_res = res;
+        DebugError2("() -- changing of screen resolution to %ux not supported, yet", res);
+    }
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Emulator callback: XBIOS Setpalette
  *
  * @param[in] param             68k address of parameter structure
@@ -2345,9 +2460,41 @@ uint32_t CMagiC::AtariSettime(uint32_t params, uint8_t *addrOffset68k)
  ************************************************************************************************/
 uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
 {
-    (void) params;
-    (void) addrOffset68k;
-    DebugWarning2("() -- not supported");
+    DebugWarning2("() -- partially supported");
+
+    struct SetpaletteParm
+    {
+        PTR32_BE ptr;       // 68k pointer to 16 16-bit values (big-endian)
+    } __attribute__((packed));
+
+    const SetpaletteParm *theParm = (SetpaletteParm *) (addrOffset68k + params);
+    uint32_t table = be32toh(theParm->ptr);
+    if (table > mem68kSize - 16 * 2)
+    {
+        DebugError2("() -- invalid 68k address 0x%08x", table);
+        return 0;
+    }
+
+    //
+    // loop over all 16 colours in the palette that shall be changed
+    //
+
+    const uint8_t *newColours = addrOffset68k + table;
+    for (unsigned i = 0; i < 16; i++)
+    {
+        // Atari: 16'bxxxxrrrrggggbbbb
+        // 0xf000        ignored
+        // 0x0f00        red
+        // 0x00f0        green
+        // 0x000f        blue
+        uint16_t ac = *newColours++;     // read 16-bit big-endian
+        ac <<= 8;
+        ac |= *newColours++;
+        CMagiCScreen::setColourPaletteEntry(i, ac);
+    }
+
+    // tell GUI thread to update the screen
+    atomic_store(&gbAtariVideoBufChanged, true);
     return 0;
 }
 
@@ -2359,15 +2506,36 @@ uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
  * @param[in] param             68k address of parameter structure
  * @param[in] addrOffset68k     Host address of 68k memory
  *
- * @return not supported, always zero
+ * @return previous value
  *
  ************************************************************************************************/
 uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
 {
-    (void) params;
     (void) addrOffset68k;
-    DebugWarning2("() -- not supported");
-    return 0;
+    struct SetcolorParm
+    {
+        UINT16_BE index;    // colour to change (0..15)
+        UINT16_BE val;      // new value
+    } __attribute__((packed));
+
+    const SetcolorParm *theParm = (SetcolorParm *) (addrOffset68k + params);
+    uint16_t index = be16toh(theParm->index);
+    uint16_t val = be16toh(theParm->val);
+
+    if (index > 15)
+    {
+        DebugError2("() -- invalid colour number %u", index);
+        return 0;
+    }
+
+    uint16_t prev_val = CMagiCScreen::getColourPaletteEntry(index);
+    if (val != 0xffff)
+    {
+        CMagiCScreen::setColourPaletteEntry(index, val);
+    }
+
+    DebugWarning2("(%2d, 0x%04x) -- partially supported", index, val);
+    return prev_val;
 }
 
 
@@ -2407,7 +2575,7 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
     // loop over all colours in the palette that shall be changed
     //
 
-    uint32_t *pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable + index;
+    uint32_t *pColourTable = CMagiCScreen::m_pColourTable + index;
     unsigned j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
     for (unsigned i = index; i < j; i++, pValues += 4,pColourTable++)
     {
@@ -2416,8 +2584,31 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
         // 0xffff0000        red
         // 0xff00ff00        green
         // 0xff0000ff        blue
-        uint32_t c = (pValues[1] << 16) | (pValues[2] << 8) | (pValues[3] << 0) | (0xff000000);
-        *pColourTable++ = c;
+        uint32_t c = (pValues[1] << 16) | (pValues[2] << 8) | (pValues[3] << 0);
+
+        #if 0
+        //
+        // Hack for NVDI in mode "four colours interleaved":
+        //  changing colour #3 from black to yellow must be blocked twice
+        //
+
+        static unsigned bHacked = 2;
+        if (bHacked && (i == 3) && (c == 0x00ffff00) && (Preferences::atariScreenColourMode == atariScreenMode4ip))
+        {
+            DebugWarning2("() -- suppressed setting colour #3 to yellow (NVDI bug workaround, round %u/2)", 2 - bHacked + 1);
+            c = *pColourTable;  // value unchanged
+            bHacked--;
+            #if defined(M68K_TRACE)
+            static int done = 0;
+            if (!done)
+            {
+                m68k_trace_print();
+                done = 1;
+            }
+            #endif
+        }
+        #endif
+        *pColourTable++ = c | (0xff000000);
     }
 
     // tell GUI thread to update the screen
@@ -2460,7 +2651,7 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
     // loop over all colours in the palette that shall be read
     //
 
-    const uint32_t *pColourTable = pTheMagiC->m_pMagiCScreen->m_pColourTable + index;
+    const uint32_t *pColourTable = CMagiCScreen::m_pColourTable + index;
     unsigned j = MIN(MAGIC_COLOR_TABLE_LEN, index + cnt);
     for (unsigned i = index; i < j; i++, pValues++, pColourTable++)
     {

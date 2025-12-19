@@ -27,6 +27,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #define NDRIVES ('Z'-'A' + 1)
 #define ATARIDRIVEISMAPPABLE(d)    ((d != 'C'-'A') && (d != 'M'-'A') && (d != 'U'-'A'))
@@ -61,14 +62,14 @@ typedef enum
 #define MAX_ETH 4
 struct ethernet_options
 {
-	unsigned int type;
-	char tunnel[16];
-	char host_ip[16];
-	char atari_ip[16];
-	char netmask[16];
-	char gateway[16];
-	char mac_addr[18];
-	unsigned int intlevel;
+    unsigned int type;
+    char tunnel[16];
+    char host_ip[16];
+    char atari_ip[16];
+    char netmask[16];
+    char gateway[16];
+    char mac_addr[18];
+    unsigned int intlevel;
 };
 
 // Network types
@@ -84,24 +85,28 @@ class Preferences
                     int mode_override,
                     int width_override, int height_override,
                     int stretch_x_override, int stretch_y_override,
+                    int relative_mouse_override,
                     int memsize_override,
+                    const char *rootfs_override,
                     bool rewrite_conf);
     static const char *videoModeToString(enAtariScreenColourMode mode);
+    static const char *videoModeToShortString(enAtariScreenColourMode mode);
 
     static unsigned AtariMemSize;
     static char AtariLanguage[16];                  // empty for default, or EN/DE/FR
     static bool bShowHostMenu;
     static enAtariScreenColourMode atariScreenColourMode;
     static bool bHideHostMouse;
+    static bool bRelativeMouse;
     static bool bAutoStartMagiC;
-	static char AtariKernelPath[1024];              // "MAGICLIN.OS" file
-	static char AtariRootfsPath[1024];              // Atari C:
+	static char AtariKernelPath[PATH_MAX];          // "MAGICLIN.OS" file
+	static char AtariRootfsPath[PATH_MAX];          // Atari C:
     static bool AtariHostHome;                      // Atari H: is home
     static bool AtariHostHomeRdOnly;                // Atari H: is write protected
     static bool AtariHostRoot;                      // Atari M: as host root
     static bool AtariHostRootRdOnly;                // Atari M: is write protected
-	static char AtariScrapFileUnixPath[1024];       // the clipboard file is called "scrap" in GEM
-	static char AtariTempFilesUnixPath[1024];
+	static char AtariScrapFileUnixPath[PATH_MAX];   // the clipboard file is called "scrap" in GEM
+	static char AtariTempFilesUnixPath[PATH_MAX];
     static char szPrintingCommand[256];
     static char szAuxPath[256];
     static unsigned Monitor;                        // 0: default

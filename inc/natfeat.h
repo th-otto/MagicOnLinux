@@ -1,3 +1,4 @@
+//  (Thorsten Otto)
 #ifndef _NF_NATFEAT_H
 #define _NF_NATFEAT_H
 
@@ -42,12 +43,12 @@ static inline void Host2Atari_memcpy(uint32_t dst, const void *_src, size_t coun
 
 static inline void Host2AtariSafeStrncpy(uint32_t dst, const char *src, size_t count)
 {
-	while ( count > 1 && *src ) {
-		m68ki_write_8(dst++, (uint8)*src++);
-		count--;
-	}
-	if (count > 0)
-		m68ki_write_8(dst, 0);
+    while ( count > 1 && *src ) {
+        m68ki_write_8(dst++, (uint8)*src++);
+        count--;
+    }
+    if (count > 0)
+        m68ki_write_8(dst, 0);
 }
 
 #ifdef __cplusplus

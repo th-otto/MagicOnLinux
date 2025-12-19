@@ -29,6 +29,7 @@
        <select value="6" _label="monochrome"/>
     </choice>
     <bool name="hide_host_mouse" _label="Hide host mouse" default="0" _tooltip="Hides the host operating system's mouse pointer when it is over the emulation window"></bool>
+    <bool name="relative_mouse" _label="Use relative mousemode" default="0" _tooltip="Tells SDL to send relative mouse movements"></bool>
   </section>
   <section name="SCREEN PLACEMENT" _label="Window Placement" _desc="Define the window's position (X/Y) and which display it should appear on" icon="view-fullscreen">
     <int name="app_display_number" _label="Monitor" default="0" _tooltip="The display number (e.g., 0, 1, 2) on which the window should appear"></int>

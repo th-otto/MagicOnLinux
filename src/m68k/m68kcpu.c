@@ -934,6 +934,12 @@ static void m68k_dump_state(void)
 /* ================================= API ================================== */
 /* ======================================================================== */
 
+// hack
+int m68k_get_super(void)
+{
+    return m68ki_cpu.s_flag;
+}
+
 /* Access the internals of the CPU */
 unsigned int m68k_get_reg(void* context, m68k_register_t regnum)
 {
@@ -1194,6 +1200,42 @@ void m68k_set_cpu_type(unsigned int cpu_type)
 	}
 }
 
+#if defined(M68K_TRACE)
+uint32_t m68k_trace[M68K_TRACE][2];     // PC and d0
+unsigned m68k_trace_i = 0;
+void m68k_trace_print(void)
+{
+	// Note that addresses from MEMEXAMN include the header, i.e.
+	// NVDI basepage starts at 0x1db9c + 0x10
+	for (unsigned i = 0; i < M68K_TRACE; i++)
+	{
+        unsigned index = (M68K_TRACE + m68k_trace_i - i - 1) % M68K_TRACE;
+		uint32_t prevpc = m68k_trace[index][0];
+        uint32_t rd0    = m68k_trace[index][1];
+		uint16_t instr = (mem68k[prevpc] << 8) + (mem68k[prevpc + 1]);
+		if ((prevpc >= addrOsRomStart) && (prevpc < addrOsRomEnd))
+		{
+			printf(" PC was 0x%08x, d0 = 0x%08x, instr 0x%04x (OS rel 0x%06x)\n", prevpc, rd0, instr, prevpc - addrOsRomStart);
+		}
+		else
+		if ((prevpc >= 0x18144 + 0x10) && (prevpc < 0x18c94))
+		{
+			// size 0xb40, owner = boot
+			printf(" PC was 0x%08x, d0 = 0x%08x, instr 0x%04x (MFM4IP.SYS rel 0x%06x)\n", prevpc, rd0, instr, prevpc - (0x18144 + 0x10));
+		}
+		else
+		if ((prevpc >= 0x1db54 + 0x10) && (prevpc < 0x75ec4))
+		{
+			printf(" PC was 0x%08x, d0 = 0x%08x, instr 0x%04x (NVDI.PRG rel 0x%06x)\n", prevpc, rd0, instr, prevpc - (0x1db54 + 0x10) - 0x100);
+		}
+		else
+		{
+			printf(" PC was 0x%08x, d0 = 0x%08x, instr 0x%04x\n", prevpc, rd0, instr);
+		}
+	}
+}
+#endif
+
 /* Execute some instructions until we use up num_cycles clock cycles */
 /* ASG: removed per-instruction interrupt checks */
 #if COUNT_CYCLES == OPT_OFF
@@ -1257,6 +1299,12 @@ void m68k_execute(void)
 
         #endif  // M68K_BREAKPOINTS
 
+		#if defined(M68K_TRACE)
+		m68k_trace[m68k_trace_i][0] = REG_PC;
+		m68k_trace[m68k_trace_i][1] = REG_D[0];
+        m68k_trace_i++;
+		m68k_trace_i %= M68K_TRACE;
+		#endif
 
 		/* Read an instruction and call its handler */
 		REG_IR = m68ki_read_imm_16();

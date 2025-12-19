@@ -1,3 +1,4 @@
+// (Thorsten Otto)
 #ifndef _NFOBJS_H
 #define _NFOBJS_H
 

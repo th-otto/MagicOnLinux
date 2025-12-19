@@ -25,6 +25,7 @@
 #ifndef _MAGIC_SCREEN_H
 #define _MAGIC_SCREEN_H
 
+#include <SDL2/SDL.h>
 #include "Atari.h"
 
 #define MAGIC_COLOR_TABLE_LEN 256
@@ -32,11 +33,25 @@
 class CMagiCScreen
 {
   public:
-	CMagiCScreen();
-	~CMagiCScreen();
+    static int init();
+    static void exit();
+    static void convAtari2HostSurface();
+    static void setColourPaletteEntry(unsigned index, uint16_t val);
+    static uint16_t getColourPaletteEntry(unsigned index);
 
-	MXVDI_PIXMAP m_PixMap;
-	uint32_t m_pColourTable[MAGIC_COLOR_TABLE_LEN];
+	static MXVDI_PIXMAP m_PixMap;
+    static void *pixels;
+    static unsigned pixels_size;
+    static SDL_Surface *m_sdl_atari_surface;        // surface in Atari native pixel format or NULL
+    static SDL_Surface *m_sdl_host_surface;         // surface in host native pixel format
+
+	static uint32_t m_pColourTable[MAGIC_COLOR_TABLE_LEN];
+    static uint32_t m_logAddr;      // logical 68k address of video memory
+    static uint32_t m_physAddr;     // physical 68k address of video memory
+    static uint16_t m_res;          // desired resolution, usually 0xffff
+
+  private:
+    static void init_pixmap(uint16_t pixelType, uint16_t cmpCount, uint16_t cmpSize, uint32_t planeBytes);
 };
 
 #endif

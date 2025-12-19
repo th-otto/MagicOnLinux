@@ -27,19 +27,26 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - popd
 - cp -rp AtariX/src/AtariX-MT/AtariX/rootfs-common Atari-rootfs
 - rm Atari-rootfs/GEMSYS/MFM16M-1fff.SYS
+- rm -rf Atari-rootfs/GEMSYS/OLD
+- mv Atari-rootfs/GEMSYS/NEU/OFF16MOV.OSD Atari-rootfs/GEMSYS/
+- rmdir Atari-rootfs/GEMSYS/NEU
 - mkdir Atari-rootfs/GEMSYS/GEMSCRAP
-- cp -p magiclinux/kernel/HOSTBIOS/EN/MAGICLIN.OS Atari-rootfs/
 - mkdir Atari-rootfs/LANG Atari-rootfs/LANG/DE Atari-rootfs/LANG/EN Atari-rootfs/LANG/FR
 - rsync -a AtariX/src/AtariX-MT/AtariX/English.lproj/rootfs/ Atari-rootfs/LANG/EN/
 - rsync -a AtariX/src/AtariX-MT/AtariX/de.lproj/rootfs/ Atari-rootfs/LANG/DE/
 - rsync -a AtariX/src/AtariX-MT/AtariX/fr.lproj/rootfs/ Atari-rootfs/LANG/FR/
+- cp -p magiclinux/kernel/VDI/DRIVERS/MAC/SRC/MFM4IP.SYS Atari-rootfs/GEMSYS/
 - cp -p magiclinux/kernel/HOSTBIOS/EN/MAGICLIN.OS Atari-rootfs/LANG/EN/
 - cp -p magiclinux/kernel/HOSTBIOS/DE/MAGICLIN.OS Atari-rootfs/LANG/DE/
 - cp -p magiclinux/kernel/HOSTBIOS/FR/MAGICLIN.OS Atari-rootfs/LANG/FR/
 - cp -p magiclinux/kernel/LOCALISE.SH Atari-rootfs/LANG/
+- touch Atari-rootfs/MAGICLIN.OS
+- Atari-rootfs/LANG/LOCALISE.SH EN
 - mv Atari-rootfs MAGIC_C
 
-Replace "HOSTBIOS/EN" with "HOSTBIOS/DE" or "HOSTBIOS/FR" for German or French. Replace "English" with "de" or "fr" for German or French. But, however, the Atari's language can be changed later via config file or command line.
+Replace "LOCALISE.SH EN" with "LOCALISE.SH DE" or "LOCALISE.SH FR" for German or French as initial language. However, the Atari's language can be changed later via config file or command line.
+
+If you like, add cmake parameter -DCMAKE_INSTALL_PREFIX:PATH=/opt for changing the installation directory tree from "/usr/local" to "/opt". Note that installation is an additional, optional, but recommended step, see below.
 
 Optionally adapt some default values in "CMakeLists.txt".
 
@@ -48,6 +55,10 @@ Without gxmessage you will not see error message dialogues, instead the text wil
 You might replace CMAKE_BUILD_TYPE with "Debug" (to get debug log output) or omit this parameter.
 
 Alternatively you can put your Atari root file system (drive C:) and kernel (MAGICLIN.OS) anywhere and configure the emulator accordingly.
+
+# How To Install
+
+You can install the program with "sudo make install". This copies the executable file, a ".desktop" file and an icon file to usually "/usr/local/", if not otherwise specified (see above). Otherwise, MagicOnLinux will always show your system theme's default icon for uninstalled applications.
 
 # How To Run
 

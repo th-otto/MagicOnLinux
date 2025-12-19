@@ -63,7 +63,7 @@ void CMagiCPrint::exit()
 {
     if (bTempFileCreated)
     {
-        char command[2048];
+        char command[PATH_MAX + 100];
         int ierr;
 
         // Make sure to enclose path in quotation marks, in case the path contains spaces.
@@ -136,7 +136,7 @@ uint32_t CMagiCPrint::Read(uint8_t *pBuf, uint32_t cnt)
  ************************************************************************************************/
 uint32_t CMagiCPrint::Write(const uint8_t *pBuf, uint32_t cnt)
 {
-    char PrintFileName[2048];
+    char PrintFileName[PATH_MAX + 100];
     long OutCnt;
 
 
@@ -175,7 +175,7 @@ uint32_t CMagiCPrint::Write(const uint8_t *pBuf, uint32_t cnt)
  ************************************************************************************************/
 uint32_t CMagiCPrint::ClosePrinterFile(void)
 {
-    char command[2382];
+    char command[PATH_MAX * 3];
     int ierr;
 
 

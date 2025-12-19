@@ -1,5 +1,5 @@
 /*
- * NatFeats (Native Features main dispatcher)
+ * NatFeats (Native Features main dispatcher) (Thorsten Otto)
  */
 
 #include "config.h"

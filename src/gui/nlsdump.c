@@ -7,7 +7,6 @@
 #include <string.h>
 #include "nls.h"
 #include "pofile.h"
-#include "nlshash.c"
 
 char const program_name[] = "nlsdump";
 char const program_version[] = "1.0";

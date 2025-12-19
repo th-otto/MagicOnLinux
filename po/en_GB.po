@@ -19,7 +19,7 @@ msgid  ""
 msgstr ""
 "Project-Id-Version: MagicOnLinux 0.3\n"
 "Report-Msgid-Bugs-To: https://github.com/th-otto/MagicOnLinux/issues\n"
-"POT-Creation-Date: 2025-12-17 11:34+0100\n"
+"POT-Creation-Date: 2025-12-19 17:42+0100\n"
 "PO-Revision-Date: 2025-12-10 11:35+0100\n"
 "Last-Translator: Timothy Richard Musson <trmusson@gmail.com>\n"
 "Language-Team: British English <en@li.org>\n"
@@ -556,56 +556,64 @@ msgstr "Hide host mouse"
 msgid  "Hides the host operating system's mouse pointer when it is over the emulation window"
 msgstr "Hides the host operating system's mouse pointer when it is over the emulation window"
 
-#: ../src/gui/preferences.xml:33
+#: ../src/gui/preferences.xml:32
+msgid  "Use relative mousemode"
+msgstr "Use relative mousemode"
+
+#: ../src/gui/preferences.xml:32
+msgid  "Tells SDL to send relative mouse movements"
+msgstr "Tells SDL to send relative mouse movements"
+
+#: ../src/gui/preferences.xml:34
 msgid  "Window Placement"
 msgstr "Window Placement"
 
-#: ../src/gui/preferences.xml:33
+#: ../src/gui/preferences.xml:34
 msgid  "Define the window's position (X/Y) and which display it should appear on"
 msgstr "Define the window's position (X/Y) and which display it should appear on"
 
-#: ../src/gui/preferences.xml:34
+#: ../src/gui/preferences.xml:35
 msgid  "Monitor"
 msgstr "Monitor"
 
-#: ../src/gui/preferences.xml:34
+#: ../src/gui/preferences.xml:35
 msgid  "The display number (e.g., 0, 1, 2) on which the window should appear"
 msgstr "The display number (e.g., 0, 1, 2) on which the window should appear"
 
-#: ../src/gui/preferences.xml:35
+#: ../src/gui/preferences.xml:36
 msgid  "Window position X (left)"
 msgstr "Window position X (left)"
 
-#: ../src/gui/preferences.xml:35
 #: ../src/gui/preferences.xml:36
+#: ../src/gui/preferences.xml:37
 msgid  "Window position coordinates relative to the top-left corner of the screen"
 msgstr "Window position coordinates relative to the top-left corner of the screen"
 
-#: ../src/gui/preferences.xml:36
+#: ../src/gui/preferences.xml:37
 msgid  "Window position Y (top)"
 msgstr "Window position Y (top)"
 
-#: ../src/gui/preferences.xml:38
+#: ../src/gui/preferences.xml:39
 msgid  "Atari Emulation"
 msgstr "Atari Emulation"
 
-#: ../src/gui/preferences.xml:38
+#: ../src/gui/preferences.xml:39
 msgid  "General emulation settings, including RAM size, language ROM, and menu behavior"
 msgstr "General emulation settings, including RAM size, language ROM, and menu behavior"
 
-#: ../src/gui/preferences.xml:39
+#: ../src/gui/preferences.xml:40
 msgid  "Memory size (RAM in bytes)"
 msgstr "Memory size (RAM in bytes)"
 
-#: ../src/gui/preferences.xml:39
+#: ../src/gui/preferences.xml:40
 msgid  "Amount of RAM allocated to the emulated system (e.g., 8MB, 32MB)"
 msgstr "Amount of RAM allocated to the emulated system (e.g., 8MB, 32MB)"
 
-#: ../src/gui/preferences.xml:40
+#: ../src/gui/preferences.xml:41
 msgid  "Atari language"
 msgstr "Atari language"
 
-#: ../src/gui/preferences.xml:40
+#: ../src/gui/preferences.xml:41
 msgid  ""
 "Selects the language ROM to be used by the emulation (affects keyboard layout and startup "
 "language)"
@@ -613,237 +621,237 @@ msgstr ""
 "Selects the language ROM to be used by the emulation (affects keyboard layout and startup "
 "language)"
 
-#: ../src/gui/preferences.xml:41
-#: ../src/gui/preferences.xml:47
+#: ../src/gui/preferences.xml:42
+#: ../src/gui/preferences.xml:48
 msgid  "English (USA)"
 msgstr "English (USA)"
 
-#: ../src/gui/preferences.xml:42
-#: ../src/gui/preferences.xml:48
+#: ../src/gui/preferences.xml:43
+#: ../src/gui/preferences.xml:49
 msgid  "German"
 msgstr "German"
 
-#: ../src/gui/preferences.xml:43
-#: ../src/gui/preferences.xml:49
+#: ../src/gui/preferences.xml:44
+#: ../src/gui/preferences.xml:50
 msgid  "French"
 msgstr "French"
 
-#: ../src/gui/preferences.xml:45
+#: ../src/gui/preferences.xml:46
 msgid  "Application language"
 msgstr "Application language"
 
-#: ../src/gui/preferences.xml:45
+#: ../src/gui/preferences.xml:46
 msgid  "Selects the language for this application"
 msgstr "Selects the language for this application"
 
-#: ../src/gui/preferences.xml:46
+#: ../src/gui/preferences.xml:47
 msgid  "System Default"
 msgstr "System Default"
 
-#: ../src/gui/preferences.xml:50
+#: ../src/gui/preferences.xml:51
 msgid  "English (UK)"
 msgstr "English (UK)"
 
-#: ../src/gui/preferences.xml:99
+#: ../src/gui/preferences.xml:101
 msgid  "Show host menu"
 msgstr "Show host menu"
 
-#: ../src/gui/preferences.xml:99
+#: ../src/gui/preferences.xml:101
 msgid  "If enabled, the host menu bar (File, View, Help, etc.) is visible"
 msgstr "If enabled, the host menu bar (File, View, Help, etc.) is visible"
 
-#: ../src/gui/preferences.xml:100
+#: ../src/gui/preferences.xml:102
 msgid  "Auto start MagiC"
 msgstr "Auto start MagiC"
 
-#: ../src/gui/preferences.xml:100
+#: ../src/gui/preferences.xml:102
 msgid  "If enabled, the emulation starts immediately upon application launch"
 msgstr "If enabled, the emulation starts immediately upon application launch"
 
-#: ../src/gui/preferences.xml:101
+#: ../src/gui/preferences.xml:103
 msgid  "Show Help Tooltips"
 msgstr "Show Help Tooltips"
 
-#: ../src/gui/preferences.xml:101
+#: ../src/gui/preferences.xml:103
 msgid  "Toggle help tooltips for all widgets"
 msgstr "Toggle help tooltips for all widgets"
 
-#: ../src/gui/preferences.xml:103
+#: ../src/gui/preferences.xml:105
 msgid  "Additional Drives"
 msgstr "Additional Drives"
 
-#: ../src/gui/preferences.xml:103
+#: ../src/gui/preferences.xml:105
 msgid  "Manage additional mounted host folders or disk image files (A-Z) for the emulation"
 msgstr "Manage additional mounted host folders or disk image files (A-Z) for the emulation"
 
-#: ../src/gui/preferences.xml:104
+#: ../src/gui/preferences.xml:106
 msgid  "Path for Drive A:"
 msgstr "Path for Drive A:"
 
-#: ../src/gui/preferences.xml:105
+#: ../src/gui/preferences.xml:107
 msgid  "Path for Drive B:"
 msgstr "Path for Drive B:"
 
-#: ../src/gui/preferences.xml:108
+#: ../src/gui/preferences.xml:110
 msgid  "Path for Drive D:"
 msgstr "Path for Drive D:"
 
-#: ../src/gui/preferences.xml:109
+#: ../src/gui/preferences.xml:111
 msgid  "Path for Drive E:"
 msgstr "Path for Drive E:"
 
-#: ../src/gui/preferences.xml:110
+#: ../src/gui/preferences.xml:112
 msgid  "Path for Drive F:"
 msgstr "Path for Drive F:"
 
-#: ../src/gui/preferences.xml:111
+#: ../src/gui/preferences.xml:113
 msgid  "Path for Drive G:"
 msgstr "Path for Drive G:"
 
-#: ../src/gui/preferences.xml:114
+#: ../src/gui/preferences.xml:116
 msgid  "Path for Drive I:"
 msgstr "Path for Drive I:"
 
-#: ../src/gui/preferences.xml:115
+#: ../src/gui/preferences.xml:117
 msgid  "Path for Drive J:"
 msgstr "Path for Drive J:"
 
-#: ../src/gui/preferences.xml:116
+#: ../src/gui/preferences.xml:118
 msgid  "Path for Drive K:"
 msgstr "Path for Drive K:"
 
-#: ../src/gui/preferences.xml:117
+#: ../src/gui/preferences.xml:119
 msgid  "Path for Drive L:"
 msgstr "Path for Drive L:"
 
-#: ../src/gui/preferences.xml:120
+#: ../src/gui/preferences.xml:122
 msgid  "Path for Drive N:"
 msgstr "Path for Drive N:"
 
-#: ../src/gui/preferences.xml:121
+#: ../src/gui/preferences.xml:123
 msgid  "Path for Drive O:"
 msgstr "Path for Drive O:"
 
-#: ../src/gui/preferences.xml:122
+#: ../src/gui/preferences.xml:124
 msgid  "Path for Drive P:"
 msgstr "Path for Drive P:"
 
-#: ../src/gui/preferences.xml:123
+#: ../src/gui/preferences.xml:125
 msgid  "Path for Drive Q:"
 msgstr "Path for Drive Q:"
 
-#: ../src/gui/preferences.xml:124
+#: ../src/gui/preferences.xml:126
 msgid  "Path for Drive R:"
 msgstr "Path for Drive R:"
 
-#: ../src/gui/preferences.xml:125
+#: ../src/gui/preferences.xml:127
 msgid  "Path for Drive S:"
 msgstr "Path for Drive S:"
 
-#: ../src/gui/preferences.xml:126
+#: ../src/gui/preferences.xml:128
 msgid  "Path for Drive T:"
 msgstr "Path for Drive T:"
 
-#: ../src/gui/preferences.xml:129
+#: ../src/gui/preferences.xml:131
 msgid  "Path for Drive V:"
 msgstr "Path for Drive V:"
 
-#: ../src/gui/preferences.xml:130
+#: ../src/gui/preferences.xml:132
 msgid  "Path for Drive W:"
 msgstr "Path for Drive W:"
 
-#: ../src/gui/preferences.xml:131
+#: ../src/gui/preferences.xml:133
 msgid  "Path for Drive X:"
 msgstr "Path for Drive X:"
 
-#: ../src/gui/preferences.xml:132
+#: ../src/gui/preferences.xml:134
 msgid  "Path for Drive Y:"
 msgstr "Path for Drive Y:"
 
-#: ../src/gui/preferences.xml:133
+#: ../src/gui/preferences.xml:135
 msgid  "Path for Drive Z:"
 msgstr "Path for Drive Z:"
 
-#: ../src/gui/preferences.xml:135
+#: ../src/gui/preferences.xml:137
 msgid  "Network"
 msgstr "Network"
 
-#: ../src/gui/preferences.xml:135
+#: ../src/gui/preferences.xml:137
 msgid  "Configure network settings for the emulated Ethernet device (ETH0)"
 msgstr "Configure network settings for the emulated Ethernet device (ETH0)"
 
-#: ../src/gui/preferences.xml:136
+#: ../src/gui/preferences.xml:138
 msgid  "Network Type"
 msgstr "Network Type"
 
-#: ../src/gui/preferences.xml:136
+#: ../src/gui/preferences.xml:138
 msgid  "Select the Ethernet emulation mode (e.g., Disabled, TAP/Tunnel)"
 msgstr "Select the Ethernet emulation mode (e.g., Disabled, TAP/Tunnel)"
 
-#: ../src/gui/preferences.xml:137
+#: ../src/gui/preferences.xml:139
 msgid  "Disabled"
 msgstr "Disabled"
 
-#: ../src/gui/preferences.xml:138
+#: ../src/gui/preferences.xml:140
 msgid  "Bridge"
 msgstr "Bridge"
 
-#: ../src/gui/preferences.xml:139
+#: ../src/gui/preferences.xml:141
 msgid  "Point-to-Point"
 msgstr "Point-to-Point"
 
-#: ../src/gui/preferences.xml:141
+#: ../src/gui/preferences.xml:143
 msgid  "Tunnel Device"
 msgstr "Tunnel Device"
 
-#: ../src/gui/preferences.xml:141
+#: ../src/gui/preferences.xml:143
 msgid  "The host's virtual network interface name (e.g., tap0)"
 msgstr "The host's virtual network interface name (e.g., tap0)"
 
-#: ../src/gui/preferences.xml:142
+#: ../src/gui/preferences.xml:144
 msgid  "Host IP"
 msgstr "Host IP"
 
-#: ../src/gui/preferences.xml:142
+#: ../src/gui/preferences.xml:144
 msgid  "The IP address of the Host's side of the virtual link"
 msgstr "The IP address of the Host's side of the virtual link"
 
-#: ../src/gui/preferences.xml:143
+#: ../src/gui/preferences.xml:145
 msgid  "Atari IP"
 msgstr "Atari IP"
 
-#: ../src/gui/preferences.xml:143
+#: ../src/gui/preferences.xml:145
 msgid  "The IP address assigned to the emulated Atari device"
 msgstr "The IP address assigned to the emulated Atari device"
 
-#: ../src/gui/preferences.xml:144
+#: ../src/gui/preferences.xml:146
 msgid  "Netmask"
 msgstr "Netmask"
 
-#: ../src/gui/preferences.xml:144
+#: ../src/gui/preferences.xml:146
 msgid  "The network mask for the virtual subnet"
 msgstr "The network mask for the virtual subnet"
 
-#: ../src/gui/preferences.xml:145
+#: ../src/gui/preferences.xml:147
 msgid  "Gateway"
 msgstr "Gateway"
 
-#: ../src/gui/preferences.xml:145
+#: ../src/gui/preferences.xml:147
 msgid  "The gateway IP address (usually the host IP)"
 msgstr "The gateway IP address (usually the host IP)"
 
-#: ../src/gui/preferences.xml:146
+#: ../src/gui/preferences.xml:148
 msgid  "MAC address"
 msgstr "MAC address"
 
-#: ../src/gui/preferences.xml:146
+#: ../src/gui/preferences.xml:148
 msgid  "The unique MAC address for the emulated device"
 msgstr "The unique MAC address for the emulated device"
 
-#: ../src/gui/preferences.xml:147
+#: ../src/gui/preferences.xml:149
 msgid  "Interrupt Level"
 msgstr "Interrupt Level"
 
-#: ../src/gui/preferences.xml:147
+#: ../src/gui/preferences.xml:149
 msgid  "The interrupt level used by the emulated device (4 is standard)"
 msgstr "The interrupt level used by the emulated device (4 is standard)"

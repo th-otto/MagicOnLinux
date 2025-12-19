@@ -24,6 +24,8 @@ extern volatile unsigned char sExitImmediately;     // m68kcpu.c
 extern "C" {
 #endif
 const char *AtariAddr2Description(uint32_t addr);
+extern int m68k_get_super(void);
+extern const char *exception68k_to_name(uint32_t addr);
 #if defined(__cplusplus)
 }
 #endif
@@ -35,6 +37,18 @@ const char *AtariAddr2Description(uint32_t addr);
 #ifndef NDEBUG
 //#define M68K_BREAKPOINTS   4            // for debugging 68k code
 //#define M68K_WRITE_WATCHES 3            // for debugging 68k code
+//#define M68K_TRACE  8192
+
+#if defined(M68K_TRACE)
+extern uint32_t m68k_trace[M68K_TRACE][2];
+#if defined(__cplusplus)
+extern "C" {
+#endif
+extern void m68k_trace_print(void);
+#if defined(__cplusplus)
+}
+#endif
+#endif
 
 #if defined(M68K_BREAKPOINTS)
 extern uint32_t m68k_breakpoints[M68K_BREAKPOINTS][2];      //  68k address and range, usually 0

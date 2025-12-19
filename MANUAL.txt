@@ -26,8 +26,8 @@ cannot be opened (due to wrong format e.g.), the emulator detects a failed mount
 it can be reassigned.
 
 
-Graphic Modes
-=============
+Graphics Modes
+==============
 
 MVDI (MagiC VDI) is a stripped and slower sibling of NVDI, by the Behne Brothers.
 These are the provided (M)VDI drivers:
@@ -101,6 +101,8 @@ This and That
 
 NVDI seems to freeze during start when ASSIGN.SYS is missing.
 
+Network driver for Atari side: https://github.com/th-otto/magxnet/tree/master
+
 Thanks to Thorsten Otto for the DFS_FAT FAT32 endianess bugfix (meta data on disk are always little-endian).
 
 
@@ -142,6 +144,8 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - GSTFRAKT (single-app mode)
 - Highwire (needs NVDI or GDOS)
 - Intrface v2.29beta
+- Krieg der Kerne (2/1987)
+- Kubis (5/1992)
 - LATTICE_C (single-app mode)
 - MAPS (8+3 case-insensitive drive)
 - MATRIX (naturally...)
@@ -155,6 +159,8 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - Olga?
 - Papyrus 4 (complains about missing fonts, needs case-insensitive drive)
 - Papyrus 7 (complains about missing fonts)
+- Phoenix 4.2 (some problems with file selector, remove MANAGER.INF, otherwise crash)
+- Phoenix 5.0 (some problems with file selector, remove MANAGER.INF, otherwise crash)
 - Prgflags
 - Pure C
 - Pure Pascal: run in single mode (hold Alt key during start)
@@ -204,7 +210,7 @@ Atari applications that do not work at all (blacklist)
 - STAD_1_3.PRG (accesses video base register, needs case-insensitive drive, freezes system after crash)
 - ST BASIC (bus error)
 - ST LOGO (overwrites memory)
-- PHOENIX 4.2 (strange file selector recursion)     <<<=== needs debugging
+- Signum 3 (starts in monochrome, 2ip, 4ip, 8 bits, but messes mouse pointer)
 - Scigraph (first complains about missing GDOS, then crashes with access to fffffa42, MC68881 FPU)
 - SED_440
 - SWFŔAK.PRG (system was overwritten)

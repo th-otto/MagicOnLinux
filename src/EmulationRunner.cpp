@@ -64,8 +64,6 @@ char EmulationRunner::m_window_title[256];
 uint32_t EmulationRunner::m_counter;
 bool EmulationRunner::m_visible;
 
-SDL_Surface *EmulationRunner::m_sdl_atari_surface;        // surface in Atari native pixel format or NULL
-SDL_Surface *EmulationRunner::m_sdl_surface;                // surface in host native pixel format
 SDL_Window  *EmulationRunner::m_sdl_window;
 SDL_Renderer *EmulationRunner::m_sdl_renderer;
 SDL_Texture *EmulationRunner::m_sdl_texture;
@@ -713,7 +711,7 @@ void EmulationRunner::_OpenWindow(void)
 
     DebugWarning2("() : Create SDL surface with %u bits per pixel, r=0x%08x, g=0x%08x, b=0x%08x",
                      screenbitsperpixel, rmask, gmask, bmask);
-    m_sdl_atari_surface = SDL_CreateRGBSurface(
+    CMagiCScreen::m_sdl_atari_surface = SDL_CreateRGBSurface(
             0,    // no flags
             Preferences::AtariScreenWidth,
             Preferences::AtariScreenHeight,
@@ -722,14 +720,14 @@ void EmulationRunner::_OpenWindow(void)
             gmask,
             bmask,
             amask);
-    assert(m_sdl_atari_surface);
+    assert(CMagiCScreen::m_sdl_atari_surface);
     // hack to mark the surface as "interleaved plane"
     if (planeBytes == 2)
     {
-        m_sdl_atari_surface->userdata = (void *) 1;
+        CMagiCScreen::m_sdl_atari_surface->userdata = (void *) 1;
     }
     // we do not deal with the alpha channel, otherwise we always must make sure that each pixel is 0xff******
-    SDL_SetSurfaceBlendMode(m_sdl_atari_surface, SDL_BLENDMODE_NONE);
+    SDL_SetSurfaceBlendMode(CMagiCScreen::m_sdl_atari_surface, SDL_BLENDMODE_NONE);
 
     // In case the Atari does not run in native host graphics mode, we need a conversion surface,
     // and instead of directly updating the texture from the Atari surface, we first convert it to 32 bits per pixel.
@@ -742,7 +740,7 @@ void EmulationRunner::_OpenWindow(void)
         amask = 0xff000000;
         DebugWarning2("() : Create SDL surface with 32 bits per pixel, r=0x%08x, g=0x%08x, b=0x%08x",
                         screenbitsperpixel, rmask, gmask, bmask);
-        m_sdl_surface = SDL_CreateRGBSurface(
+        CMagiCScreen::m_sdl_host_surface = SDL_CreateRGBSurface(
                                              0,    // no flags
                                              Preferences::AtariScreenWidth,     // was m_hostScreenW, why?
                                              Preferences::AtariScreenHeight,    // dito
@@ -751,13 +749,13 @@ void EmulationRunner::_OpenWindow(void)
                                              gmask,
                                              bmask,
                                              amask);
-        assert(m_sdl_surface);
+        assert(CMagiCScreen::m_sdl_host_surface);
         // we do not deal with the alpha channel, otherwise we always must make sure that each pixel is 0xff******
-        SDL_SetSurfaceBlendMode(m_sdl_surface, SDL_BLENDMODE_NONE);
+        SDL_SetSurfaceBlendMode(CMagiCScreen::m_sdl_host_surface, SDL_BLENDMODE_NONE);
     }
     else
     {
-        m_sdl_surface = m_sdl_atari_surface;
+        CMagiCScreen::m_sdl_host_surface = CMagiCScreen::m_sdl_atari_surface;
     }
 
     int pos_x = Preferences::AtariScreenX;
@@ -786,8 +784,8 @@ void EmulationRunner::_OpenWindow(void)
     }
 
     // initially fill whole window with white colour
-    (void) SDL_FillRect(m_sdl_surface, NULL, 0x00ffffff);
-    m_sdl_texture = SDL_CreateTextureFromSurface(m_sdl_renderer, m_sdl_surface);    // seems not to work with non-native format?!?
+    (void) SDL_FillRect(CMagiCScreen::m_sdl_host_surface, NULL, 0x00ffffff);
+    m_sdl_texture = SDL_CreateTextureFromSurface(m_sdl_renderer, CMagiCScreen::m_sdl_host_surface);    // seems not to work with non-native format?!?
     assert(m_sdl_texture);
     if (m_sdl_texture == nullptr)
     {
@@ -819,36 +817,13 @@ void EmulationRunner::_OpenWindow(void)
      * Stuff needed for the MagiC graphics kernel
      */
 
-    // create ancient style Pixmap structure to be passed to the Atari kernel, from m_sdl_surface
-    assert(m_sdl_atari_surface->pitch < 0x4000);            // Pixmap limit and thus limit for Atari
-    assert((m_sdl_atari_surface->pitch & 3) == 0);          // pitch (alias rowBytes) must be dividable by 4
-
-    MXVDI_PIXMAP *pixmap = &m_EmulatorScreen.m_PixMap;
-
     // We use a global pointer directly used by the heart of the
     // 68k emulator ("mem_access_68k.cpp"). Whenever the emulator detects an access
     // to the guest's video memory, the real access, read or write, will be done
     // via this pointer.
-    hostVideoAddr = (uint8_t *) m_sdl_atari_surface->pixels;
+    hostVideoAddr = (uint8_t *) CMagiCScreen::m_sdl_atari_surface->pixels;
 
-    // The baseAddr is supposed to be m_sdl_atari_surface->pixels, but this does no longer work
-    // with 64-bit host computer. However, the baseAddr will be changed later anyway
-    pixmap->baseAddr      = 0x8000000;                    // dummy target address, later filled in by emulator
-    pixmap->rowBytes      = m_sdl_atari_surface->pitch | 0x8000;    // 0x4000 and 0x8000 are flags
-    pixmap->bounds_top    = 0;
-    pixmap->bounds_left   = 0;
-    pixmap->bounds_bottom = m_sdl_atari_surface->h;
-    pixmap->bounds_right  = m_sdl_atari_surface->w;
-    pixmap->pmVersion     = 4;                            // should mean: pixmap base address is 32-bit address
-    pixmap->packType      = 0;                            // unpacked?
-    pixmap->packSize      = 0;                            // unimportant?
-    pixmap->pixelType     = pixelType;                    // 16 is RGBDirect, 0 would be indexed
-    pixmap->pixelSize     = m_sdl_atari_surface->format->BitsPerPixel;
-    pixmap->cmpCount      = cmpCount;                     // components: 3 = red, green, blue, 1 = monochrome
-    pixmap->cmpSize       = cmpSize;                      // True colour: 8 bits per component
-    pixmap->planeBytes    = planeBytes;                   // offset to next plane
-    pixmap->pmTable       = 0;
-    pixmap->pmReserved    = 0;
+    CMagiCScreen::init_pixmap(pixelType, cmpCount, cmpSize, planeBytes);
 }
 
 
@@ -1275,16 +1250,16 @@ void EmulationRunner::EmulatorWindowUpdate(void)
     if (atomic_exchange(&gbAtariVideoBufChanged, false))
     {
         // too often DebugInfo2("() - Atari Screen dirty");
-        if (m_sdl_atari_surface != m_sdl_surface)
+        if (CMagiCScreen::m_sdl_atari_surface != CMagiCScreen::m_sdl_host_surface)
         {
             // convert Atari graphics format to host graphics format RGB
-            ConvertAtari2HostSurface(m_sdl_atari_surface, m_sdl_surface,
-                                    m_EmulatorScreen.m_pColourTable,
+            ConvertAtari2HostSurface(CMagiCScreen::m_sdl_atari_surface, CMagiCScreen::m_sdl_host_surface,
+                                    CMagiCScreen::m_pColourTable,
                                     /* TODO:ignored */ Preferences::AtariScreenStretchX,
                                     /* TODO: igored */ Preferences::AtariScreenStretchY);
         }
 
-        UpdateTextureFromRect(m_sdl_texture, m_sdl_surface, nullptr);
+        UpdateTextureFromRect(m_sdl_texture, CMagiCScreen::m_sdl_host_surface, nullptr);
 
         if (m_visible)
         {

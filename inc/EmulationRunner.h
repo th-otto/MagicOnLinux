@@ -65,12 +65,9 @@ class EmulationRunner
     static uint32_t m_counter;
     static bool m_visible;
 
-    static SDL_Surface *m_sdl_atari_surface;        // surface in Atari native pixel format or NULL
-    static SDL_Surface *m_sdl_surface;                // surface in host native pixel format
     static SDL_Window  *m_sdl_window;
     static SDL_Renderer *m_sdl_renderer;
     static SDL_Texture *m_sdl_texture;
-    static CMagiCScreen m_EmulatorScreen;
     static CXCmd m_EmulatorXcmd;
     static CMagiC m_Emulator;
     static CNetwork m_Network;

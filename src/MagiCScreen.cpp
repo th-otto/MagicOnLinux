@@ -24,11 +24,16 @@
 
 #include "config.h"
 #include <string.h>
+#include <assert.h>
 #include "MagiCScreen.h"
 
 
 MXVDI_PIXMAP CMagiCScreen::m_PixMap;
 uint32_t CMagiCScreen::m_pColourTable[MAGIC_COLOR_TABLE_LEN];
+void *CMagiCScreen::pixels;
+unsigned CMagiCScreen::pixels_size;
+SDL_Surface *CMagiCScreen::m_sdl_atari_surface;        // surface in Atari native pixel format or NULL
+SDL_Surface *CMagiCScreen::m_sdl_host_surface;         // surface in host native pixel format
 uint32_t CMagiCScreen::m_logAddr;
 uint32_t CMagiCScreen::m_physAddr;
 uint16_t CMagiCScreen::m_res;
@@ -45,10 +50,53 @@ int CMagiCScreen::init(void)
 {
     memset(&m_PixMap, 0, sizeof(m_PixMap));
     memset(&m_pColourTable, 0, sizeof(m_pColourTable));
+
+    pixels = nullptr;
+    pixels_size = 0;
+    m_sdl_atari_surface = nullptr;
+    m_sdl_host_surface = nullptr;
+
     m_logAddr = 0;
     m_physAddr = 0;
     m_res = 0xffff;
     return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Initialise the PIXMAP needed for MVDI
+ *
+ * @param[in] pixelType     0:indexed, 16: RGB direct
+ * @param[in] cmpCount      1:indexed, 3: RGB direct
+ * @param[in] cmpSize       bit depth for indexed modes, 8 for RGB direct
+ * @param[in] planeBytes    2:interleaved plane, 0: packed or RGB direct
+ *
+ ************************************************************************************************/
+void CMagiCScreen::init_pixmap(uint16_t pixelType, uint16_t cmpCount, uint16_t cmpSize, uint32_t planeBytes)
+{
+    // create ancient style Pixmap structure to be passed to the Atari kernel, from m_sdl_surface
+    assert(m_sdl_atari_surface->pitch < 0x4000);            // Pixmap limit and thus limit for Atari
+    assert((m_sdl_atari_surface->pitch & 3) == 0);          // pitch (alias rowBytes) must be dividable by 4
+
+    // The baseAddr is supposed to be m_sdl_atari_surface->pixels, but this does no longer work
+    // with 64-bit host computer. However, the baseAddr will be changed later anyway
+    m_PixMap.baseAddr      = 0x8000000;                    // dummy target address, later filled in by emulator
+    m_PixMap.rowBytes      = m_sdl_atari_surface->pitch | 0x8000;    // 0x4000 and 0x8000 are flags
+    m_PixMap.bounds_top    = 0;
+    m_PixMap.bounds_left   = 0;
+    m_PixMap.bounds_bottom = m_sdl_atari_surface->h;
+    m_PixMap.bounds_right  = m_sdl_atari_surface->w;
+    m_PixMap.pmVersion     = 4;                            // should mean: pixmap base address is 32-bit address
+    m_PixMap.packType      = 0;                            // unpacked?
+    m_PixMap.packSize      = 0;                            // unimportant?
+    m_PixMap.pixelType     = pixelType;                    // 16 is RGBDirect, 0 would be indexed
+    m_PixMap.pixelSize     = m_sdl_atari_surface->format->BitsPerPixel;
+    m_PixMap.cmpCount      = cmpCount;                     // components: 3 = red, green, blue, 1 = monochrome
+    m_PixMap.cmpSize       = cmpSize;                      // True colour: 8 bits per component
+    m_PixMap.planeBytes    = planeBytes;                   // offset to next plane
+    m_PixMap.pmTable       = 0;
+    m_PixMap.pmReserved    = 0;
 }
 
 

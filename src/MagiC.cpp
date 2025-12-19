@@ -774,7 +774,6 @@ int CMagiC::init(CXCmd *pXCmd)
     struct SYSHDR *pSysHdr;
     uint32_t AtariMemtop;        // Ende Atari-Benutzerspeicher
     uint32_t chksum;
-    unsigned numVideoLines;
 
 
     // Konfiguration
@@ -803,9 +802,13 @@ int CMagiC::init(CXCmd *pXCmd)
     (void) CMagiCKeyboard::init();
 
     mem68kSize = Preferences::AtariMemSize;
-    numVideoLines = CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top;
+    #if 0
+    unsigned numVideoLines = CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top;
     unsigned bufferLineLenInBytes = (CMagiCScreen::m_PixMap.rowBytes & 0x3fff);
     memVideo68kSize = bufferLineLenInBytes * numVideoLines;
+    #else
+    memVideo68kSize = CMagiCScreen::pixels_size;
+    #endif
     // get Atari memory
     // TODO: In fact we do not have to add m_Video68ksize here, because video memory
     //       is allocated separately as SDL surface in EmulatorRunner.

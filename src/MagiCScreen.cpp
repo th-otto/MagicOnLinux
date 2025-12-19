@@ -25,6 +25,9 @@
 #include "config.h"
 #include <string.h>
 #include <assert.h>
+#include "Debug.h"
+#include "preferences.h"
+#include "emulation_globals.h"
 #include "MagiCScreen.h"
 
 
@@ -51,8 +54,6 @@ int CMagiCScreen::init(void)
     memset(&m_PixMap, 0, sizeof(m_PixMap));
     memset(&m_pColourTable, 0, sizeof(m_pColourTable));
 
-    pixels = nullptr;
-    pixels_size = 0;
     m_sdl_atari_surface = nullptr;
     m_sdl_host_surface = nullptr;
 
@@ -60,6 +61,179 @@ int CMagiCScreen::init(void)
     m_physAddr = 0;
     m_res = 0xffff;
     return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief de-initialisation
+ *
+ * @return zero for "no error"
+ *
+ ************************************************************************************************/
+void CMagiCScreen::exit(void)
+{
+    if (pixels != nullptr)
+    {
+        free(pixels);
+        pixels = nullptr;
+        pixels_size = 0;
+    }
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Create Atari SDL surfaces
+ *
+ ************************************************************************************************/
+void CMagiCScreen::create_surfaces()
+{
+    // SDL stuff
+    Uint32 rmask = 0;
+    Uint32 gmask = 0;
+    Uint32 bmask = 0;
+    Uint32 amask = 0;
+    // Pixmap stuff
+    short pixelType = 0;
+    uint32_t planeBytes;
+    short cmpCount = 3;
+    short cmpSize = 8;
+    unsigned screenbitsperpixel;
+
+    switch(Preferences::atariScreenColourMode)
+    {
+        case atariScreenMode2:
+            screenbitsperpixel = 1;     // monochrome
+            planeBytes = 0;             // do not force Atari compatibiliy (interleaved plane) mode
+            cmpCount = 1;
+            cmpSize = 1;
+            break;
+
+        case atariScreenMode4ip:
+            screenbitsperpixel = 2;     // 4 colours, indirect
+            planeBytes = 2;             // change to 0 to force packed pixel instead of interleaved plane
+            cmpCount = 1;
+            cmpSize = 2;
+            break;
+
+        case atariScreenMode16:
+            screenbitsperpixel = 4;     // 16 colours, indirect
+            planeBytes = 0;             // packed pixel
+            cmpCount = 1;
+            cmpSize = 4;
+            break;
+
+        case atariScreenMode16ip:
+            screenbitsperpixel = 4;     // 16 colours, indirect
+            planeBytes = 2;             // force interleaved plane
+            cmpCount = 1;
+            cmpSize = 4;
+            break;
+
+        case atariScreenMode256:
+            screenbitsperpixel = 8;     // 256 colours, indirect
+            planeBytes = 0;             // do not force Atari compatibiliy (interleaved plane) mode
+            cmpCount = 1;
+            cmpSize = 8;
+            break;
+
+        case atariScreenModeHC:
+            screenbitsperpixel = 16;    // 32768 colours, direct
+            rmask = 0x7C00;
+            gmask = 0x03E0;
+            bmask = 0x001F;
+            amask = 0x8000;
+            pixelType = 16;             // RGBDirect, 0 would be indexed
+            planeBytes = 0;
+            break;
+
+        default:
+            screenbitsperpixel = 32;    // 16M colours, direct
+            rmask = 0x00ff0000;         // ARGB
+            gmask = 0x0000ff00;
+            bmask = 0x000000ff;
+            amask = 0xff000000;
+            pixelType = 16;             // RGBDirect, 0 would be indexed
+            planeBytes = 0;
+            break;
+    }
+
+    // Note that the SDL surface cannot distinguish between packed pixel and interleaved.
+    // This is the screen buffer for the emulated Atari
+
+    DebugWarning2("() : Create SDL surface with %u bits per pixel, r=0x%08x, g=0x%08x, b=0x%08x",
+                     screenbitsperpixel, rmask, gmask, bmask);
+    #if 1
+    // screen size is number bits, divided by 8
+    pixels_size = (Preferences::AtariScreenWidth * Preferences::AtariScreenHeight * screenbitsperpixel) >> 3;
+    // The Atari has 32768 bytes video memory from which 32000 are visible on screen
+    if (pixels_size == 32000)
+    {
+        DebugWarning2("() : Allocate 32768 bytes instead of 32000 for compatibility");
+        pixels_size += 768;
+    }
+    pixels = malloc(pixels_size);
+    int pitch = (Preferences::AtariScreenWidth * screenbitsperpixel) >> 3;
+    m_sdl_atari_surface = SDL_CreateRGBSurfaceFrom(
+            pixels,   // pixel data
+            Preferences::AtariScreenWidth,
+            Preferences::AtariScreenHeight,
+            screenbitsperpixel,     // depending on Atari screen mode
+            pitch,
+            rmask,
+            gmask,
+            bmask,
+            amask);
+    #else
+    m_sdl_atari_surface = SDL_CreateRGBSurface(
+            0,    // no flags
+            Preferences::AtariScreenWidth,
+            Preferences::AtariScreenHeight,
+            screenbitsperpixel,     // depending on Atari screen mode
+            rmask,
+            gmask,
+            bmask,
+            amask);
+    #endif
+    assert(m_sdl_atari_surface);
+    // hack to mark the surface as "interleaved plane"
+    if (planeBytes == 2)
+    {
+        m_sdl_atari_surface->userdata = (void *) 1;
+    }
+    // we do not deal with the alpha channel, otherwise we always must make sure that each pixel is 0xff******
+    SDL_SetSurfaceBlendMode(m_sdl_atari_surface, SDL_BLENDMODE_NONE);
+
+    // In case the Atari does not run in native host graphics mode, we need a conversion surface,
+    // and instead of directly updating the texture from the Atari surface, we first convert it to 32 bits per pixel.
+
+    if (screenbitsperpixel != 32)
+    {
+        rmask = 0x00ff0000;         // ARGB
+        gmask = 0x0000ff00;
+        bmask = 0x000000ff;
+        amask = 0xff000000;
+        DebugWarning2("() : Create SDL surface with 32 bits per pixel, r=0x%08x, g=0x%08x, b=0x%08x",
+                        screenbitsperpixel, rmask, gmask, bmask);
+        m_sdl_host_surface = SDL_CreateRGBSurface(
+                                             0,    // no flags
+                                             Preferences::AtariScreenWidth,     // was m_hostScreenW, why?
+                                             Preferences::AtariScreenHeight,    // dito
+                                             32,    // bits per pixel
+                                             rmask,
+                                             gmask,
+                                             bmask,
+                                             amask);
+        assert(m_sdl_host_surface);
+        // we do not deal with the alpha channel, otherwise we always must make sure that each pixel is 0xff******
+        SDL_SetSurfaceBlendMode(m_sdl_host_surface, SDL_BLENDMODE_NONE);
+    }
+    else
+    {
+        m_sdl_host_surface = m_sdl_atari_surface;
+    }
+    init_pixmap(pixelType, cmpCount, cmpSize, planeBytes);
 }
 
 

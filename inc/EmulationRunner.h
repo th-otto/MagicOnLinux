@@ -60,7 +60,6 @@ class EmulationRunner
     static double m_hostScreenStretchX;
     static double m_hostScreenStretchY;
 
-    static unsigned screenbitsperpixel;
     static char m_window_title[256];
     static uint32_t m_counter;
     static bool m_visible;

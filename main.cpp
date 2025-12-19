@@ -591,6 +591,7 @@ int main(int argc, char *argv[])
     }
     EmulationRunner::StartEmulatorThread();
     EmulationRunner::EventLoop();
+    CMagiCScreen::exit();
     CMagiCPrint::exit();
     CMagiCSerial::exit();
 

@@ -34,6 +34,8 @@ class CMagiCScreen
 {
   public:
     static int init();
+    static void exit();
+    static void create_surfaces();
     static void init_pixmap(uint16_t pixelType, uint16_t cmpCount, uint16_t cmpSize, uint32_t planeBytes);
     static void setColourPaletteEntry(unsigned index, uint16_t val);
     static uint16_t getColourPaletteEntry(unsigned index);

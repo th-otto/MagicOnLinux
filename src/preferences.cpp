@@ -386,6 +386,31 @@ const char *Preferences::videoModeToString(enAtariScreenColourMode mode)
 
 /** **********************************************************************************************
  *
+ * @brief Get short text description of video mode for window title
+ *
+ * @param[in]  mode     video mode
+ *
+ * @return text
+ *
+ ************************************************************************************************/
+const char *Preferences::videoModeToShortString(enAtariScreenColourMode mode)
+{
+    switch(mode)
+    {
+        case atariScreenMode16M:    return "16M";
+        case atariScreenModeHC:     return "32k";
+        case atariScreenMode256:    return "256";
+        case atariScreenMode16:     return "16";
+        case atariScreenMode16ip:   return "16ip";
+        case atariScreenMode4ip:    return "4ip";
+        case atariScreenMode2:      return "monochrome";
+        default:                    return "== UNKNOWN ==";
+    }
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Write configuration file
  *
  * @param[in]  cfgfile   path

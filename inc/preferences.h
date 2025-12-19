@@ -90,6 +90,7 @@ class Preferences
                     const char *rootfs_override,
                     bool rewrite_conf);
     static const char *videoModeToString(enAtariScreenColourMode mode);
+    static const char *videoModeToShortString(enAtariScreenColourMode mode);
 
     static unsigned AtariMemSize;
     static char AtariLanguage[16];                  // empty for default, or EN/DE/FR

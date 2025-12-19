@@ -59,7 +59,6 @@ unsigned EmulationRunner::m_hostScreenH;
 double EmulationRunner::m_hostScreenStretchX;
 double EmulationRunner::m_hostScreenStretchY;
 
-unsigned EmulationRunner::screenbitsperpixel = 32;
 char EmulationRunner::m_window_title[256];
 uint32_t EmulationRunner::m_counter;
 bool EmulationRunner::m_visible;
@@ -626,77 +625,12 @@ void EmulationRunner::_StartEmulatorThread(void)
  ************************************************************************************************/
 void EmulationRunner::_OpenWindow(void)
 {
-    // SDL stuff
-    Uint32 rmask = 0;
-    Uint32 gmask = 0;
-    Uint32 bmask = 0;
-    Uint32 amask = 0;
-    // Pixmap stuff
-    short pixelType = 0;
-    uint32_t planeBytes;
-    short cmpCount = 3;
-    short cmpSize = 8;
+    CMagiCScreen::create_surfaces();
 
-    switch(Preferences::atariScreenColourMode)
-    {
-        case atariScreenMode2:
-            screenbitsperpixel = 1;     // monochrome
-            planeBytes = 0;             // do not force Atari compatibiliy (interleaved plane) mode
-            cmpCount = 1;
-            cmpSize = 1;
-            break;
 
-        case atariScreenMode4ip:
-            screenbitsperpixel = 2;     // 4 colours, indirect
-            planeBytes = 2;             // change to 0 to force packed pixel instead of interleaved plane
-            cmpCount = 1;
-            cmpSize = 2;
-            break;
-
-        case atariScreenMode16:
-            screenbitsperpixel = 4;     // 16 colours, indirect
-            planeBytes = 0;             // packed pixel
-            cmpCount = 1;
-            cmpSize = 4;
-            break;
-
-        case atariScreenMode16ip:
-            screenbitsperpixel = 4;     // 16 colours, indirect
-            planeBytes = 2;             // force interleaved plane
-            cmpCount = 1;
-            cmpSize = 4;
-            break;
-
-        case atariScreenMode256:
-            screenbitsperpixel = 8;     // 256 colours, indirect
-            planeBytes = 0;             // do not force Atari compatibiliy (interleaved plane) mode
-            cmpCount = 1;
-            cmpSize = 8;
-            break;
-
-        case atariScreenModeHC:
-            screenbitsperpixel = 16;    // 32768 colours, direct
-            rmask = 0x7C00;
-            gmask = 0x03E0;
-            bmask = 0x001F;
-            amask = 0x8000;
-            pixelType = 16;             // RGBDirect, 0 would be indexed
-            planeBytes = 0;
-            break;
-
-        default:
-            rmask = 0x00ff0000;         // ARGB
-            gmask = 0x0000ff00;
-            bmask = 0x000000ff;
-            amask = 0xff000000;
-            pixelType = 16;             // RGBDirect, 0 would be indexed
-            planeBytes = 0;
-            break;
-    }
-
-    sprintf(m_window_title, PROGRAM_NAME " (%ux%ux%u%s)",
+    sprintf(m_window_title, PROGRAM_NAME " (%ux%ux%s)",
                             Preferences::AtariScreenWidth, Preferences::AtariScreenHeight,
-                            screenbitsperpixel, (planeBytes == 2) ? "ip" : "");
+                            Preferences::videoModeToShortString(Preferences::atariScreenColourMode));
     m_visible = false;
 
 
@@ -705,58 +639,6 @@ void EmulationRunner::_OpenWindow(void)
     m_hostScreenH = Preferences::AtariScreenHeight * Preferences::AtariScreenStretchY;
     m_hostScreenStretchX = Preferences::AtariScreenStretchX;
     m_hostScreenStretchY = Preferences::AtariScreenStretchY;
-
-    // Note that the SDL surface cannot distinguish between packed pixel and interleaved.
-    // This is the screen buffer for the emulated Atari
-
-    DebugWarning2("() : Create SDL surface with %u bits per pixel, r=0x%08x, g=0x%08x, b=0x%08x",
-                     screenbitsperpixel, rmask, gmask, bmask);
-    CMagiCScreen::m_sdl_atari_surface = SDL_CreateRGBSurface(
-            0,    // no flags
-            Preferences::AtariScreenWidth,
-            Preferences::AtariScreenHeight,
-            screenbitsperpixel,     // depending on Atari screen mode
-            rmask,
-            gmask,
-            bmask,
-            amask);
-    assert(CMagiCScreen::m_sdl_atari_surface);
-    // hack to mark the surface as "interleaved plane"
-    if (planeBytes == 2)
-    {
-        CMagiCScreen::m_sdl_atari_surface->userdata = (void *) 1;
-    }
-    // we do not deal with the alpha channel, otherwise we always must make sure that each pixel is 0xff******
-    SDL_SetSurfaceBlendMode(CMagiCScreen::m_sdl_atari_surface, SDL_BLENDMODE_NONE);
-
-    // In case the Atari does not run in native host graphics mode, we need a conversion surface,
-    // and instead of directly updating the texture from the Atari surface, we first convert it to 32 bits per pixel.
-
-    if (screenbitsperpixel != 32)
-    {
-        rmask = 0x00ff0000;         // ARGB
-        gmask = 0x0000ff00;
-        bmask = 0x000000ff;
-        amask = 0xff000000;
-        DebugWarning2("() : Create SDL surface with 32 bits per pixel, r=0x%08x, g=0x%08x, b=0x%08x",
-                        screenbitsperpixel, rmask, gmask, bmask);
-        CMagiCScreen::m_sdl_host_surface = SDL_CreateRGBSurface(
-                                             0,    // no flags
-                                             Preferences::AtariScreenWidth,     // was m_hostScreenW, why?
-                                             Preferences::AtariScreenHeight,    // dito
-                                             32,    // bits per pixel
-                                             rmask,
-                                             gmask,
-                                             bmask,
-                                             amask);
-        assert(CMagiCScreen::m_sdl_host_surface);
-        // we do not deal with the alpha channel, otherwise we always must make sure that each pixel is 0xff******
-        SDL_SetSurfaceBlendMode(CMagiCScreen::m_sdl_host_surface, SDL_BLENDMODE_NONE);
-    }
-    else
-    {
-        CMagiCScreen::m_sdl_host_surface = CMagiCScreen::m_sdl_atari_surface;
-    }
 
     int pos_x = Preferences::AtariScreenX;
     int pos_y = Preferences::AtariScreenY;
@@ -822,8 +704,6 @@ void EmulationRunner::_OpenWindow(void)
     // to the guest's video memory, the real access, read or write, will be done
     // via this pointer.
     hostVideoAddr = (uint8_t *) CMagiCScreen::m_sdl_atari_surface->pixels;
-
-    CMagiCScreen::init_pixmap(pixelType, cmpCount, cmpSize, planeBytes);
 }
 
 

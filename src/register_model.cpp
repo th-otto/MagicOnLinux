@@ -438,117 +438,64 @@ bool CRegisterModel::write_data(uint32_t addr, unsigned len, const uint8_t *data
 
 /** **********************************************************************************************
  *
- * @brief Read 8-bit value from hardware register address range
+ * @brief Read 8-bit or 16-bit or 32-bit value from hardware register address range
  *
- * @param[in]  addr     absolute 68k address, 32-bit or 24-bit
- * @param[out] datum    datum to read
+ * @param[in]  addr         absolute 68k address, 32-bit or 24-bit
+ * @param[in]  len          1, 2 or 4 for 8-bit, 16-bit or 32-bit
+ * @param[out] p_success    true: access granted, false: illegal access
  *
- * @return success
- * @retval true     access granted
- * @retval false    illegal access
+ * @return read value, extended to 32-bit
  *
  ************************************************************************************************/
-bool CRegisterModel::read_byte(uint32_t addr, uint8_t *datum)
+uint32_t CRegisterModel::read(uint32_t addr, unsigned len, bool *p_success)
 {
+    union
+    {
+        uint32_t b32;
+        uint16_t b16;
+        uint8_t b8;
+    } data;
+    uint32_t ret = 0;
+    *p_success = false;
+
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
         if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
-            bool ret = model->read(addr, 1, datum);
-            if (ret)
+            *p_success = model->read(addr, len, (uint8_t *) &data);
+            if (*p_success)
             {
-                if (model->logcnt)
+                if (len == 1)
                 {
-                    DebugInfo("m68k (0x%08x) -> 0x%02x (%s)", addr, *datum, model->name);
-                    model->logcnt--;
-                    if (model->logcnt == 0)
-                    {
-                        DebugWarning("     suppress further messages for this model");
-                    }
+                    ret = data.b8;
                 }
-            }
-            else
-            {
-                DebugInfo("m68k (0x%02x) -> BUSERR (%s)", addr, model->name);
-            }
-            return ret;
-        }
-    }
-
-    return false;
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Read 16-bit value from hardware register address range
- *
- * @param[in]  addr     absolute 68k address, 32-bit or 24-bit
- * @param[out] datum    datum to read
- *
- * @return success
- * @retval true     access granted
- * @retval false    illegal access
- *
- ************************************************************************************************/
-bool CRegisterModel::read_halfword(uint32_t addr, uint16_t *datum)
-{
-    for (unsigned n = 0; n < num_models; n++)
-    {
-        CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
-        {
-            bool ret = model->read(addr, 2, (uint8_t *) datum);
-            if (ret)
-            {
-                if (model->logcnt)
+                else
+                if (len == 2)
                 {
-                    DebugInfo("m68k (0x%08x) -> 0x%04x (%s)", addr, *datum, model->name);
-                    model->logcnt--;
-                    if (model->logcnt == 0)
-                    {
-                        DebugWarning("     suppress further messages for this model");
-                    }
+                    ret = data.b16;
                 }
-            }
-            else
-            {
-                DebugInfo("m68k (0x%04x) -> BUSERR (%s)", addr, model->name);
-            }
-            return ret;
-        }
-    }
+                else
+                {
+                    ret = data.b32;
+                }
 
-    return false;
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Read 32-bit value from hardware register address range
- *
- * @param[in]  addr     absolute 68k address, 32-bit or 24-bit
- * @param[out] datum    datum to read
- *
- * @return success
- * @retval true     access granted
- * @retval false    illegal access
- *
- ************************************************************************************************/
-bool CRegisterModel::read_word(uint32_t addr, uint32_t *datum)
-{
-    for (unsigned n = 0; n < num_models; n++)
-    {
-        CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
-        {
-            bool ret = model->read(addr, 4, (uint8_t *) datum);
-            if (ret)
-            {
                 if (model->logcnt)
                 {
-                    DebugInfo("m68k (0x%08x) -> 0x%08x (%s)", addr, *datum, model->name);
+                    if (len == 1)
+                    {
+                        DebugInfo("m68k (0x%08x) -> 0x%02x (%s)", addr, data.b8, model->name);
+                    }
+                    else
+                    if (len == 2)
+                    {
+                        DebugInfo("m68k (0x%08x) -> 0x%04x (%s)", addr, data.b16, model->name);
+                    }
+                    else
+                    {
+                        DebugInfo("m68k (0x%08x) -> 0x%08x (%s)", addr, data.b32, model->name);
+                    }
+
                     model->logcnt--;
                     if (model->logcnt == 0)
                     {
@@ -560,39 +507,73 @@ bool CRegisterModel::read_word(uint32_t addr, uint32_t *datum)
             {
                 DebugInfo("m68k (0x%08x) -> BUSERR (%s)", addr, model->name);
             }
-            return ret;
+            break;
         }
     }
 
-    return false;
+    return ret;
 }
 
 
 /** **********************************************************************************************
  *
- * @brief Write 8-bit value to hardware register address range
+ * @brief Read 8-bit or 16-bit or 32-bit value from hardware register address range
  *
- * @param[in] addr      absolute 68k address, 32-bit or 24-bit
- * @param[in] datum     datum to write
+ * @param[in]  addr         absolute 68k address, 32-bit or 24-bit
+ * @param[in]  len          1, 2 or 4 for 8-bit, 16-bit or 32-bit
+ * @param[in]  datum        datum to write
+ * @param[out] p_success    true: access granted, false: illegal access
  *
- * @return success
- * @retval true     access granted
- * @retval false    illegal access
+ * @return read value, extended to 32-bit
  *
  ************************************************************************************************/
-bool CRegisterModel::write_byte(uint32_t addr, uint8_t datum)
+void CRegisterModel::write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
 {
+    union
+    {
+        uint32_t b32;
+        uint16_t b16;
+        uint8_t b8;
+    } data;
+    *p_success = false;
+
+    if (len == 1)
+    {
+        data.b8 = datum;
+    }
+    else
+    if (len == 2)
+    {
+        data.b16 = datum;
+    }
+    else
+    {
+        data.b32 = datum;
+    }
+
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
         if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
-            bool ret = model->write(addr, 1, &datum);
-            if (ret)
+            *p_success = model->write(addr, len, (uint8_t *) &data);
+            if (*p_success)
             {
                 if (model->logcnt)
                 {
-                    DebugInfo("m68k (0x%08x) := 0x%02x (%s)", addr, datum, model->name);
+                    if (len == 1)
+                    {
+                        DebugInfo("m68k (0x%08x) := 0x%02x (%s)", addr, datum, model->name);
+                    }
+                    else
+                    if (len == 2)
+                    {
+                        DebugInfo("m68k (0x%08x) := 0x%04x (%s)", addr, datum, model->name);
+                    }
+                    else
+                    {
+                        DebugInfo("m68k (0x%08x) := 0x%08x (%s)", addr, datum, model->name);
+                    }
                     model->logcnt--;
                     if (model->logcnt == 0)
                     {
@@ -602,99 +583,22 @@ bool CRegisterModel::write_byte(uint32_t addr, uint8_t datum)
             }
             else
             {
-                DebugInfo("m68k (0x%08x) := 0x%02x -> BUSERR (%s)", addr, datum, model->name);
-            }
-            return ret;
-        }
-    }
-
-    return false;
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Write 16-bit value to hardware register address range
- *
- * @param[in] addr      absolute 68k address, 32-bit or 24-bit
- * @param[in] datum     datum to write
- *
- * @return success
- * @retval true     access granted
- * @retval false    illegal access
- *
- ************************************************************************************************/
-bool CRegisterModel::write_halfword(uint32_t addr, uint16_t datum)
-{
-    for (unsigned n = 0; n < num_models; n++)
-    {
-        CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
-        {
-            bool ret = model->write(addr, 2, (uint8_t *) &datum);
-            if (ret)
-            {
-                if (model->logcnt)
+                if (len == 1)
                 {
-                    DebugInfo("m68k (0x%08x) := 0x%04x (%s)", addr, datum, model->name);
-                    model->logcnt--;
-                    if (model->logcnt == 0)
-                    {
-                        DebugWarning("     suppress further messages for this model");
-                    }
+                    DebugInfo("m68k (0x%08x) := 0x%02x -> BUSERR (%s)", addr, datum, model->name);
+                }
+                else
+                if (len == 2)
+                {
+                    DebugInfo("m68k (0x%08x) := 0x%04x -> BUSERR (%s)", addr, datum, model->name);
+                }
+                else
+                {
+                    DebugInfo("m68k (0x%08x) := 0x%08x -> BUSERR (%s)", addr, datum, model->name);
                 }
             }
-            else
-            {
-                DebugInfo("m68k (0x%08x) := 0x%04x -> BUSERR (%s)", addr, datum, model->name);
-            }
-            return ret;
+            break;
         }
     }
-
-    return false;
 }
 
-
-/** **********************************************************************************************
- *
- * @brief Write 32-bit value to hardware register address range
- *
- * @param[in] addr      absolute 68k address, 32-bit or 24-bit
- * @param[in] datum     datum to write
- *
- * @return success
- * @retval true     access granted
- * @retval false    illegal access
- *
- ************************************************************************************************/
-bool CRegisterModel::write_word(uint32_t addr, uint32_t datum)
-{
-    for (unsigned n = 0; n < num_models; n++)
-    {
-        CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
-        {
-            bool ret = model->write(addr, 4, (uint8_t *) &datum);
-            if (ret)
-            {
-                if (model->logcnt)
-                {
-                    DebugInfo("m68k (0x%08x) := 0x%08x (%s)", addr, datum, model->name);
-                    model->logcnt--;
-                    if (model->logcnt == 0)
-                    {
-                        DebugWarning("     suppress further messages for this model");
-                    }
-                }
-            }
-            else
-            {
-                DebugInfo("m68k (0x%08x) := 0x%08x -> BUSERR (%s)", addr, datum, model->name);
-            }
-            return ret;
-        }
-    }
-
-    return false;
-}

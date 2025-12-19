@@ -390,8 +390,9 @@ m68k_data_type m68k_read_memory_8(m68k_addr_type address)
         return(*((uint8_t *) (hostVideoAddr + (address - addr68kVideo))));
     }
 
-    uint8_t datum;
-    if (CRegisterModel::read_byte(address, &datum))
+    bool b_success;
+    uint32_t datum = CRegisterModel::read(address, 1, &b_success);
+    if (b_success)
     {
         return datum;
     }
@@ -455,8 +456,9 @@ m68k_data_type m68k_read_memory_16(m68k_addr_type address)
         return 0;
     }
 
-    uint16_t datum;
-    if (CRegisterModel::read_halfword(address, &datum))
+    bool b_success;
+    uint32_t datum = CRegisterModel::read(address, 2, &b_success);
+    if (b_success)
     {
         return datum;
     }
@@ -512,8 +514,9 @@ m68k_data_type m68k_read_memory_32(m68k_addr_type address)
         return 0;
     }
 
-    uint32_t datum;
-    if (CRegisterModel::read_word(address, &datum))
+    bool b_success;
+    uint32_t datum = CRegisterModel::read(address, 4, &b_success);
+    if (b_success)
     {
         return datum;
     }
@@ -564,7 +567,9 @@ void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value)
         return;
     }
 
-    if (CRegisterModel::write_byte(address, (uint8_t) value))
+    bool b_success;
+    CRegisterModel::write(address, 1, value, &b_success);
+    if (b_success)
     {
         return;
     }
@@ -652,7 +657,9 @@ void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value)
         return;
     }
 
-    if (CRegisterModel::write_halfword(address, (uint16_t) value))
+    bool b_success;
+    CRegisterModel::write(address, 2, value, &b_success);
+    if (b_success)
     {
         return;
     }
@@ -720,7 +727,9 @@ void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value)
         return;
     }
 
-    if (CRegisterModel::write_word(address, (uint32_t) value))
+    bool b_success;
+    CRegisterModel::write(address, 4, value, &b_success);
+    if (b_success)
     {
         return;
     }

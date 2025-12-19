@@ -33,12 +33,8 @@ class CRegisterModel
 {
   public:
     static int init();
-    static bool read_byte(uint32_t addr, uint8_t *datum);
-    static bool read_halfword(uint32_t addr, uint16_t *datum);
-    static bool read_word(uint32_t addr, uint32_t *datum);
-    static bool write_byte(uint32_t addr, uint8_t datum);
-    static bool write_halfword(uint32_t addr, uint16_t datum);
-    static bool write_word(uint32_t addr, uint32_t datum);
+    static uint32_t read(uint32_t addr, unsigned len, bool *p_success);
+    static void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success);
     static bool read_data(uint32_t addr, unsigned len, uint8_t *data);
     static bool write_data(uint32_t addr, unsigned len, const uint8_t *data);
 

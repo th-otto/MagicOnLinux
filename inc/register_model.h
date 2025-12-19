@@ -33,10 +33,8 @@ class CRegisterModel
 {
   public:
     static int init();
-    static uint32_t read(uint32_t addr, unsigned len, bool *p_success);
-    static void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success);
-    static bool read_data(uint32_t addr, unsigned len, uint8_t *data);
-    static bool write_data(uint32_t addr, unsigned len, const uint8_t *data);
+    static uint32_t read_reg(uint32_t addr, unsigned len, bool *p_success);
+    static void write_reg(uint32_t addr, unsigned len, uint32_t datum, bool *p_success);
 
     const char *name = "base";
     const uint32_t start_addr = 0;
@@ -52,20 +50,21 @@ class CRegisterModel
 	virtual ~CRegisterModel()
     {
     }
-    virtual bool write(uint32_t addr, unsigned len, const uint8_t *data)
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
     {
         // default: ignore write, no bus error
         (void) addr;
         (void) len;
-        (void) data;
-        return true;
+        (void) datum;
+        *p_success = true;
     }
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
         // default: read zeros, no bus error
         (void) addr;
-        memset(data, 0, len);
-        return true;
+        (void) len;
+        *p_success = true;
+        return 0;
     }
 };
 

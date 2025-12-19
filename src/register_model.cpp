@@ -41,19 +41,21 @@ class CTosRom512k : public CRegisterModel
 	CTosRom512k() : CRegisterModel("512k TOS ROMs",0x00E00000,0x00F00000) { }
 
     /*
-    virtual bool write(uint32_t addr, unsigned len, const uint8_t *data)
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
     {
         (void) addr;
         (void) len;
         (void) data;
-        return false;
+        *p_success = false;
+        return;
     }
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
         (void) addr;
         (void) len;
         (void) data;
-        return false;
+        *p_success = false;
+        return 0;
     }*/
 };
 
@@ -85,15 +87,15 @@ class CST_TT_IO : public CRegisterModel
 {
   public:
     CST_TT_IO() : CRegisterModel("ST/TT I/O", 0x00ff8000, 0x01000000 - 1) { }
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
         // kind of recursion
-        return read_data(addr | 0xff000000, len, data);
+        return read_reg(addr | 0xff000000, len, p_success);
     }
-    virtual bool write(uint32_t addr, unsigned len, const uint8_t *data)
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
     {
         // kind of recursion
-        return write_data(addr | 0xff000000, len, data);
+        write_reg(addr | 0xff000000, len, datum, p_success);
     }
 };
 
@@ -141,12 +143,12 @@ class CVideoScreenMemoryPositionHigh : public CRegisterModel
     {
         logcnt = 20;
     }
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
         (void) addr;
         (void) len;
-        *data = (uint8_t) (addr68kVideo >> 16);
-        return true;
+        *p_success = true;
+        return (uint8_t) (addr68kVideo >> 16);
     }
 };
 
@@ -157,35 +159,43 @@ class CVideoScreenMemoryPositionMid : public CRegisterModel
     {
         logcnt = 20;
     }
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
         (void) addr;
         (void) len;
-        *data = (uint8_t) (addr68kVideo >> 8);
-        return true;
+        *p_success = true;
+        return (uint8_t) (addr68kVideo >> 8);
     }
 };
 
 class CVideoAddressPointer : public CRegisterModel
 {
   public:
-    CVideoAddressPointer() : CRegisterModel("Video address pointer", 0xffff8205, 0xffff8209)
+    CVideoAddressPointer() : CRegisterModel("Video address pointer", 0xffff8204, 0xffff8209)
     {
         logcnt = 20;
     }
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
-        (void) len;
+        if (((addr & 1) == 0) || (len != 1))
+        {
+            // only support 8-bit read on odd address
+            *p_success = false;
+            return 0;
+        }
+
         addr -= start_addr;
-        if (addr == 0)
-            *data = (uint8_t) (addr68kVideo >> 16);
+        *p_success = true;
+        if (addr == 1)
+            return (uint8_t) (addr68kVideo >> 16);
         else
-        if (addr == 2)
-            *data = (uint8_t) (addr68kVideo >> 8);
+        if (addr == 3)
+            return (uint8_t) (addr68kVideo >> 8);
         else
-        if (addr == 0)
-            *data = (uint8_t) (addr68kVideo);
-        return true;
+        if (addr == 5)
+            return (uint8_t) (addr68kVideo);
+        assert(0);
+        return 0;
     }
 };
 
@@ -199,12 +209,12 @@ class CVideoScreenMemoryPositionLow : public CRegisterModel
 {
   public:
     CVideoScreenMemoryPositionLow() : CRegisterModel("Video screen memory position (Low byte)", 0xffff820d, 0xffff820d) { }
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
         (void) addr;
         (void) len;
-        *data = (uint8_t) addr68kVideo;
-        return true;
+        *p_success = true;
+        return (uint8_t) addr68kVideo;
     }
 };
 
@@ -215,12 +225,13 @@ class CVideoPalette : public CRegisterModel
     {
         logcnt = 20;
     }
-    virtual bool read(uint32_t addr, unsigned len, uint8_t *data)
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
         if ((addr & 1) || (len == 1))
         {
             // only support 16-bit and 32-bit read on even address
-            return false;
+            *p_success = false;
+            return 0;
         }
         addr -= start_addr;
         unsigned index = addr >> 1;
@@ -230,26 +241,26 @@ class CVideoPalette : public CRegisterModel
         {
             // read one entry
 
-            uint16_t val = CMagiCScreen::getColourPaletteEntry(index);
-            *((uint16_t *) data) = val;
+            *p_success = true;
+            return CMagiCScreen::getColourPaletteEntry(index);
         }
         else
         {
             // read two entries
 
+            *p_success = true;
             uint32_t val0 = CMagiCScreen::getColourPaletteEntry(index);
             uint32_t val1 = CMagiCScreen::getColourPaletteEntry(index + 1);
-            *((uint32_t *) data) = (val0 << 16) | val1;
+            return (val0 << 16) | val1;
         }
-
-        return true;
     }
-    virtual bool write(uint32_t addr, unsigned len, const uint8_t *data)
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
     {
         if ((addr & 1) || (len == 1))
         {
             // only support 16-bit and 32-bit write on even address
-            return false;
+            *p_success = false;
+            return;
         }
         addr -= start_addr;
         unsigned index = addr >> 1;
@@ -259,18 +270,17 @@ class CVideoPalette : public CRegisterModel
         {
             // write one entry
 
-            uint16_t val = *((uint16_t *) data);
-            CMagiCScreen::setColourPaletteEntry(index, val);
+            *p_success = true;
+            CMagiCScreen::setColourPaletteEntry(index, datum);
         }
         else
         {
             // write two entries
 
-            uint32_t val = *((uint32_t *) data);
-            CMagiCScreen::setColourPaletteEntry(index, (uint16_t) (val >> 16));
-            CMagiCScreen::setColourPaletteEntry(index + 1, (uint16_t) val);
+            *p_success = true;
+            CMagiCScreen::setColourPaletteEntry(index, (uint16_t) (datum >> 16));
+            CMagiCScreen::setColourPaletteEntry(index + 1, (uint16_t) datum);
         }
-        return true;
     }
 };
 
@@ -351,91 +361,6 @@ int CRegisterModel::init()
 }
 
 
-bool CRegisterModel::read_data(uint32_t addr, unsigned len, uint8_t *data)
-{
-    for (unsigned n = 0; n < num_models; n++)
-    {
-        CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
-        {
-            bool ret = model->read(addr, len, data);
-            if (ret)
-            {
-                if (model->logcnt)
-                {
-                    if (len == 1)
-                        DebugInfo("m68k (0x%08x) -> 0x%02x (%s)", addr, data[0], model->name);
-                    else
-                    if (len == 2)
-                        DebugInfo("m68k (0x%08x) -> 0x%02x%02x (%s)", addr, data[0], data[1], model->name);
-                    else
-                    if (len == 4)
-                        DebugInfo("m68k (0x%08x) -> 0x%02x%02x%02x%02x (%s)", addr, data[0], data[1], data[2], data[3], model->name);
-                    model->logcnt--;
-                    if (model->logcnt == 0)
-                    {
-                        DebugWarning("     suppress further messages for this model");
-                    }
-                }
-            }
-            else
-            {
-                DebugInfo("m68k (0x%08x) -> BUSERR (%s)", addr, model->name);
-            }
-            return ret;
-        }
-    }
-
-    return false;
-}
-
-
-bool CRegisterModel::write_data(uint32_t addr, unsigned len, const uint8_t *data)
-{
-    for (unsigned n = 0; n < num_models; n++)
-    {
-        CRegisterModel *model = models[n];
-        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
-        {
-            bool ret = model->write(addr, len, data);
-            if (ret)
-            {
-                if (model->logcnt)
-                {
-                    if (len == 1)
-                        DebugInfo("m68k (0x%08x) := 0x%02x (%s)", addr, data[0], model->name);
-                    else
-                    if (len == 2)
-                        DebugInfo("m68k (0x%08x) := 0x%02x%02x (%s)", addr, data[0], data[1], model->name);
-                    else
-                    if (len == 4)
-                        DebugInfo("m68k (0x%08x) := 0x%02x%02x%02x%02x (%s)", addr, data[0], data[1], data[2], data[3], model->name);
-                    model->logcnt--;
-                    if (model->logcnt == 0)
-                    {
-                        DebugWarning("     suppress further messages for this model");
-                    }
-                }
-            }
-            else
-            {
-                    if (len == 1)
-                        DebugInfo("m68k (0x%08x) := 0x%02x -> BUSERR (%s)", addr, data[0], model->name);
-                    else
-                    if (len == 2)
-                        DebugInfo("m68k (0x%08x) := 0x%02x%02x -> BUSERR (%s)", addr, data[0], data[1], model->name);
-                    else
-                    if (len == 4)
-                        DebugInfo("m68k (0x%08x) := 0x%02x%02x%02x%02x -> BUSERR (%s)", addr, data[0], data[1], data[2], data[3], model->name);
-            }
-            return ret;
-        }
-    }
-
-    return false;
-}
-
-
 /** **********************************************************************************************
  *
  * @brief Read 8-bit or 16-bit or 32-bit value from hardware register address range
@@ -447,14 +372,8 @@ bool CRegisterModel::write_data(uint32_t addr, unsigned len, const uint8_t *data
  * @return read value, extended to 32-bit
  *
  ************************************************************************************************/
-uint32_t CRegisterModel::read(uint32_t addr, unsigned len, bool *p_success)
+uint32_t CRegisterModel::read_reg(uint32_t addr, unsigned len, bool *p_success)
 {
-    union
-    {
-        uint32_t b32;
-        uint16_t b16;
-        uint8_t b8;
-    } data;
     uint32_t ret = 0;
     *p_success = false;
 
@@ -463,37 +382,23 @@ uint32_t CRegisterModel::read(uint32_t addr, unsigned len, bool *p_success)
         CRegisterModel *model = models[n];
         if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
-            *p_success = model->read(addr, len, (uint8_t *) &data);
+            ret = model->read(addr, len, p_success);
             if (*p_success)
             {
-                if (len == 1)
-                {
-                    ret = data.b8;
-                }
-                else
-                if (len == 2)
-                {
-                    ret = data.b16;
-                }
-                else
-                {
-                    ret = data.b32;
-                }
-
                 if (model->logcnt)
                 {
                     if (len == 1)
                     {
-                        DebugInfo("m68k (0x%08x) -> 0x%02x (%s)", addr, data.b8, model->name);
+                        DebugInfo("m68k (0x%08x) -> 0x%02x (%s)", addr, ret, model->name);
                     }
                     else
                     if (len == 2)
                     {
-                        DebugInfo("m68k (0x%08x) -> 0x%04x (%s)", addr, data.b16, model->name);
+                        DebugInfo("m68k (0x%08x) -> 0x%04x (%s)", addr, ret, model->name);
                     }
                     else
                     {
-                        DebugInfo("m68k (0x%08x) -> 0x%08x (%s)", addr, data.b32, model->name);
+                        DebugInfo("m68k (0x%08x) -> 0x%08x (%s)", addr, ret, model->name);
                     }
 
                     model->logcnt--;
@@ -527,36 +432,16 @@ uint32_t CRegisterModel::read(uint32_t addr, unsigned len, bool *p_success)
  * @return read value, extended to 32-bit
  *
  ************************************************************************************************/
-void CRegisterModel::write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
+void CRegisterModel::write_reg(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
 {
-    union
-    {
-        uint32_t b32;
-        uint16_t b16;
-        uint8_t b8;
-    } data;
     *p_success = false;
-
-    if (len == 1)
-    {
-        data.b8 = datum;
-    }
-    else
-    if (len == 2)
-    {
-        data.b16 = datum;
-    }
-    else
-    {
-        data.b32 = datum;
-    }
 
     for (unsigned n = 0; n < num_models; n++)
     {
         CRegisterModel *model = models[n];
         if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
         {
-            *p_success = model->write(addr, len, (uint8_t *) &data);
+            model->write(addr, len, datum, p_success);
             if (*p_success)
             {
                 if (model->logcnt)

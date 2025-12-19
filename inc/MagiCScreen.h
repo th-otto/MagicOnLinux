@@ -35,8 +35,7 @@ class CMagiCScreen
   public:
     static int init();
     static void exit();
-    static void create_surfaces();
-    static void init_pixmap(uint16_t pixelType, uint16_t cmpCount, uint16_t cmpSize, uint32_t planeBytes);
+    static void convAtari2HostSurface();
     static void setColourPaletteEntry(unsigned index, uint16_t val);
     static uint16_t getColourPaletteEntry(unsigned index);
 
@@ -50,6 +49,10 @@ class CMagiCScreen
     static uint32_t m_logAddr;      // logical 68k address of video memory
     static uint32_t m_physAddr;     // physical 68k address of video memory
     static uint16_t m_res;          // desired resolution, usually 0xffff
+
+  private:
+    static void init_pixmap(uint16_t pixelType, uint16_t cmpCount, uint16_t cmpSize, uint32_t planeBytes);
 };
 
 #endif
+

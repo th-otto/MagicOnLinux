@@ -44,7 +44,7 @@ uint16_t CMagiCScreen::m_res;
 
 /** **********************************************************************************************
  *
- * @brief initialisation
+ * @brief initialisation, create SDL surfaces
  *
  * @return zero for "no error"
  *
@@ -60,35 +60,7 @@ int CMagiCScreen::init(void)
     m_logAddr = 0;
     m_physAddr = 0;
     m_res = 0xffff;
-    return 0;
-}
 
-
-/** **********************************************************************************************
- *
- * @brief de-initialisation
- *
- * @return zero for "no error"
- *
- ************************************************************************************************/
-void CMagiCScreen::exit(void)
-{
-    if (pixels != nullptr)
-    {
-        free(pixels);
-        pixels = nullptr;
-        pixels_size = 0;
-    }
-}
-
-
-/** **********************************************************************************************
- *
- * @brief Create Atari SDL surfaces
- *
- ************************************************************************************************/
-void CMagiCScreen::create_surfaces()
-{
     // SDL stuff
     Uint32 rmask = 0;
     Uint32 gmask = 0;
@@ -234,6 +206,26 @@ void CMagiCScreen::create_surfaces()
         m_sdl_host_surface = m_sdl_atari_surface;
     }
     init_pixmap(pixelType, cmpCount, cmpSize, planeBytes);
+
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief de-initialisation
+ *
+ * @return zero for "no error"
+ *
+ ************************************************************************************************/
+void CMagiCScreen::exit(void)
+{
+    if (pixels != nullptr)
+    {
+        free(pixels);
+        pixels = nullptr;
+        pixels_size = 0;
+    }
 }
 
 
@@ -271,6 +263,356 @@ void CMagiCScreen::init_pixmap(uint16_t pixelType, uint16_t cmpCount, uint16_t c
     m_PixMap.planeBytes    = planeBytes;                   // offset to next plane
     m_PixMap.pmTable       = 0;
     m_PixMap.pmReserved    = 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief  Convert bitmap format from Atari native to host native
+ *
+ * @param[in]  pSrc         source surface in Atari format, e.g. monochrome
+ * @param[in]  pDst         destination surface, RGB
+ * @param[in]  palette      colour palette, 4 or 16 or 256 entries for indirect colour mode
+ * @param[in]  bStretchX    horizontal stretching factor ?!?
+ * @param[in]  bStretchY    vertical stretching factor ?!?
+ *
+ * @note This function is NOT called in true colour mode.
+ *
+ ************************************************************************************************/
+void CMagiCScreen::convAtari2HostSurface()
+{
+    const SDL_Surface *pSrc = m_sdl_atari_surface;
+    SDL_Surface *pDst = m_sdl_host_surface;
+    const uint32_t *palette = m_pColourTable;
+
+    int x,y;
+    const uint8_t *ps8 = (const uint8_t *) pSrc->pixels;
+    if (CMagiCScreen::m_physAddr != 0)
+    {
+        ps8 = mem68k + CMagiCScreen::m_physAddr;
+    }
+    uint8_t *pd8 = (uint8_t *) pDst->pixels;
+    const uint8_t *ps8x;
+    uint32_t *pd32x;
+    uint8_t c;
+    // Atari colour representation:
+    // 0xff000000        black
+    // 0xffff0000        red
+    // 0xff00ff00        green
+    // 0xff0000ff        blue
+    // convert from RGB555 to RGB888 using a conversion table
+    static const uint32_t rgbConvTable5to8[32] =
+    {
+        0,
+        ( 1 * 255)/31,
+        ( 2 * 255)/31,
+        ( 3 * 255)/31,
+        ( 4 * 255)/31,
+        ( 5 * 255)/31,
+        ( 6 * 255)/31,
+        ( 7 * 255)/31,
+        ( 8 * 255)/31,
+        ( 9 * 255)/31,
+        (10 * 255)/31,
+        (11 * 255)/31,
+        (12 * 255)/31,
+        (13 * 255)/31,
+        (14 * 255)/31,
+        (15 * 255)/31,
+        (16 * 255)/31,
+        (17 * 255)/31,
+        (18 * 255)/31,
+        (19 * 255)/31,
+        (20 * 255)/31,
+        (21 * 255)/31,
+        (22 * 255)/31,
+        (23 * 255)/31,
+        (24 * 255)/31,
+        (25 * 255)/31,
+        (26 * 255)/31,
+        (27 * 255)/31,
+        (28 * 255)/31,
+        (29 * 255)/31,
+        (30 * 255)/31,
+        255
+    };
+
+    // hack to detect interleaved plane format
+    int bitsperpixel = pSrc->format->BitsPerPixel;
+    if (pSrc->userdata == (void *) 1)
+    {
+        bitsperpixel *= 10;
+    }
+
+    switch(bitsperpixel)
+    {
+        //
+        // one bit, two colours
+        //
+
+        case 1:
+        {
+            uint32_t col0 = palette[0];
+            uint32_t col1 = palette[1];
+
+            // monochrome, driver MFM2.SYS.
+            for (y = 0; y < pSrc->h; y++)
+            {
+                ps8x = ps8;                    // pointer to source line
+                pd32x = (uint32_t *) pd8;    // pointer to dest line
+
+                for (x = 0; x < pSrc->w; x += 8)
+                {
+                    c = *ps8x++;        // get one byte, 8 pixels
+                    *pd32x++ = (c & 0x80) ? col1 : col0;
+                    *pd32x++ = (c & 0x40) ? col1 : col0;
+                    *pd32x++ = (c & 0x20) ? col1 : col0;
+                    *pd32x++ = (c & 0x10) ? col1 : col0;
+                    *pd32x++ = (c & 0x08) ? col1 : col0;
+                    *pd32x++ = (c & 0x04) ? col1 : col0;
+                    *pd32x++ = (c & 0x02) ? col1 : col0;
+                    *pd32x++ = (c & 0x01) ? col1 : col0;
+                }
+
+/* Let SDL do that in EmulatorWindowUpdate()
+                if (bStretchY)
+                {
+                    //copy line
+                    memcpy(pd8 + pDst->pitch, pd8, pDst->w * sizeof(uint32_t));
+                    pd8 += pDst->pitch;
+                }
+*/
+                // advance to next line
+                ps8 += pSrc->pitch;
+                pd8 += pDst->pitch;
+            }
+            break;
+        }
+
+        //
+        // two bits interleaved, four colours, driver MFM4IP.SYS
+        //
+
+        case 20:
+            // organized as interleaved plane (16-bit-big-endian, lowest bit first)
+            for (y = 0; y < pSrc->h; y++)
+            {
+                ps8x = ps8;                    // pointer to source line
+                pd32x = (uint32_t *) pd8;    // pointer to dest line
+                uint16_t index3, index2, index1, index0;
+
+                for (x = 0; x < pSrc->w; x += 16)
+                {
+                    int i;
+                    uint8_t ca[16];
+
+                    index1 = *ps8x++;        // get one byte, bit 0 of first 8 pixels
+                    index1 <<= 0;
+                    index0 = *ps8x++;        // get one byte, bit 0 of  next 8 pixels
+                    index0 <<= 0;
+                    index3 = *ps8x++;        // get one byte, bit 1 of first 8 pixels
+                    index3 <<= 1;
+                    index2 = *ps8x++;        // get one byte, bit 1 of  next 8 pixels
+                    index2 <<= 1;
+                    for (i = 7; i >= 0; i--)
+                    {
+                        ca[i] = (index3 & 2) | (index1 & 1);
+                        index3 >>= 1;
+                        index1 >>= 1;
+                    }
+
+                    for (i = 15; i >= 8; i--)
+                    {
+                        ca[i] = (index2 & 2) | (index0 & 1);
+                        index2 >>= 1;
+                        index0 >>= 1;
+                    }
+
+                    for (i = 0; i < 16; i++)
+                    {
+                        // indexed colour, we must access the palette table here
+                        *pd32x++ = palette[ca[i]];
+                    }
+                }
+
+                /* Let SDL do that in EmulatorWindowUpdate()
+                if (bStretchY)
+                {
+                    //copy line
+                    memcpy(pd8 + pDst->pitch, pd8, pDst->w * sizeof(uint32_t));
+                    pd8 += pDst->pitch;
+                }
+                */
+                // advance to next line
+                ps8 += pSrc->pitch;
+                pd8 += pDst->pitch;
+            }
+            break;
+
+        //
+        // four bits packed, 16 colours, driver MFM16.SYS
+        //
+
+        case 4:
+            for (y = 0; y < pSrc->h; y++)
+            {
+                ps8x = ps8;                    // pointer to source line
+                pd32x = (uint32_t *) pd8;    // pointer to dest line
+                uint8_t index1, index0;
+
+                for (x = 0; x < pSrc->w; x += 2)
+                {
+                    index1 = *ps8x++;        // get one byte, 2 pixels (aaaabbbb)
+                    index0 = index1 >> 4;
+                    index1 &= 0x0f;
+
+                    // indexed colour, we must access the palette table here
+        //            *pd32x++ = (index0 << 4) | (index0 << 12L) | (index0 << 20L) | (0xff000000);
+                    *pd32x++ = palette[index0];
+        //            *pd32x++ = (index1 << 4) | (index1 << 12L) | (index1 << 20L) | (0xff000000);
+                    *pd32x++ = palette[index1];
+                }
+
+                // advance to next line
+                ps8 += pSrc->pitch;
+                pd8 += pDst->pitch;
+            }
+            break;
+
+            /* The Atari ST however has interleaved bitplanes: The first word
+             of graphics memory describes the first 16 pixels on screen in
+             the first bitplane, the second word describes the same 16 pixels
+             in the second bitplane and so forth. If the Atari ST displays 16
+             colours on screen, meaning 4 bitplanes, you have 8 bytes (4 words)
+             of data which describe 16 pixels in all 4 bitplanes. */
+
+        //
+        // four bits interleaved, 16 colours, driver MFM16IP.SYS
+        //
+
+        case 40:
+            // organized as interleaved plane (16-bit-big-endian)
+            for (y = 0; y < pSrc->h; y++)
+            {
+                ps8x = ps8;                    // pointer to source line
+                pd32x = (uint32_t *) pd8;    // pointer to dest line
+                uint16_t index31, index21, index11, index01;
+                uint16_t index32, index22, index12, index02;
+
+                for (x = 0; x < pSrc->w; x += 16)
+                {
+                    int i;
+                    uint8_t ca[16];
+
+                    index01 = *ps8x++;        // get one byte, bit 0 of first 8 pixels
+                    index01 <<= 0;
+                    index02 = *ps8x++;        // get one byte, bit 0 of next 8 pixels
+                    index02 <<= 0;
+                    index11 = *ps8x++;        // get one byte, bit 1 of first 8 pixels
+                    index11 <<= 1;
+                    index12 = *ps8x++;        // get one byte, bit 1 of next 8 pixels
+                    index12 <<= 1;
+                    index21 = *ps8x++;        // get one byte, bit 2 of first 8 pixels
+                    index21 <<= 2;
+                    index22 = *ps8x++;        // get one byte, bit 2 of next 8 pixels
+                    index22 <<= 2;
+                    index31 = *ps8x++;        // get one byte, bit 3 of first 8 pixels
+                    index31 <<= 3;
+                    index32 = *ps8x++;        // get one byte, bit 3 of next 8 pixels
+                    index32 <<= 3;
+
+                    for (i = 7; i >= 0; i--)
+                    {
+                        ca[i] = (index31 & 8) | (index21 & 4) | (index11 & 2) | (index01 & 1);
+                        index31 >>= 1;
+                        index21 >>= 1;
+                        index11 >>= 1;
+                        index01 >>= 1;
+                    }
+
+
+                    for (i = 15; i >= 8; i--)
+                    {
+                        ca[i] = (index32 & 8) | (index22 & 4) | (index12 & 2) | (index02 & 1);
+                        index32 >>= 1;
+                        index22 >>= 1;
+                        index12 >>= 1;
+                        index02 >>= 1;
+                    }
+
+                    for (i = 0; i < 16; i++)
+                    {
+                        // indexed colour, we must access the palette table here
+                        *pd32x++ = palette[ca[i]];
+                    }
+                }
+
+                // advance to next line
+                ps8 += pSrc->pitch;
+                pd8 += pDst->pitch;
+            }
+            break;
+
+        //
+        // 8 bits packed, 256 colours, driver MFM256.SYS
+        //
+
+        case 8:
+            for (y = 0; y < pSrc->h; y++)
+            {
+                ps8x = ps8;                    // pointer to source line
+                pd32x = (uint32_t *) pd8;    // pointer to dest line
+                uint8_t index0;
+
+                for (x = 0; x < pSrc->w; x++)
+                {
+                    index0 = *ps8x++;        // get one byte, 1 pixel
+                    *pd32x++ = palette[index0];
+                }
+
+                // advance to next line
+                ps8 += pSrc->pitch;
+                pd8 += pDst->pitch;
+            }
+            break;
+
+        //
+        // 16 resp. 15 bits packed, 32768 colours, driver MFM32K.SYS
+        //
+
+        case 16:
+            for (y = 0; y < pSrc->h; y++)
+            {
+                ps8x = ps8;                    // pointer to source line
+                pd32x = (uint32_t *) pd8;    // pointer to dest line
+                uint32_t r,g,b,w;
+
+                for (x = 0; x < pSrc->w; x++)
+                {
+                    w = *ps8x++;        // get upper byte of pixel
+                    w <<= 8;
+                    w |= *ps8x++;        // get lower byte of pixel
+
+                    // extract colours
+                    r = (w >> 10) & 0x1f;
+                    g = (w >>  5) & 0x1f;
+                    b = (w >>  0) & 0x1f;
+                    // expand from 5 to 8 bit
+                    r = rgbConvTable5to8[r];
+                    g = rgbConvTable5to8[g];
+                    b = rgbConvTable5to8[b];
+
+                    // SDL has ARGB
+                    w = (0xff000000) | (r << 16) | (g << 8) | (b);
+                    *pd32x++ = w;
+                }
+
+                // advance to next line
+                ps8 += pSrc->pitch;
+                pd8 += pDst->pitch;
+            }
+            break;
+    }
 }
 
 

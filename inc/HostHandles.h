@@ -31,9 +31,6 @@
 typedef dev_t host_dev_t;
 typedef ino_t host_ino_t;
 
-#pragma GCC diagnostic push
-//#pragma GCC diagnostic ignored "-Wzero-length-array"
-#pragma GCC diagnostic ignored "-Wpedantic"
 /// Host File Descriptor
 /// Describes a file or a directory, without opening it.
 struct HostFD
@@ -45,7 +42,6 @@ struct HostFD
     // Maybe better store the host path here?
     // Maybe also store Atari drive here?
 };
-#pragma GCC diagnostic pop
 
 
 #define HOST_HANDLE_NUM     1024            // number of memory blocks

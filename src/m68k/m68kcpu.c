@@ -1384,7 +1384,10 @@ void m68k_op_call_emu_proc(void)
 	//TODO: This is a hack
 	uint32_t jump_table_index = p32[0];
 	extern void *jump_table[];
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 	proc = (tfHostCall *) jump_table[jump_table_index];
+#pragma GCC diagnostic pop
 	// call host function. Put return value into d0 (all in host endian-mode)
 	m68ki_cpu.dar[0] = proc(a1, sBaseAddr);
 }
@@ -1430,7 +1433,10 @@ void m68k_op_call_emu_cproc(void)
 	uint32_t jump_table_index = p32[0];
 	uint32_t self_table_index = p32[1];		// indices 2 and 3 are unused
 	extern void *jump_table[];
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 	proc = (tfHostCallCpp *) jump_table[jump_table_index];
+#pragma GCC diagnostic pop
 	extern void *self_table[];
 	self = self_table[self_table_index];
 	// call host function. Put return value into d0 (all in host endian-mode)

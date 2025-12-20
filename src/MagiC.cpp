@@ -2284,6 +2284,12 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
     //DebugError2("(0x%08x, 0x%08x, %u) -- not supported", log, phys, res);
     if (log != 0xffffffff)
     {
+        if (log == addr68kVideo)
+        {
+            DebugWarning2("() -- logical screen address reset to 0x%08x", log);
+            CMagiCScreen::m_logAddr = 0;
+        }
+        else
         if (log > mem68kSize - 32000)
         {
             DebugError2("() -- invalid 68k address 0x%08x for logical screen", log);

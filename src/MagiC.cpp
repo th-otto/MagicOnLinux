@@ -2286,12 +2286,13 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
     {
         if (log > mem68kSize - 32000)
         {
-            DebugError2("() -- invalid 68k address 0x%08x", log);
+            DebugError2("() -- invalid 68k address 0x%08x for logical screen", log);
         }
         else
         {
             CMagiCScreen::m_logAddr = log;
-            DebugError2("() -- changing of logical screen to 0x%08x not supported, yet", log);
+            setAtariBE32(mem68k + _v_bas_ad, log);
+            DebugWarning2("() -- changing of logical screen to 0x%08x is experimental", log);
         }
     }
     if (phys != 0xffffffff)
@@ -2304,7 +2305,7 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
         else
         if (phys > mem68kSize - 32000)
         {
-            DebugError2("() -- invalid 68k address 0x%08x", phys);
+            DebugError2("() -- invalid 68k address 0x%08x for physical screen", phys);
         }
         else
         {
@@ -2315,7 +2316,8 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
     if (res != 0xffff)
     {
         CMagiCScreen::m_res = res;
-        DebugError2("() -- changing of screen resolution to %ux not supported, yet", res);
+        const char *resname = (res == 0) ? "ST LOW" : ((res == 1) ? "ST MID" : ((res == 2) ? "ST HIGH" : "(unknown)"));
+        DebugError2("() -- changing of screen resolution to %u (%s) not supported, yet", res, resname);
     }
     return 0;
 }

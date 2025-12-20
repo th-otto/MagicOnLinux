@@ -91,7 +91,7 @@ static void error(const char *fmt, ...)
 
 #define g_malloc(n) xmalloc(n)
 #define g_calloc(n, s) xcalloc((size_t)(n), (size_t)(s))
-#define g_malloc0(n) xmalloc((size_t)(n))
+#define g_malloc0(n) xcalloc((size_t)(n), 1)
 #define g_realloc(ptr, s) xrealloc(ptr, s)
 
 #define g_new(t, n) ((t *)g_malloc((size_t)(n) * sizeof(t)))
@@ -103,7 +103,18 @@ static void error(const char *fmt, ...)
 
 static void *xmalloc(size_t s)
 {
-	void *a = calloc(1, s);
+	void *a = malloc(s);
+
+	if (a == NULL)
+		fatal("%s", strerror(errno));
+	return a;
+}
+
+/* ------------------------------------------------------------------------- */
+
+static void *xcalloc(size_t n, size_t s)
+{
+	void *a = calloc(n, s);
 
 	if (a == NULL)
 		fatal("%s", strerror(errno));
@@ -793,7 +804,7 @@ static void ifclose(IFILE *f)
 
 static IFILE *ifopen(const char *fname)
 {
-	IFILE *f = g_new(IFILE, 1);
+	IFILE *f = g_new0(IFILE, 1);
 
 	f->fname = g_strdup(fname);
 	f->fh = fopen(fname, "rb");
@@ -1349,6 +1360,7 @@ static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ig
 				s_addch(msgctxt, CONTEXT_GLUE);
 				msgid_str = s_detach(msgid);
 				s_addstr(msgctxt, msgid_str);
+				g_free(msgid_str);
 				msgid_str = s_detach(msgctxt);
 			} else
 			{
@@ -1407,9 +1419,9 @@ static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ig
 		}
 	}
 	retval = TRUE;
+	s_free(entrytype);
 
-	if (f)
-		ifclose(f);
+	ifclose(f);
 	return retval;
 }
 

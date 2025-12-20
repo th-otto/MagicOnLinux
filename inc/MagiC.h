@@ -135,6 +135,7 @@ class CMagiC
     pthread_mutex_t m_ConditionMutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t m_Cond  = PTHREAD_COND_INITIALIZER;
     void OS_SetEvent(uint32_t *event, uint32_t flags);
+    uint32_t OS_AskEvent(const uint32_t *event, uint32_t flags);
     void OS_WaitForEvent(uint32_t *event, uint32_t *flags);
 
     CHostXFS m_HostXFS;              // XFS

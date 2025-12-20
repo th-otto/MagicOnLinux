@@ -330,6 +330,22 @@ void CMagiC::OS_SetEvent(uint32_t *event, uint32_t flags)
 
 /** **********************************************************************************************
  *
+ * @brief 68k emulator asks for a message, but does not clear it
+ *
+ * @param[in,out]  event        bit vector to ask for
+ * @param[out]     flags        bit vector with '1' and '0' flags
+ *
+ * @return masked bit vector with arrived '1' bits
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::OS_AskEvent(const uint32_t *event, uint32_t flags)
+{
+    return *event & flags;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief 68k emulator waits for a message
  *
  * @param[in,out]  event        bit vector to wait for, is cleared on arrival
@@ -1413,7 +1429,7 @@ int CMagiC::EmuThread( void )
 #endif
 //                CDebug::DebugInfo("CMagiC::Exec() --- Interrupt Pending => %d 68k-Zyklen", CyclesExecuted);
             }
-            while(m_bInterruptPending);
+            while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM));
         }
 
         // aufgelaufene Maus-Interrupts bearbeiten
@@ -1466,7 +1482,7 @@ int CMagiC::EmuThread( void )
             CDebug::DebugInfo("CMagiC::EmuThread() --- Exited critical region m_KbCriticalRegionId");
 #endif
             m_bWaitEmulatorForIRQCallback = true;
-            while(m_bInterruptPending)
+            while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
 #if defined(USE_ASGARD_PPC_68K_EMU)
                 Asgard68000Execute();        // warte bis IRQ-Callback
 #else
@@ -1491,7 +1507,7 @@ int CMagiC::EmuThread( void )
 #else
             m68k_set_irq(M68K_IRQ_5);        // autovector interrupt 69
 #endif
-            while(m_bInterruptPending)
+            while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
             {
 #if defined(USE_ASGARD_PPC_68K_EMU)
                 Asgard68000Execute();        // warte bis IRQ-Callback
@@ -1519,7 +1535,7 @@ int CMagiC::EmuThread( void )
 #else
             m68k_set_irq(M68K_IRQ_4);
 #endif
-            while(m_bInterruptPending)
+            while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
             {
 #if defined(USE_ASGARD_PPC_68K_EMU)
                 Asgard68000Execute();        // warte bis IRQ-Callback

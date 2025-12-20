@@ -1,7 +1,6 @@
 #include "config.h"
 #include "emulation_globals.h"
 
-#if defined(USE_MUSASHI_68K_EMU)
 #include <string.h>
 #include <stdint.h>
 
@@ -1712,5 +1711,3 @@ void m68k_state_register(const char *type)
 /* ======================================================================== */
 /* ============================== END OF FILE ============================= */
 /* ======================================================================== */
-
-#endif

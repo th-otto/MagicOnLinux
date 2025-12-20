@@ -84,11 +84,7 @@ class CMagiC
     void PutKeyToBuffer(uint8_t key);
     static void *_EmuThread(void *param);
     int EmuThread(void);
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    static int IRQCallback(int IRQLine, void *thisPtr);
-#else
     static int IRQCallback(int IRQLine);
-#endif
     uint32_t AtariInit(uint32_t params, uint8_t *addrOffset68k);
     uint32_t AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k);
     uint32_t AtariVdiInit(uint32_t params, uint8_t *addrOffset68k);

@@ -1065,17 +1065,6 @@ int CMagiC::init(CXCmd *pXCmd)
     // initialise 68k emulator (Musashi)
     //
 
-#if defined(USE_ASGARD_PPC_68K_EMU)
-
-    OpcodeROM = mem68k;    // ROM == RAM
-    Asgard68000SetIRQCallback(IRQCallback, this);
-    Asgard68000SetHiMem(m_RAM68ksize);
-    m_bSpecialExec = false;
-//    Asgard68000Reset();
-//    CPU mit vbr, sr und cacr
-    Asgard68000Reset();
-
-#else
     // The 68020 is the most powerful CPU that is supported by Musashi
     m68k_set_cpu_type(M68K_CPU_TYPE_68020);
     m68k_init();
@@ -1091,8 +1080,6 @@ int CMagiC::init(CXCmd *pXCmd)
 
     // Reset Musashi 68k emulator
     m68k_pulse_reset();
-
-#endif
 
     CRegisterModel::init();
     /*
@@ -1296,16 +1283,8 @@ void CMagiC::StartExec( void )
 
 void CMagiC::StopExec( void )
 {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    Asgard68000SetExitImmediately();
-#else
-    m68k_StopExecution();
-#endif
+    m68k_StopExecution();   // leave inner emulation loop
     m_bCanRun = false;        // darf nicht laufen
-#ifdef MAGICMACX_DEBUG68K
-    for    (register int i = 0; i < 100; i++)
-        CDebug::DebugInfo("### VideoRamWriteCounter(%2d) = %d", i, WriteCounters[i]);
-#endif
 }
 
 
@@ -1372,14 +1351,8 @@ int CMagiC::EmuThread( void )
 
         // längere Ausführungsphase
 
-//        CDebug::DebugInfo("CMagiC::EmuThread() -- Starte 68k-Emulator");
         m_bWaitEmulatorForIRQCallback = false;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000Execute();
-#else
         m68k_execute();
-#endif
-//        CDebug::DebugInfo("CMagiC::EmuThread() --- %d 68k-Zyklen", CyclesExecuted);
 
         // Bildschirmadressen geändert
         if (m_bScreenBufferChanged)
@@ -1408,11 +1381,7 @@ int CMagiC::EmuThread( void )
         // ausstehende Busfehler bearbeiten
         if (m_bBusErrorPending)
         {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-            Asgard68000SetBusError();
-#else
             m68k_exception_bus_error();
-#endif
             m_bBusErrorPending = false;
         }
 
@@ -1422,12 +1391,7 @@ int CMagiC::EmuThread( void )
             m_bWaitEmulatorForIRQCallback = true;
             do
             {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                Asgard68000Execute();        // warte bis IRQ-Callback
-#else
                 m68k_execute();        // warte bis IRQ-Callback
-#endif
-//                CDebug::DebugInfo("CMagiC::Exec() --- Interrupt Pending => %d 68k-Zyklen", CyclesExecuted);
             }
             while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM));
         }
@@ -1463,11 +1427,7 @@ int CMagiC::EmuThread( void )
                     // DebugInfo2("() -- ikbd pending = %u %u %u %u", bNewBstate[0], bNewBstate[1], bNewMpos, bNewKey);
                     // Interrupt-Vektor 70 für Tastatur/MIDI mitliefern
                     m_bInterruptPending = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                    Asgard68000SetIRQLineAndExcVector(k68000IRQLineIRQ6, k68000IRQStateAsserted, 70);
-#else
                     m68k_set_irq(M68K_IRQ_6);    // autovector interrupt 70
-#endif
                 }
             }
             m_bInterruptMouseKeyboardPending = false;
@@ -1483,11 +1443,7 @@ int CMagiC::EmuThread( void )
 #endif
             m_bWaitEmulatorForIRQCallback = true;
             while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                Asgard68000Execute();        // warte bis IRQ-Callback
-#else
                 m68k_execute();        // warte bis IRQ-Callback
-#endif
         }
 
         // aufgelaufene 200Hz-Interrupts bearbeiten
@@ -1502,19 +1458,10 @@ int CMagiC::EmuThread( void )
 */
             m_bInterruptPending = true;
             m_bWaitEmulatorForIRQCallback = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-            Asgard68000SetIRQLineAndExcVector(k68000IRQLineIRQ5, k68000IRQStateAsserted, 69);
-#else
             m68k_set_irq(M68K_IRQ_5);        // autovector interrupt 69
-#endif
             while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
             {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                Asgard68000Execute();        // warte bis IRQ-Callback
-#else
                 m68k_execute();        // warte bis IRQ-Callback
-#endif
-//                CDebug::DebugInfo("CMagiC::EmuThread() --- m_bInterrupt200HzPending => %d 68k-Zyklen", CyclesExecuted);
             }
         }
 
@@ -1530,19 +1477,10 @@ int CMagiC::EmuThread( void )
 */
             m_bInterruptPending = true;
             m_bWaitEmulatorForIRQCallback = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-            Asgard68000SetIRQLine(k68000IRQLineIRQ4, k68000IRQStateAsserted);
-#else
             m68k_set_irq(M68K_IRQ_4);
-#endif
             while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
             {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                Asgard68000Execute();        // warte bis IRQ-Callback
-#else
                 m68k_execute();        // warte bis IRQ-Callback
-#endif
-//                CDebug::DebugInfo("CMagiC::Exec() --- m_bInterruptVBLPending => %d 68k-Zyklen", CyclesExecuted);
             }
         }
 
@@ -1572,19 +1510,6 @@ int CMagiC::EmuThread( void )
 *
 **********************************************************************/
 
-#if defined(USE_ASGARD_PPC_68K_EMU)
-int CMagiC::IRQCallback(int IRQLine, void *thisPtr)
-{
-    CMagiC *cm = (CMagiC *) thisPtr;
-    // Interrupt-Leitungen zurücksetzen
-    Asgard68000SetIRQLine(IRQLine, k68000IRQStateClear);
-    // Verarbeitung bestätigen
-    cm->m_bInterruptPending = false;
-    if (cm->m_bWaitEmulatorForIRQCallback)
-        Asgard68000SetExitImmediately();
-    return 0;
-}
-#else
 int CMagiC::IRQCallback(int IRQLine)
 {
     CMagiC *cm = (CMagiC *) pTheMagiC;
@@ -1606,7 +1531,6 @@ int CMagiC::IRQCallback(int IRQLine)
     // dieser Rückgabewert sollte die Interrupt-Anforderung löschen
     return M68K_INT_ACK_AUTOVECTOR;
 }
-#endif
 
 
 /**********************************************************************
@@ -1657,11 +1581,7 @@ void CMagiC::PutKeyToBuffer(uint8_t key)
 
 void CMagiC::SendBusError(uint32_t addr, const char *AccessMode)
 {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    Asgard68000SetExitImmediately();
-#else
     m68k_StopExecution();
-#endif
     m_bBusErrorPending = true;
     m_BusErrorAddress = addr;
     strcpy(m_BusErrorAccessMode, AccessMode);
@@ -1755,11 +1675,7 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
         // interrupt vector 70 for keyboard/MIDI
 
         m_bInterruptMouseKeyboardPending = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-#else
         m68k_StopExecution();
-#endif
 
         OS_SetEvent(            // wake up if idle
                     &m_InterruptEventsId,
@@ -1875,11 +1791,7 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
         if (done)
         {
             m_bInterruptMouseKeyboardPending = true;
-    #if defined(USE_ASGARD_PPC_68K_EMU)
-            Asgard68000SetExitImmediately();
-    #else
             m68k_StopExecution();
-    #endif
         }
 
         OS_SetEvent(            // aufwecken, wenn in "idle task"
@@ -1932,11 +1844,7 @@ int CMagiC::SendMousePosition(int x, int y)
         m_InterruptMouseWhere.x = (short) x;
         m_InterruptMouseWhere.y = (short) y;
         m_bInterruptMouseKeyboardPending = true;
-    #if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-    #else
         m68k_StopExecution();
-    #endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -1968,11 +1876,7 @@ int CMagiC::SendMouseMovement(double xrel, double yrel)
         m_InterruptMouseMoveRelX = xrel;
         m_InterruptMouseMoveRelY = yrel;
         m_bInterruptMouseKeyboardPending = true;
-    #if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-    #else
         m68k_StopExecution();
-    #endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -2051,11 +1955,7 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
         }
 
         m_bInterruptMouseKeyboardPending = true;
-    #if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-    #else
         m68k_StopExecution();
-    #endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -2117,11 +2017,7 @@ int CMagiC::SendHz200(void)
          */
 
         m_bInterrupt200HzPending = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-#else
         m68k_StopExecution();
-#endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -2151,11 +2047,7 @@ int CMagiC::SendVBL(void)
     if (m_bEmulatorIsRunning)
     {
         m_bInterruptVBLPending = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-#else
         m68k_StopExecution();
-#endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -2230,26 +2122,6 @@ uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
     CMagiCKeyboard::init();
     CMagiCMouse::init(m_LineAVars, PtAtariMousePos);
 
-    // Umgehe Fehler in Behnes MagiC-VDI. Bei Bildbreiten von 2034 Pixeln und true colour werden
-    // fälschlicherweise 0 Bytes pro Bildschirmzeile berechnet. Bei größeren Bildbreiten werden
-    // andere, ebenfalls fehlerhafte Werte berechnet.
-
-#ifdef PATCH_VDI_PPC
-    uint16_t *p_linea_BYTES_LIN = (uint16_t *) (m_LineAVars - 2);
-
-    if ((Preferences::bPPC_VDI_Patch) &&
-         (CGlobals::s_PhysicalPixelSize == 32) &&
-         (CGlobals::s_pixelSize == 32) &&
-         (CGlobals::s_pixelSize2 == 32))
-    {
-        DebugInfo("CMagiC::AtariVdiInit() --- PPC");
-//        DebugInfo("CMagiC::AtariVdiInit() --- (LINEA-2) = %u", *((uint16_t *) (m_LineAVars - 2)));
-// Hier die Atari-Bildschirmbreite in Bytes eintragen, Behnes VDI kriegt hier ab 2034 Pixel Bildbreite
-// immer Null raus, das führt zu Schrott.
-//        *((uint16_t *) (m_LineAVars - 2)) = htobe16(8136);    // 2034 * 4
-        patchppc(addrOffset68k);
-    }
-#endif
     return 0;
 }
 
@@ -2283,46 +2155,19 @@ uint32_t CMagiC::AtariExec68k(uint32_t params, uint8_t *addrOffset68k)
         }
         // speziellen Modus beenden
         m_bSpecialExec = false;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-#else
         m68k_StopExecution();
-#endif
         return 0;
     }
 
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    if (Asgard68000GetContext(NULL) > 1024)
-#else
     if (m68k_context_size() > 1024)
-#endif
     {
         DebugError("CMagiC::AtariExec68k() --- Kontext zu groß");
         return(0xffffffff);
     }
 
     // alten 68k-Kontext retten
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    (void) Asgard68000GetContext(Old68kContext);
-#else
     (void) m68k_get_context(Old68kContext);
-#endif
     // PC und sp setzen
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    Asgard68000Reset();
-    Asgard68000SetReg(k68000RegisterIndexPC, pNew68Context->regPC);
-    Asgard68000SetReg(k68000RegisterIndexSP, pNew68Context->regSP);
-    Asgard68000SetReg(k68000RegisterIndexA0, pNew68Context->arg);
-    Asgard68000SetReg(k68000RegisterIndexSR, 0x2700);
-
-    // 68k im PPC im 68k ausführen
-    m_bSpecialExec = true;
-    while(m_bSpecialExec)
-        Asgard68000Execute();
-    // alles zurück
-    ret = Asgard68000GetReg(k68000RegisterIndexD0);
-    (void) Asgard68000SetContext(Old68kContext);
-#else
     m68k_pulse_reset();
     NFReset();
     m68k_set_reg(M68K_REG_PC, be32toh(pNew68Context->regPC));
@@ -2337,7 +2182,7 @@ uint32_t CMagiC::AtariExec68k(uint32_t params, uint8_t *addrOffset68k)
     // alles zurück
     ret = m68k_get_reg(NULL, M68K_REG_D0);
     (void) m68k_set_context(Old68kContext);
-#endif
+
     return ret;
 }
 
@@ -3056,16 +2901,6 @@ uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
     uint32_t act_pd;
     uint32_t m68k_pc;
     const char *AtariPrgFname;
-
-#if 0        // #ifdef PATCH_VDI_PPC
-    // patche den Bildschirm(Offscreen-)Treiber
-    static int patched = 0;
-    if (!patched)
-    {
-        patchppc(addrOffset68k);
-        patched = 1;
-    }
-#endif
 
     DebugError2("()");
 

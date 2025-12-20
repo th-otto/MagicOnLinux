@@ -34,16 +34,10 @@
 #endif
 
 
-#if defined(USE_ASGARD_PPC_68K_EMU)
-// Asgard 68k emulator (PPC Assembler)
-#include "Asgard68000.h"
-#define COUNT_CYCLES 0
-#else
 extern "C" {
 // Musashi 68k emulator ('C')
 #include "m68k.h"
 } // end extern "C"
-#endif
 
 
 // compile time switches

@@ -20,16 +20,12 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#define PROGRAM_NAME "MagicOnLinux v0.3"
-#define VERSION_STRING "0.3"
+#define PROGRAM_NAME "MagicOnLinux v0.4"
+#define VERSION_STRING "0.4"
 #define PROGRAM_VERSION_MAJOR 0
-#define PROGRAM_VERSION_MINOR 3
+#define PROGRAM_VERSION_MINOR 4
 
 #define EVENT_MOUSE 1
-
-#if defined(USE_MUSASHI_68K_EMU)
-// #define DEBUG_68K_EMU 1
-#endif
 
 // debug output for debug configuration
 #if !defined(NDEBUG)
@@ -45,19 +41,5 @@
 #define EMULATE_NULLPTR_BUSERR          // block 68k access to addresses 0..8 in user mode
 #endif
 
-// emulator kernel
-#if __ppc__
-// PPC can use either Asgard or Musashi
-// default is Asgard (faster)
-#if !defined(USE_MUSASHI_68K_EMU)
-#define USE_ASGARD_PPC_68K_EMU 1
-#define PATCH_VDI_PPC 1
-#endif
-#else
-// i386 never uses Asgard
-// i386 always uses Musashi
-#undef USE_ASGARD_PPC_68K_EMU
-#define USE_MUSASHI_68K_EMU 1
-#endif
 
 #endif

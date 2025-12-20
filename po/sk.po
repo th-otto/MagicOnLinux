@@ -19,7 +19,7 @@ msgid  ""
 msgstr ""
 "Project-Id-Version: MagicOnLinux 0.3\n"
 "Report-Msgid-Bugs-To: https://github.com/th-otto/MagicOnLinux/issues\n"
-"POT-Creation-Date: 2025-12-19 17:42+0100\n"
+"POT-Creation-Date: 2025-12-24 11:10+0100\n"
 "PO-Revision-Date: 2004-03-26 07:04+0100\n"
 "Last-Translator: Jan Matis <matis@bgs.sk>\n"
 "Language-Team: slovak <matis@hq.sk>\n"
@@ -29,17 +29,17 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
-#: ../src/gui/gxmessage.c:394
-#: ../src/gui/mxgtk-settings.c:262
+#: ../src/gui/gxmessage.c:400
+#: ../src/gui/mxgtk-settings.c:250
 msgid  "_OK"
 msgstr "_V poriadku"
 
-#: ../src/gui/gxmessage.c:396
-#: ../src/gui/mxgtk-settings.c:264
+#: ../src/gui/gxmessage.c:402
+#: ../src/gui/mxgtk-settings.c:252
 msgid  "_Cancel"
 msgstr "_Zrušiť"
 
-#: ../src/gui/gxmessage.c:1178
+#: ../src/gui/gxmessage.c:1184
 #, c-format
 msgid  ""
 "\n"
@@ -48,162 +48,162 @@ msgstr ""
 "\n"
 "%s - klon xmessage zaloĹženĂ˝ na GTK\n"
 
-#: ../src/gui/gxmessage.c:1180
+#: ../src/gui/gxmessage.c:1186
 #, c-format
 msgid  "Usage: %s [OPTIONS] message ...\n"
 msgstr "Použitie: %s [PREPÍNAČE] správa ...\n"
 
-#: ../src/gui/gxmessage.c:1181
-#, c-format
-msgid  "       %s [OPTIONS] -file FILENAME\n"
-msgstr ""
-
-#: ../src/gui/gxmessage.c:1183
-#, c-format
-msgid  "xmessage options:\n"
-msgstr ""
-
-#: ../src/gui/gxmessage.c:1184
-#, c-format
-msgid  "  -file FILENAME         Get message text from file, '-' for stdin\n"
-msgstr ""
-
-#: ../src/gui/gxmessage.c:1185
-#, c-format
-msgid  "  -buttons BUTTON_LIST   List of \"LABEL:EXIT_CODE\", comma separated\n"
-msgstr ""
-
-#: ../src/gui/gxmessage.c:1186
-#, c-format
-msgid  "  -default LABEL         Give keyboard focus to the specified button\n"
-msgstr ""
-
 #: ../src/gui/gxmessage.c:1187
 #, c-format
-msgid  "  -print                 Send the selected button's LABEL to stdout\n"
-msgstr ""
-
-#: ../src/gui/gxmessage.c:1188
-#, c-format
-msgid  "  -center                Open the window in the center of the screen\n"
-msgstr ""
+msgid  "       %s [OPTIONS] -file FILENAME\n"
+msgstr "       %s [PREPÍNAČE] -file MENOSÚBORU\n"
 
 #: ../src/gui/gxmessage.c:1189
 #, c-format
-msgid  "  -nearmouse             Open the window near the mouse pointer\n"
-msgstr ""
+msgid  "xmessage options:\n"
+msgstr "xmessage prepínače:\n"
 
 #: ../src/gui/gxmessage.c:1190
 #, c-format
-msgid  "  -timeout SECONDS       Exit with code 0 after SECONDS seconds\n"
-msgstr ""
+msgid  "  -file FILENAME         Get message text from file, '-' for stdin\n"
+msgstr "  -file MENOSÚBORU       Prevezme text správy zo súboru, '-' pre štandartný vstup\n"
 
 #: ../src/gui/gxmessage.c:1191
 #, c-format
-msgid  "  -display DISPLAY       X display to use\n"
-msgstr ""
+msgid  "  -buttons BUTTON_LIST   List of \"LABEL:EXIT_CODE\", comma separated\n"
+msgstr "  -buttons ZOZNAM        Zoznam hodnôt \"MENO:EXIT_KÓD\", oddelených čiarkou\n"
 
 #: ../src/gui/gxmessage.c:1192
 #, c-format
-msgid  "  -fn FONT | -font FONT  Set message font (works with GTK font names)\n"
-msgstr ""
+msgid  "  -default LABEL         Give keyboard focus to the specified button\n"
+msgstr "  -default MENO          Prednastaví špecifikované tlačidlo\n"
 
 #: ../src/gui/gxmessage.c:1193
 #, c-format
-msgid  "  -fg COLOR              Set message font color\n"
-msgstr ""
+msgid  "  -print                 Send the selected button's LABEL to stdout\n"
+msgstr "  -print                 Vloží meno zvoleného tlačidla na štandartný výstup\n"
 
 #: ../src/gui/gxmessage.c:1194
 #, c-format
-msgid  "  -bg COLOR              Set message background color\n"
-msgstr ""
+msgid  "  -center                Open the window in the center of the screen\n"
+msgstr "  -center                Pokúsi sa otvoriť okno v strede obrazovky\n"
+
+#: ../src/gui/gxmessage.c:1195
+#, c-format
+msgid  "  -nearmouse             Open the window near the mouse pointer\n"
+msgstr "  -nearmouse             Pokúsi sa otvoriť okno v blízkosti kurzoru myši\n"
 
 #: ../src/gui/gxmessage.c:1196
 #, c-format
-msgid  "  -geometry GEOMETRY     Set window size (position will be ignored)\n"
-msgstr ""
+msgid  "  -timeout SECONDS       Exit with code 0 after SECONDS seconds\n"
+msgstr "  -timeout SEKÚND        Ukončí s kódom 0 za čas SEKÚND\n"
+
+#: ../src/gui/gxmessage.c:1197
+#, c-format
+msgid  "  -display DISPLAY       X display to use\n"
+msgstr "  -display OBRAZOVKA     Použije zadanú X obrazovku\n"
 
 #: ../src/gui/gxmessage.c:1198
 #, c-format
-msgid  "  -iconic                Start iconified\n"
-msgstr ""
+msgid  "  -fn FONT | -font FONT  Set message font (works with GTK font names)\n"
+msgstr "  -fn FONT | -font FONT  Nastaví font správy (pracuje s GTK menami fontov)\n"
 
 #: ../src/gui/gxmessage.c:1199
 #, c-format
-msgid  "  -name NAME             Program name as used by the window manager\n"
-msgstr ""
+msgid  "  -fg COLOR              Set message font color\n"
+msgstr "  -fg FARBA              Nastaví farbu fontu správy\n"
 
 #: ../src/gui/gxmessage.c:1200
 #, c-format
-msgid  "  -title TITLE           Set window title to TITLE\n"
-msgstr ""
+msgid  "  -bg COLOR              Set message background color\n"
+msgstr "  -bg FARBA              Nastaví farbu pozadia správy\n"
 
 #: ../src/gui/gxmessage.c:1202
 #, c-format
-msgid  "Additional %s options:\n"
-msgstr ""
+msgid  "  -geometry GEOMETRY     Set window size (position will be ignored)\n"
+msgstr "  -geometry GEOMETRIA    Nastaví veľkosť okna (pozícia bude ignorovaná)\n"
 
-#: ../src/gui/gxmessage.c:1203
+#: ../src/gui/gxmessage.c:1204
 #, c-format
-msgid  "  -borderless            Open the window without border decoration\n"
-msgstr ""
+msgid  "  -iconic                Start iconified\n"
+msgstr "  -iconic                Spustí sa minimalizované\n"
 
 #: ../src/gui/gxmessage.c:1205
 #, c-format
-msgid  "  -sticky                Make the window stick to all desktops\n"
-msgstr ""
+msgid  "  -name NAME             Program name as used by the window manager\n"
+msgstr "  -name MENO             Meno programu použité vo window manažéri\n"
 
 #: ../src/gui/gxmessage.c:1206
 #, c-format
-msgid  "  -ontop                 Keep window on top\n"
-msgstr ""
+msgid  "  -title TITLE           Set window title to TITLE\n"
+msgstr "  -title TITULOK         Nastaví titulok okna\n"
 
 #: ../src/gui/gxmessage.c:1208
 #, c-format
-msgid  "  -nofocus               Don't focus the window when it opens\n"
-msgstr ""
+msgid  "Additional %s options:\n"
+msgstr "Ďalšie možnosti %s:\n"
 
 #: ../src/gui/gxmessage.c:1209
 #, c-format
-msgid  "  -noescape              Don't allow pressing ESC to close the window\n"
-msgstr ""
-
-#: ../src/gui/gxmessage.c:1210
-#, c-format
-msgid  "  -encoding CHARSET      Expect CHARSET as the message encoding\n"
-msgstr ""
+msgid  "  -borderless            Open the window without border decoration\n"
+msgstr "  -borderless            Pokúsi sa otvoriť okno bez dekorácií okraja okna\n"
 
 #: ../src/gui/gxmessage.c:1211
 #, c-format
-msgid  "  -entry                 Prompt for text to be sent to stdout\n"
-msgstr ""
+msgid  "  -sticky                Make the window stick to all desktops\n"
+msgstr "  -sticky                Umožňuje prilepiť okno na všetky pracovné plochy\n"
 
 #: ../src/gui/gxmessage.c:1212
 #, c-format
-msgid  "  -entrytext TEXT        Same as -entry, but with TEXT as default text\n"
-msgstr ""
-
-#: ../src/gui/gxmessage.c:1213
-#, c-format
-msgid  "  -wrap                  Wrap lines of text to fit window width\n"
-msgstr ""
+msgid  "  -ontop                 Keep window on top\n"
+msgstr "  -ontop                 Ponechať okno navrchu\n"
 
 #: ../src/gui/gxmessage.c:1214
 #, c-format
-msgid  "  -help | -?             Show this usage information\n"
-msgstr ""
+msgid  "  -nofocus               Don't focus the window when it opens\n"
+msgstr "  -nofocus               Nezaostrovať okno pri jeho otvorení\n"
 
 #: ../src/gui/gxmessage.c:1215
 #, c-format
-msgid  "  -version               Show gxmessage version and Copyright details\n"
-msgstr ""
+msgid  "  -noescape              Don't allow pressing ESC to close the window\n"
+msgstr "  -noescape              Nepovoliť zatvorenie okna stlačením klávesu ESC\n"
+
+#: ../src/gui/gxmessage.c:1216
+#, c-format
+msgid  "  -encoding CHARSET      Expect CHARSET as the message encoding\n"
+msgstr "  -encoding CHARSET      Očakáva CHARSET ako kódovanie textu\n"
 
 #: ../src/gui/gxmessage.c:1217
+#, c-format
+msgid  "  -entry                 Prompt for text to be sent to stdout\n"
+msgstr "  -entry                 Vyžiada si text, ktorý má poslať na stdout\n"
+
+#: ../src/gui/gxmessage.c:1218
+#, c-format
+msgid  "  -entrytext TEXT        Same as -entry, but with TEXT as default text\n"
+msgstr "  -entrytext TEXT        Rovnaké ako -entry, ale s TEXTOM ako predvoleným textom\n"
+
+#: ../src/gui/gxmessage.c:1219
+#, c-format
+msgid  "  -wrap                  Wrap lines of text to fit window width\n"
+msgstr "  -wrap                  Naformátuje text aby korešpondoval so šírkou okna\n"
+
+#: ../src/gui/gxmessage.c:1220
+#, c-format
+msgid  "  -help | -?             Show this usage information\n"
+msgstr "  -help | -?             Zobrazí tieto informácie o použití\n"
+
+#: ../src/gui/gxmessage.c:1221
+#, c-format
+msgid  "  -version               Show gxmessage version and Copyright details\n"
+msgstr "  -version               Zobrazí informáciu o verzii gxmessage\n"
+
+#: ../src/gui/gxmessage.c:1223
 #, c-format
 msgid  "Please report bugs to %s.\n"
 msgstr ""
 
-#: ../src/gui/gxmessage.c:1269
+#: ../src/gui/gxmessage.c:1275
 #, c-format
 msgid  ""
 "Copyright (©) %s %s\n"
@@ -216,90 +216,90 @@ msgstr ""
 "the terms of the GNU General Public License <https://www.gnu.org/licenses/gpl.html>.\n"
 "There is NO WARRANTY, to the extent permitted by law.\n"
 
-#: ../src/gui/gxmessage.c:1278
-#: ../src/gui/gxmessage.c:1322
+#: ../src/gui/gxmessage.c:1284
+#: ../src/gui/gxmessage.c:1328
 #, c-format
 msgid  "%s: can't have both -entry and -print\n"
 msgstr "%s: nemôžem použiť súčasne -entry a -print\n"
 
-#: ../src/gui/gxmessage.c:1307
-#: ../src/gui/gxmessage.c:1402
+#: ../src/gui/gxmessage.c:1313
+#: ../src/gui/gxmessage.c:1408
 #, c-format
 msgid  "%s: can't get message from both -file and command line\n"
 msgstr "%s: nemôžem súčasne prevziať správu z -file aj z príkazového riadku\n"
 
-#: ../src/gui/gxmessage.c:1331
+#: ../src/gui/gxmessage.c:1337
 #, c-format
 msgid  "%s: integer -timeout value expected\n"
 msgstr "%s: -timeout očakáva hodnotu integer\n"
 
-#: ../src/gui/gxmessage.c:1431
+#: ../src/gui/gxmessage.c:1437
 #, c-format
 msgid  "%s: unable to read file\n"
 msgstr "%s: nedokážem čítať súbor\n"
 
-#: ../src/gui/gxmessage.c:1444
+#: ../src/gui/gxmessage.c:1450
 #, c-format
 msgid  "%s: message text is required\n"
 msgstr "%s: je požadovaný text správy\n"
 
-#: ../src/gui/gxmessage.c:1445
+#: ../src/gui/gxmessage.c:1451
 #, c-format
 msgid  "Try `%s --help' for more information\n"
 msgstr "Skúste `%s --help' pre viac informácií\n"
 
-#: ../src/gui/mxgtk-settings.c:493
-#: ../src/gui/mxqt-settings.cc:1602
+#: ../src/gui/mxgtk-settings.c:481
+#: ../src/gui/mxqt-settings.cc:1604
 msgid  "Accept and confirm the changes in this dialog"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:494
-#: ../src/gui/mxqt-settings.cc:1603
+#: ../src/gui/mxgtk-settings.c:482
+#: ../src/gui/mxqt-settings.cc:1605
 msgid  "Discard the current changes and close the dialog"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:794
-#: ../src/gui/mxqt-settings.cc:400
+#: ../src/gui/mxgtk-settings.c:782
+#: ../src/gui/mxqt-settings.cc:402
 msgid  "Select a Folder"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:794
-#: ../src/gui/mxqt-settings.cc:400
+#: ../src/gui/mxgtk-settings.c:782
+#: ../src/gui/mxqt-settings.cc:402
 msgid  "Select a File"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:832
-#: ../src/gui/mxqt-settings.cc:1245
+#: ../src/gui/mxgtk-settings.c:820
+#: ../src/gui/mxqt-settings.cc:1247
 msgid  "read-only"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:835
-#: ../src/gui/mxqt-settings.cc:1246
+#: ../src/gui/mxgtk-settings.c:823
+#: ../src/gui/mxqt-settings.cc:1248
 msgid  "Mount drive in read-only mode, preventing writes from the emulation"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:844
-#: ../src/gui/mxqt-settings.cc:1249
+#: ../src/gui/mxgtk-settings.c:832
+#: ../src/gui/mxqt-settings.cc:1251
 msgid  "DOS 8+3 format"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:847
-#: ../src/gui/mxqt-settings.cc:1250
+#: ../src/gui/mxgtk-settings.c:835
+#: ../src/gui/mxqt-settings.cc:1252
 msgid  "Force 8.3 short filenames (FAT-style) on host directories"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:856
-#: ../src/gui/mxqt-settings.cc:1253
+#: ../src/gui/mxgtk-settings.c:844
+#: ../src/gui/mxqt-settings.cc:1255
 msgid  "case insensitive"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:859
-#: ../src/gui/mxqt-settings.cc:1254
+#: ../src/gui/mxgtk-settings.c:847
+#: ../src/gui/mxqt-settings.cc:1256
 msgid  "Ignore case sensitivity when accessing files/folders"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:1151
-#: ../src/gui/mxqt-settings.cc:686
+#: ../src/gui/mxgtk-settings.c:1139
+#: ../src/gui/mxqt-settings.cc:688
 #, c-format
 msgid  ""
 "can't create %s:\n"
@@ -307,74 +307,316 @@ msgid  ""
 msgstr ""
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1582
+#: ../src/gui/mxgtk-settings.c:1570
 #, c-format
 msgid  "%s:%d: unknown section '%s'\n"
 msgstr ""
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1614
+#: ../src/gui/mxgtk-settings.c:1602
 #, c-format
 msgid  "%s:%d: Syntax error: %s"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:1989
+#: ../src/gui/mxgtk-settings.c:1977
 msgid  "You have unsaved changes. Do you want to save them and quit?"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2047
-#: ../src/gui/mxqt-settings.cc:1645
+#: ../src/gui/mxgtk-settings.c:2035
+#: ../src/gui/mxqt-settings.cc:1647
 msgid  "You have unsaved changes. Do you want to discard them and quit?"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2116
-#: ../src/gui/mxqt-settings.cc:1518
+#: ../src/gui/mxgtk-settings.c:2104
+#: ../src/gui/mxqt-settings.cc:1520
 msgid  "MagicOnLinux Settings"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2185
+#: ../src/gui/mxgtk-settings.c:2173
 msgid  "Sets the client geometry of the main window"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2185
-msgctxt "option"
+#: ../src/gui/mxgtk-settings.c:2173
 msgid  "GEOMETRY"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2186
-#: ../src/gui/mxqt-settings.cc:1717
+#: ../src/gui/mxgtk-settings.c:2174
+#: ../src/gui/mxqt-settings.cc:1729
 msgid  "Specify an alternative configuration file path"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2186
-#: ../src/gui/mxqt-settings.cc:1717
+#: ../src/gui/mxgtk-settings.c:2174
+#: ../src/gui/mxqt-settings.cc:1729
 msgid  "FILE"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2187
+#: ../src/gui/mxgtk-settings.c:2175
 msgid  "Show version information and exit"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2188
+#: ../src/gui/mxgtk-settings.c:2176
 msgid  "Show help information and exit"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2216
+#: ../src/gui/mxgtk-settings.c:2205
 msgid  "GTK Configurator for MagicOnLinux"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2233
+#: ../src/gui/mxgtk-settings.c:2232
 msgid  "error parsing command line"
 msgstr ""
 
 #. FIXME: use dialog
-#: ../src/gui/mxqt-settings.cc:1123
+#: ../src/gui/mxqt-settings.cc:1125
 #, c-format
 msgid  "Syntax error in configuration file:%d: %s"
 msgstr ""
 
-#: ../src/gui/mxqt-settings.cc:1716
+#: ../src/gui/mxqt-settings.cc:1728
 msgid  "ID of the parent window"
+msgstr ""
+
+#: ../src/gui/nlstool.c:70
+#, c-format
+msgid  "%s - Create translations from PO files\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:71
+#, c-format
+msgid  "Usage: %s [<options>] <file...>\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:72
+#, c-format
+msgid  "Options:\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:73
+#, c-format
+msgid  "   -v, --verbose               emit some progress messages\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:74
+#, c-format
+msgid  "   -p, --podir <dir>           lookup po-files in <dir>\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:75
+#, c-format
+msgid  "   -o, --output <file>         write output to <file>\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:76
+#, c-format
+msgid  "   -d, --default-domain <name> specify packagename\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:77
+#, c-format
+msgid  "   -k, --keys <name>           name of the key string table\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:78
+#, c-format
+msgid  "       --version               print version and exit\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:79
+#, c-format
+msgid  "       --help                  print this help and exit\n"
+msgstr ""
+
+#: ../src/gui/nlstool.c:86
+#, c-format
+msgid  "%s version %s\n"
+msgstr ""
+
+#: ../src/gui/pofile.c:58
+msgid  "Warning: "
+msgstr ""
+
+#: ../src/gui/pofile.c:72
+msgid  "Fatal: "
+msgstr ""
+
+#: ../src/gui/pofile.c:87
+msgid  "Error: "
+msgstr ""
+
+#: ../src/gui/pofile.c:671
+msgid  "Empty administrative entry"
+msgstr ""
+
+#: ../src/gui/pofile.c:691
+msgid  "Fields in administrative entry must end with \\n"
+msgstr ""
+
+#: ../src/gui/pofile.c:724
+#: ../src/gui/pofile.c:729
+#: ../src/gui/pofile.c:734
+#, c-format
+msgid  "Expecting \"%s\" in administrative entry"
+msgstr ""
+
+#: ../src/gui/pofile.c:739
+msgid  "MIME version must be 1.0"
+msgstr ""
+
+#: ../src/gui/pofile.c:744
+msgid  "Content-Transfer-Encoding must be 8bit"
+msgstr ""
+
+#: ../src/gui/pofile.c:752
+#, c-format
+msgid  "%s: missing charset"
+msgstr ""
+
+#: ../src/gui/pofile.c:761
+#, c-format
+msgid  "%s: charset unsupported: %s"
+msgstr ""
+
+#: ../src/gui/pofile.c:769
+#, c-format
+msgid  "%s: language '%s' does not match '%s' from LINGUAS"
+msgstr ""
+
+#: ../src/gui/pofile.c:796
+#, c-format
+msgid  "%s: syntax error in Plural-Forms entry"
+msgstr ""
+
+#: ../src/gui/pofile.c:803
+#, c-format
+msgid  "%s: unknown Plural-Forms entry"
+msgstr ""
+
+#: ../src/gui/pofile.c:808
+#, c-format
+msgid  "%s: missing Plural-Forms entry"
+msgstr ""
+
+#: ../src/gui/pofile.c:818
+#, c-format
+msgid  "%s: bad administrative entry"
+msgstr ""
+
+#: ../src/gui/pofile.c:864
+#: ../src/gui/pofile.c:882
+msgid  "too far backward"
+msgstr ""
+
+#: ../src/gui/pofile.c:1050
+#: ../src/gui/pofile.c:1057
+#, c-format
+msgid  "%s:%d: EOF reached inside string"
+msgstr ""
+
+#: ../src/gui/pofile.c:1073
+#: ../src/gui/pofile.c:1100
+#, c-format
+msgid  "%s:%d: EOS inside string"
+msgstr ""
+
+#: ../src/gui/pofile.c:1116
+#, c-format
+msgid  "%s:%d: internationalized messages should not contain the '\\v' escape sequence"
+msgstr ""
+
+#: ../src/gui/pofile.c:1139
+#, c-format
+msgid  "%s:%d: invalid control sequence '\\%c'"
+msgstr ""
+
+#: ../src/gui/pofile.c:1183
+#, c-format
+msgid  "LINGUAS: bad lang specification \"%s\""
+msgstr ""
+
+#: ../src/gui/pofile.c:1197
+#: ../src/gui/pofile.c:1274
+#, c-format
+msgid  "could not open %s: %s"
+msgstr ""
+
+#: ../src/gui/pofile.c:1220
+#: ../src/gui/pofile.c:1290
+#, c-format
+msgid  "%s:%d: syntax error"
+msgstr ""
+
+#: ../src/gui/pofile.c:1377
+#, c-format
+msgid  "%s:%d: stray ref ignored"
+msgstr ""
+
+#: ../src/gui/pofile.c:1453
+#, c-format
+msgid  "%s:%d: unsupported entry %s"
+msgstr ""
+
+#: ../src/gui/pofile.c:1487
+#, c-format
+msgid  "%s:%d: missing msgid"
+msgstr ""
+
+#: ../src/gui/pofile.c:1496
+#, c-format
+msgid  "%s:%d: wrong number of plural forms"
+msgstr ""
+
+#: ../src/gui/pofile.c:1550
+#, c-format
+msgid  "%s:%d: duplicate entry %s"
+msgstr ""
+
+#: ../src/gui/pofile.c:1568
+#, c-format
+msgid  "%s:%d: entries do not both end with '\\n' in translation of '%s' to '%s'"
+msgstr ""
+
+#: ../src/gui/pofile.c:1574
+#, c-format
+msgid  "%s:%d: entries do not both begin with '\\n' in translation of '%s' to '%s'"
+msgstr ""
+
+#: ../src/gui/pofile.c:1610
+#, c-format
+msgid  "%s:%d: syntax error (c = '%c')"
+msgstr ""
+
+#: ../src/gui/pofile.c:1654
+msgid  "LINGUAS: no languages found"
+msgstr ""
+
+#: ../src/gui/pofile.c:1739
+#, c-format
+msgid  "%s.po: untranslated: '%s'\n"
+msgstr ""
+
+#: ../src/gui/pofile.c:1749
+#, c-format
+msgid  "%s.po: translated %lu, untranslated %lu\n"
+msgstr ""
+
+#: ../src/gui/pofile.c:1787
+#, c-format
+msgid  "unknown language %s"
+msgstr ""
+
+#: ../src/gui/pofile.c:1874
+#, c-format
+msgid  "%s.po: keys %lu (%lu bytes), translations %lu bytes\n"
+msgstr ""
+
+#: ../src/gui/pofile.c:1880
+#, c-format
+msgid  "%s: length of keys %lu does not fit into nls_key_offset"
+msgstr ""
+
+#: ../src/gui/pofile.c:1885
+#, c-format
+msgid  "%s: length of translations %lu does not fit into nls_key_offset"
 msgstr ""
 
 #: ../src/gui/preferences.xml:3
@@ -851,88 +1093,6 @@ msgstr ""
 #: ../src/gui/preferences.xml:149
 msgid  "The interrupt level used by the emulated device (4 is standard)"
 msgstr ""
-
-#~ msgid  ""
-#~ "\n"
-#~ "%s - a GTK-based xmessage clone\n"
-#~ "\n"
-#~ msgstr ""
-#~ "\n"
-#~ "%s - klon xmessage založený na GTK\n"
-#~ "\n"
-
-#~ msgid  ""
-#~ "       %s [OPTIONS] -file FILENAME\n"
-#~ "\n"
-#~ msgstr ""
-#~ "       %s [PREPÍNAČE] -file MENOSÚBORU\n"
-#~ "\n"
-
-#~ msgid  ""
-#~ "xmessage options:\n"
-#~ "  -file FILENAME         Get message text from file, '-' for stdin\n"
-#~ "  -buttons BUTTON_LIST   List of \"LABEL:EXIT_CODE\", comma separated\n"
-#~ "  -default LABEL         Give keyboard focus to the specified button\n"
-#~ "  -print                 Send the selected button's LABEL to stdout\n"
-#~ "  -center                Try to open window in the centre of the screen\n"
-#~ "  -nearmouse             Try to open window near the mouse pointer\n"
-#~ "  -timeout SECONDS       Exit with code 0 after SECONDS seconds\n"
-#~ "\n"
-#~ msgstr ""
-#~ "xmessage prepínače:\n"
-#~ "  -file MENOSÚBORU       Prevezme text správy zo súboru, '-' pre štandartný vstup\n"
-#~ "  -buttons ZOZNAM        Zoznam hodnôt \"MENO:EXIT_KÓD\", oddelených čiarkou\n"
-#~ "  -default MENO          Prednastaví špecifikované tlačidlo\n"
-#~ "  -print                 Vloží meno zvoleného tlačidla na štandartný výstup\n"
-#~ "  -center                Pokúsi sa otvoriť okno v strede obrazovky\n"
-#~ "  -nearmouse             Pokúsi sa otvoriť okno v blízkosti kurzoru myši\n"
-#~ "  -timeout SEKÚND        Ukončí s kódom 0 za čas SEKÚND\n"
-#~ "\n"
-
-#~ msgid  ""
-#~ "X-like options:\n"
-#~ "  -display DISPLAY       X display to use\n"
-#~ "  -fn FONT | -font FONT  Set message font (works with GTK font names)\n"
-#~ "  -fg COLOUR             Set message font colour\n"
-#~ "  -bg COLOUR             Set message background colour\n"
-#~ "  -geometry GEOMETRY     Set window size (position will be ignored)\n"
-#~ "  -iconic                Start iconified\n"
-#~ "  -name NAME             Program name as used by the window manager\n"
-#~ "  -title TITLE           Set window title to TITLE\n"
-#~ "\n"
-#~ msgstr ""
-#~ "X-like prepínače:\n"
-#~ "  -display OBRAZOVKA     Použije zadanú X obrazovku\n"
-#~ "  -fn FONT | -font FONT  Nastaví font správy (pracuje s GTK menami fontov)\n"
-#~ "  -fg FARBA              Nastaví farbu fontu správy\n"
-#~ "  -bg FARBA              Nastaví farbu pozadia správy\n"
-#~ "  -geometry GEOMETRIA    Nastaví veľkosť okna (pozícia bude ignorovaná)\n"
-#~ "  -iconic                Spustí sa minimalizované\n"
-#~ "  -name MENO             Meno programu použité vo window manažéri\n"
-#~ "  -title TITULOK         Nastaví titulok okna\n"
-#~ "\n"
-
-#, fuzzy
-#~ msgid  ""
-#~ "%s options:\n"
-#~ "  -borderless            Try to open window without border decoration\n"
-#~ "  -nofocus               Don't focus the window when it opens\n"
-#~ "  -encoding CHARSET      Expect CHARSET as the message encoding\n"
-#~ "  -entry                 Prompt for text to be sent to stdout\n"
-#~ "  -entrytext TEXT        Same as -entry, but with TEXT as default text\n"
-#~ "  -wrap                  Wrap lines of text to fit window width\n"
-#~ "  -help | -?             Show this usage information\n"
-#~ "  -version               Show gxmessage version information\n"
-#~ "\n"
-#~ msgstr ""
-#~ "%s prepínače:\n"
-#~ "  -borderless            Pokúsi sa otvoriť okno bez dekorácií okraja okna\n"
-#~ "  -encoding CHARSET      Očakáva CHARSET ako kódovanie textu\n"
-#~ "  -entry                 Vyžiada si text, ktorý má poslať na stdout\n"
-#~ "  -wrap                  Naformátuje text aby korešpondoval so šírkou okna\n"
-#~ "  -help | -?             Zobrazí tieto informácie o použití\n"
-#~ "  -version               Zobrazí informáciu o verzii gxmessage\n"
-#~ "\n"
 
 #~ msgid  "%s: can't have both -entry and -timeout\n"
 #~ msgstr "%s: nemôžem použiť súčasne -entry a -timeout\n"

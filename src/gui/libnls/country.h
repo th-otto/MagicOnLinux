@@ -1,6 +1,8 @@
 #ifndef COUNTRY_H
 #define COUNTRY_H
 
+#define ISO639_CODE_LEN 5
+
 typedef enum {
 	LANG_SYSTEM = -1,
 	COUNTRY_US = 0,	 /* USA */

@@ -5,8 +5,16 @@
 #include <errno.h>
 #include <time.h>
 #include <stdint.h>
-#include "nls.h"
+#include "libnls/libnls.h"
+#undef textdomain
+#undef bindtextdomain
+#undef bind_textdomain_codeset
+#include "nls-enable.h"
+#include "libnls/country.h"
 #include "pofile.h"
+#include "libnls/plural-exp.h"
+#include "libnls/libnlsI.h"
+#include "libnls/nlshash.h"
 
 #define KINFO(x) errout x
 
@@ -303,6 +311,17 @@ static void s_addstr(str *s, const char *t)
 
 /* ------------------------------------------------------------------------- */
 
+static void s_addstrn(str *s, const char *t, size_t len)
+{
+	while (len)
+	{
+		s_addch(s, *t++);
+		len--;
+	}
+}
+
+/* ------------------------------------------------------------------------- */
+
 static size_t s_length(str *s)
 {
 	return s->len;
@@ -374,23 +393,24 @@ static hash *h_new(void)
 /* ------------------------------------------------------------------------- */
 
 /* a dumb one */
-static unsigned int compute_hash(const char *t)
+static unsigned int compute_hash(const char *t, size_t keylen)
 {
 	unsigned int m = 0;
 
-	while (*t)
+	while (keylen)
 	{
 		m += *t++;
 		m <<= 1;
+		keylen--;
 	}
 	return m;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static void *h_find(hash *h, const char *key)
+static void *h_find(hash *h, const char *key, size_t keylen)
 {
-	unsigned int m = compute_hash(key) % HASH_SIZ;
+	unsigned int m = compute_hash(key, keylen) % HASH_SIZ;
 	da *d;
 	size_t i, n;
 	hi *k;
@@ -402,7 +422,7 @@ static void *h_find(hash *h, const char *key)
 		for (i = 0; i < n; i++)
 		{
 			k = (hi *)da_nth(d, i);
-			if (strcmp(key, k->key) == 0)
+			if (memcmp(key, k->key, keylen) == 0)
 			{
 				return k;
 			}
@@ -413,9 +433,9 @@ static void *h_find(hash *h, const char *key)
 
 /* ------------------------------------------------------------------------- */
 
-static void h_insert(hash *h, void *k)
+static void h_insert(hash *h, void *k, size_t keylen)
 {
-	unsigned int m = compute_hash(((hi *) k)->key) % HASH_SIZ;
+	unsigned int m = compute_hash(((hi *) k)->key, keylen) % HASH_SIZ;
 	da *d;
 
 	d = h->d[m];
@@ -462,8 +482,9 @@ typedef struct poe
 	char *comment;						/* free user comments */
 	da *refs;							/* the references to locations in code */
 	char *refstr;						/* a char * representation of the references */
-	char *msgstr;						/* the translation */
-	size_t key_offset;
+	str *msgkey;
+	str *msgstr;						/* the translation */
+	int nplurals;
 } poe;
 
 /*
@@ -529,9 +550,9 @@ static void o_free(oh *o, _BOOL freeentries)
 
 /* ------------------------------------------------------------------------- */
 
-static poe *o_find(oh *o, const char *t)
+static poe *o_find(oh *o, const char *t, size_t keylen)
 {
-	return (poe *)h_find(o->h, t);
+	return (poe *)h_find(o->h, t, keylen);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -539,7 +560,7 @@ static poe *o_find(oh *o, const char *t)
 static void o_insert(oh *o, poe *k)
 {
 	da_add(o->d, k);
-	h_insert(o->h, k);
+	h_insert(o->h, k, k->msgkey->len);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -577,16 +598,18 @@ typedef struct ref
 	int lineno;
 } ref;
 
-static poe *poe_new(char *t)
+static poe *poe_new(str *msgid)
 {
 	poe *e = g_new0(poe, 1);
 
-	e->msgid.key = t;
+	e->msgid.key = msgid->buf;
+	e->msgkey = msgid;
 	e->kind = KIND_NORM;
 	e->comment = NULL;
 	e->refs = NULL;
 	e->msgstr = NULL;
 	e->refstr = NULL;
+	e->nplurals = 0;
 	return e;
 }
 
@@ -634,93 +657,166 @@ static void free_pot_ae(ae_t *a)
 
 /* ------------------------------------------------------------------------- */
 
-static _BOOL parse_ae(char *msgstr, ae_t *a)
+static _BOOL parse_ae(po_domain *domain, const char *fname, char *msgstr, ae_t *a)
 {
 	char *c = msgstr;
 	char *t;
 	int m;
 	_BOOL ret = TRUE;
+	const char *from_charset = NULL;
 
+	memset(a, 0, sizeof(*a));
 	if (msgstr == NULL || *msgstr == '\0')
 	{
 		warn(_("Empty administrative entry"));
-		return FALSE;
-	}
-
+		ret = FALSE;
+	} else
+	{
 #define AE_CHECK(s, f) \
-	else if (strncmp(c, s, sizeof(s) - 1) == 0) \
-	{ \
-		char *val = c + sizeof(s) - 1; \
-		while (*val == ' ') val++; \
-		m = t - val; \
-		a->f = g_new(char, m + 1); \
-		memcpy(a->f, val, m); \
-		a->f[m] = '\0'; \
+		else if (strncmp(c, s, sizeof(s) - 1) == 0) \
+		{ \
+			char *val = c + sizeof(s) - 1; \
+			while (*val == ' ') val++; \
+			m = t - val; \
+			a->f = g_new(char, m + 1); \
+			memcpy(a->f, val, m); \
+			a->f[m] = '\0'; \
+		}
+		
+		for (;;)
+		{
+			t = strchr(c, '\n');
+			if (t == NULL)
+			{
+				error(_("Fields in administrative entry must end with \\n"));
+				return FALSE;
+			}
+			if (0) { }
+			AE_CHECK("Last-Translator:", lasttrans)
+			AE_CHECK("Language-Team:", langteam)
+			AE_CHECK("MIME-Version:", mimeversion)
+			AE_CHECK("Content-Type: text/plain; charset=", charset)
+			AE_CHECK("Content-Transfer-Encoding:", transfer_encoding)
+			AE_CHECK("Language:", language)
+			AE_CHECK("Plural-Forms:", plural_form)
+			else
+			{
+				m = t - c;
+				/* warn(_("unsupported administrative entry %.*s"), m, c); */
+				if (a->other == NULL)
+					a->other = s_new();
+				while (c <= t)
+				{
+					s_addch(a->other, *c);
+					c++;
+				}
+			}
+			c = t + 1;
+			if (*c == '\0')
+				break;
+		}
+#undef AE_CHECK
+		if (a->other)
+			s_close(a->other);
+	
+		if (a->lasttrans == NULL)
+		{
+			error(_("Expecting \"%s\" in administrative entry"), "Last-Translator");
+			ret = FALSE;
+		}
+		if (a->langteam == NULL)
+		{
+			error(_("Expecting \"%s\" in administrative entry"), "Language-Team");
+			ret = FALSE;
+		}
+		if (a->language == NULL || *a->language == '\0')
+		{
+			error(_("Expecting \"%s\" in administrative entry"), "Language");
+			ret = FALSE;
+		}
+		if (a->mimeversion == NULL || strcmp(a->mimeversion, "1.0") != 0)
+		{
+			error(_("MIME version must be 1.0"));
+			ret = FALSE;
+		}
+		if (a->transfer_encoding == NULL || strcmp(a->transfer_encoding, "8bit") != 0)
+		{
+			error(_("Content-Transfer-Encoding must be 8bit"));
+			ret = FALSE;
+		}
+		from_charset = a->charset;
 	}
 	
-	for (;;)
+	if (from_charset == NULL)
 	{
-		t = strchr(c, '\n');
-		if (t == NULL)
-		{
-			warn(_("Fields in administrative entry must end with \\n"));
-			return FALSE;
-		}
-		if (0) { }
-		AE_CHECK("Last-Translator:", lasttrans)
-		AE_CHECK("Language-Team:", langteam)
-		AE_CHECK("MIME-Version:", mimeversion)
-		AE_CHECK("Content-Type: text/plain; charset=", charset)
-		AE_CHECK("Content-Transfer-Encoding:", transfer_encoding)
-		AE_CHECK("Language:", language)
-		AE_CHECK("Plural-Forms:", plural_form)
-		else
-		{
-			m = t - c;
-			// warn(_("unsupported administrative entry %.*s"), m, c);
-			if (a->other == NULL)
-				a->other = s_new();
-			while (c <= t)
-			{
-				s_addch(a->other, *c);
-				c++;
-			}
-		}
-		c = t + 1;
-		if (*c == '\0')
-			break;
+		warn(_("%s: missing charset"), fname);
+		from_charset = "UTF-8";
 	}
-#undef AE_CHECK
-	if (a->other)
-		s_close(a->other);
+	/*
+	 * the messages.pot has an entry "charset=CHARSET" (literally),
+	 * unless some of the keys are non-ascii
+	 */
+	if (strcmp(from_charset, "UTF-8") != 0 && strcmp(from_charset, "CHARSET") != 0)
+	{
+		error(_("%s: charset unsupported: %s"), fname, from_charset);
+		ret = FALSE;
+	}
 
-	if (a->lasttrans == NULL)
+	if (a->language != NULL)
 	{
-		warn(_("Expecting \"%s\" in administrative entry"), "Last-Translator");
-		ret = FALSE;
+		if (strlen(domain->lang_id) > 2 ? strcmp(a->language, domain->lang_id) != 0 : strncmp(a->language, domain->lang_id, 2) != 0)
+		{
+			warn(_("%s: language '%s' does not match '%s' from LINGUAS"), fname, a->language, domain->lang_id);
+		}
 	}
-	if (a->langteam == NULL)
+
+	domain->plural_form = NULL;
+	if (a->plural_form != NULL)
 	{
-		warn(_("Expecting \"%s\" in administrative entry"), "Language-Team");
-		ret = FALSE;
-	}
-	if (a->language == NULL || *a->language == '\0')
+		int nplurals;
+		struct expression *pluralp;
+
+		if (EXTRACT_PLURAL_EXPRESSION(a->plural_form, &pluralp, &nplurals))
+		{
+			char buf[200];
+			const struct _nls_plural *plural;
+
+			PLURAL_PRINT(pluralp, buf, sizeof(buf), FALSE);
+			domain->nplurals = nplurals;
+			for (plural = nls_plurals; plural->exp != NULL; plural++)
+			{
+				if (strcmp(plural->str, buf) == 0)
+				{
+					domain->plural_form = plural->id_str;
+					break;
+				}
+			}
+		} else
+		{
+			error(_("%s: syntax error in Plural-Forms entry"), fname);
+			ret = FALSE;
+		}
+		FREE_EXPRESSION(pluralp);
+
+		if (domain->plural_form == NULL)
+		{
+			error(_("%s: unknown Plural-Forms entry"), fname);
+			ret = FALSE;
+		}
+	} else
 	{
-		warn(_("Expecting \"%s\" in administrative entry"), "Language");
-		ret = FALSE;
+		warn(_("%s: missing Plural-Forms entry"), fname);
 	}
-	if (a->mimeversion == NULL || strcmp(a->mimeversion, "1.0") != 0)
+	if (domain->plural_form == NULL)
 	{
-		warn(_("MIME version must be 1.0"));
-		ret = FALSE;
+		domain->nplurals = 2;
+		domain->plural_form = "PLURAL_NOT_ONE"; /* most common one */
 	}
-	if (a->transfer_encoding == NULL || strcmp(a->transfer_encoding, "8bit") != 0)
-	{
-		warn(_("Content-Transfer-Encoding must be 8bit"));
-		ret = FALSE;
-	}
+
 	if (ret == FALSE)
-		error(_("Error in administrative entry"));
+	{
+		error(_("%s: bad administrative entry"), fname);
+	}
 
 	return ret;
 }
@@ -928,12 +1024,12 @@ static int inextc(IFILE *f)
 
 /* ------------------------------------------------------------------------- */
 
-#define is_white(c)  (((c)==' ')||((c)=='\t')||((c)=='\f'))
-#define is_letter(c) ((((c)>='a')&&((c)<='z'))||(((c)>='A')&&((c)<='Z')))
-#define is_digit(c)  (((c)>='0')&&((c)<='9'))
-#define is_octal(c)  (((c)>='0')&&((c)<='7'))
-#define is_hexdig(c) ((((c)>='a')&&((c)<='f'))||(((c)>='A')&&((c)<='F')))
-#define is_hex(c)    (is_digit(c)||is_hexdig(c))
+#define is_white(c)  (((c)== ' ') || ((c) == '\t') || ((c) == '\f'))
+#define is_letter(c) ((((c) >= 'a') && ((c) <= 'z')) || (((c) >= 'A') && ((c) <= 'Z')))
+#define is_digit(c)  (((c) >= '0') && ((c) <= '9'))
+#define is_octal(c)  (((c) >= '0') && ((c) <= '7'))
+#define is_hexdig(c) ((((c) >= 'a') && ((c) <= 'f')) || (((c) >= 'A') && ((c) <= 'F')))
+#define is_hex(c)    (is_digit(c) || is_hexdig(c))
 
 /* only one "..." string will be appended to string s */
 static int get_c_string(IFILE *f, str *s)
@@ -1017,6 +1113,7 @@ static int get_c_string(IFILE *f, str *s)
 					c = '\b';
 					break;
 				case 'v':
+					warn(_("%s:%d: internationalized messages should not contain the '\\v' escape sequence"), f->fname, f->lineno);
 					c = '\v';
 					break;
 				case 'e':
@@ -1153,16 +1250,24 @@ static _BOOL parse_oipl_file(const char *fname, da *d)
 /*
  * parse po files
  */
-static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ignore_ae)
+static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o)
 {
 	int c;
 	IFILE *f;
 	poe *e;
-	str *s,	*userstr, *refstr, *otherstr, *msgid, *msgstr, *msgctxt;
+	str *s;
+	str *userstr;
+	str *refstr;
+	str *otherstr;
+	str *msgid;
+	str *msgid_plural;
+#define MAX_PLURALS 3
+	str *msgstr[MAX_PLURALS];
+	str *msgctxt;
 	str *entrytype;
-	_BOOL retval = FALSE;
+	int nplurals;
+	_BOOL retval = TRUE;
 	
-	(void)domain;
 	f = ifopen(fname);
 	if (f == NULL)
 	{
@@ -1200,7 +1305,10 @@ static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ig
 		refstr = NULL;
 		otherstr = NULL;
 		msgid = NULL;
-		msgstr = NULL;
+		msgid_plural = NULL;
+		msgstr[0] = NULL;
+		msgstr[1] = NULL;
+		msgstr[2] = NULL;
 		msgctxt = NULL;
 		while (c == '#')
 		{
@@ -1273,7 +1381,9 @@ static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ig
 				 */
 				continue;
 			}
-			e = poe_new(g_strdup(""));
+			s = s_new();
+			s_close(s);
+			e = poe_new(s);
 			e->comment = s_detach(userstr);
 			e->kind = KIND_COMM;
 			o_add(o, e);
@@ -1314,16 +1424,35 @@ static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ig
 			if (strcmp(entrytype->buf, "msgid") == 0)
 			{
 				msgid = s;
+			} else if (strcmp(entrytype->buf, "msgid[0]") == 0)
+			{
+				msgid = s;
+			} else if (strcmp(entrytype->buf, "msgid[1]") == 0)
+			{
+				msgid_plural = s;
+			} else if (strcmp(entrytype->buf, "msgid_plural") == 0)
+			{
+				msgid_plural = s;
 			} else if (strcmp(entrytype->buf, "msgstr") == 0)
 			{
-				msgstr = s;
+				msgstr[0] = s;
+			} else if (strcmp(entrytype->buf, "msgstr[0]") == 0)
+			{
+				msgstr[0] = s;
+			} else if (strcmp(entrytype->buf, "msgstr[1]") == 0)
+			{
+				msgstr[1] = s;
+			} else if (strcmp(entrytype->buf, "msgstr[2]") == 0)
+			{
+				msgstr[2] = s;
 			} else if (strcmp(entrytype->buf, "msgctxt") == 0)
 			{
 				msgctxt = s;
 			} else
 			{
-				warn(_("%s:%d: unsupported entry %s"), fname, f->lineno, s->buf);
+				error(_("%s:%d: unsupported entry %s"), fname, f->lineno, entrytype->buf);
 				s_free(s);
+				retval = FALSE;
 			}
 		} while (c != '\n' && c != EOF);
 		
@@ -1343,54 +1472,107 @@ static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ig
 			userstr = otherstr;
 			otherstr = 0;
 		}
-		if (msgid == NULL || msgstr == NULL)
+		nplurals = 0;
+		if (msgid_plural != NULL)
 		{
-			warn(_("%s:%d: missing msgid"), fname, f->lineno);
+			if (msgstr[2] != NULL && msgstr[1] != NULL)
+				nplurals = 3;
+			else if (msgstr[1] != NULL)
+				nplurals = 2;
+			else if (msgstr[0] != NULL)
+				nplurals = 1;
+		}
+		if (msgid == NULL || msgstr[0] == NULL)
+		{
+			error(_("%s:%d: missing msgid"), fname, f->lineno);
 			s_free(msgid);
-			s_free(msgstr);
+			s_free(msgstr[0]);
 			s_free(msgctxt);
+			retval = FALSE;
+		} else if ((msgid_plural != NULL && msgstr[1] == NULL) ||
+			(msgid_plural == NULL && msgstr[1] != NULL) ||
+			(msgid_plural != NULL && nplurals != domain->nplurals))
+		{
+			error(_("%s:%d: wrong number of plural forms"), fname, f->lineno);
+			s_free(msgid);
+			s_free(msgstr[0]);
+			s_free(msgctxt);
+			retval = FALSE;
 		} else
 		{
 			/* now we have the complete entry */
-			char *msgid_str;
-			char *msgstr_str;
-
+			if (msgid_plural != NULL)
+			{
+				s_addch(msgid, '\0');
+				s_close(msgid_plural);
+				s_addstr(msgid, msgid_plural->buf);
+			}
+			s_close(msgid);
 			if (msgctxt != NULL)
 			{
 				s_addch(msgctxt, CONTEXT_GLUE);
-				msgid_str = s_detach(msgid);
-				s_addstr(msgctxt, msgid_str);
-				g_free(msgid_str);
-				msgid_str = s_detach(msgctxt);
-			} else
-			{
-				msgid_str = s_detach(msgid);
+				s_addstrn(msgctxt, msgid->buf, msgid->len);
+				s_free(msgid);
+				s_close(msgctxt);
+				msgid = msgctxt;
 			}
-			msgstr_str = s_detach(msgstr);
-			e = o_find(o, msgid_str);
+			if (msgid_plural != NULL)
+			{
+				/*
+				 * Note: there is only 1 plural key, but up to 6 translations
+				 * (only 3 are supported here)
+				 */
+				/* add plural strings to msgstr */
+				if (msgstr[2] != NULL && msgstr[1] != NULL)
+				{
+					s_addch(msgstr[0], '\0');
+					s_close(msgstr[1]);
+					s_addstr(msgstr[0], msgstr[1]->buf);
+					s_free(msgstr[1]);
+					msgstr[1] = NULL;
+					s_addch(msgstr[0], '\0');
+					s_close(msgstr[2]);
+					s_addstr(msgstr[0], msgstr[2]->buf);
+					s_free(msgstr[2]);
+					msgstr[2] = NULL;
+				} else if (msgstr[1] != NULL)
+				{
+					s_addch(msgstr[0], '\0');
+					s_close(msgstr[1]);
+					s_addstr(msgstr[0], msgstr[1]->buf);
+					s_free(msgstr[1]);
+					msgstr[1] = NULL;
+				}
+			}
+			e = o_find(o, msgid->buf, msgid->len);
 			if (e)
 			{
-				warn(_("%s:%d: duplicate entry %s"), f->fname, f->lineno, msgid_str); /* FIXME: may print CONTEXT_GLUE in msgid */
-				g_free(msgid_str);
-				g_free(msgstr_str);
-			} else if (ignore_ae && msgid_str[0] == '\0')
-			{
-				/* ignore administrative entry */
-				g_free(msgid_str);
-				g_free(msgstr_str);
+				warn(_("%s:%d: duplicate entry %s"), f->fname, f->lineno, msgid->buf); /* FIXME: may print CONTEXT_GLUE in msgid */
+				s_free(msgid);
+				s_free(msgstr[0]);
+				retval = FALSE;
 			} else
 			{
-				e = poe_new(msgid_str);
-				e->msgstr = msgstr_str;
-				if (e->msgid.key && *e->msgid.key != '\0' && e->msgstr && *e->msgstr != '\0')
+				e = poe_new(msgid);
+				if (msgstr[0] != NULL)
+					s_close(msgstr[0]);
+				e->msgstr = msgstr[0];
+				e->nplurals = nplurals;
+				if (e->msgid.key && *e->msgid.key != '\0' && e->msgstr != NULL && e->msgstr->len != 0)
 				{
-					size_t lp = strlen(e->msgid.key);
-					size_t ln = strlen(e->msgstr);
-					if ((e->msgid.key[lp - 1] == '\n' && e->msgstr[ln - 1] != '\n') ||
-						(e->msgid.key[lp - 1] != '\n' && e->msgstr[ln - 1] == '\n'))
+					size_t lp = e->msgkey->len;
+					size_t ln = e->msgstr->len;
+					if ((e->msgid.key[lp - 1] == '\n' && e->msgstr->buf[ln - 1] != '\n') ||
+						(e->msgid.key[lp - 1] != '\n' && e->msgstr->buf[ln - 1] == '\n'))
 					{
 						warn(_("%s:%d: entries do not both end with '\\n' in translation of '%s' to '%s'"),
-							f->fname, f->lineno, e->msgid.key, e->msgstr);
+							f->fname, f->lineno, e->msgid.key, e->msgstr->buf);
+					}
+					if ((e->msgid.key[0] == '\n' && e->msgstr->buf[0] != '\n') ||
+						(e->msgid.key[0] != '\n' && e->msgstr->buf[0] == '\n'))
+					{
+						warn(_("%s:%d: entries do not both begin with '\\n' in translation of '%s' to '%s'"),
+							f->fname, f->lineno, e->msgid.key, e->msgstr->buf);
 					}
 				}
 				if (refstr)
@@ -1404,12 +1586,25 @@ static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ig
 					userstr = NULL;
 				}
 				o_insert(o, e);
+				if (e->msgid.key[0] == '\0')
+				{
+					ae_t a;
+
+					/* get the source charset from the po file */
+					memset(&a, 0, sizeof(a));
+					if (parse_ae(domain, fname, e->msgstr->buf, &a) == FALSE)
+						retval = FALSE;
+					free_pot_ae(&a);
+				}
 			}
 		}
 		/* free temp strings */
 		s_free(refstr);
 		s_free(otherstr);
 		s_free(userstr);
+		s_free(msgid_plural);
+		s_free(msgstr[1]);
+		s_free(msgstr[2]);
 		continue;
 	  err:
 		warn(_("%s:%d: syntax error (c = '%c')"), fname, f->lineno, c);
@@ -1417,8 +1612,8 @@ static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ig
 		{
 			c = inextsh(f);
 		}
+		retval = FALSE;
 	}
-	retval = TRUE;
 	s_free(entrytype);
 
 	ifclose(f);
@@ -1427,14 +1622,14 @@ static _BOOL parse_po_file(po_domain *domain, const char *fname, oh *o, _BOOL ig
 
 /* ------------------------------------------------------------------------- */
 
-char **po_init(const char *po_dir)
+po_domain **po_init(const char *po_dir)
 {
 	str *s;
 	da *d;
 	size_t i;
 	size_t n;
 	char *fname;
-	char **languages;
+	po_domain **languages;
 
 	if (po_dir == NULL)
 		po_dir = PO_DIR;
@@ -1460,11 +1655,12 @@ char **po_init(const char *po_dir)
 		languages = NULL;
 	} else
 	{
-		languages = g_new(char *, n + 1);
+		languages = g_new(po_domain *, n + 1);
 		for (i = 0; i < n; i++)
 		{
 			struct lang_info *info = (struct lang_info *)da_nth(d, i);
-			languages[i] = info->name;
+			languages[i] = g_new0(po_domain, 1);
+			languages[i]->lang_id = info->name;
 			g_free(info);
 		}
 		languages[n] = NULL;
@@ -1475,13 +1671,16 @@ char **po_init(const char *po_dir)
 
 /* ------------------------------------------------------------------------- */
 
-void po_exit(char **languages)
+void po_exit(po_domain **languages)
 {
 	size_t i;
 	
 	for (i = 0; languages[i] != NULL; i++)
 	{
-		g_free(languages[i]);
+		po_domain *domain = languages[i];
+		po_delete_hash(domain);
+		g_free(domain->lang_id);
+		g_free(domain);
 	}
 	g_free(languages);
 }
@@ -1515,88 +1714,9 @@ static oh *po_load(po_domain *domain, const char *po_dir, _BOOL report_translati
 	fname = s_detach(s);
 	
 	o = o_new();
-	if (parse_po_file(domain, fname, o, FALSE))
+	if (parse_po_file(domain, fname, o))
 	{
 		retval = TRUE;
-		/* get the source charset from the po file */
-		{
-			ae_t a;
-			const char *from_charset;
-			poe *e = o_find(o, "");
-	
-			memset(&a, 0, sizeof(a));
-			if (e == NULL || !parse_ae(e->msgstr, &a))
-			{
-				warn(_("%s: bad administrative entry"), fname);
-				from_charset = "UTF-8";
-			} else
-			{
-				from_charset = a.charset;
-			}
-			/*
-			 * the messages.pot has an entry "charset=CHARSET" (literally),
-			 * unless some of the keys are non-ascii
-			 */
-			if (strcmp(from_charset, "UTF-8") != 0 && strcmp(from_charset, "CHARSET") != 0)
-			{
-				error(_("%s: charset unsupported: %s"), fname, from_charset);
-				retval = FALSE;
-			}
-			if (a.language != NULL)
-			{
-				if (strlen(domain->lang_id) > 2 ? strcmp(a.language, domain->lang_id) != 0 : strncmp(a.language, domain->lang_id, 2) != 0)
-				{
-					warn(_("%s: language '%s' does not match '%s' from LINGUAS"), fname, a.language, domain->lang_id);
-				}
-			}
-			domain->plural_form = NULL;
-			if (a.plural_form != NULL)
-			{
-				if (strstr(a.plural_form, "nplurals=1") != NULL)
-				{
-					domain->plural_form = "PLURAL_NONE";
-				} else if (strstr(a.plural_form, "nplurals=2") != NULL)
-				{
-					if (strstr(a.plural_form, "n != 1") != NULL)
-						domain->plural_form = "PLURAL_NOT_ONE";
-					else if (strstr(a.plural_form, "n > 1") != NULL)
-						domain->plural_form = "PLURAL_GREATER_ONE";
-				} else if (strstr(a.plural_form, "nplurals=3") != NULL)
-				{
-					if (strstr(a.plural_form, "n==0") != NULL)
-						domain->plural_form = "PLURAL_RO";
-					else if (strstr(a.plural_form, "n%100!=11") != NULL)
-						domain->plural_form = "PLURAL_HR";
-					else if (strstr(a.plural_form, "n%100>=20") != NULL)
-						domain->plural_form = "PLURAL_PL";
-					else if (strstr(a.plural_form, "n>=2") != NULL)
-						domain->plural_form = "PLURAL_CS";
-				} else if (strstr(a.plural_form, "nplurals=4") != NULL)
-				{
-					if (strstr(a.plural_form, "n%10>=2") != NULL)
-						domain->plural_form = "PLURAL_LT";
-					else if (strstr(a.plural_form, "n%100==4") != NULL)
-						domain->plural_form = "PLURAL_SL";
-					else if (strstr(a.plural_form, "n%100!=11") != NULL)
-						domain->plural_form = "PLURAL_RU";
-				} else if (strstr(a.plural_form, "nplurals=5") != NULL)
-				{
-					if (strstr(a.plural_form, "n<7") != NULL)
-						domain->plural_form = "PLURAL_GA";
-				}
-			} else
-			{
-				warn(_("%s: missing Plural-Forms entry"), fname);
-				domain->plural_form = "PLURAL_NOT_ONE"; /* most common one */
-			}
-			if (domain->plural_form == NULL)
-			{
-				warn(_("%s: unparseable Plural-Forms entry"), fname);
-				domain->plural_form = "PLURAL_NOT_ONE"; /* most common one */
-			}
-			free_pot_ae(&a);
-		}
-		
 		n = o_len(o);
 		for (i = 0; i < n; i++)
 		{
@@ -1609,7 +1729,7 @@ static oh *po_load(po_domain *domain, const char *po_dir, _BOOL report_translati
 				/* the old admin entry - do nothing */
 			} else
 			{
-				if (e->msgstr && strcmp("", e->msgstr) != 0)
+				if (e->msgstr && e->msgstr->len != 0)
 				{
 					numtransl++;
 				} else
@@ -1641,35 +1761,15 @@ static oh *po_load(po_domain *domain, const char *po_dir, _BOOL report_translati
 	return o;
 }
 
-/* ------------------------------------------------------------------------- */
-
-/*
- * this hash function must be the same as the one used later to lookup the translations
- * (nls_hash() in nls.c)
- */
-#define TH_BITS 10
-#define TH_SIZE (1 << TH_BITS)
-#define TH_MASK (TH_SIZE - 1)
-#define TH_BMASK ((1 << (16 - TH_BITS)) - 1)
-
-static unsigned int compute_th_value(const char *t)
+static _BOOL key_equal(str *msgkey, str *msgstr)
 {
-	const unsigned char *u = (const unsigned char *) t;
-	unsigned short a, b;
-
-	a = 0;
-	while (*u)
-	{
-		a = (a << 1) | ((a >> 15) & 1);
-		a += *u++;
-	}
-	b = (a >> TH_BITS) & TH_BMASK;
-	a ^= b;
-	a &= TH_MASK;
-	return a;
+	size_t keylen = msgkey->len;
+	const char *key = msgkey->buf;
+	return memcmp(key, msgstr->buf, keylen) == 0;
 }
 
-_BOOL po_create_hash(po_domain *domain, const char *po_dir, const char *lang, _BOOL report_translations)
+
+_BOOL po_create_hash(po_domain *domain, const char *po_dir, _BOOL report_translations)
 {
 	oh *o;
 	da *th[TH_SIZE];
@@ -1681,11 +1781,10 @@ _BOOL po_create_hash(po_domain *domain, const char *po_dir, const char *lang, _B
 	unsigned long num_collisions;
 	unsigned long num_keys;
 
-	domain->lang_id = lang;
-	domain->tos_country_code = language_from_name(lang);
+	domain->tos_country_code = language_from_name(domain->lang_id);
 	if (domain->tos_country_code == LANG_SYSTEM)
 	{
-		warn(_("unknown language %s"), lang);
+		warn(_("unknown language %s"), domain->lang_id);
 	}
 	o = po_load(domain, po_dir, report_translations);
 	if (o == NULL)
@@ -1715,7 +1814,7 @@ _BOOL po_create_hash(po_domain *domain, const char *po_dir, const char *lang, _B
 		
 		if (e->kind == KIND_NORM && e->msgid.key[0] != '\0')
 		{
-			unsigned int a = compute_th_value(e->msgid.key);
+			unsigned int a = nls_hash(e->msgid.key);
 
 			num_keys++;
 			if (th[a] == NULL)
@@ -1723,12 +1822,12 @@ _BOOL po_create_hash(po_domain *domain, const char *po_dir, const char *lang, _B
 			else
 				num_collisions++;
 			da_add(th[a], INT_TO_PTR(s_length(keys)));
-			s_addstr(keys, e->msgid.key);
+			s_addstrn(keys, e->msgid.key, e->msgkey->len);
 			s_addch(keys, '\0');
-			if (e->msgstr && strcmp("", e->msgstr) != 0 && strcmp(e->msgid.key, e->msgstr) != 0)
+			if (e->msgstr && e->msgstr->len != 0 && !key_equal(e->msgkey, e->msgstr))
 			{
 				da_add(th[a], INT_TO_PTR(s_length(translations)));
-				s_addstr(translations, e->msgstr);
+				s_addstrn(translations, e->msgstr->buf, e->msgstr->len);
 				s_addch(translations, '\0');
 			} else
 			{
@@ -1802,26 +1901,28 @@ _BOOL po_create_hash(po_domain *domain, const char *po_dir, const char *lang, _B
 
 void po_delete_hash(po_domain *domain)
 {
-	nls_key_offset **hash = domain->hash;
+	nls_key_offset **hash;
 	nls_key_offset *t;
 	int i;
 	
-	if (hash == NULL)
-		return;
-	for (i = 0; i < TH_SIZE; i++)
+	hash = domain->hash;
+	if (hash != NULL)
 	{
-		t = hash[i];
-		if (t != NULL)
+		for (i = 0; i < TH_SIZE; i++)
 		{
-			g_free(t);
+			t = hash[i];
+			if (t != NULL)
+			{
+				g_free(t);
+			}
 		}
+		g_free(hash);
+		domain->hash = NULL;
 	}
 	g_free(domain->translations);
 	domain->translations = NULL;
 	g_free(domain->keys);
 	domain->keys = NULL;
-	g_free(hash);
-	domain->hash = NULL;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1884,16 +1985,15 @@ void po_dump_keys(po_domain *domain, FILE *out)
 
 	fprintf(out,
 		"/*\n"
-		" * generated by nlsdump -- DO NOT EDIT\n"
+		" * generated by nlstool -- DO NOT EDIT\n"
 		" */\n"
 		"\n"
 		"#include <stddef.h>\n"
-		"#include \"nls.h\"\n"
+		"#include \"libnls/libnls.h\"\n"
+		"#include \"libnls/country.h\"\n"
 		"\n");
 	if (domain == NULL || domain->hash == NULL)
 		return;
-	if (domain->key_string_name == NULL)
-		domain->key_string_name = "nls_key_strings";
 
 	/*
 	 * dump the actual key strings
@@ -1902,8 +2002,8 @@ void po_dump_keys(po_domain *domain, FILE *out)
 		"/*\n"
 		" * The keys for hash tables below.\n"
 		" */\n"
-		"char const %s[] =\n"
-		"{\n", domain->key_string_name);
+		"static char const nls_key_strings[] =\n"
+		"{\n");
 	s = domain->keys;
 	len = domain->keys_len;
 	for (i = 0; i < len; )
@@ -1930,67 +2030,6 @@ void po_dump_hash(po_domain *domain, FILE *out)
 	const char *s;
 	unsigned char c;
 	size_t i, len;
-	const char *tos_country_str;
-
-#define C(c) { c, #c }
-	static struct {
-		language_t code;
-		const char *str;
-	} const tos_country_strings[] = {
-		C(COUNTRY_US),
-		C(COUNTRY_DE),
-		C(COUNTRY_FR),
-		C(COUNTRY_UK),
-		C(COUNTRY_ES),
-		C(COUNTRY_IT),
-		C(COUNTRY_SE),
-		C(COUNTRY_SF),
-		C(COUNTRY_SG),
-		C(COUNTRY_TR),
-		C(COUNTRY_FI),
-		C(COUNTRY_NO),
-		C(COUNTRY_DK),
-		C(COUNTRY_SA),
-		C(COUNTRY_NL),
-		C(COUNTRY_CZ),
-		C(COUNTRY_HU),
-		C(COUNTRY_PL),
-		C(COUNTRY_LT),
-		C(COUNTRY_RU),
-		C(COUNTRY_EE),
-		C(COUNTRY_BY),
-		C(COUNTRY_UA),
-		C(COUNTRY_SK),
-		C(COUNTRY_RO),
-		C(COUNTRY_BG),
-		C(COUNTRY_SI),
-		C(COUNTRY_HR),
-		C(COUNTRY_RS),
-		C(COUNTRY_ME),
-		C(COUNTRY_MK),
-		C(COUNTRY_GR),
-		C(COUNTRY_LV),
-		C(COUNTRY_IL),
-		C(COUNTRY_ZA),
-		C(COUNTRY_PT),
-		C(COUNTRY_BE),
-		C(COUNTRY_JP),
-		C(COUNTRY_CN),
-		C(COUNTRY_KR),
-		C(COUNTRY_VN),
-		C(COUNTRY_IN),
-		C(COUNTRY_IR),
-		C(COUNTRY_MN),
-		C(COUNTRY_NP),
-		C(COUNTRY_LA),
-		C(COUNTRY_KH),
-		C(COUNTRY_ID),
-		C(COUNTRY_BD),
-		C(COUNTRY_CA),
-		C(COUNTRY_MX),
-	};
-#undef C
-	char buf[20];
 
 	if (domain == NULL || domain->hash == NULL)
 		return;
@@ -2074,45 +2113,140 @@ void po_dump_hash(po_domain *domain, FILE *out)
 	}
 	fprintf(out, "};\n\n");
 
-	/*
-	 * dump the domain
-	 */
-	tos_country_str = NULL;
-	for (i = 0; i < sizeof(tos_country_strings) / sizeof(tos_country_strings[0]); i++)
+#if 0
 	{
-		if (tos_country_strings[i].code == domain->tos_country_code)
+		const char *tos_country_str;
+		char buf[20];
+
+		/*
+		 * dump the domain
+		 */
+		tos_country_str = NULL;
+		for (i = 0; i < sizeof(tos_country_strings) / sizeof(tos_country_strings[0]); i++)
 		{
-			tos_country_str = tos_country_strings[i].str;
-			break;
+			if (tos_country_strings[i].code == domain->tos_country_code)
+			{
+				tos_country_str = tos_country_strings[i].str;
+				break;
+			}
 		}
+
+		if (tos_country_str == NULL)
+		{
+			sprintf(buf, "%d", domain->tos_country_code);
+			tos_country_str = buf;
+		}
+		fprintf(out, "static const libnls_translation lang_%s = { %s, \"%s\", %s, msg_%s_translations, msg_%s };\n\n\n",
+			domain->lang_id,
+			tos_country_str,
+			domain->lang_id,
+			domain->plural_form,
+			domain->lang_id,
+			domain->lang_id);
 	}
-	if (tos_country_str == NULL)
-	{
-		sprintf(buf, "%d", domain->tos_country_code);
-		tos_country_str = buf;
-	}
-	fprintf(out, "static const nls_domain lang_%s = { %s, \"%s\", %s, msg_%s_translations, msg_%s };\n\n\n",
-		domain->lang_id,
-		tos_country_str,
-		domain->lang_id,
-		domain->plural_form,
-		domain->lang_id,
-		domain->lang_id);
+#endif
 }
 
 
-void po_dump_languages(char **languages, FILE *out)
+void po_dump_languages(const char *domain_name, po_domain **languages, FILE *out)
 {
-	size_t i;
+	size_t i, j;
 	
+#define C(c) { c, #c }
+	static struct {
+		language_t code;
+		const char *str;
+	} const tos_country_strings[] = {
+		C(COUNTRY_US),
+		C(COUNTRY_DE),
+		C(COUNTRY_FR),
+		C(COUNTRY_UK),
+		C(COUNTRY_ES),
+		C(COUNTRY_IT),
+		C(COUNTRY_SE),
+		C(COUNTRY_SF),
+		C(COUNTRY_SG),
+		C(COUNTRY_TR),
+		C(COUNTRY_FI),
+		C(COUNTRY_NO),
+		C(COUNTRY_DK),
+		C(COUNTRY_SA),
+		C(COUNTRY_NL),
+		C(COUNTRY_CZ),
+		C(COUNTRY_HU),
+		C(COUNTRY_PL),
+		C(COUNTRY_LT),
+		C(COUNTRY_RU),
+		C(COUNTRY_EE),
+		C(COUNTRY_BY),
+		C(COUNTRY_UA),
+		C(COUNTRY_SK),
+		C(COUNTRY_RO),
+		C(COUNTRY_BG),
+		C(COUNTRY_SI),
+		C(COUNTRY_HR),
+		C(COUNTRY_RS),
+		C(COUNTRY_ME),
+		C(COUNTRY_MK),
+		C(COUNTRY_GR),
+		C(COUNTRY_LV),
+		C(COUNTRY_IL),
+		C(COUNTRY_ZA),
+		C(COUNTRY_PT),
+		C(COUNTRY_BE),
+		C(COUNTRY_JP),
+		C(COUNTRY_CN),
+		C(COUNTRY_KR),
+		C(COUNTRY_VN),
+		C(COUNTRY_IN),
+		C(COUNTRY_IR),
+		C(COUNTRY_MN),
+		C(COUNTRY_NP),
+		C(COUNTRY_LA),
+		C(COUNTRY_KH),
+		C(COUNTRY_ID),
+		C(COUNTRY_BD),
+		C(COUNTRY_CA),
+		C(COUNTRY_MX),
+	};
+#undef C
+
 	fprintf(out,
 		"/*\n"
 		" * the table of available languages.\n"
 		" */\n"
-		"const nls_domain *const nls_languages[] = {\n");
+		"static libnls_translation const nls_languages[] = {\n");
 	for (i = 0; languages[i] != NULL; i++)
 	{
-		fprintf(out, "\t&lang_%s,\n", languages[i]);
+		po_domain *domain = languages[i];
+		const char *tos_country_str;
+		char buf[20];
+
+		/*
+		 * dump the domain
+		 */
+		tos_country_str = NULL;
+		for (j = 0; j < sizeof(tos_country_strings) / sizeof(tos_country_strings[0]); j++)
+		{
+			if (tos_country_strings[j].code == domain->tos_country_code)
+			{
+				tos_country_str = tos_country_strings[j].str;
+				break;
+			}
+		}
+
+		if (tos_country_str == NULL)
+		{
+			sprintf(buf, "%d", domain->tos_country_code);
+			tos_country_str = buf;
+		}
+		fprintf(out, "\t{ %s, \"%s\", %s, msg_%s_translations, msg_%s },\n",
+			tos_country_str,
+			domain->lang_id,
+			domain->plural_form,
+			domain->lang_id,
+			domain->lang_id);
 	}
-	fprintf(out, "\tNULL\n};\n");
+	fprintf(out, "\t{ 0, \"\", 0, NULL, NULL }\n};\n\n");
+	fprintf(out, "libnls_domain %s_domain = { \"%s\", nls_key_strings, nls_languages, { 0, \"\", 0, 0, 0 } };\n", domain_name, domain_name);
 }

@@ -8,13 +8,18 @@
 #include <ctype.h>
 #include <assert.h>
 #include <sys/stat.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
 #include <gtk/gtk.h>
+#pragma GCC diagnostic pop
 #include <locale.h>
 #include <gdk/gdkkeysyms.h>
 #define ENABLE_NLS
-#define GETTEXT_PACKAGE "MagicOnLinux"
 #include "mxnls.h"
 #include "country.c"
+
+#define _STRINGIFY1(x) #x
+#define _STRINGIFY(x) _STRINGIFY1(x)
 
 #undef g_utf8_next_char
 #define g_utf8_next_char(p) ((p) + g_utf8_skip[(unsigned char)(*p)])
@@ -2164,8 +2169,8 @@ static gboolean bShowVersion;
 static gboolean bShowHelp;
 static const char *config_file_arg;
 
-static GOptionEntry const options[] = {
-	{ "geometry", 0, 0, G_OPTION_ARG_STRING, &geom_arg, N_("Sets the client geometry of the main window"), NC_("option", "GEOMETRY") },
+static GOptionEntry options[] = {
+	{ "geometry", 0, 0, G_OPTION_ARG_STRING, &geom_arg, N_("Sets the client geometry of the main window"), N_("GEOMETRY") },
 	{ "config", 0, 0, G_OPTION_ARG_STRING, &config_file_arg, N_("Specify an alternative configuration file path"), N_("FILE") },
 	{ "version", 0, 0, G_OPTION_ARG_NONE, &bShowVersion, N_("Show version information and exit"), NULL },
 	{ "help", '?', G_OPTION_FLAG_HIDDEN, G_OPTION_ARG_NONE, &bShowHelp, N_("Show help information and exit"), NULL },
@@ -2179,6 +2184,7 @@ static gboolean ParseCommandLine(int *argc, char ***argv)
 	GOptionGroup *gtk_group;
 	GError *error = NULL;
 	gboolean retval;
+	int i;
 	GOptionGroup *main_group;
 	
 	/*
@@ -2198,7 +2204,17 @@ static gboolean ParseCommandLine(int *argc, char ***argv)
 	g_option_context_set_main_group(context, main_group);
 	g_option_context_set_summary(context, _("GTK Configurator for MagicOnLinux"));
 	g_option_context_add_group(context, gtk_group);
-	g_option_context_add_main_entries(context, options, GETTEXT_PACKAGE);
+	/*
+	 * we must lookup the translations of the option texts ourselfes,
+	 * because glib would use libintl, not our functions
+	 */
+	for (i = 0; options[i].long_name != NULL; i++)
+	{
+		options[i].description = _(options[i].description);
+		options[i].arg_description = _(options[i].arg_description);
+	}
+	
+	g_option_context_add_main_entries(context, options, NULL);
 
 	g_option_context_set_help_enabled(context, FALSE);
 	
@@ -2251,9 +2267,13 @@ int main(int argc, char **argv)
 	{
 		const char *lang_name;
 		lang_name = language_get_name(language_get_default());
-		bindtextdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
-		textdomain(GETTEXT_PACKAGE);
-		bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
+#ifdef FORCE_LIBINTL
+		bindtextdomain(_STRINGIFY(GETTEXT_PACKAGE), PACKAGE_LOCALE_DIR);
+#else
+		bindtextdomain(_STRINGIFY(GETTEXT_PACKAGE), NULL);
+#endif
+		textdomain(_STRINGIFY(GETTEXT_PACKAGE));
+		bind_textdomain_codeset(_STRINGIFY(GETTEXT_PACKAGE), "UTF-8");
 		setlocale(LC_MESSAGES, lang_name);
 	}
 #endif

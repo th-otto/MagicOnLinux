@@ -1,4 +1,4 @@
-#include "country.h"
+#include "libnls/country.h"
 #include <string.h>
 #include <stdlib.h>
 #include <locale.h>
@@ -6,7 +6,7 @@
 static struct {
 	language_t id;
 	char short_code[3];
-	char full_code[6];
+	char full_code[ISO639_CODE_LEN + 1];
 #ifdef QT_VERSION
 	QLocale::Language language;
 	QLocale::Country country;
@@ -26,7 +26,7 @@ static struct {
 	{ COUNTRY_SG, "de", "de_CH" QT(German, Switzerland) },
 	{ COUNTRY_TR, "tr", "tr_TR" QT(Turkish, Turkey) },
 	{ COUNTRY_FI, "fi", "fi_FI" QT(Finnish, Finland) },
-	{ COUNTRY_NO, "no", "no_NO" QT(NorwegianBokmal, Norway) },
+	{ COUNTRY_NO, "nb", "nb_NO" QT(NorwegianBokmal, Norway) },
 	{ COUNTRY_DK, "da", "da_DK" QT(Danish, Denmark) },
 	{ COUNTRY_SA, "ar", "ar_SA" QT(Arabic, SaudiArabia) },
 	{ COUNTRY_NL, "nl", "nl_NL" QT(Dutch, Netherlands) },
@@ -51,7 +51,7 @@ static struct {
 	{ COUNTRY_IL, "he", "he_IL" QT(Hebrew, Israel) },
 	{ COUNTRY_ZA, "af", "af_ZA" QT(Afrikaans, SouthAfrica) },
 	{ COUNTRY_PT, "pt", "pt_PT" QT(Portuguese, Portugal) },
-	{ COUNTRY_BE, "fr", "fr_BE" QT(French, Belgium) },
+	{ COUNTRY_BE, "nl", "nl_BE" QT(Dutch, Belgium) },
 	{ COUNTRY_JP, "ja", "ja_JP" QT(Japanese, Japan) },
 	{ COUNTRY_CN, "zh", "zh_CN" QT(Chinese, China) },
 	{ COUNTRY_KR, "ko", "ko_KR" QT(Korean, SouthKorea) },
@@ -74,7 +74,7 @@ language_t language_from_name(const char *lang_id)
 
 	for (i = 0; i < sizeof(languages) / sizeof(languages[0]); i++)
 	{
-		if (strncmp(lang_id, languages[i].full_code, 5) == 0)
+		if (strncmp(lang_id, languages[i].full_code, ISO639_CODE_LEN) == 0)
 		{
 			return languages[i].id;
 		}

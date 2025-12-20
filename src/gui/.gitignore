@@ -4,5 +4,6 @@ mxqt-settings
 preferences.xml.h
 *.moc
 qrc.cc
-nlsdump
+nlstool
 langs.c
+libnls/plural.c

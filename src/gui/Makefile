@@ -1,10 +1,14 @@
 CC = gcc
 CXX = g++
-CFLAGS = -O2 -Wall -W
-CXXFLAGS = $(CFLAGS) -Wno-attributes
+WARN = -Wall -W -Werror
+OPT = -O2
+CFLAGS = $(OPT) $(WARN) -Wstrict-prototypes -Wmissing-prototypes
+CXXFLAGS = $(OPT) $(WARN) -Wno-attributes
 LDFLAGS = -s
+YACC = bison -y
+YFLAGS = -Wno-yacc
 
-PROGRAMS = nlsdump
+PROGRAMS = nlstool
 
 # default values
 GTK = 2
@@ -45,35 +49,80 @@ ifneq ($(QT_LIBS),)
 PROGRAMS += mxqt-settings
 endif
 
-NLSDUMP_OBJS = nlsdump.o pofile.o country.o
+NLSTOOL_OBJS = \
+	nlstool.o pofile.o country.o \
+	libnls/eval-plural-exp.o \
+	libnls/eval-plural-str.o \
+	libnls/plural-exp.o \
+	libnls/plural.o \
+	libnls/plurals.o \
+	$(empty)
+
+LIBNLS_OBJS = \
+	libnls/dcgettext.o \
+	libnls/dgettext.o \
+	libnls/gettext.o \
+	libnls/ngettext.o \
+	libnls/dngettext.o \
+	libnls/dcngettext.o \
+	libnls/textdomain.o \
+	libnls/setlocale.o \
+	libnls/localename.o \
+	libnls/eval-plural-exp.o \
+	libnls/eval-plural-str.o \
+	libnls/plural-exp.o \
+	libnls/plural.o \
+	libnls/plurals.o \
+	$(empty)
 
 all:: $(PROGRAMS)
+
+.c.o:
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+.cc.o:
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 gxmessage: gxmessage.c $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
-mxgtk-settings: mxgtk-settings.c country.c preferences.xml.h langs.c $(MAKEFILE_LIST)
-	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
+mxgtk-settings: mxgtk-settings.c country.o preferences.xml.h langs.o libnls/libnls.a $(MAKEFILE_LIST)
+	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< langs.o libnls/libnls.a $(GTK_LIBS) $(LDFLAGS)
 
 preferences.xml.h: preferences.xml $(MAKEFILE_LIST)
 	sed -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/"/' $< > $@
 
-mxqt-settings:	mxqt-settings.cc country.c preferences.xml.h mxqt-settings.moc langs.c qrc.cc $(MAKEFILE_LIST)
-	$(CXX) $(CXXFLAGS) -o $@ $(QT_CFLAGS) $< $(QT_LIBS) $(LDFLAGS)
+mxqt-settings:	mxqt-settings.cc country.o preferences.xml.h mxqt-settings.moc langs.o qrc.o libnls/libnls.a $(MAKEFILE_LIST)
+	$(CXX) $(CXXFLAGS) -o $@ $(QT_CFLAGS) $< langs.o libnls/libnls.a $(QT_LIBS) $(LDFLAGS)
 
 mxqt-settings.moc: mxqt-settings.cc $(MAKEFILE_LIST)
 	$(MOC) -o$@ $<
 
+qrc.o: qrc.cc
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
 qrc.cc: icons.qrc $(wildcard icons/*) $(MAKEFILE_LIST)
 	$(RCC) --namespace -g cpp -o $@ $<
 
-$(NLSDUMP_OBJS): pofile.h nls.h $(MAKEFILE_LIST)
+country.o: country.c
+langs.o: langs.c
 
-nlsdump: $(NLSDUMP_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(NLSDUMP_OBJS) $(LDFLAGS)
+$(NLSTOOL_OBJS): pofile.h libnls/libnls.h $(MAKEFILE_LIST)
 
-langs.c: nlsdump
-	./nlsdump -p ../../po -o $@
+nlstool: $(NLSTOOL_OBJS)
+	$(CC) $(CFLAGS) -o $@ $(NLSTOOL_OBJS) $(LDFLAGS)
+
+langs.c: nlstool
+	./nlstool -p ../../po --default-domain MagicOnLinux -o $@ || { $(RM) $@; false; }
+
+libnls/libnls.a: $(LIBNLS_OBJS)
+	@$(RM) $@
+	ar rcs $@ $(LIBNLS_OBJS)
+
+libnls/plural.o: libnls/plural.c
+
+libnls/plural.c: libnls/plural.y
+	$(YACC) $(YFLAGS) --output $@ $<
 
 clean::
-	$(RM) $(PROGRAMS) preferences.xml.h *.moc qrc.cc
+	$(RM) *.o libnls/*.o libnls/*.a $(PROGRAMS) preferences.xml.h *.moc qrc.cc

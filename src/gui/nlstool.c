@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "nls.h"
+#include "nls-enable.h"
 #include "pofile.h"
 
-char const program_name[] = "nlsdump";
+char const program_name[] = "nlstool";
 char const program_version[] = "1.0";
 
 /*
@@ -40,11 +40,12 @@ void errout(const char *format, ...)
 /* ------------------------------------------------------------------------- */
 /*****************************************************************************/
 
-enum nlsdump_opt {
+enum nlstool_opt {
 	OPT_VERBOSE = 'v',
 	OPT_PODIR = 'p',
 	OPT_KEYNAMES = 'k',
 	OPT_OUTPUT = 'o',
+	OPT_PACKAGE = 'd',
 	OPT_VERSION = 'V',
 	OPT_HELP = 'h',
 	
@@ -55,7 +56,7 @@ enum nlsdump_opt {
 static struct option const long_options[] = {
 	{ "verbose", no_argument, NULL, OPT_VERBOSE },
 	{ "podir", required_argument, NULL, OPT_PODIR },
-	{ "keys", required_argument, NULL, OPT_KEYNAMES },
+	{ "default-domain", required_argument, NULL, OPT_PACKAGE },
 	{ "output", required_argument, NULL, OPT_OUTPUT },
 	{ "version", no_argument, NULL, OPT_VERSION },
 	{ "help", no_argument, NULL, OPT_HELP },
@@ -72,6 +73,7 @@ static void usage(FILE *fp)
 	fprintf(fp, _("   -v, --verbose               emit some progress messages\n"));
 	fprintf(fp, _("   -p, --podir <dir>           lookup po-files in <dir>\n"));
 	fprintf(fp, _("   -o, --output <file>         write output to <file>\n"));
+	fprintf(fp, _("   -d, --default-domain <name> specify packagename\n"));
 	fprintf(fp, _("   -k, --keys <name>           name of the key string table\n"));
 	fprintf(fp, _("       --version               print version and exit\n"));
 	fprintf(fp, _("       --help                  print this help and exit\n"));
@@ -91,26 +93,26 @@ int main(int argc, char **argv)
 	int c;
 	const char *po_dir = NULL;
 	int i;
-	char **languages;
+	po_domain **languages;
 	int ret = EXIT_SUCCESS;
 	FILE *out = stdout;
 	const char *outfile_name = NULL;
-	const char *key_string_name = NULL;
+	const char *default_domain = "messages";
 
 	while ((c = getopt_long_only(argc, argv, "k:o:p:vhV", long_options, NULL)) != EOF)
 	{
-		switch ((enum nlsdump_opt) c)
+		switch ((enum nlstool_opt) c)
 		{
 		case OPT_PODIR:
 			po_dir = optarg;
 			break;
 		
-		case OPT_KEYNAMES:
-			key_string_name = optarg;
-			break;
-		
 		case OPT_OUTPUT:
 			outfile_name = optarg;
+			break;
+		
+		case OPT_PACKAGE:
+			default_domain = optarg;
 			break;
 		
 		case OPT_VERBOSE:
@@ -155,19 +157,16 @@ int main(int argc, char **argv)
 		{
 			for (i = 0; languages[i] != NULL; i++)
 			{
-				char *lang = languages[i];
-				po_domain domain;
-				
-				memset(&domain, 0, sizeof(domain));
-				domain.key_string_name = key_string_name;
-				if (po_create_hash(&domain, po_dir, lang, verbose) == FALSE)
+				po_domain *domain = languages[i];
+
+				if (po_create_hash(domain, po_dir, verbose) == FALSE)
 					ret = EXIT_FAILURE;
 				if (i == 0)
-					po_dump_keys(&domain, out);
-				po_dump_hash(&domain, out);
-				po_delete_hash(&domain);
+					po_dump_keys(domain, out);
+				po_dump_hash(domain, out);
+				po_delete_hash(domain);
 			}
-			po_dump_languages(languages, out);
+			po_dump_languages(default_domain, languages, out);
 			po_exit(languages);
 		}
 		if (out != stdout)

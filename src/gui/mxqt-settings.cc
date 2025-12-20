@@ -26,7 +26,6 @@
 #include <unistd.h>
 #include <assert.h>
 #define ENABLE_NLS
-#define GETTEXT_PACKAGE "MagicOnLinux"
 #include "mxnls.h"
 #include "country.c"
 #include "qrc.cc"
@@ -46,6 +45,9 @@ enum {
 	TYPE_BOOL,
 	TYPE_CHOICE
 };
+
+#define _STRINGIFY1(x) #x
+#define _STRINGIFY(x) _STRINGIFY1(x)
 
 /*** ---------------------------------------------------------------------- ***/
 
@@ -1664,6 +1666,7 @@ void GuiWindow::cancel_clicked(void)
 
 /*** ---------------------------------------------------------------------- ***/
 
+
 int main(int argc, char **argv)
 {
 	QWidget *parent = 0;
@@ -1682,17 +1685,26 @@ int main(int argc, char **argv)
 
 #ifdef ENABLE_NLS
 	{
-		const char *lang_name;
+		const char *lang_name = language_get_name(language_get_default());
+
+#ifdef FORCE_LIBINTL
 		/*
 		 * assumes message catalogs to be installed in same directory where Qt was installed, eg. /usr
 		 * FIXME: for macOS, use bundle directory?
 		 */
+#if 0
 		static QByteArray locale_dir(QFileInfo(QFileInfo(QFileInfo(QApplication::libraryPaths().first()).dir().path()).path()).dir().path().append("/share/locale").toUtf8());
 
-		lang_name = language_get_name(language_get_default());
-		bindtextdomain(GETTEXT_PACKAGE, locale_dir.constData());
-		textdomain(GETTEXT_PACKAGE);
-		bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
+		bindtextdomain(_STRINGIFY(GETTEXT_PACKAGE), locale_dir.constData());
+#else
+		const char *dir = (bindtextdomain)("libc", NULL);
+		bindtextdomain(_STRINGIFY(GETTEXT_PACKAGE), dir);
+#endif
+#else
+		bindtextdomain(_STRINGIFY(GETTEXT_PACKAGE), NULL);
+#endif
+		textdomain(_STRINGIFY(GETTEXT_PACKAGE));
+		bind_textdomain_codeset(_STRINGIFY(GETTEXT_PACKAGE), "UTF-8");
 		setlocale(LC_MESSAGES, lang_name);
 	}
 #endif

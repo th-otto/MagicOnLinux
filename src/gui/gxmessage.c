@@ -24,7 +24,7 @@
  */
 
 #define PACKAGE "gxmessage"
-#define GETTEXT_PACKAGE "gxmessage"
+#define GETTEXT_PACKAGE gxmessage
 #define GDK_DISABLE_DEPRECATION_WARNINGS
 #define GTK_DISABLE_DEPRECATION_WARNINGS
 #define GLIB_DISABLE_DEPRECATION_WARNINGS
@@ -33,8 +33,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-prototypes"
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
+#pragma GCC diagnostic pop
 
 #if GTK_CHECK_VERSION(4, 0, 0)
 #define VERSION "4.1.1"
@@ -43,6 +46,9 @@
 #else
 #define VERSION "2.20.4"
 #endif
+
+#define _STRINGIFY1(x) #x
+#define _STRINGIFY(x) _STRINGIFY1(x)
 
 /* Details for Copyright and bug report messages: */
 #define AUTHOR  "Timothy Richard Musson"
@@ -1240,9 +1246,9 @@ int main(gint argc, gchar *argv[])
 #ifndef PACKAGE_LOCALE_DIR
 #define PACKAGE_LOCALE_DIR "/usr/share/locale"
 #endif
-	bindtextdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
-	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
-	textdomain(GETTEXT_PACKAGE);
+	bindtextdomain(_STRINGIFY(GETTEXT_PACKAGE), PACKAGE_LOCALE_DIR);
+	bind_textdomain_codeset(_STRINGIFY(GETTEXT_PACKAGE), "UTF-8");
+	textdomain(_STRINGIFY(GETTEXT_PACKAGE));
 #endif
 
 	ok = my_gtk_init(argc, argv);

@@ -84,7 +84,7 @@ class Preferences
     static int init(const char *config_file,
                     int mode_override,
                     int width_override, int height_override,
-                    int stretch_x_override, int stretch_y_override,
+                    int stretch_x_override, int stretch_y_override, bool double_vert,
                     int relative_mouse_override,
                     int memsize_override,
                     const char *rootfs_override,

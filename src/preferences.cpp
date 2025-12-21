@@ -189,6 +189,7 @@ static const char *get_home()
  * @param[in] height_override           override prerence value
  * @param[in] stretch_x_override        override prerence value
  * @param[in] stretch_y_override        override prerence value
+ * @param[in] double_vert               override vertical stretch with 2*horizontal
  * @param[in] relative_mouse_override   override prerence value
  * @param[in] memsize_override          override prerence value
  * @param[in] rootfs_override           override prerence value
@@ -208,6 +209,7 @@ int Preferences::init
     int height_override,
     int stretch_x_override,
     int stretch_y_override,
+    bool double_vert,
     int relative_mouse_override,
     int memsize_override,
     const char *rootfs_override,
@@ -256,6 +258,11 @@ int Preferences::init
     if (stretch_y_override >= 0)
     {
         AtariScreenStretchY = stretch_y_override;
+    }
+    if (double_vert)
+    {
+        // 2:1 stretch for ST-MID
+        AtariScreenStretchY = 2 * AtariScreenStretchX;
     }
     if (relative_mouse_override >= 0)
     {

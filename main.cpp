@@ -610,10 +610,7 @@ int main(int argc, char * const argv[])
         if (!strcasecmp(arg_atari_screen_mode, "st-mid"))
         {
             arg_geometry = "640x200x2ip";
-            if (arg_stretch == nullptr)
-            {
-                double_vert = true;     // stretch 2:1 for ST-MID, if not explicitly specified
-            }
+            double_vert = true;     // stretch 2:1 for ST-MID, if not explicitly specified
         }
         else
         if (!strcasecmp(arg_atari_screen_mode, "st-high"))

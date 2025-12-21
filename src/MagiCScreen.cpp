@@ -67,10 +67,10 @@ int CMagiCScreen::init(void)
     Uint32 bmask = 0;
     Uint32 amask = 0;
     // Pixmap stuff
-    short pixelType = 0;
+    uint16_t pixelType = 0;
     uint32_t planeBytes;
-    short cmpCount = 3;
-    short cmpSize = 8;
+    uint16_t cmpCount;
+    uint16_t cmpSize;
     unsigned screenbitsperpixel;
 
     switch(Preferences::atariScreenColourMode)
@@ -118,6 +118,8 @@ int CMagiCScreen::init(void)
             amask = 0x8000;
             pixelType = 16;             // RGBDirect, 0 would be indexed
             planeBytes = 0;
+            cmpCount = 3;
+            cmpSize = 8;
             break;
 
         default:
@@ -128,6 +130,8 @@ int CMagiCScreen::init(void)
             amask = 0xff000000;
             pixelType = 16;             // RGBDirect, 0 would be indexed
             planeBytes = 0;
+            cmpCount = 3;
+            cmpSize = 8;
             break;
     }
 
@@ -260,9 +264,37 @@ void CMagiCScreen::init_pixmap(uint16_t pixelType, uint16_t cmpCount, uint16_t c
     m_PixMap.pixelSize     = m_sdl_atari_surface->format->BitsPerPixel;
     m_PixMap.cmpCount      = cmpCount;                     // components: 3 = red, green, blue, 1 = monochrome
     m_PixMap.cmpSize       = cmpSize;                      // True colour: 8 bits per component
-    m_PixMap.planeBytes    = planeBytes;                   // offset to next plane
+    m_PixMap.planeBytes    = planeBytes;                   // 2: interleaved, otherwise 0
     m_PixMap.pmTable       = 0;
     m_PixMap.pmReserved    = 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Derive Atari screen mode
+ *
+ * @return Atari screen mode 0/1/2/4/6/7 or 3 for "incompatible"
+ *
+ * @note We do not support TT modes 4, 6 and 7. Note that mode 7 is interleaved, while we use packed.
+ *
+ ************************************************************************************************/
+uint8_t CMagiCScreen::getAtariScreenMode()
+{
+    if ((m_PixMap.cmpSize == 4) && (m_PixMap.planeBytes != 0))
+    {
+        return 0;   // ST-low (16 colours interleaved)
+    }
+    if (m_PixMap.cmpSize == 2)
+    {
+        return 1;   // ST-mid (four colours interleaved)
+    }
+    if (m_PixMap.cmpSize == 1)
+    {
+        return 2;   // ST-high (monochrome)
+    }
+
+    return 3;   // incompatible format
 }
 
 

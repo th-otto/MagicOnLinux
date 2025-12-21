@@ -38,6 +38,7 @@ class CMagiCScreen
     static void convAtari2HostSurface();
     static void setColourPaletteEntry(unsigned index, uint16_t val);
     static uint16_t getColourPaletteEntry(unsigned index);
+    static uint8_t getAtariScreenMode();
 
 	static MXVDI_PIXMAP m_PixMap;
     static void *pixels;

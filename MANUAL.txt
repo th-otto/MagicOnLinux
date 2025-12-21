@@ -138,6 +138,7 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - GEM2 Draw 2.0D (needs NVDI or GDOS)
 - GEM2 GRAPH 1.0D
 - GEM Output 1.2
+- GenST (for MonST see below)
 - Getinfo v1.1
 - GFA-Basic Editor v3.77
 - GSTASM (single-app mode)
@@ -156,6 +157,7 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - Kobold?
 - LDW Power Calc 1.03
 - MagiC Configurator (needs case-insensitive drive)
+- MonST (in ST-high, needs register access)
 - Olga?
 - Papyrus 4 (complains about missing fonts, needs case-insensitive drive)
 - Papyrus 7 (complains about missing fonts)

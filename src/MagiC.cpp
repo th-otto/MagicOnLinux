@@ -2415,7 +2415,7 @@ uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
         CMagiCScreen::setColourPaletteEntry(index, val);
     }
 
-    DebugWarning2("(%2d, 0x%04x) -- partially supported", index, val);
+    DebugWarning2("(%2d, 0x%04x) -> 0x%08x", index, val, prev_val);
     return prev_val;
 }
 

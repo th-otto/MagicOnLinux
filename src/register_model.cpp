@@ -175,10 +175,16 @@ class CVideoAddress : public CRegisterModel
         addr -= start_addr;
         *p_success = true;
 
+        uint32_t physaddr = addr68kVideo;   // default screen
+        if (CMagiCScreen::m_physAddr != 0)
+        {
+            physaddr = CMagiCScreen::m_physAddr;    // changed address
+        }
+
         if ((addr == 0) && (len == 4))
         {
-            uint32_t high = (addr68kVideo >> 16) & 0xff;
-            uint32_t mid  = (addr68kVideo >>  8) & 0xff;
+            uint32_t high = (physaddr >> 16) & 0xff;
+            uint32_t mid  = (physaddr >>  8) & 0xff;
             return (high << 16) | mid;   // high and mid bytes
         }
 
@@ -187,17 +193,70 @@ class CVideoAddress : public CRegisterModel
             // only support 8-bit reads
             switch(addr)
             {
-                case    1: return (addr68kVideo >> 16) & 0xff;  // high byte
-                case    3: return (addr68kVideo >> 8) & 0xff;   // mid byte
-                case    5: return (addr68kVideo >> 16) & 0xff;  // high byte
-                case    7: return (addr68kVideo >> 8) & 0xff;   // mid byte
-                case    9: return (addr68kVideo) & 0xff;        // low byte
+                case    1: return (physaddr >> 16) & 0xff;  // high byte
+                case    3: return (physaddr >> 8) & 0xff;   // mid byte
+                case    5: return (physaddr >> 16) & 0xff;  // high byte
+                case    7: return (physaddr >> 8) & 0xff;   // mid byte
+                case    9: return (physaddr) & 0xff;        // low byte
                 case 0x0a: return 0;                            // sync mode
-                case 0x0d: return (addr68kVideo) & 0xff;        // low byte
+                case 0x0d: return (physaddr) & 0xff;        // low byte
             }
         }
         *p_success = false;
         return 0;
+    }
+
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
+    {
+        addr -= start_addr;
+
+        uint32_t physaddr = addr68kVideo;   // default screen
+        if (CMagiCScreen::m_physAddr != 0)
+        {
+            physaddr = CMagiCScreen::m_physAddr;    // changed address
+        }
+        uint32_t prev_physaddr = physaddr;
+
+        if ((addr == 0) && (len == 4))
+        {
+            physaddr &= 0xff0000ff;             // mask out high and mid byte
+            uint32_t high = (datum >> 16) & 0xff;
+            uint32_t mid  = datum  & 0xff;
+            physaddr |= high << 16;     // replace high byte
+            physaddr |= mid << 8;       // replace mid byte
+        }
+        else
+        if ((addr == 1) && (len == 1))
+        {
+            physaddr &= 0xff00ffff;             // mask out high byte
+            physaddr |= (datum & 0xff) << 16;   // replace high byte
+        }
+        else
+        if ((addr == 3) && (len == 1))
+        {
+            physaddr &= 0xffff00ff;             // mask out mid byte
+            physaddr |= (datum & 0xff) << 8;    // replace mid byte
+        }
+        if ((addr == 0x0d) && (len == 1))
+        {
+            physaddr &= 0xffffff00;             // mask out low byte
+            physaddr |= (datum & 0xff);         // replace low byte
+        }
+
+        if (physaddr != prev_physaddr)
+        {
+            if (physaddr == addr68kVideo)
+            {
+                DebugWarning("    physical screen address reset to default");
+                CMagiCScreen::m_physAddr = 0;   // go back to default screen
+            }
+            else
+            {
+                DebugWarning("    physical screen address set to 0x%08x", physaddr);
+                CMagiCScreen::m_physAddr = physaddr;
+            }
+        }
+        *p_success = true;  // never bus error, just ignore, if unhandled
     }
 };
 
@@ -270,6 +329,57 @@ class CVideoPalette : public CRegisterModel
             CMagiCScreen::setColourPaletteEntry(index, (uint16_t) (datum >> 16));
             CMagiCScreen::setColourPaletteEntry(index + 1, (uint16_t) datum);
         }
+    }
+};
+
+
+/** **********************************************************************************************
+ *
+ * @brief SHIFTER Video Controller: resolution (ST, STe, F030)
+ *
+ ************************************************************************************************/
+class CVideoResolution : public CRegisterModel
+{
+  public:
+    CVideoResolution() : CRegisterModel("Video resolution", 0xffff8260, 0xffff8263) { }
+
+    virtual const char *regname(uint32_t addr, unsigned len)
+    {
+        addr -= start_addr;
+        (void) len;
+        switch(addr)
+        {
+            case    0: return "ST shift mode";
+            case    1: return "ST shift mode, only shifter";
+            case    2: return "TT shift mode";
+            case    3: return "ST palette bank (TT)";
+        }
+        return "";
+    }
+
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
+    {
+        addr -= start_addr;
+
+        if ((len != 1) || (addr > 2))
+        {
+            // only support 8-bit reads to the first three bytes
+            *p_success = false;
+            return 0;
+        }
+
+        uint8_t mode = CMagiCScreen::getAtariScreenMode();
+        if ((addr == 0) || (addr == 1))
+        {
+            // ST register: return invalid value 3 for ST incompatible resolution
+            if (mode > 2)
+            {
+                mode = 3;
+            }
+        }
+
+        *p_success = true;
+        return mode;
     }
 };
 
@@ -375,6 +485,7 @@ int CRegisterModel::init()
     models[num_models++] = new CYM2149;
     models[num_models++] = new CVideoAddress;
     models[num_models++] = new CVideoPalette;
+    models[num_models++] = new CVideoResolution;
     models[num_models++] = new CMfp;
     models[num_models++] = new CFpu;
     models[num_models++] = new CMfp2;

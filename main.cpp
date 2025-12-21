@@ -53,7 +53,7 @@ static void print_opt(const struct option *options)
         "       open configuration file in editor and exit",
         "              configuration file (default: ~/.config/magiclinux.conf)",
         "             write configuration file with default values and exit",
-        "   Atari compatibilty mode st-low/mid/high, overrides --geometry",
+        "   Atari compatibility mode st-low/mid/high, overrides --geometry",
         " e.g. 640x400x2ip or 800x600 or 8, overrides config file",
         "            e.g. 2x2 or 2 or 2x4, overrides config file",
         "       mouse mode: absolute or relative",

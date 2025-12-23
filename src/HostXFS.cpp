@@ -1715,7 +1715,34 @@ INT32 CHostXFS::xfs_link
     GET_hhdl_hostFD_dir_fd(dd_to, hhdl_to, hostFD_to, dir_fd_to)
 
     CONV8p3(drv, name_from, host_name_from)
-    CONV8p3(drv, name_to, host_name_to)
+    CONV8p3(dst_drv, name_to, host_name_to)
+
+    /*
+    * Basically we can move files between two logical Atari drives residing on
+    * the same host device, but we shall not do this with non-empty directories,
+    * if the file name flags differ.
+    * Otherwise we may e.g. move directory abc to 8+3-format ABC, but its content will NOT
+    * also be converted to 8+3.
+    * Thus we must prevent this situation.
+    */
+
+    if ((drv != dst_drv) &&
+        ((drv_longNames[drv] != drv_longNames[dst_drv]) || (drv_caseInsens[drv] != drv_caseInsens[dst_drv])))
+    {
+        // File name flags differ. Check if we move a directory
+        struct stat statbuf;
+        int res = fstatat(dir_fd_from, host_name_from, &statbuf, AT_EMPTY_PATH);
+        if (res < 0)
+        {
+            DebugWarning2("() : fstatat(%s) -> %s", host_name_from, strerror(errno));
+            return CConversion::host2AtariError(errno);
+        }
+        if ((statbuf.st_mode & S_IFMT) == S_IFDIR)
+        {
+            DebugWarning2("() : mv(\"%s\", \"%s\") prevented due to drives with different file name scheme", host_name_from, host_name_to);
+            return ENSAME;
+        }
+    }
 
     if (mode != 0)
     {
@@ -1729,7 +1756,9 @@ INT32 CHostXFS::xfs_link
     }
     else
     {
-        // move or rename: old directory entry is removed, and new one is created that refers to the same file
+        // Move or rename: old directory entry is removed, and new one is created that refers to the same file.
+        // Note that this may fail with Atari error ENSAME, if e.g. source is a USB drive and destination
+        // is the home directory. In this case MGCOPY will fall back to a recursive copy/delete method.
 
         // without RENAME_NOREPLACE, an existing file might be removed here, which we do not allow
         if (renameat2(dir_fd_from, host_name_from, dir_fd_to, host_name_to, RENAME_NOREPLACE))
@@ -1866,7 +1895,6 @@ INT32 CHostXFS::xfs_xattr
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
-    struct stat statbuf;
     int flags = AT_EMPTY_PATH;
     if (mode)
     {
@@ -1882,6 +1910,7 @@ INT32 CHostXFS::xfs_xattr
     }
 #endif
 
+    struct stat statbuf;
     int res = fstatat(dir_fd, host_name, &statbuf, flags);
     if (res < 0)
     {

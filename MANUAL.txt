@@ -128,6 +128,7 @@ Note that README.md lists an alternative solution that works without preceding "
 Atari Applications that seem to work (whitelist, alphabetically)
 ================================================
 
+- 7UP 2.33PL8 [https://github.com/pulsar122/7UP-Editor]
 - Artworx v1.42 (complains about missing GDOS, needs case-insensitive drive)
 - CAB 1.5 (freeware)
 - Chagall v01.00
@@ -154,6 +155,7 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - Omikron Basic 5.19
 - ORCS 2.18 (but missing sharp-s)
 - Papillon 2.2
+- QED [https://tho-otto.de/snapshots/qed/]
 - Kobold?
 - LDW Power Calc 1.03
 - MagiC Configurator (needs case-insensitive drive)

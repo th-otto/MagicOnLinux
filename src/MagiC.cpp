@@ -859,8 +859,6 @@ int CMagiC::init(CXCmd *pXCmd)
     DebugInfo2("() - 68k video memory starts at 68k address 0x%08x and uses %u (0x%08x) bytes.", addr68kVideo, memVideo68kSize, memVideo68kSize);
     addr68kVideoEnd = addr68kVideo + memVideo68kSize;
     DebugInfo2("() - 68k video memory and general memory end is 0x%08x", addr68kVideoEnd);
-    // real (host) address of video memory
-    //m_pFgBuffer = m_RAM68k + Preferences::AtariMemSize;    // unused
 
     //
     // Initialise Atari system variables
@@ -873,11 +871,11 @@ int CMagiC::init(CXCmd *pXCmd)
     switch(Preferences::atariScreenColourMode)
     {
         case atariScreenMode16ip:
-            mem68k[sshiftmd] = 0;   // ST low resolution (320*200*4 ip)
+            mem68k[sshiftmd] = 0;   // ST low resolution (320*200*4 interleaved planes)
             break;
 
         case atariScreenMode4ip:
-            mem68k[sshiftmd] = 1;   // ST medium resolution (640*200*2 ip)
+            mem68k[sshiftmd] = 1;   // ST medium resolution (640*200*2 interleaved planes)
             break;
 
         case atariScreenMode2:
@@ -1813,13 +1811,6 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
 *
 * Mausposition schicken (Atari-Bildschirm-relativ).
 *
-* Je nach Compiler-Schalter:
-* -    Wenn EVENT_MOUSE definiert ist, wird die Funktion von der
-*    "main event loop" aufgerufen und löst beim Emulator
-*    einen Interrupt 6 aus.
-* -    Wenn EVENT_MOUSE nicht definiert ist, wird die Funktion im
-*    200Hz-Interrupt (mit 50 Hz) aufgerufen.
-*
 * Rückgabe != 0, wenn die letzte Nachricht noch aussteht.
 *
 **********************************************************************/
@@ -2410,6 +2401,9 @@ uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
     }
 
     uint16_t prev_val = CMagiCScreen::getColourPaletteEntry(index);
+    #if !defined(STE_COLOUR_PALETTE)
+    prev_val &= 0x777;  // ST has 512 colours, STe has 4096
+    #endif
     if (val != 0xffff)
     {
         CMagiCScreen::setColourPaletteEntry(index, val);

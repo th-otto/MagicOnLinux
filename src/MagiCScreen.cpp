@@ -668,6 +668,7 @@ uint16_t CMagiCScreen::getColourPaletteEntry(unsigned index)
     uint32_t red   = (c & 0x00ff0000) >> 16;
     uint32_t green = (c & 0x0000ff00) >> 8;
     uint32_t blue  = (c & 0x000000ff) >> 0;
+    #if defined(STE_COLOUR_PALETTE)
     // shrink to 4 bits, no rounding
     red   >>= 4;
     green >>= 4;
@@ -676,6 +677,12 @@ uint16_t CMagiCScreen::getColourPaletteEntry(unsigned index)
     red   = ((red   & 1) << 3) | (red   >> 1);
     green = ((green & 1) << 3) | (green >> 1);
     blue  = ((blue  & 1) << 3) | (blue  >> 1);
+    #else
+    // shrink to 3 bits, no rounding
+    red   >>= 5;
+    green >>= 5;
+    blue  >>= 5;
+    #endif
 
     // combine
     uint16_t val = (red << 8) | (green << 4) | (blue << 0);
@@ -697,6 +704,7 @@ uint16_t CMagiCScreen::getColourPaletteEntry(unsigned index)
  ************************************************************************************************/
 void CMagiCScreen::setColourPaletteEntry(unsigned index, uint16_t val)
 {
+    #if defined(STE_COLOUR_PALETTE)
     // get 4-bit colour components
     uint32_t red   = (val & 0x0f00) >> 8;
     uint32_t green = (val & 0x00f0) >> 4;
@@ -722,6 +730,29 @@ void CMagiCScreen::setColourPaletteEntry(unsigned index, uint16_t val)
     {
         blue |= 0xf;
     }
+    #else
+    // get 3-bit colour components
+    uint32_t red   = (val & 0x0700) >> 8;
+    uint32_t green = (val & 0x0070) >> 4;
+    uint32_t blue  = (val & 0x0007) >> 0;
+    // expand to 8 bits
+    red   <<= 5;
+    green <<= 5;
+    blue  <<= 5;
+    // rounding
+    if (red & 0x20)
+    {
+        red |= 0x1f;
+    }
+    if (green & 0x20)
+    {
+        green |= 0x1f;
+    }
+    if (blue & 0x20)
+    {
+        blue |= 0x1f;
+    }
+    #endif
 
     uint32_t c = (red << 16) | (green << 8) | (blue << 0);
     CMagiCScreen::m_pColourTable[index] = c | (0xff000000);

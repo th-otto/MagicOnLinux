@@ -24,7 +24,8 @@
 #define PROGRAM_VERSION_MAJOR 0
 #define PROGRAM_VERSION_MINOR 4
 
-#define EVENT_MOUSE 1
+#define STE_COLOUR_PALETTE      // STe has additional low bit at positions 3,7 and 11
+
 
 // debug output for debug configuration
 #if !defined(NDEBUG)

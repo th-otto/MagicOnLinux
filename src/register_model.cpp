@@ -450,13 +450,47 @@ class CMfp : public CRegisterModel
 
 /** **********************************************************************************************
  *
- * @brief Floating Point Coprocessor (ST?  TT?)
+ * @brief Floating Point Coprocessor (Mega-STe)
  *
  ************************************************************************************************/
 class CFpu : public CRegisterModel
 {
   public:
     CFpu() : CRegisterModel("Floating Point Coprocessor", 0xfffffa40, 0xfffffa5f) { }
+
+    virtual const char *regname(uint32_t addr, unsigned len)
+    {
+        addr -= start_addr;
+        if (len == 2)
+        {
+            switch(addr)
+            {
+                case 0x00: return "FP_Stat";
+                case 0x02: return "FP_Ctl";
+                case 0x04: return "FP_Save";
+                case 0x06: return "FP_Restore";
+            }
+        }
+        return "";
+    }
+
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
+    {
+        // bus error
+        (void) addr;
+        (void) len;
+        (void) datum;
+        *p_success = false;
+    }
+
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
+    {
+        // bus error
+        (void) addr;
+        (void) len;
+        *p_success = false;
+        return 0;
+    }
 };
 
 

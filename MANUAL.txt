@@ -129,6 +129,7 @@ Atari Applications that seem to work (whitelist, alphabetically)
 ================================================
 
 - 7UP 2.33PL8 [https://github.com/pulsar122/7UP-Editor]
+- Arrow 1.1
 - Artworx v1.42 (complains about missing GDOS, needs case-insensitive drive)
 - CAB 1.5 (freeware)
 - Chagall v01.00
@@ -154,8 +155,9 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - MODULA-2 (single-app mode)
 - Omikron Basic 5.19
 - ORCS 2.18 (but missing sharp-s)
+- Papillon 3.0.4 (needs NVDI?)
 - Papillon 2.2
-- QED [https://tho-otto.de/snapshots/qed/]
+- QED 5.0.5 [https://tho-otto.de/snapshots/qed/]
 - Kobold?
 - LDW Power Calc 1.03
 - MagiC Configurator (needs case-insensitive drive)
@@ -186,6 +188,7 @@ Atari Applications that seem to work (whitelist, alphabetically)
 Atari applications that might work partially (greylist)
 =======================================================
 
+- CAD 3D 2.02 (seems to work in ST-high resolution)
 - CAMCAD (works at least in 640x400 monochrome, should run in single-application mode)
 - DR Doodle (corrupts memory blocks, repairable)
 - Logo (corrupts memory blocks, repairable)
@@ -199,7 +202,6 @@ Atari applications that do not work at all (blacklist)
 ======================================================
 
 - ALICE (overwrites memory)
-- CAD 3D
 - CAMPUS
 - DBASE (why?)
 - Easydraw (first complains about missing GDOS, but then crashes and overwrites memory)

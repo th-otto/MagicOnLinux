@@ -149,6 +149,23 @@ typedef uint32_t PTR32x4_HOST[4];   // might be used as 64 bit function pointer 
 #define  DP_CTIME      0x0400
 #define  DP_MTIME      0x0800
 
+/*
+ * MacMiNT functions:
+ */
+
+#define FMACOPENRES     (('F' << 8) | 72)    /* open resource fork */
+#define FMACGETTYCR     (('F' << 8) | 73)    /* get Type & Creator */
+#define FMACSETTYCR     (('F' << 8) | 74)    /* set Type & Creator */
+
+// MagicMac
+#define FMACMAGICEX     (('F' << 8) | 75)
+#define MMEX_INFO       0    /* Dcntl & Fcntl */
+#define MMEX_GETFREFNUM 1    /* Fcntl         */
+#define MMEX_GETFSSPEC  2    /* Dcntl         */
+#define MMEX_GETRSRCLEN 3    /* Dcntl         */
+#define MMEX_GETCATINFO 4    /* Dcntl & Fcntl */
+#define MMEX_SETCATINFO 5    /* Dcntl & Fcntl */
+
 /// 16-bit time format
 #define GEMDOS_TIME_SECOND 0x001f      //  0: 5 bits, 0..29, two-seconds resolution
 #define GEMDOS_TIME_MINUTE 0x07e0      //  5: 6 bits, 0..59

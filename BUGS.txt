@@ -1,3 +1,32 @@
+Sound:
+
+Das sind die Systemvariablen:
+
+#define bell_hook               0x5ac       // PTR32_BE, Atari pointer to pling
+#define kcl_hook                0x5b0       // PTR32_BE, Atari pointer to key-klick
+...
+sound_data:     DS.L 1      // Zeiger auf Ton-Daten
+sound_delay:    DS.B 1
+sound_byte:     DS.B 1
+
+- Alle drei Daten werden beim Reset genullt.
+- XBIOS Dosound() tauscht lediglich den Zeiger in <sound_data> aus, gibt den alten Wert zurück
+  und löscht <sound_delay>.
+- Die Funktion pling() ruft, wenn nicht abgeschaltet, den Vektor bell_hook auf.
+  Standardmäßig ist das hdl_pling().
+- hdl_pling() schreibt den Zeiger auf den Pling-Ton (pling_data) nach <sound_data>
+  und löscht <sound_delay>.
+- Die Funktion klick() in HANDLKEY.S ruft, wenn nicht abgeschaltet, den Vektor kcl_hook auf.
+  Standardmäßig ist das hdl_klick().
+- hdl_klick() schreibt den Zeiger auf den Klick-Ton (klick_data) nach <sound_data>
+  und löscht <sound_delay>.
+- Im 200Hz-Interrupt ruft auf dem Atari die Funktion int_hz_200 die Funktion _dosound()
+  auf. Diese liest den sound_data-Zeiger, führt die entsprechenden Tonausgabe-Befehle aus
+  und schaltet den Zeiger weiter, bis der Ton abgespielt ist, in welchem Fall der
+  Zeiger genullt wird.
+
+
+
 Detected bus errors seem not to be executed immediately if at all. Check if crashing applications changed the handler.
 
 For 1280x880x32 the screen buffer for the task manager is too small. 1280x864 works fine.
@@ -10,135 +39,6 @@ Colours:
 - 4-bit interleaved, 16 colours: OK
 - 2-bit interleaved, 4 colours: total mess with NVDI, otherwise OK
 - 1-Bit monochrome: OK
-
-NVDI yellow colour:
-0x1F5E is xbios VsetRGB
-REG_PC = 0x7cbb62
-system start is 0x7c9bf8
--> 1F6A
-PC in NVDI (?) is 0x185aa
-memory there is 00 0e 24 5f 4e 75 d0 40
-use memmexamn.ttp to check
-  41    18144  ANDR      b40     2d72p            boot    150b4
-  42    18c94  ANDR     36ac     2d72p            boot    18144
-  43    1c350  ANDR     148c    1c360      DEV_SER.DEV    18c94    Basepage
-
-
-Hier ist eine Schleife bei lbl408C4. Sie wird viermal durchlaufen für die vier Farben.
-Das ist für NVDI 5.03.
-Im Verlauf wird irgendwann vs_color() des MVDI aufgerufen.
-
-a6 ist wohl ein Zeiger auf den Treiber, mit callbacks.
-
-a0 ist wohl ein Zeiger auf RGB-Daten, acht Byte pro Farbe,
-aber es werden nur Byte 2, 4 und 6 ausgewertet. Die Werte sind
-zwischen 0..255 und werden in der Funktion umgerechnet auf 0..1000.
-
-
-
-lbl40898:
- movem.l  d3/d4/a2/a3/a4/a5,-(sp)
- move.l   d0,d3               * first colour index to change (?)
- move.l   d1,d4               * last colour index to change (?)
- movea.l  a0,a3               * new RGB colour information, 8 bytes per colour
- lea      lbl38200,a4         * 256 bytes of data, maybe a palette
- lea      lbl527D8,a5         * space for 256 16-bit words, conversion table to values 0..1000
- lea      lbl5351C,a1         * VDI contrl[] table, space for 12 halfwords (24 bytes)
- move.w   #$e,(a1)+           * contrl[0] = 14: vs_color()
- clr.l    (a1)+               * contrl[1] = contrl[2] = 0: no ptsin, no ptsout
- move.w   #4,(a1)+            * contrl[3]: 4 entries in intin[]
- clr.l    (a1)+               * contrl[4] = contrl[5] = 0: no intout
- move.w   $1a(a6),(a1)+       * contrl[4] = handle
-
-** loop
-
-lbl408C4:
- lea      lbl53534,a1         * VDI intin[] table, space for 12 halfwords (24 bytes)
- move.l   d3,d0               * colour index 0..3 resp. 0.255
- move.b   0(a4,d0.l),d0       * get byte from palette?
- cmp.w    $14(a6),d3          *0408D0=b66e0014
- bne.s    lbl408D8            *0408D4=6602
- moveq    #1,d0               * this instruction is executed
-lbl408D8:
- move.w   d0,(a1)+            * intin[0]: colour index
- moveq    #0,d0
- move.b   2(a3),d0            * RED value, expanded to 16 bits
- add.w    d0,d0               * index for 16-bit table, ## 0xff -> 0x01fe
- move.w   0(a5,d0.l),(a1)+    * intin[1]: RED value, 0..1000
- moveq    #0,d0
- move.b   4(a3),d0            * GREEN value, expanded to 16 bits
- add.w    d0,d0               * index for 16-bit table, ## 0xff -> 0x01fe
- move.w   0(a5,d0.l),(a1)+    * intin[2]: GREEN value, 0..1000
- moveq    #0,d0
- move.b   6(a3),d0            * BLUE value, expanded to 16 bits
- add.w    d0,d0               * index for 16-bit table, ## 0x00 -> 0x0000
- move.w   0(a5,d0.l),(a1)+    * intin[3]: BLUE value, 0..1000
- move.l   #lbl391A2,d1        *0408FE=223c000391a2
- movea.l  4(a6),a0            *040904=206e0004
- jsr      (a0)                * set the colour
- addq.l   #1,d3               * next colour index
- addq.l   #8,a3               * advance input RGB pointer to next colour
- cmp.l    d3,d4               * last colour reached?
- bge.s    lbl408C4            * no, loop
-
- ** end loop
-
- movem.l  (sp)+,a5/a4/a3/a2/d4/d3 *040912=4cdf3c18
- rts
-
-
-Offenbar ist in lbl40898 der Fehler schon passiert, denn die falsche Farbe
-(255,255,0)=GELB wird hier schon übergeben. Er kommt von lbl40884.
-Oder im Laufe der Funktion wird etwas überschrieben.
-
-lbl40884 kriegt die Parametertabelle offenbar in a1 und in a0 den Treiber.
-Der Aufruf kommt aus der Funktion lbl175C4:
-
- movea.l  d0,a1               *01782C=2240
- lea      $30(a1),a1          *01782E=43e90030
- moveq    #-1,d1              *017832=72ff
- movea.l  d0,a5               *017834=2a40
- add.l    $1c(a5),d1          *017836=d2ad001c
- movea.l  a3,a0               *01783A=204b
- moveq    #0,d0               *01783C=7000
- jsr      lbl40884            *01783E=4eb900040884
-
-Das scheint der einzige Aufruf von lbl40884 zu sein. a1 ist wohl 0x8a130.
-Das scheint ein Speicher des AES zu sein, mit Nettogröße 200 Bytes:
-
-  60    8a114  ANDR       c0   1855c4p             AES    8a0c0
-  61    8a1e4  ANDR       74   1cfc34     MAGXDESK.APP    8a114    Environment
-
-
-lbl40884 wird aufgerufen in der Funktion lbl175C4.
-Den Einsprung findet man in Zeile 3318 der Trace-Datei.
-
-lbl175C4 wird aufgerufen in der Funktion lbl16900.
-Den Einsprung findet man in Zeile 7160 der Trace-Datei.
-
-lbl16900 wird aufgerufen in der Funktion lbl1661A.
-Den Einsprung findet man in Zeile 8519 der Trace-Datei.
-
-lbl1661A wird aufgerufen in der Funktion lbl40988
-Den Einsprung findet man in Zeile 8522 der Trace-Datei.
-
-lbl40988 wird aufgerufen in der Funktion lbl45FF2.
-Den Einsprung findet man in Zeile 8558 der Trace-Datei.
-
-lbl45FF2 ist vermutlich der Trap-#2-Einsprung, denn es wird auf 0x73 abgefragt.
-Das kommt aus dem OS, und zwar AESEVT.S, Funktion aes_trap2.
-
-Der Trap #2 fürs VDI wird aufgerufen vom OS, Adresse 0x022676.
-Vermutlich AESOBJ.S, Funktion vdi_quick.
-
-vdi_quick() wird aufgerufen in der Funktion lbl227EA.
-Das ist open_wstn in AESOBJ.S.
-
-
-
-MFM4IP.SYS rel 0x0000dc ist MFM4IP.S:get_opnwkinfo
-MFM4IP.SYS rel 0x0003da ist MFM4IP.S:wk_init
-MFM4IP.SYS rel 0x000174 ist MFM4IP.S:get_scrninfo
 
 Drag&Drop of a volume (e.g. floppy disk) image mounts the image only to drive A: or B:.
 Maybe it should look for the first free logical drive.

@@ -30,7 +30,6 @@
 #include <stdint.h>
 #include "Atari.h"
 #include "HostHandles.h"
-#include "MAC_XFS.H"
 #include "preferences.h"
 
 //#define SPECIALDRIVE_AB

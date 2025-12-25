@@ -86,23 +86,23 @@ typedef uint32_t PTR32x4_HOST[4];   // might be used as 64 bit function pointer 
 #define DCNTL_MX_KER_XFSNAME    0x6d05
 
 /* supported Fcntl modes */
-#define FSTAT              0x4600
-#define FIONREAD           0x4601
-#define FIONWRITE          0x4602
-#define FUTIME             0x4603
-#define FTRUNCATE          0x4604
+#define FSTAT           0x4600              // 0x46 is 'F'
+#define FIONREAD        0x4601
+#define FIONWRITE       0x4602
+#define FUTIME          0x4603
+#define FTRUNCATE       0x4604
 
-#define  TIOCGPGRP         (('T'<< 8) | 6)
-#define  TIOCSPGRP         (('T'<< 8) | 7)
-#define  TIOCFLUSH         (('T'<< 8) | 8)
-#define  TIOCIBAUD         (('T'<< 8) | 18)
-#define  TIOCOBAUD         (('T'<< 8) | 19)
-#define  TIOCGFLAGS        (('T'<< 8) | 22)
-#define  TIOCSFLAGS        (('T'<< 8) | 23)
-#define TIOCBUFFER         (('T'<<8) | 128)
-#define TIOCCTLMAP         (('T'<<8) | 129)
-#define TIOCCTLGET         (('T'<<8) | 130)
-#define TIOCCTLSET         (('T'<<8) | 131)
+#define TIOCGPGRP       (('T'<< 8) | 6)     // 0x54 is 'T'
+#define TIOCSPGRP       (('T'<< 8) | 7)
+#define TIOCFLUSH       (('T'<< 8) | 8)
+#define TIOCIBAUD       (('T'<< 8) | 18)
+#define TIOCOBAUD       (('T'<< 8) | 19)
+#define TIOCGFLAGS      (('T'<< 8) | 22)
+#define TIOCSFLAGS      (('T'<< 8) | 23)
+#define TIOCBUFFER      (('T'<<8) | 128)
+#define TIOCCTLMAP      (('T'<<8) | 129)
+#define TIOCCTLGET      (('T'<<8) | 130)
+#define TIOCCTLSET      (('T'<<8) | 131)
 
 
 

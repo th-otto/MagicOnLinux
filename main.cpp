@@ -381,6 +381,74 @@ static int localise(const char *arg_lang)
 
 /** **********************************************************************************************
  *
+ * @brief Convert text file from Atari format to host format
+ *
+ * @param[in]  file_a2h     path of text file
+ *
+ * @note Converts non-ASCII characters an line endings
+ *
+ ************************************************************************************************/
+static void conv_text_atari2host(const char *file_a2h)
+{
+    char outfilename[PATH_MAX];
+    sprintf(outfilename, "%s-HOST.txt", file_a2h);
+    char *buffer = nullptr;
+    CConversion::init();
+    CConversion::convTextFileAtari2Host(file_a2h, &buffer);
+    if (buffer != nullptr)
+    {
+        unsigned len = strlen(buffer);
+        FILE *f = fopen(outfilename, "wt");
+        if (f != nullptr)
+        {
+            (void) fwrite(buffer, 1, len, f);
+            fclose(f);
+            printf("\"%s\" written\n", outfilename);
+        }
+    }
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Convert text file from host format to Atari format
+ *
+ * @param[in]  file_a2h     path of text file
+ *
+ * @note Converts non-ASCII characters an line endings
+ *
+ ************************************************************************************************/
+static void conv_text_host2atari(const char *file_h2a)
+{
+    char outfilename[PATH_MAX];
+    sprintf(outfilename, "%s-ATARI.txt", file_h2a);
+    uint8_t *buffer = nullptr;
+    CConversion::init();
+    CConversion::convTextFileHost2Atari(file_h2a, &buffer);
+    if (buffer != nullptr)
+    {
+        unsigned len = strlen((const char *) buffer);
+        FILE *f = fopen(outfilename, "wt");
+        if (f != nullptr)
+        {
+            (void) fwrite(buffer, 1, len, f);
+            fclose(f);
+            printf("\"%s\" written\n", outfilename);
+            #if 0
+            // This is dangerous and might lead to data loss!
+            // Better rename old file to .ATARI and then rename
+            // new file to old file.
+            char cmd[PATH_MAX + 16];
+            sprintf(cmd, "mv \"%s\" \"%s\"", outfilename, file_h2a);
+            system(cmd);
+            #endif
+        }
+    }
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Main function
  *
  * @param[in]  argc     number of arguments
@@ -540,21 +608,7 @@ int main(int argc, char * const argv[])
 
     if (file_a2h != nullptr)
     {
-        const char *outname = "/tmp/host.txt";
-        char *buffer = nullptr;
-        CConversion::init();
-        CConversion::convTextFileAtari2Host(file_a2h, &buffer);
-        if (buffer != nullptr)
-        {
-            unsigned len = strlen(buffer);
-            FILE *f = fopen(outname, "wt");
-            if (f != nullptr)
-            {
-                (void) fwrite(buffer, 1, len, f);
-                fclose(f);
-                printf("\"%s\" written\n", outname);
-            }
-        }
+        conv_text_atari2host(file_a2h);
         return 0;
     }
 
@@ -564,21 +618,7 @@ int main(int argc, char * const argv[])
 
     if (file_h2a != nullptr)
     {
-        const char *outname = "/tmp/atari.txt";
-        uint8_t *buffer = nullptr;
-        CConversion::init();
-        CConversion::convTextFileHost2Atari(file_h2a, &buffer);
-        if (buffer != nullptr)
-        {
-            unsigned len = strlen((const char *) buffer);
-            FILE *f = fopen(outname, "wt");
-            if (f != nullptr)
-            {
-                (void) fwrite(buffer, 1, len, f);
-                fclose(f);
-                printf("\"%s\" written\n", outname);
-            }
-        }
+        conv_text_host2atari(file_h2a);
         return 0;
     }
 

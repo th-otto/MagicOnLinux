@@ -75,3 +75,5 @@ GEMBENCH crashes (why?) and corrupts the whole emulated system. Why? Is there a 
 MGEDIT should be killable via MagiC task manager, but in most time this leads to a total system crash.
 
 The MagiC message "System was overwritten" shall be passed to emulator, if possible.
+
+APPLICAT cannot assign icon to newly added file type like "*.BAK". Workaround: store and restart.

@@ -1,0 +1,54 @@
+HOWTO build MagiC-on-Linux Kernel:
+
+Update build date in HOSTBIOS.S:
+
+D_DAY	EQU	29
+D_MONTH	EQU	12
+D_YEAR	EQU	2003
+D_BCD	EQU	$12292003			; mmttjj
+
+MagiC version number and build date are in AESMAIN.S a label "gem_magics:"
+
+
+Commands
+========
+
+md internat
+md de
+md en
+md fr
+..\bin\mas -v -I=..\inc -d=COUNTRY=1 ..\aes\aesmain.s -o=DE\aesmain.o
+..\bin\mas -v -I=..\inc -d=COUNTRY=2 ..\aes\aesmain.s -o=FR\aesmain.o
+..\bin\mas -v -I=..\inc -d=COUNTRY=3 ..\aes\aesmain.s -o=EN\aesmain.o
+
+..\bin\mas -v -I=..\inc -d=MMX_YIELD=1 ..\aes\aesevt.s -o=INTERNAT\aesevt.o
+
+..\bin\mas -v -I=..\inc -d=COUNTRY=1 ..\aes\aesfrm.s -o=DE\aesfrm.o
+..\bin\mas -v -I=..\inc -d=COUNTRY=2 ..\aes\aesfrm.s -o=FR\aesfrm.o
+..\bin\mas -v -I=..\inc -d=COUNTRY=3 ..\aes\aesfrm.s -o=EN\aesfrm.o
+
+..\bin\mas -v -I=..\inc ..\aes\aesmen.s -o=INTERNAT\aesmen.o
+
+..\bin\mas -v -I=..\inc ..\aes\aesobj.s -o=INTERNAT\aesobj.o
+
+..\bin\mas -v -I=..\inc ..\aes\aeswin.s -o=INTERNAT\aeswin.o
+
+..\bin\mas -v -I=..\inc ..\aes\aesgraf.s -o=INTERNAT\aesgraf.o
+
+..\bin\mas -v -I=..\inc ..\aes\aesrsc.s -o=INTERNAT\aesrsc.o
+
+
+..\bin\pasm -v -b -d=COUNTRY=1 -i=..\inc -i=..\hostbios ..\hostbios\hostbios.s -o=DE\hostbios.o
+..\bin\pasm -v -b -d=COUNTRY=2 -i=..\inc -i=..\hostbios ..\hostbios\hostbios.s -o=FR\hostbios.o
+..\bin\pasm -v -b -d=COUNTRY=3 -i=..\inc -i=..\hostbios ..\hostbios\hostbios.s -o=EN\hostbios.o
+
+..\bin\pasm -v -b -i=..\inc ..\hostbios\hostxfs.s -o=INTERNAT\hostxfs.o
+
+
+..\bin\pasm -v -b -i=..\inc -i=..\dos ..\dos\dfs_fat.s -o=INTERNAT\dfs_fat.o
+
+
+..\bin\aln -v -o DE\MAGICLIN.OS -c DE.INP
+..\bin\aln -v -o EN\MAGICLIN.OS -c EN.INP
+..\bin\aln -v -o FR\MAGICLIN.OS -c FR.INP
+

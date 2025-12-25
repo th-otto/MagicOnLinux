@@ -1,0 +1,516 @@
+	DEB	'Bootlaufwerk setzen'
+ bsr 	set_bootdrive			; Bootlaufwerk als aktuelles
+;move.l	$bffff,-(sp)			; TOS 3.06
+;trap	#$d					; bios Kbshift
+;addq.l	#4,sp
+;btst	#2,d0				; CTRL ?
+;bne.b	no_autop				; ja, AUTO nicht ausfÅhren
+
+* Jetzt (ab MagiC 5.01) die magx.inf laden und auswerten
+
+	DEB	'MAGX.INF lesen und auswerten'
+ jsr		read_inf
+ move.l	d0,p_mgxinf
+	DEB	'VFAT konfigurieren'
+ move.l	d0,a0
+ jsr		rinf_vfat				; lange Dateinamen aktivieren
+
+* Jetzt (ab MagiC 5.13 vom 1.6.97) Tastaturtabellen laden
+
+	DEB	'Tastaturtabellen einlesen'
+ bsr		read_keytbl
+
+* Jetzt (ab MagiC 6) Cookie-Tabelle anlegen
+
+	DEB	'neue Cookies anlegen ?'
+ move.l	p_mgxinf,a0
+ jsr		rinf_coo
+ tst.l	d0
+ beq.b	bot_no_coo
+ cmpi.l	#NCOOKIES,d0
+ bcs.b	bot_no_coo			; Mindestgrîûe
+	DEB	'ja, neue Cookies anlegen!'
+ move.l	d0,-(sp)				; Anzahl merken
+ lsl.l	#3,d0				; * 8 wg. 2 LONGs pro Eintrag
+ move.l	d0,-(sp)
+ gemdos	Malloc
+ addq.l	#6,sp
+ move.l	(sp)+,d1				; Anzahl zurÅck
+ tst.l	d0
+ beq.b 	bot_no_coo			; nicht genÅgend Speicher
+ move.l	_p_cookies,a0
+ move.l	d0,a1
+bot_coo_cp_loop:
+ move.l	(a0)+,(a1)+			; Cookie-SchlÅssel kopieren
+ beq.b	bot_coo_cp_ende		; Ende-Zeichen
+ move.l	(a0)+,(a1)+
+ bra.b	bot_coo_cp_loop
+bot_coo_cp_ende:
+ move.l	d1,(a1)+				; neue LÑnge eintragen
+ move.l	d0,a0				; Anfang
+ lsl.l	#3,d1				; Anzahl * 8
+ add.l	d1,a0				; Block-Ende
+bot_coo_clr_loop:
+ cmpa.l	a0,a1
+ bcc.b	bot_coo_ende
+ clr.l	(a1)+
+ bra.b	bot_coo_clr_loop
+bot_coo_ende:
+ move.l	d0,_p_cookies			; Zeiger umsetzen
+bot_no_coo:
+
+* Jetzt (ab MagiC 6) log-Datei îffnen
+
+	DEB	'BOOT.LOG îffnen?'
+ move.l	p_mgxinf,a0
+ jsr		rinf_log				; Log-Datei îffnen
+ move.l	d0,log_fd
+ bmi.b	bot_nolog
+ move.l	dev_vecs+$68,log_oldconout	; alten Bconout-Vektor merken
+ move.l	#bconout_log,dev_vecs+$68; Vektor umsetzen
+ move.l	act_pd,log_fd_pd			; PD fÅr Handle merken
+bot_nolog:
+
+* Jetzt (ab MagiC 6) Startbild laden
+
+	DEB	'Startbild laden und anzeigen'
+	IFEQ	MACINTOSH
+ move.l	#'EdDI',d0			; Behne-Routinen versagen auf dem Milan
+ bsr		getcookie
+ beq.b	no_eddi
+	ENDIF
+ move.l	p_mgxinf,a0
+ jsr		rinf_img				; Startbild anzeigen
+no_eddi:
+
+* Jetzt alle GerÑte wieder lîschen (waren nur fÅr Hddriver)
+
+ jsr		deleddev
+
+* Jetzt XTENSION-Ordner, dann AUTO-Ordner
+
+	DEB	'GerÑtetreiber (DEV) laden'
+ lea 	devdir_s(pc),a5
+ lea 	devpgm_s(pc),a6
+ bsr 	auto_programs			; \GEMSYS\MAGIC\XTENSION\*.DEV
+	DEB	'Dateisysteme (XFS) laden'
+ lea 	xfsdir_s(pc),a5
+ lea 	xfspgm_s(pc),a6
+ bsr 	auto_programs			; \GEMSYS\MAGIC\XTENSION\*.XFS
+	DEB	'BIOS-GerÑtedateien aus MAGX.INF konfigurieren'
+ move.l	p_mgxinf,a0
+ jsr		rinf_bdev
+	DEB	'Restliche GerÑtedateien initialisieren'
+ jsr		iniddev1
+	DEB	'GerÑte-Handles aus MAGX.INF zuweisen'
+ move.l	p_mgxinf,a0
+ jsr		rinf_dvh
+	DEB	'Restliche Handles des DOS initialisieren'
+ jsr		iniddev2
+	DEB	'AUTOEXEC.BAT ausfÅhren'
+ lea 	autoexec_s(pc),a6
+ bsr 	autoexec				; \AUTO\AUTOEXEC.BAT
+ tst.w	d0					; ausgefÅhrt ?
+ beq.b	no_autop				; ja, OK
+	DEB	'kein AUTOEXEC.BAT => AUTO-Ordner ausfÅhren'
+ lea 	autodir_s(pc),a5
+ lea 	autopgm_s(pc),a6
+ bsr 	auto_programs			; \AUTO\*.PRG
+no_autop:
+
+* Boot-Log schlieûen
+
+	DEB	'BOOT.LOG schlieûen'
+ move.l	log_fd,d0
+ bmi.b	bot_nolog2
+ move.l	dev_vecs+$68,a1
+ cmpa.l	#bconout_log,a1
+ bne.b	bot_logchg			; Achtung: Vektor geÑndert!
+ move.l	log_oldconout,dev_vecs+$68	; Vektor restaurieren
+bot_logchg:
+ move.w	d0,-(sp)
+ gemdos	Fclose
+ addq.l	#4,sp
+bot_nolog2:
+
+* dann setzen wir den Stack auf den korrekten Wert (TT-RAM!)
+
+ move.l	pgm_superst,sp
+ move.l	#syshdr,_sysbase
+ tst.w	_cmdload
+ beq.b	bot_nocmd 			; kein Kommandoprozessor
+
+* Kommandoprozessor laden
+
+	DEB	'Kommandoprozessor starten'
+ pea 	nullstring(pc)
+ pea 	nullstring(pc)
+ pea 	cmdname(pc)
+ move.l	$4b0000,-(sp)			; Pexec : Laden und Starten
+ bra		bot_cmd				; statt AES starten
+
+* kein Kommandoprozessor: Environment selbst erzeugen und AES starten
+
+bot_nocmd:
+ lea 	environment_pattern(pc),a0
+ lea 	deflt_env,a1
+bot_envloop:
+ cmpi.b	#'#',(a0)
+ bne.b	bot_nodcr
+ movea.l	a1,a5
+bot_nodcr:
+ move.b	(a0)+,(a1)+
+ bpl.b	bot_envloop
+ move.w	#$19,-(sp)
+ trap	#1					; gemdos Dgetdrv
+ addq.w	#2,sp
+ addi.b	#'A',d0
+ move.b	d0,(a5)
+
+
+* Diese Schleife wird beim Auflîsungswechsel
+* durchlaufen
+
+resolut_change_loop:
+	DEB	'AES ausfÅhren'
+	IFNE	MILANCOMP
+* CPU-Cache einschalten
+ move.w	#1,-(sp)				; enable
+ move.w	#5,-(sp)				; set data cache mode
+ move.w	#160,-(sp)			; Xbios CachCtrl
+ trap	#14
+ addq.l	#6,sp
+
+ move.w	#1,-(sp)				; enable
+ move.w	#7,-(sp)				; set instruction cache mode
+ move.w	#160,-(sp)			; Xbios CachCtrl
+ trap	#14
+ addq.l	#6,sp
+	ENDIF
+
+ pea 	deflt_env
+ pea 	aessys_s(pc)			; Prozeûname
+ pea 	4					; Bit 2, d.h. Malloc vom TT-RAM
+ move.w	#107,-(sp)			; Basepage erstellen (+prgflags+name)
+ move.w	#$4b,-(sp)
+ trap	#1					; gemdos Pexec
+ lea 	16(sp),sp
+ tst.l	d0
+ bmi 	fatal_err 			; Fataler Fehler (zuwenig Speicher ?)
+ movea.l	d0,a0
+ move.l	exec_os,8(a0)			; TEXT eintragen (AES)
+ pea 	deflt_env
+ move.l	a0,-(sp)
+ pea 	nullstring(pc)
+ move.l	#$4b0006,-(sp) 		; Starten mit Modus 6
+bot_cmd:
+ trap	#1					; gemdos Pexec
+ lea 	16(sp),sp
+
+ tst.l	p_mgxinf				; INF-Datei da ?
+ bne.b	bot_was_inf			; ja, ist noch eine da
+ jsr		read_inf				; INF-Datei neu lesen
+ move.l	d0,p_mgxinf
+bot_was_inf:
+ bra		resolut_change_loop		; war Auflîsungswechsel
+
+;jmp 	sys_start 			; bei Programmende: Reset
+
+
+**********************************************************************
+*
+* Bconout(CON) Handler fÅr Boot-Log-Datei
+*
+* MagiC 6.01: Semaphore fÅr etv_critic berÅcksichtigen
+*
+
+bconout_log:
+ tst.b	criticret				; Handler aktiv?
+ bne.b	bcl_critic			; ja!
+ move.l	act_pd,-(sp)			; alten Prozeûzeiger merken
+ move.l	log_fd_pd,act_pd		; Prozeûzeiger fÅr Handle setzen
+ pea		11(sp)
+ pea		1
+ move.w	log_fd+2,-(sp)			; Lobyte ist Handle (prozeûlokal!)
+ gemdos	Fwrite
+ adda.w	#12,sp
+ move.l	(sp)+,act_pd			; alten Prozeûzeiger restaurieren
+ rts
+bcl_critic:
+ move.l	log_oldconout,-(sp)		; springe Åber alten Vektor
+ rts
+
+
+autoexec_s:
+ DC.B	'\AUTO\AUTOEXEC.BAT',0
+autodir_s:
+ DC.B	'\AUTO\'
+autopgm_s:
+ DC.B	'*.PRG',0
+xfsdir_s:
+ DC.B	'\GEMSYS\MAGIC\XTENSION\'
+xfspgm_s:
+ DC.B	'*.XFS',0
+devdir_s:
+ DC.B	'\GEMSYS\MAGIC\XTENSION\'
+devpgm_s:
+ DC.B	'*.DEV',0
+aessys_s:
+ DC.B	'AESSYS',0
+environment_pattern:
+ DC.B	'PATH=;#:\',0,0,-1
+cmdname:
+ DC.B	'COMMAND.PRG',0
+
+;DC.B	'GEM.PRG'
+nullstring:
+ DC.B	0,0,0
+
+	EVEN
+
+
+**********************************************************************
+*
+* void set_bootdrive( void )
+*
+* GEMDOS hat bei der Initialisierung das Bootlaufwerk als aktuelles
+* Laufwerk gesetzt.
+* Falls dieses aber nicht existiert, wird es hier auf A: gesetzt.
+*
+
+set_bootdrive:
+ move.l	_drvbits,d0			; eingetragene Laufwerke
+ move.w	_bootdev,d1			; von hier booten
+ btst	d1,d0				; Bootlaufwerk eingetragen ?
+ bne.b	stbd_ok				; ja, ausfÅhren
+ tst.w	d1					; Bootdevice ist schon A:
+ beq.b	stbd_ok				; ja, nichts tun
+ clr.w	_bootdev				; Bootdevice auf A:
+ clr.w	-(sp)
+ move.w	#$e,-(sp)
+ trap	#1					; Dsetdrv
+ addq.l	#4,sp
+ bra.b	set_bootdrive			; und nochmal versuchen
+stbd_ok:
+ rts
+
+
+	INCLUDE "READ_KTB.S"
+
+
+**********************************************************************
+*
+* long autoexec( a6 = char *pgmname )
+*
+* PrÅft, ob im Verzeichnis <path> eine Datei AUTOEXEC.BAT liegt, und
+* fÅhrt sie ggf. aus.
+* RÅckgabe 0: AUTOEXEC.BAT ausgefÅhrt
+*		 1: nicht ausgefÅhrt
+*
+* Aufbau der Datei AUTOEXEC.BAT:
+*	zeile = Leerzeile
+*  oder
+*	zeile = programm	; Kommentar
+*
+* Programm ohne Pfad: Auto-Ordner.
+*
+
+XATTR	SET	0
+BUF		SET	XATTR+xattr_sizeof
+OFFS 	SET	BUF+128
+
+	IF	DEBUG3
+__s1: DC.B	'AUTOEXEC.BAT geîffnet',13,10,0
+__s2: DC.B	'Fcntl(FSTAT) erfolgreich',13,10,0
+__s3: DC.B	'Speicher fÅr AUTOEXEC.BAT alloziert',13,10,0
+__s4: DC.B	'AUTOEXEC.BAT geladen',13,10,0
+__s5: DC.B	'starte _',0
+__s6: DC.B	'_',13,10,0
+	EVEN
+	ENDIF
+
+autoexec:
+ movem.l	a3/a4/d7,-(sp)
+ lea 	-OFFS(sp),sp			; Platz fÅr Programmnamen und DTA
+; Datei zum Lesen îffnen
+ clr.w	-(sp)				; ôffnen zum Lesen
+ move.l	a6,-(sp)				; Pfad
+ move.w	#$3d,-(sp)			; Fopen
+ trap	#1
+ addq.l	#8,sp
+ move.l	d0,d7				; d7 = handle
+ ble 	autoe_err 			; Fehler!
+	IF	DEBUG3
+ lea 	__s1(pc),a0
+ jsr 	putstr
+	ENDIF
+; per FSTAT LÑnge ermitteln
+ move.w	#FSTAT,-(sp)
+ pea 	XATTR+2(sp)
+ move.w	d7,-(sp)				; handle
+ move.w	#$104,-(sp)			; Fcntl
+ trap	#1
+ adda.w	#10,sp
+ tst.l	d0
+ bmi 	autoe_close			; Fehler bei FSTAT ?
+	IF	DEBUG3
+ lea 	__s2(pc),a0
+ jsr 	putstr
+	ENDIF
+; Speicher allozieren
+ move.l	XATTR+xattr_size(sp),-(sp)
+ addq.l	#2,(sp)				; 2 Bytes mehr, Platz fÅr EOF
+ move.w	#$48,-(sp)			; Malloc
+ trap	#1
+ addq.l	#6,sp
+ tst.l	d0
+ beq 	autoe_close			; nicht genÅgend Speicher
+ move.l	d0,a4
+	IF	DEBUG3
+ lea 	__s3(pc),a0
+ jsr 	putstr
+	ENDIF
+; Datei laden
+ move.l	a4,-(sp)
+ move.l	XATTR+xattr_size+4(sp),-(sp)
+ move.w	d7,-(sp)
+ move.w	#$3f,-(sp)			; Fread
+ trap	#1
+ adda.w	#12,sp
+ tst.l	d0
+ ble 	autoe_free			; nix gelesen
+ clr.b	0(a4,d0.l)			; Nullbyte als Ende-Markierung
+	IF	DEBUG3
+ lea 	__s4(pc),a0
+ jsr 	putstr
+	ENDIF
+ move.l	a4,a3
+
+* Pfad kopieren
+
+ lea 	BUF(sp),a0
+ moveq	#5,d0				; strlen("\AUTO\")-1
+autoe_rploop:
+ move.b	(a6)+,(a0)+
+ dbra	d0,autoe_rploop
+ move.l	a0,a5
+
+* Schleife zum AusfÅhren
+
+autoe_lloop:
+ tst.b	(a3)
+ beq.b	autoe_free			; EOF
+ lea 	(a5),a0
+autoe_ploop:
+ move.b	(a3)+,d0
+ beq.b	autoe_ploope1
+ cmpi.b	#$d,d0
+ beq.b	autoe_ploope2
+ cmpi.b	#' ',d0
+ beq.b	autoe_ploope2
+ cmpi.b	#9,d0				; Tab
+ beq.b	autoe_ploope2
+ move.b	d0,(a0)+
+ bra.b	autoe_ploop
+autoe_ploope1:
+ subq.l	#1,a3				; EOS gelesen, Zeiger auf EOS
+ bra.b	autoe_ploopen
+autoe_ploope2:
+ move.b	(a3)+,d0				; irgendwas, Åberlesen bis LF
+ beq.b	autoe_ploope1
+ cmpi.b	#$a,d0
+ bne.b	autoe_ploope2
+autoe_ploopen:
+ clr.b	(a0)
+; PrÅfen, ob absoluter Pfad
+	IF	DEBUG3
+ lea 	__s5(pc),a0
+ jsr 	putstr
+ lea 	BUF(sp),a0
+ bsr 	putstr
+ lea 	__s6(pc),a0
+ bsr 	putstr
+	ENDIF
+ tst.b	(a5)
+ beq.b	autoe_lloop			; Leerzeile
+ move.l	a5,a0
+ cmpi.b	#':',1(a5)			; absoluter Pfad ?
+ beq.b	autoe_abs 			; ja
+ lea 	BUF(sp),a0			; nein, Pfad davorhÑngen!
+autoe_abs:
+ pea 	nullstring(pc)
+ pea 	nullstring(pc)
+ pea 	(a0)
+ move.l	#$4b0000,-(sp) 		; Laden und Starten
+ trap	#1					; Programm ausfÅhren
+ lea 	16(sp),sp
+ bra 	autoe_lloop
+
+autoe_free:
+ move.l	a4,-(sp)
+ move.w	#$49,-(sp)			; Mfree
+ trap	#1
+ addq.l	#6,sp
+autoe_close:
+ move.w	d7,-(sp)
+ move.w	#$3e,-(sp)			; Fclose
+ trap	#1
+ addq.l	#4,sp
+ moveq	#0,d0				; Datei existierte
+autoe_err:
+ lea 	OFFS(sp),sp
+ movem.l	(sp)+,d7/a4/a3
+ rts
+
+
+**********************************************************************
+*
+* void auto_programs( a5 = char *path, a6 = char *pgmtyp )
+*
+* fÅhrt den AUTO- Ordner aus		(\AUTO\*.PRG)
+* fÅhrt den XTENSION- Ordner aus	(\GEMSYS\MAGIC\XTENSION\*.DEV)
+*							(\GEMSYS\MAGIC\XTENSION\*.XFS)
+*
+
+DTA		SET	0
+BUF		SET	DTA+dta_sizeof
+OFFS 	SET	BUF+128
+
+auto_programs:
+ lea 	-OFFS(sp),sp			; Platz fÅr Programmnamen und DTA
+ move.w	#7,-(sp)				; alle Dateitypen
+ move.l	a5,-(sp)				; Pfad
+ move.w	#$4e,-(sp)			; Fsfirst
+autop_nxtpgm:
+ pea 	8+DTA(sp)
+ move.w	#$1a,-(sp)
+ trap	#1					; gemdos Fsetdta
+ addq.w	#6,sp
+ trap	#1					; Fsfirst bzw. Fsnext
+ addq.w	#8,sp
+ tst.l	d0					; Datei gefunden ?
+ bne.b	autop_ende			; nein, Ende
+ move.l	a5,a0
+ move.l	a6,a2
+ lea 	BUF(sp),a1			; auto_pgmname
+autop_cploop:
+ move.b	(a0)+,(a1)+			; Ordnername kopieren
+ cmpa.l	a0,a2
+ bne.b	autop_cploop
+ lea 	DTA+dta_name(sp),a0
+autop_catloop:
+ move.b	(a0)+,(a1)+			; Dateinamen anhÑngen
+ bne.b	autop_catloop
+ pea 	nullstring(pc)
+ pea 	nullstring(pc)
+ pea 	BUF+8(sp) 			; auto_pgmname
+ move.l	#$4b0000,-(sp) 		; Laden und Starten
+ trap	#1					; Programm ausfÅhren
+ lea 	16-8(sp),sp			; 6 Dummybytes auf Stack
+;clr.w	-(sp)
+;clr.l	-(sp)				; dummies
+ move.w	#$4f,(sp) 			; ... und Fsnext
+ bra.b	autop_nxtpgm			; weitersuchen
+autop_ende:
+ lea 	OFFS(sp),sp
+ rts

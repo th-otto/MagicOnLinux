@@ -1,0 +1,28 @@
+de\hostbios
+prebuilt\internat\read_inf
+prebuilt\internat\math
+prebuilt\internat\std
+prebuilt\de\magido8
+prebuilt\de\malloc
+prebuilt\internat\xfs_vdos.o prebuilt\internat\vfat_s.o prebuilt\internat\vfat.o
+prebuilt\internat\dfs_u.o
+prebuilt\internat\dev_bio7.o prebuilt\internat\dev_pipe.o prebuilt\internat\dev_mem.o
+internat\dfs_fat.o
+internat\hostxfs.o
+prebuilt\internat\mxvdiknp.o
+prebuilt\internat\drivers.o
+prebuilt\internat\filediv.o
+prebuilt\internat\init_res.o
+prebuilt\internat\string.o
+prebuilt\internat\tos.o
+de\aesmain.o internat\aesevt.o de\aesfrm.o internat\aesobj.o
+internat\aeswin.o internat\aesmen.o internat\aesgraf.o internat\aesrsc.o
+prebuilt\internat\farbic.o
+prebuilt\internat\wdialog.o
+prebuilt\internat\listbox.o
+prebuilt\de\fnt_menu.o
+prebuilt\internat\shelsort.o
+prebuilt\internat\wdintrfc.o
+prebuilt\de\fsel.o
+prebuilt\internat\mtsmn.o
+prebuilt\internat\ende.o

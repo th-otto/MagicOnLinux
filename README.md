@@ -40,6 +40,9 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - cp -p magiclinux/kernel/BUILD/DE/MAGICLIN.OS Atari-rootfs/LANG/DE/
 - cp -p magiclinux/kernel/BUILD/FR/MAGICLIN.OS Atari-rootfs/LANG/FR/
 - cp -p magiclinux/kernel/LOCALISE.SH Atari-rootfs/LANG/
+- cp -p magiclinux/rootfs/LANG/DE/GEMSYS/GEMDESK/MAGXDESK.RSC Atari-rootfs/LANG/DE/GEMSYS/GEMDESK/
+- cp -p magiclinux/rootfs/LANG/EN/GEMSYS/GEMDESK/MAGXDESK.RSC Atari-rootfs/LANG/EN/GEMSYS/GEMDESK/
+- cp -p magiclinux/rootfs/LANG/FR/GEMSYS/GEMDESK/MAGXDESK.RSC Atari-rootfs/LANG/FR/GEMSYS/GEMDESK/
 - touch Atari-rootfs/MAGICLIN.OS
 - Atari-rootfs/LANG/LOCALISE.SH EN
 - mv Atari-rootfs MAGIC_C

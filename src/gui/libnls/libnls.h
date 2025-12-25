@@ -58,7 +58,7 @@ typedef struct _libnls_translation {
 	char lang_id[ISO639_CODE_LEN + 1];
 	int plural_form;
 	const char *translations;
-	const nls_key_offset *const *hash;
+	const nls_key_offset *offsets;
 } libnls_translation;
 
 typedef struct _libnls_domain {
@@ -85,39 +85,41 @@ typedef struct _libnls_domain {
 extern "C" {
 #endif
 
+typedef unsigned int libnls_msgid_type;
+
 /* Redirect the functions to those prefixed with "libnls_". */
 
 /* Look up MSGID in the current default message catalog for the current
    LC_MESSAGES locale.  If not found, returns MSGID itself (the default
    text).  */
-const char *libnls_gettext(const char *__msgid) __attribute__((__format_arg__(1)));
-#define gettext(__msgid) libnls_gettext(__msgid)
+const char *libnls_gettext(libnls_msgid_type __msgid);
+#define gettext(__msgid) libnls_gettext((libnls_msgid_type)(size_t)(__msgid))
 
 /* Look up MSGID in the DOMAINNAME message catalog for the current
    LC_MESSAGES locale.  */
-const char *libnls_dgettext(const char *__domainname, const char *__msgid) __attribute__((__format_arg__(2)));
-#define dgettext(__domainname, __msgid) libnls_dgettext(__domainname, __msgid)
+const char *libnls_dgettext(const char *__domainname, libnls_msgid_type __msgid);
+#define dgettext(__domainname, __msgid) libnls_dgettext(__domainname, (libnls_msgid_type)(size_t)(__msgid))
 
 /* Look up MSGID in the DOMAINNAME message catalog for the current CATEGORY
    locale.  */
-const char *libnls_dcgettext(const char *__domainname, const char *__msgid, int __category) __attribute__((__format_arg__(2)));
-#define dcgettext(__domainname, __msgid, __category) libnls_dcgettext(__domainname, __msgid, __category)
+const char *libnls_dcgettext(const char *__domainname, libnls_msgid_type __msgid, int __category);
+#define dcgettext(__domainname, __msgid, __category) libnls_dcgettext(__domainname, (libnls_msgid_type)(size_t)(__msgid), __category)
 
 /* Similar to 'gettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_ngettext(const char *__msgid1, const char *__msgid2, unsigned long int __n) __attribute__((__format_arg__(1))) __attribute__((__format_arg__(2)));
-#define ngettext(__msgid1, __msgid2, __n) libnls_ngettext(__msgid1, __msgid2, __n)
+const char *libnls_ngettext(libnls_msgid_type __msgid1, libnls_msgid_type __msgid2, unsigned long int __n);
+#define ngettext(__msgid1, __msgid2, __n) libnls_ngettext((libnls_msgid_type)(size_t)(__msgid1), (libnls_msgid_type)(size_t)(__msgid2), __n)
 
 
 /* Similar to 'dgettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_dngettext(const char *__domainname, const char *__msgid1, const char *__msgid2, unsigned long int __n) __attribute__((__format_arg__(2))) __attribute__((__format_arg__(3)));
-#define dngettext(__domainname, __msgid1, __msgid2, __n) libnls_dngettext(__domainname, __msgid1, __msgid2, __n)
+const char *libnls_dngettext(const char *__domainname, libnls_msgid_type __msgid1, libnls_msgid_type __msgid2, unsigned long int __n);
+#define dngettext(__domainname, __msgid1, __msgid2, __n) libnls_dngettext(__domainname, (libnls_msgid_type)(size_t)(__msgid1), (libnls_msgid_type)(size_t)(__msgid2), __n)
 
 /* Similar to 'dcgettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_dcngettext(const char *__domainname, const char *__msgid1, const char *__msgid2, unsigned long int __n, int __category) __attribute__((__format_arg__(2))) __attribute__((__format_arg__(3)));
-#define dcngettext(__domainname, __msgid1, __msgid2, __n, __category) libnls_dcngettext(__domainname, __msgid1, __msgid2, __n, __category)
+const char *libnls_dcngettext(const char *__domainname, libnls_msgid_type __msgid1, libnls_msgid_type __msgid2, unsigned long int __n, int __category);
+#define dcngettext(__domainname, __msgid1, __msgid2, __n, __category) libnls_dcngettext(__domainname, (libnls_msgid_type)(size_t)(__msgid1), (libnls_msgid_type)(size_t)(__msgid2), __n, __category)
 
 
 /* Set the current default message catalog to DOMAINNAME.

@@ -2,11 +2,17 @@ CC = gcc
 CXX = g++
 WARN = -Wall -W -Werror
 OPT = -O2
-CFLAGS = $(OPT) $(WARN) -Wstrict-prototypes -Wmissing-prototypes
-CXXFLAGS = $(OPT) $(WARN) -Wno-attributes
+DEFS =
+CFLAGS = $(OPT) $(WARN) $(DEFS) -Wdeclaration-after-statement -Wstrict-prototypes -Wmissing-prototypes
+CXXFLAGS = $(OPT) $(WARN) $(DEFS) -Wno-attributes
 LDFLAGS = -s
 YACC = bison -y
 YFLAGS = -Wno-yacc
+
+ENABLE_NLS = yes
+PO_DIR = ../../po
+GETTEXT_PACKAGE = MagicOnLinux
+POTFILES = $(notdir $(shell grep -v "^#" $(PO_DIR)/POTFILES))
 
 PROGRAMS = nlstool
 
@@ -49,13 +55,16 @@ ifneq ($(QT_LIBS),)
 PROGRAMS += mxqt-settings
 endif
 
+ifeq ($(ENABLE_NLS),yes)
+DEFS += -DENABLE_NLS
+endif
+
 NLSTOOL_OBJS = \
-	nlstool.o pofile.o country.o \
-	libnls/eval-plural-exp.o \
-	libnls/eval-plural-str.o \
-	libnls/plural-exp.o \
-	libnls/plural.o \
-	libnls/plurals.o \
+	nlstool.o pofile.o country.o langs.o \
+	$(empty)
+
+NLSTOOL_NONLS_OBJS = \
+	nlstool-nonls.o pofile-nonls.o country.o \
 	$(empty)
 
 LIBNLS_OBJS = \
@@ -83,20 +92,67 @@ all:: $(PROGRAMS)
 .cc.o:
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+ifeq ($(ENABLE_NLS),yes)
+gxmessage: gxmessage.tr.c $(MAKEFILE_LIST)
+	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
+
+mxgtk-settings: mxgtk-settings.tr.c country.o preferences.xml.h langs.o libnls/libnls.a $(MAKEFILE_LIST)
+	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< langs.o libnls/libnls.a $(GTK_LIBS) $(LDFLAGS)
+
+mxqt-settings: mxqt-settings.tr.cc country.o preferences.xml.h mxqt-settings.moc langs.o qrc.o libnls/libnls.a $(MAKEFILE_LIST)
+	$(CXX) $(CXXFLAGS) -o $@ $(QT_CFLAGS) $< langs.o libnls/libnls.a $(QT_LIBS) $(LDFLAGS)
+
+nlstool: nlstool-nonls
+
+#
+# bootstrap: compile a version of nlstool that does not use NLS itself
+#
+nlstool-nonls: $(NLSTOOL_NONLS_OBJS) libnls/libnls.a
+	$(CC) $(CFLAGS) -o $@ $(NLSTOOL_NONLS_OBJS) libnls/libnls.a $(LDFLAGS)
+
+nlstool-nonls.o: nlstool.c pofile.h libnls/libnls.h $(MAKEFILE_LIST)
+	$(CC) $(CFLAGS) -UENABLE_NLS -c -o $@ $<
+
+pofile-nonls.o: pofile.c pofile.h libnls/libnls.h $(MAKEFILE_LIST)
+	$(CC) $(CFLAGS) -UENABLE_NLS -c -o $@ $<
+
+
+#
+# each of the *.tr.c files depends on all sources to be translated,
+# since we must assign unique msg ids for them
+#
+define TR_TEMPLATE
+$(1).tr$(2): $(1)$(2) $(POTFILES) $(PO_DIR)/$(GETTEXT_PACKAGE).pot nlstool-nonls $(PO_DIR)/LINGUAS
+	./nlstool-nonls -p $(PO_DIR) --default-domain $(GETTEXT_PACKAGE) translate all $(1)$(2)
+
+$(1).o: $(1).tr$(2)
+	$(if $(filter %.c,$(2)),$(CC) $(CFLAGS),$(CXX) $(CXXFLAGS)) -c -o $$@ $$<
+
+endef
+
+$(foreach SRC,$(filter-out gxmessage.c,$(POTFILES)),$(eval $(call TR_TEMPLATE,$(basename $(SRC)),$(suffix $(SRC)))))
+
+# gxmessage still uses libintl
+gxmessage.tr.c: gxmessage.c
+	cp $< $@
+
+else
 gxmessage: gxmessage.c $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
-mxgtk-settings: mxgtk-settings.c country.o preferences.xml.h langs.o libnls/libnls.a $(MAKEFILE_LIST)
-	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< langs.o libnls/libnls.a $(GTK_LIBS) $(LDFLAGS)
+mxgtk-settings: mxgtk-settings.c country.o preferences.xml.h $(MAKEFILE_LIST)
+	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
-preferences.xml.h: preferences.xml $(MAKEFILE_LIST)
-	sed -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/"/' $< > $@
+mxqt-settings: mxqt-settings.cc country.o preferences.xml.h mxqt-settings.moc langs.o qrc.o libnls/libnls.a $(MAKEFILE_LIST)
+	$(CXX) $(CXXFLAGS) -o $@ $(QT_CFLAGS) $< $(QT_LIBS) $(LDFLAGS)
 
-mxqt-settings:	mxqt-settings.cc country.o preferences.xml.h mxqt-settings.moc langs.o qrc.o libnls/libnls.a $(MAKEFILE_LIST)
-	$(CXX) $(CXXFLAGS) -o $@ $(QT_CFLAGS) $< langs.o libnls/libnls.a $(QT_LIBS) $(LDFLAGS)
+endif
 
 mxqt-settings.moc: mxqt-settings.cc $(MAKEFILE_LIST)
 	$(MOC) -o$@ $<
+
+preferences.xml.h: preferences.xml $(MAKEFILE_LIST)
+	sed -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/"/' $< > $@
 
 qrc.o: qrc.cc
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
@@ -109,15 +165,17 @@ langs.o: langs.c
 
 $(NLSTOOL_OBJS): pofile.h libnls/libnls.h $(MAKEFILE_LIST)
 
-nlstool: $(NLSTOOL_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(NLSTOOL_OBJS) $(LDFLAGS)
+nlstool: $(NLSTOOL_OBJS) libnls/libnls.a
+	$(CC) $(CFLAGS) -o $@ $(NLSTOOL_OBJS) libnls/libnls.a $(LDFLAGS)
 
-langs.c: nlstool
-	./nlstool -p ../../po --default-domain MagicOnLinux -o $@ || { $(RM) $@; false; }
+langs.c: nlstool-nonls $(POTFILES)
+	./nlstool-nonls -p $(PO_DIR) --default-domain $(GETTEXT_PACKAGE) -o $@ make || { $(RM) $@; false; }
 
 libnls/libnls.a: $(LIBNLS_OBJS)
 	@$(RM) $@
 	ar rcs $@ $(LIBNLS_OBJS)
+
+$(LIBNLS_OBJS): libnls/libnls.h libnls/libnlsI.h
 
 libnls/plural.o: libnls/plural.c
 
@@ -125,4 +183,4 @@ libnls/plural.c: libnls/plural.y
 	$(YACC) $(YFLAGS) --output $@ $<
 
 clean::
-	$(RM) *.o libnls/*.o libnls/*.a $(PROGRAMS) preferences.xml.h *.moc qrc.cc
+	$(RM) *.o libnls/*.o libnls/*.a $(PROGRAMS) nlstool-nonls preferences.xml.h *.moc qrc.cc libnls/plural.c langs.c *.tr.*

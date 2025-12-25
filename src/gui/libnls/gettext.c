@@ -13,32 +13,17 @@
 /* ------------------------------------------------------------------------- */
 /*****************************************************************************/
 
-const char *_libnls_internal_dgettext(const libnls_domain *domain, const char *key)
+const char *_libnls_internal_dgettext(const libnls_domain *domain, libnls_msgid_type msgid)
 {
-	unsigned int hash;
-	const nls_key_offset *chain;
-	nls_key_offset cmp;
-	
+	nls_key_offset offset;
+
 	/* check for empty string - often used - must return original address */
-	if (key == NULL || *key == '\0' || domain->current_translation.hash == NULL)
-		return key;
-	hash = nls_hash(key);
-	if ((chain = domain->current_translation.hash[hash]) != NULL)
-	{
-		while ((cmp = *chain++) != 0)
-		{
-			if (strcmp(&domain->keys[cmp], key) == 0)
-			{
-				/* strings are equal, return next string */
-				key = &domain->current_translation.translations[*chain];
-				break;
-			}
-			/* the strings differ, next */
-			chain++;
-		}
-	}
-	/* not in hash, return original string */
-	return key;
+	if (msgid == 0)
+		return domain->keys;
+	if (domain->current_translation.translations != NULL && (offset = domain->current_translation.offsets[msgid - 1]) != 0)
+		return domain->current_translation.translations + offset;
+	/* no translation, return original string */
+	return domain->keys + domain->languages[0].offsets[msgid - 1];
 }
 
 /* ------------------------------------------------------------------------- */
@@ -46,9 +31,13 @@ const char *_libnls_internal_dgettext(const libnls_domain *domain, const char *k
 /* Look up MSGID in the current default message catalog for the current
    LC_MESSAGES locale.  If not found, returns MSGID itself (the default
    text).  */
-const char *libnls_gettext(const char *msgid)
+const char *libnls_gettext(libnls_msgid_type msgid)
 {
 	if (_libnls_current_domain == NULL)
+#if 0
 		return (dgettext)(NULL, msgid);
+#else
+		return NLS_NOKEY_ERROR;
+#endif
 	return _libnls_internal_dgettext(_libnls_current_domain, msgid);
 }

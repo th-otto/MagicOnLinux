@@ -25,7 +25,7 @@ char *libnls_setlocale(int category, const char *locale)
 				libnls_domain *domain = d->domain;
 				const libnls_translation *translations;
 				
-				domain->current_translation.hash = NULL;
+				domain->current_translation.translations = NULL;
 				for (translations = domain->languages; /* translations->lang_id != NULL && */ translations->lang_id[0] != '\0'; translations++)
 				{
 					if (strncmp(locale, translations->lang_id, ISO639_CODE_LEN) == 0)
@@ -34,7 +34,7 @@ char *libnls_setlocale(int category, const char *locale)
 						break;
 					}
 				}
-				if (domain->current_translation.hash == NULL)
+				if (domain->current_translation.translations == NULL)
 				{
 					for (translations = domain->languages; /* translations->lang_id != NULL && */ translations->lang_id[0] != '\0'; translations++)
 					{

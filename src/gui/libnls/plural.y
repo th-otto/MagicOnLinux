@@ -71,15 +71,32 @@ static void yyerror(struct parse_args *arg, const char *str)
 
 /* Allocation of expressions. */
 
-static struct expression *new_exp(int nargs, enum expression_operator op, struct expression *const *args)
+static void free_args(int nargs, struct expression **args)
+{
+	int i;
+
+	for (i = nargs - 1; i >= 0; i--)
+	{
+		FREE_EXPRESSION(args[i]);
+		args[i] = NULL;
+	}
+}
+
+
+static struct expression *new_exp(int nargs, enum expression_operator op, struct expression **args)
 {
 	int i;
 	struct expression *newp;
 
 	/* If any of the argument could not be malloc'ed, just return NULL. */
 	for (i = nargs - 1; i >= 0; i--)
+	{
 		if (args[i] == NULL)
-			goto fail;
+		{
+			free_args(nargs, args);
+			return NULL;
+		}
+	}
 
 	/* Allocate a new expression. */
 	newp = (struct expression *) malloc(sizeof(*newp));
@@ -91,11 +108,7 @@ static struct expression *new_exp(int nargs, enum expression_operator op, struct
 			newp->val.args[i] = args[i];
 		return newp;
 	}
-
-fail:
-	for (i = nargs - 1; i >= 0; i--)
-		FREE_EXPRESSION(args[i]);
-
+	free_args(nargs, args);
 	return NULL;
 }
 

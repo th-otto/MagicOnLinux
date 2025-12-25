@@ -45,7 +45,7 @@ INSTALL_DATA = ${INSTALL} -m 644
 GMSGFMT = msgfmt
 MSGFMT = msgfmt
 XGETTEXT = xgettext
-MSGMERGE = msgmerge --no-fuzzy-matching --width=100
+MSGMERGE = msgmerge --no-fuzzy-matching --width=120
 
 PO_LINGUAS=$(shell grep -v "^#" $(srcdir)/LINGUAS)
 
@@ -58,7 +58,7 @@ POFILES=$(addsuffix .po,$(PO_LINGUAS))
 DISTFILES = Makefile POTFILES $(POFILES)
 EXTRA_DISTFILES = LINGUAS
 
-POTFILES = $(shell grep -v "^#" $(srcdir)/POTFILES) $(top_srcdir)/src/gui/preferences.xml
+POTFILES = $(shell grep -v "^#" $(srcdir)/POTFILES)
 
 CATALOGS=$(addsuffix .gmo,$(USE_LINGUAS))
 
@@ -93,7 +93,6 @@ XGETTEXT_ARGS = \
 	--flag=g_scanner_error:2:c-format \
 	--flag=g_scanner_warn:2:c-format \
 	--directory=$(srcdir) \
-	--files-from=$(srcdir)/POTFILES \
 	--no-wrap \
 	--width=4 \
 	--from-code=UTF-8
@@ -113,10 +112,12 @@ all: all-$(USE_NLS)
 all-yes: $(CATALOGS)
 all-no:
 
-$(srcdir)/$(GETTEXT_PACKAGE).pot: $(srcdir)/$(POTFILES) $(srcdir)/Makefile
+$(srcdir)/$(GETTEXT_PACKAGE).pot: $(srcdir)/$(POTFILES) $(top_srcdir)/src/gui/preferences.xml $(srcdir)/Makefile
 	@echo generating $@; \
-	$(XGETTEXT) $(XGETTEXT_ARGS) $(XGETTEXT_KEYWORDS) --output=$@.tmp; \
+	$(XGETTEXT) $(XGETTEXT_ARGS) $(XGETTEXT_KEYWORDS) $(POTFILES) --output=$@.tmp; \
+	echo "" >> $@.tmp; \
 	$(PERL) $(srcdir)/xml-extract.pl $(top_srcdir)/src/gui/preferences.xml >> $@.tmp; \
+	sed -i 's/Language: \\n/Language: en_US\\n/' $@.tmp; \
 	mv $@.tmp $@
 
 install: install-data

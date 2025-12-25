@@ -14,7 +14,6 @@
 #pragma GCC diagnostic pop
 #include <locale.h>
 #include <gdk/gdkkeysyms.h>
-#define ENABLE_NLS
 #include "mxnls.h"
 #include "country.c"
 

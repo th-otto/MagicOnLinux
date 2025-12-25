@@ -15,7 +15,7 @@
 
 /* Look up MSGID in the DOMAINNAME message catalog for the current
    LC_MESSAGES locale.  */
-const char *libnls_dgettext(const char *domainname, const char *msgid)
+const char *libnls_dgettext(const char *domainname, libnls_msgid_type msgid)
 {
 	struct libnls_domain_list *d;
 	
@@ -29,5 +29,9 @@ const char *libnls_dgettext(const char *domainname, const char *msgid)
 	/*
 	 * not our package, forward to libintl
 	 */
+#if 0
 	return (dcgettext)(domainname, msgid, LC_MESSAGES);
+#else
+	return NLS_NOKEY_ERROR;
+#endif
 }

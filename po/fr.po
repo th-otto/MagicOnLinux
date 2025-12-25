@@ -17,7 +17,7 @@ msgid  ""
 msgstr ""
 "Project-Id-Version: MagicOnLinux 0.3\n"
 "Report-Msgid-Bugs-To: https://github.com/th-otto/MagicOnLinux/issues\n"
-"POT-Creation-Date: 2025-12-24 11:10+0100\n"
+"POT-Creation-Date: 2025-12-27 15:16+0100\n"
 "PO-Revision-Date: 2025-12-10 12:42+0100\n"
 "Last-Translator: \n"
 "Language-Team: French <fr@li.org>\n"
@@ -27,17 +27,17 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: ../src/gui/gxmessage.c:400
-#: ../src/gui/mxgtk-settings.c:250
+#: ../src/gui/gxmessage.c:398
+#: ../src/gui/mxgtk-settings.c:249
 msgid  "_OK"
 msgstr "_Valider"
 
-#: ../src/gui/gxmessage.c:402
-#: ../src/gui/mxgtk-settings.c:252
+#: ../src/gui/gxmessage.c:400
+#: ../src/gui/mxgtk-settings.c:251
 msgid  "_Cancel"
 msgstr "_Annuler"
 
-#: ../src/gui/gxmessage.c:1184
+#: ../src/gui/gxmessage.c:1182
 #, c-format
 msgid  ""
 "\n"
@@ -46,170 +46,162 @@ msgstr ""
 "\n"
 "%s - un clone xmessage basé sur GTK\n"
 
-#: ../src/gui/gxmessage.c:1186
+#: ../src/gui/gxmessage.c:1184
 #, c-format
 msgid  "Usage: %s [OPTIONS] message ...\n"
 msgstr "Utilisation: %s [OPTIONS] message ...\n"
 
-#: ../src/gui/gxmessage.c:1187
+#: ../src/gui/gxmessage.c:1185
 #, c-format
 msgid  "       %s [OPTIONS] -file FILENAME\n"
 msgstr "             %s [OPTIONS] -file NOM_FICHIER\n"
 
-#: ../src/gui/gxmessage.c:1189
+#: ../src/gui/gxmessage.c:1187
 #, c-format
 msgid  "xmessage options:\n"
 msgstr "Options xmessage:\n"
 
-#: ../src/gui/gxmessage.c:1190
+#: ../src/gui/gxmessage.c:1188
 #, c-format
 msgid  "  -file FILENAME         Get message text from file, '-' for stdin\n"
-msgstr ""
-"  -file NOM_DU_FICHIER   Récupérer le texte du message depuis un fichier, '-' pour l'entrée "
-"standard\n"
+msgstr "  -file NOM_DU_FICHIER   Récupérer le texte du message depuis un fichier, '-' pour l'entrée standard\n"
 
-#: ../src/gui/gxmessage.c:1191
+#: ../src/gui/gxmessage.c:1189
 #, c-format
 msgid  "  -buttons BUTTON_LIST   List of \"LABEL:EXIT_CODE\", comma separated\n"
 msgstr "  -buttons BUTTON_LIST   Liste de \"LABEL:EXIT_CODE\", séparés par des virgules\n"
 
-#: ../src/gui/gxmessage.c:1192
+#: ../src/gui/gxmessage.c:1190
 #, c-format
 msgid  "  -default LABEL         Give keyboard focus to the specified button\n"
 msgstr "  -default LABEL         Donner le focus clavier au bouton spécifié\n"
 
-#: ../src/gui/gxmessage.c:1193
+#: ../src/gui/gxmessage.c:1191
 #, c-format
 msgid  "  -print                 Send the selected button's LABEL to stdout\n"
-msgstr ""
-"  -print                 Afficher l'étiquette du bouton sélectionné sur la sortie standard\n"
+msgstr "  -print                 Afficher l'étiquette du bouton sélectionné sur la sortie standard\n"
 
-#: ../src/gui/gxmessage.c:1194
+#: ../src/gui/gxmessage.c:1192
 #, c-format
 msgid  "  -center                Open the window in the center of the screen\n"
 msgstr "  -center                Ouvrir la fenêtre au centre de l'écran\n"
 
-#: ../src/gui/gxmessage.c:1195
+#: ../src/gui/gxmessage.c:1193
 #, c-format
 msgid  "  -nearmouse             Open the window near the mouse pointer\n"
 msgstr "  -nearmouse             Ouvrir la fenêtre près du pointeur de la souris\n"
 
-#: ../src/gui/gxmessage.c:1196
+#: ../src/gui/gxmessage.c:1194
 #, c-format
 msgid  "  -timeout SECONDS       Exit with code 0 after SECONDS seconds\n"
 msgstr "  -timeout SECONDES      Sortie avec le code 0 après SECONDES secondes\n"
 
-#: ../src/gui/gxmessage.c:1197
+#: ../src/gui/gxmessage.c:1195
 #, c-format
 msgid  "  -display DISPLAY       X display to use\n"
 msgstr "  -display AFFICHAGE     Affichage X à utiliser\n"
 
-#: ../src/gui/gxmessage.c:1198
+#: ../src/gui/gxmessage.c:1196
 #, c-format
 msgid  "  -fn FONT | -font FONT  Set message font (works with GTK font names)\n"
-msgstr ""
-"  -fn | -font POLICE     Définir la police des messages (fonctionne avec les noms de polices "
-"GTK)\n"
+msgstr "  -fn | -font POLICE     Définir la police des messages (fonctionne avec les noms de polices GTK)\n"
 
-#: ../src/gui/gxmessage.c:1199
+#: ../src/gui/gxmessage.c:1197
 #, c-format
 msgid  "  -fg COLOR              Set message font color\n"
 msgstr "  -fg COULEUR            Définir la couleur de la police du message\n"
 
-#: ../src/gui/gxmessage.c:1200
+#: ../src/gui/gxmessage.c:1198
 #, c-format
 msgid  "  -bg COLOR              Set message background color\n"
 msgstr "  -bg COULEUR            Définir la couleur d'arrière-plan du message\n"
 
-#: ../src/gui/gxmessage.c:1202
+#: ../src/gui/gxmessage.c:1200
 #, c-format
 msgid  "  -geometry GEOMETRY     Set window size (position will be ignored)\n"
 msgstr "  -geometry GÉOMÉTRIE    Définir la taille de la fenêtre (la position sera ignorée)\n"
 
-#: ../src/gui/gxmessage.c:1204
+#: ../src/gui/gxmessage.c:1202
 #, c-format
 msgid  "  -iconic                Start iconified\n"
 msgstr "  -icône                 de démarrage iconique\n"
 
-#: ../src/gui/gxmessage.c:1205
+#: ../src/gui/gxmessage.c:1203
 #, c-format
 msgid  "  -name NAME             Program name as used by the window manager\n"
 msgstr "  -name NOM              Nom du programme tel qu'utilisé par le gestionnaire de fenêtres\n"
 
-#: ../src/gui/gxmessage.c:1206
+#: ../src/gui/gxmessage.c:1204
 #, c-format
 msgid  "  -title TITLE           Set window title to TITLE\n"
 msgstr "  -title TITRE           Définir le titre de la fenêtre sur TITRE\n"
 
-#: ../src/gui/gxmessage.c:1208
+#: ../src/gui/gxmessage.c:1206
 #, c-format
 msgid  "Additional %s options:\n"
 msgstr "Options supplémentaires %s:\n"
 
-#: ../src/gui/gxmessage.c:1209
+#: ../src/gui/gxmessage.c:1207
 #, c-format
 msgid  "  -borderless            Open the window without border decoration\n"
 msgstr "  -borderless            Ouvrir la fenêtre sans bordure décorative\n"
 
-#: ../src/gui/gxmessage.c:1211
+#: ../src/gui/gxmessage.c:1209
 #, c-format
 msgid  "  -sticky                Make the window stick to all desktops\n"
 msgstr "  -sticky                Permet de fixer la fenêtre sur tous les bureaux\n"
 
-#: ../src/gui/gxmessage.c:1212
+#: ../src/gui/gxmessage.c:1210
 #, c-format
 msgid  "  -ontop                 Keep window on top\n"
 msgstr "  -ontop                 Garder la fenêtre en haut\n"
 
-#: ../src/gui/gxmessage.c:1214
+#: ../src/gui/gxmessage.c:1212
 #, c-format
 msgid  "  -nofocus               Don't focus the window when it opens\n"
 msgstr "  -nofocus               Ne pas donner le focus à la fenêtre lors de son ouverture\n"
 
-#: ../src/gui/gxmessage.c:1215
+#: ../src/gui/gxmessage.c:1213
 #, c-format
 msgid  "  -noescape              Don't allow pressing ESC to close the window\n"
 msgstr "  -noescape              Empêcher la fermeture de la fenêtre avec la touche ÉCHAP\n"
 
-#: ../src/gui/gxmessage.c:1216
+#: ../src/gui/gxmessage.c:1214
 #, c-format
 msgid  "  -encoding CHARSET      Expect CHARSET as the message encoding\n"
 msgstr "  -encoding CHARSET      L'encodage du message doit être de type CHARSET.\n"
 
-#: ../src/gui/gxmessage.c:1217
+#: ../src/gui/gxmessage.c:1215
 #, c-format
 msgid  "  -entry                 Prompt for text to be sent to stdout\n"
 msgstr "  -entry                 Invite de saisie de texte à envoyer à la sortie standard\n"
 
-#: ../src/gui/gxmessage.c:1218
+#: ../src/gui/gxmessage.c:1216
 #, c-format
 msgid  "  -entrytext TEXT        Same as -entry, but with TEXT as default text\n"
 msgstr "  -entrytext TEXT        Identique à -entry, mais avec TEXT comme texte par défaut\n"
 
-#: ../src/gui/gxmessage.c:1219
+#: ../src/gui/gxmessage.c:1217
 #, c-format
 msgid  "  -wrap                  Wrap lines of text to fit window width\n"
-msgstr ""
-"  -wrap                  Retour à la ligne automatique pour s'adapter à la largeur de la fenêtre\n"
+msgstr "  -wrap                  Retour à la ligne automatique pour s'adapter à la largeur de la fenêtre\n"
 
-#: ../src/gui/gxmessage.c:1220
+#: ../src/gui/gxmessage.c:1218
 #, c-format
 msgid  "  -help | -?             Show this usage information\n"
 msgstr "  -help | -?             Afficher ces informations d'utilisation\n"
 
-#: ../src/gui/gxmessage.c:1221
+#: ../src/gui/gxmessage.c:1219
 #, c-format
 msgid  "  -version               Show gxmessage version and Copyright details\n"
-msgstr ""
-"  -version               Afficher la version de gxmessage et les informations relatives aux "
-"droits d'auteur\n"
+msgstr "  -version               Afficher la version de gxmessage et les informations relatives aux droits d'auteur\n"
 
-#: ../src/gui/gxmessage.c:1223
+#: ../src/gui/gxmessage.c:1221
 #, c-format
 msgid  "Please report bugs to %s.\n"
 msgstr "Veuillez signaler les bogues à %s.\n"
 
-#: ../src/gui/gxmessage.c:1275
+#: ../src/gui/gxmessage.c:1273
 #, c-format
 msgid  ""
 "Copyright (©) %s %s\n"
@@ -222,91 +214,90 @@ msgstr ""
 "the terms of the GNU General Public License <https://www.gnu.org/licenses/gpl.html>.\n"
 "There is NO WARRANTY, to the extent permitted by law.\n"
 
-#: ../src/gui/gxmessage.c:1284
-#: ../src/gui/gxmessage.c:1328
+#: ../src/gui/gxmessage.c:1282
+#: ../src/gui/gxmessage.c:1326
 #, c-format
 msgid  "%s: can't have both -entry and -print\n"
 msgstr "%s: impossible d'avoir à la fois -entry et -print\n"
 
-#: ../src/gui/gxmessage.c:1313
-#: ../src/gui/gxmessage.c:1408
+#: ../src/gui/gxmessage.c:1311
+#: ../src/gui/gxmessage.c:1406
 #, c-format
 msgid  "%s: can't get message from both -file and command line\n"
-msgstr ""
-"%s: impossible de récupérer le message à la fois depuis le fichier et la ligne de commande\n"
+msgstr "%s: impossible de récupérer le message à la fois depuis le fichier et la ligne de commande\n"
 
-#: ../src/gui/gxmessage.c:1337
+#: ../src/gui/gxmessage.c:1335
 #, c-format
 msgid  "%s: integer -timeout value expected\n"
 msgstr "%s: valeur de délai d'attente entière attendue\n"
 
-#: ../src/gui/gxmessage.c:1437
+#: ../src/gui/gxmessage.c:1435
 #, c-format
 msgid  "%s: unable to read file\n"
 msgstr "%s: impossible de lire le fichier\n"
 
-#: ../src/gui/gxmessage.c:1450
+#: ../src/gui/gxmessage.c:1448
 #, c-format
 msgid  "%s: message text is required\n"
 msgstr "%s: le texte du message est obligatoire\n"
 
-#: ../src/gui/gxmessage.c:1451
+#: ../src/gui/gxmessage.c:1449
 #, c-format
 msgid  "Try `%s --help' for more information\n"
 msgstr "Essayez `%s --help` pour plus d'informations\n"
 
-#: ../src/gui/mxgtk-settings.c:481
-#: ../src/gui/mxqt-settings.cc:1604
+#: ../src/gui/mxgtk-settings.c:480
+#: ../src/gui/mxqt-settings.cc:1640
 msgid  "Accept and confirm the changes in this dialog"
 msgstr "Accepte et confirme les modifications dans cette boîte de dialogue"
 
-#: ../src/gui/mxgtk-settings.c:482
-#: ../src/gui/mxqt-settings.cc:1605
+#: ../src/gui/mxgtk-settings.c:481
+#: ../src/gui/mxqt-settings.cc:1641
 msgid  "Discard the current changes and close the dialog"
 msgstr "Ignore les modifications actuelles und ferme la boîte de dialogue"
 
-#: ../src/gui/mxgtk-settings.c:782
-#: ../src/gui/mxqt-settings.cc:402
+#: ../src/gui/mxgtk-settings.c:781
+#: ../src/gui/mxqt-settings.cc:425
 msgid  "Select a Folder"
 msgstr "Sélectionnez un dossier"
 
-#: ../src/gui/mxgtk-settings.c:782
-#: ../src/gui/mxqt-settings.cc:402
+#: ../src/gui/mxgtk-settings.c:781
+#: ../src/gui/mxqt-settings.cc:425
 msgid  "Select a File"
 msgstr "Sélectionnez un fichier"
 
-#: ../src/gui/mxgtk-settings.c:820
-#: ../src/gui/mxqt-settings.cc:1247
+#: ../src/gui/mxgtk-settings.c:819
+#: ../src/gui/mxqt-settings.cc:1281
 msgid  "read-only"
 msgstr "lecture seule"
 
-#: ../src/gui/mxgtk-settings.c:823
-#: ../src/gui/mxqt-settings.cc:1248
+#: ../src/gui/mxgtk-settings.c:822
+#: ../src/gui/mxqt-settings.cc:1282
 msgid  "Mount drive in read-only mode, preventing writes from the emulation"
 msgstr "Monter le lecteur en lecture seule, empêchant l'écriture par l'émulation"
 
-#: ../src/gui/mxgtk-settings.c:832
-#: ../src/gui/mxqt-settings.cc:1251
+#: ../src/gui/mxgtk-settings.c:831
+#: ../src/gui/mxqt-settings.cc:1285
 msgid  "DOS 8+3 format"
 msgstr "8.3 Noms de fichiers"
 
-#: ../src/gui/mxgtk-settings.c:835
-#: ../src/gui/mxqt-settings.cc:1252
+#: ../src/gui/mxgtk-settings.c:834
+#: ../src/gui/mxqt-settings.cc:1286
 msgid  "Force 8.3 short filenames (FAT-style) on host directories"
 msgstr "Forcer les noms de fichiers courts 8.3 (style FAT) sur les répertoires hôtes"
 
-#: ../src/gui/mxgtk-settings.c:844
-#: ../src/gui/mxqt-settings.cc:1255
+#: ../src/gui/mxgtk-settings.c:843
+#: ../src/gui/mxqt-settings.cc:1289
 msgid  "case insensitive"
 msgstr "insensible à la casse"
 
-#: ../src/gui/mxgtk-settings.c:847
-#: ../src/gui/mxqt-settings.cc:1256
+#: ../src/gui/mxgtk-settings.c:846
+#: ../src/gui/mxqt-settings.cc:1290
 msgid  "Ignore case sensitivity when accessing files/folders"
 msgstr "Ignorer la sensibilité à la casse lors de l'accès aux fichiers/dossiers"
 
-#: ../src/gui/mxgtk-settings.c:1139
-#: ../src/gui/mxqt-settings.cc:688
+#: ../src/gui/mxgtk-settings.c:1138
+#: ../src/gui/mxqt-settings.cc:722
 #, c-format
 msgid  ""
 "can't create %s:\n"
@@ -316,317 +307,370 @@ msgstr ""
 "%s"
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1570
+#: ../src/gui/mxgtk-settings.c:1569
 #, c-format
 msgid  "%s:%d: unknown section '%s'\n"
 msgstr "%s:%d: section inconnue '%s'\n"
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1602
+#: ../src/gui/mxgtk-settings.c:1601
 #, c-format
 msgid  "%s:%d: Syntax error: %s"
 msgstr "%s:%d: Erreur de syntaxe: %s"
 
-#: ../src/gui/mxgtk-settings.c:1977
+#: ../src/gui/mxgtk-settings.c:1976
 msgid  "You have unsaved changes. Do you want to save them and quit?"
 msgstr "Vous avez des modifications non enregistrées. Voulez-vous les enregistrer et quitter ?"
 
-#: ../src/gui/mxgtk-settings.c:2035
-#: ../src/gui/mxqt-settings.cc:1647
+#: ../src/gui/mxgtk-settings.c:2034
+#: ../src/gui/mxqt-settings.cc:1687
 msgid  "You have unsaved changes. Do you want to discard them and quit?"
 msgstr "Vous avez des modifications non sauvegardées. Voulez-vous les ignorer et quitter?"
 
-#: ../src/gui/mxgtk-settings.c:2104
-#: ../src/gui/mxqt-settings.cc:1520
+#: ../src/gui/mxgtk-settings.c:2103
+#: ../src/gui/mxqt-settings.cc:1554
 msgid  "MagicOnLinux Settings"
 msgstr "Paramètres MagicOnLinux"
 
-#: ../src/gui/mxgtk-settings.c:2173
+#: ../src/gui/mxgtk-settings.c:2172
 msgid  "Sets the client geometry of the main window"
 msgstr "Définit la géométrie client de la fenêtre principale"
 
-#: ../src/gui/mxgtk-settings.c:2173
+#: ../src/gui/mxgtk-settings.c:2172
 msgid  "GEOMETRY"
 msgstr "GÉOMÉTRIE"
 
-#: ../src/gui/mxgtk-settings.c:2174
-#: ../src/gui/mxqt-settings.cc:1729
+#: ../src/gui/mxgtk-settings.c:2173
+#: ../src/gui/mxqt-settings.cc:1769
 msgid  "Specify an alternative configuration file path"
 msgstr "Spécifiez un autre chemin d'accès au fichier de configuration"
 
-#: ../src/gui/mxgtk-settings.c:2174
-#: ../src/gui/mxqt-settings.cc:1729
+#: ../src/gui/mxgtk-settings.c:2173
+#: ../src/gui/mxqt-settings.cc:1769
 msgid  "FILE"
 msgstr "FICHER"
 
-#: ../src/gui/mxgtk-settings.c:2175
+#: ../src/gui/mxgtk-settings.c:2174
 msgid  "Show version information and exit"
 msgstr "Afficher des informations de version et quitter"
 
-#: ../src/gui/mxgtk-settings.c:2176
+#: ../src/gui/mxgtk-settings.c:2175
 msgid  "Show help information and exit"
 msgstr "Afficher les informations d'aide et quitter"
 
-#: ../src/gui/mxgtk-settings.c:2205
+#: ../src/gui/mxgtk-settings.c:2204
 msgid  "GTK Configurator for MagicOnLinux"
 msgstr "Configurateur GTK pour MagicOnLinux"
 
-#: ../src/gui/mxgtk-settings.c:2232
+#: ../src/gui/mxgtk-settings.c:2231
 msgid  "error parsing command line"
 msgstr "erreur d'analyse de la ligne de commande"
 
 #. FIXME: use dialog
-#: ../src/gui/mxqt-settings.cc:1125
+#: ../src/gui/mxqt-settings.cc:1159
 #, c-format
 msgid  "Syntax error in configuration file:%d: %s"
 msgstr "Erreur de syntaxe dans le fichier de configuration:%d: %s"
 
-#: ../src/gui/mxqt-settings.cc:1728
+#: ../src/gui/mxqt-settings.cc:1768
 msgid  "ID of the parent window"
 msgstr "ID de la fenêtre parente"
 
-#: ../src/gui/nlstool.c:70
+#: ../src/gui/nlstool.c:117
 #, c-format
 msgid  "%s - Create translations from PO files\n"
-msgstr ""
+msgstr "%s - Créer des traductions à partir de fichiers PO\n"
 
-#: ../src/gui/nlstool.c:71
+#: ../src/gui/nlstool.c:118
 #, c-format
-msgid  "Usage: %s [<options>] <file...>\n"
-msgstr ""
+msgid  "Usage: %s [<options>] [make|translate]\n"
+msgstr "Utilisation: %s [<options>] [make|translate]\n"
 
-#: ../src/gui/nlstool.c:72
-#, c-format
-msgid  "Options:\n"
-msgstr ""
+#: ../src/gui/nlstool.c:119
+msgid  "Commands are:\n"
+msgstr "Les commandes sont:\n"
 
-#: ../src/gui/nlstool.c:73
-#, c-format
+#: ../src/gui/nlstool.c:120
+msgid  ""
+"  make                         read all files listed in LINGUAS,\n"
+"                               and create C-source for translations\n"
+msgstr ""
+"  make                         Faire lire tous les fichiers listés dans LINGUAS,\n"
+"                               et créer une source C pour les traductions\n"
+
+#: ../src/gui/nlstool.c:122
+msgid  "  translate <lang> <files>     translate C-sources\n"
+msgstr "  traduire <lang> <files>      traduire les sources C\n"
+
+#: ../src/gui/nlstool.c:124
+msgid  "Options are:\n"
+msgstr "Les options sont:\n"
+
+#: ../src/gui/nlstool.c:125
 msgid  "   -v, --verbose               emit some progress messages\n"
-msgstr ""
+msgstr "   -v, --verbose               afficher des messages de progression\n"
 
-#: ../src/gui/nlstool.c:74
-#, c-format
+#: ../src/gui/nlstool.c:126
 msgid  "   -p, --podir <dir>           lookup po-files in <dir>\n"
-msgstr ""
+msgstr "   -p, --podir <dir>           recherche les fichiers po dans <dir>\n"
 
-#: ../src/gui/nlstool.c:75
-#, c-format
+#: ../src/gui/nlstool.c:127
 msgid  "   -o, --output <file>         write output to <file>\n"
-msgstr ""
+msgstr "   -o, --output <fichier>      écrire la sortie dans <fichier>\n"
 
-#: ../src/gui/nlstool.c:76
-#, c-format
+#: ../src/gui/nlstool.c:128
 msgid  "   -d, --default-domain <name> specify packagename\n"
-msgstr ""
+msgstr "   -d, --default-domain <nom>  spécifiez le nom du paquet\n"
 
-#: ../src/gui/nlstool.c:77
-#, c-format
+#: ../src/gui/nlstool.c:129
 msgid  "   -k, --keys <name>           name of the key string table\n"
-msgstr ""
+msgstr "   -k, --keys <nom>            nom de la table de chaînes de clés\n"
 
-#: ../src/gui/nlstool.c:78
-#, c-format
+#: ../src/gui/nlstool.c:130
 msgid  "       --version               print version and exit\n"
-msgstr ""
+msgstr "       --version               afficher la version et quitter\n"
 
-#: ../src/gui/nlstool.c:79
-#, c-format
+#: ../src/gui/nlstool.c:131
 msgid  "       --help                  print this help and exit\n"
-msgstr ""
+msgstr "       --help                  affiche cette aide et quitte\n"
 
-#: ../src/gui/nlstool.c:86
+#: ../src/gui/nlstool.c:138
 #, c-format
 msgid  "%s version %s\n"
-msgstr ""
+msgstr "%s version %s\n"
 
-#: ../src/gui/pofile.c:58
-msgid  "Warning: "
-msgstr ""
-
-#: ../src/gui/pofile.c:72
-msgid  "Fatal: "
-msgstr ""
-
-#: ../src/gui/pofile.c:87
-msgid  "Error: "
-msgstr ""
-
-#: ../src/gui/pofile.c:671
-msgid  "Empty administrative entry"
-msgstr ""
-
-#: ../src/gui/pofile.c:691
-msgid  "Fields in administrative entry must end with \\n"
-msgstr ""
-
-#: ../src/gui/pofile.c:724
-#: ../src/gui/pofile.c:729
-#: ../src/gui/pofile.c:734
+#: ../src/gui/nlstool.c:221
 #, c-format
-msgid  "Expecting \"%s\" in administrative entry"
-msgstr ""
+msgid  "%s: unknown command %s\n"
+msgstr "%s: commande inconnue %s\n"
 
-#: ../src/gui/pofile.c:739
-msgid  "MIME version must be 1.0"
-msgstr ""
+#: ../src/gui/pofile.c:62
+msgid  "Warning: "
+msgstr "Avertissement: "
 
-#: ../src/gui/pofile.c:744
-msgid  "Content-Transfer-Encoding must be 8bit"
-msgstr ""
+#: ../src/gui/pofile.c:76
+msgid  "Fatal: "
+msgstr "Fatal: "
 
-#: ../src/gui/pofile.c:752
+#: ../src/gui/pofile.c:91
+msgid  "Error: "
+msgstr "Erreur: "
+
+#: ../src/gui/pofile.c:712
+#, c-format
+msgid  "%s: empty administrative entry"
+msgstr "%s: entrée administrative vide"
+
+#: ../src/gui/pofile.c:732
+#, c-format
+msgid  "%s: fields in administrative entry must end with \\n"
+msgstr "%s: les champs de la saisie administrative doivent se terminer par \\n"
+
+#: ../src/gui/pofile.c:765
+#: ../src/gui/pofile.c:770
+#: ../src/gui/pofile.c:775
+#, c-format
+msgid  "%s: Expecting \"%s\" in administrative entry"
+msgstr "%s: Attendu «%s» dans l’entrée administrative"
+
+#: ../src/gui/pofile.c:780
+#, c-format
+msgid  "%s: MIME version must be 1.0"
+msgstr "%s: la version MIME doit être 1.0"
+
+#: ../src/gui/pofile.c:785
+#, c-format
+msgid  "%s: Content-Transfer-Encoding must be 8bit"
+msgstr "%s: L’encodage du transfert de contenu doit être de 8 bits"
+
+#: ../src/gui/pofile.c:793
 #, c-format
 msgid  "%s: missing charset"
-msgstr ""
+msgstr "%s: jeu de caractères manquant"
 
-#: ../src/gui/pofile.c:761
+#: ../src/gui/pofile.c:802
 #, c-format
 msgid  "%s: charset unsupported: %s"
-msgstr ""
+msgstr "%s: jeu de caractères non pris en charge: %s"
 
-#: ../src/gui/pofile.c:769
+#: ../src/gui/pofile.c:810
 #, c-format
 msgid  "%s: language '%s' does not match '%s' from LINGUAS"
-msgstr ""
+msgstr "%s: la langue «%s» ne correspond pas à «%s» de LINGUAS"
 
-#: ../src/gui/pofile.c:796
+#: ../src/gui/pofile.c:837
 #, c-format
 msgid  "%s: syntax error in Plural-Forms entry"
-msgstr ""
+msgstr "%s: erreur de syntaxe dans l’entrée Plural-Forms"
 
-#: ../src/gui/pofile.c:803
+#: ../src/gui/pofile.c:844
 #, c-format
 msgid  "%s: unknown Plural-Forms entry"
-msgstr ""
+msgstr "%s: entrée de formes plurielles inconnue"
 
-#: ../src/gui/pofile.c:808
+#: ../src/gui/pofile.c:853
 #, c-format
 msgid  "%s: missing Plural-Forms entry"
-msgstr ""
+msgstr "%s: entrée Pluriel manquante"
 
-#: ../src/gui/pofile.c:818
+#: ../src/gui/pofile.c:863
 #, c-format
 msgid  "%s: bad administrative entry"
-msgstr ""
+msgstr "%s: entrée administrative incorrecte"
 
-#: ../src/gui/pofile.c:864
-#: ../src/gui/pofile.c:882
+#: ../src/gui/pofile.c:910
 msgid  "too far backward"
-msgstr ""
+msgstr "trop en arrière"
 
-#: ../src/gui/pofile.c:1050
-#: ../src/gui/pofile.c:1057
+#: ../src/gui/pofile.c:1175
+msgid  "EOF reached inside comment"
+msgstr "EOF a atteint un commentaire interne"
+
+#: ../src/gui/pofile.c:1241
+#: ../src/gui/pofile.c:1248
 #, c-format
 msgid  "%s:%d: EOF reached inside string"
-msgstr ""
+msgstr "%s:%d: Fin de fichier atteinte à l'intérieur de la chaîne"
 
-#: ../src/gui/pofile.c:1073
-#: ../src/gui/pofile.c:1100
+#: ../src/gui/pofile.c:1264
+#: ../src/gui/pofile.c:1291
 #, c-format
 msgid  "%s:%d: EOS inside string"
-msgstr ""
+msgstr "%s:%d: Fin de série dans la chaîne"
 
-#: ../src/gui/pofile.c:1116
+#: ../src/gui/pofile.c:1308
 #, c-format
 msgid  "%s:%d: internationalized messages should not contain the '\\v' escape sequence"
-msgstr ""
+msgstr "%s:%d: les messages internationalisés ne doivent pas contenir la séquence d'échappement «\\v»."
 
-#: ../src/gui/pofile.c:1139
+#: ../src/gui/pofile.c:1331
 #, c-format
 msgid  "%s:%d: invalid control sequence '\\%c'"
-msgstr ""
+msgstr "%s:%d: séquence de contrôle invalide '\\%c'"
 
-#: ../src/gui/pofile.c:1183
+#: ../src/gui/pofile.c:1589
 #, c-format
-msgid  "LINGUAS: bad lang specification \"%s\""
+msgid  ""
+"msgid '%s' not found in %s\n"
+"(run 'xgettext' to generate it)"
 msgstr ""
+"msgid '%s' introuvable dans %s\n"
+"(exécutez 'xgettext' pour le générer)"
 
-#: ../src/gui/pofile.c:1197
-#: ../src/gui/pofile.c:1274
+#: ../src/gui/pofile.c:1658
+#: ../src/gui/pofile.c:1836
+#: ../src/gui/pofile.c:1913
 #, c-format
 msgid  "could not open %s: %s"
-msgstr ""
+msgstr "Impossible d'ouvrir %s: %s"
 
-#: ../src/gui/pofile.c:1220
-#: ../src/gui/pofile.c:1290
+#: ../src/gui/pofile.c:1708
+#, c-format
+msgid  ""
+"_(\"...\" with no closing )\n"
+"the string is %s"
+msgstr ""
+"_(\"...\" sans fermeture )\n"
+"la chaîne est %s"
+
+#: ../src/gui/pofile.c:1822
+#, c-format
+msgid  "LINGUAS: bad lang specification \"%s\""
+msgstr "LINGUAS: spécification de langue incorrecte «%s»"
+
+#: ../src/gui/pofile.c:1859
+#: ../src/gui/pofile.c:1929
 #, c-format
 msgid  "%s:%d: syntax error"
-msgstr ""
+msgstr "%s:%d: erreur de syntaxe"
 
-#: ../src/gui/pofile.c:1377
+#: ../src/gui/pofile.c:2019
 #, c-format
 msgid  "%s:%d: stray ref ignored"
-msgstr ""
+msgstr "%s:%d: référence orpheline ignorée"
 
-#: ../src/gui/pofile.c:1453
+#: ../src/gui/pofile.c:2110
 #, c-format
 msgid  "%s:%d: unsupported entry %s"
-msgstr ""
+msgstr "%s:%d: entrée %s non prise en charge"
 
-#: ../src/gui/pofile.c:1487
+#: ../src/gui/pofile.c:2142
 #, c-format
 msgid  "%s:%d: missing msgid"
-msgstr ""
+msgstr "%s:%d: identifiant de message manquant"
 
-#: ../src/gui/pofile.c:1496
+#: ../src/gui/pofile.c:2150
 #, c-format
 msgid  "%s:%d: wrong number of plural forms"
-msgstr ""
+msgstr "%s:%d: nombre incorrect de formes plurielles"
 
-#: ../src/gui/pofile.c:1550
+#: ../src/gui/pofile.c:2157
+#, c-format
+msgid  "%s:%d: administrative entry must not have plural or context"
+msgstr "%s:%d: l'entrée administrative ne doit pas comporter de pluriel ni de contexte"
+
+#: ../src/gui/pofile.c:2219
 #, c-format
 msgid  "%s:%d: duplicate entry %s"
-msgstr ""
+msgstr "%s:%d: entrée en double %s"
 
-#: ../src/gui/pofile.c:1568
+#: ../src/gui/pofile.c:2241
 #, c-format
 msgid  "%s:%d: entries do not both end with '\\n' in translation of '%s' to '%s'"
-msgstr ""
+msgstr "%s:%d: les deux entrées ne se terminent pas par '\\n' dans la traduction de '%s' en '%s'"
 
-#: ../src/gui/pofile.c:1574
+#: ../src/gui/pofile.c:2251
 #, c-format
 msgid  "%s:%d: entries do not both begin with '\\n' in translation of '%s' to '%s'"
-msgstr ""
+msgstr "%s:%d: les deux entrées ne commencent pas par '\\n' dans la traduction de '%s' en '%s'"
 
-#: ../src/gui/pofile.c:1610
+#: ../src/gui/pofile.c:2293
 #, c-format
 msgid  "%s:%d: syntax error (c = '%c')"
-msgstr ""
+msgstr "%s:%d: erreur de syntaxe (c = '%c')"
 
-#: ../src/gui/pofile.c:1654
+#: ../src/gui/pofile.c:2337
 msgid  "LINGUAS: no languages found"
-msgstr ""
+msgstr "LINGUAS: aucune langue trouvée"
 
-#: ../src/gui/pofile.c:1739
-#, c-format
-msgid  "%s.po: untranslated: '%s'\n"
-msgstr ""
-
-#: ../src/gui/pofile.c:1749
-#, c-format
-msgid  "%s.po: translated %lu, untranslated %lu\n"
-msgstr ""
-
-#: ../src/gui/pofile.c:1787
+#: ../src/gui/pofile.c:2405
 #, c-format
 msgid  "unknown language %s"
-msgstr ""
+msgstr "langue inconnue %s"
 
-#: ../src/gui/pofile.c:1874
+#: ../src/gui/pofile.c:2450
 #, c-format
-msgid  "%s.po: keys %lu (%lu bytes), translations %lu bytes\n"
-msgstr ""
+msgid  "%s.po: untranslated: '%s'\n"
+msgstr "%s.po: non traduit: '%s'\n"
 
-#: ../src/gui/pofile.c:1880
+#: ../src/gui/pofile.c:2460
+#, c-format
+msgid  "%s.po: translated %lu, untranslated %lu\n"
+msgstr "%s.po: %lu traduit, %lu non traduit\n"
+
+#: ../src/gui/pofile.c:2534
 #, c-format
 msgid  "%s: length of keys %lu does not fit into nls_key_offset"
-msgstr ""
+msgstr "%s: la longueur des clés %lu ne tient pas dans nls_key_offset"
 
-#: ../src/gui/pofile.c:1885
+#: ../src/gui/pofile.c:2642
+#, c-format
+msgid  "%s.po: keys %lu (%lu bytes), translations %lu bytes\n"
+msgstr "%s.po: clés %lu (%lu octets), traductions %lu octets\n"
+
+#: ../src/gui/pofile.c:2652
 #, c-format
 msgid  "%s: length of translations %lu does not fit into nls_key_offset"
-msgstr ""
+msgstr "%s: la longueur des traductions %lu ne tient pas dans nls_key_offset"
+
+#: ../src/gui/pofile.c:3006
+msgid  "I only translate .c files"
+msgstr "Je ne traduis que les fichiers .c"
+
+#: ../src/gui/pofile.c:3014
+#, c-format
+msgid  "cannot create %s: %s"
+msgstr "Impossible de créer %s: %s"
 
 #: ../src/gui/preferences.xml:3
 msgid  "Host Paths"
@@ -658,8 +702,7 @@ msgstr "Monter le répertoire $HOME comme lecteur H:"
 
 #: ../src/gui/preferences.xml:6
 msgid  "If enabled, mounts the host home directory (~/) as U:/home inside the emulation"
-msgstr ""
-"Si activé, monte le répertoire d'accueil hôte (~/) comme U:/home à l'intérieur de l'émulation"
+msgstr "Si activé, monte le répertoire d'accueil hôte (~/) comme U:/home à l'intérieur de l'émulation"
 
 #: ../src/gui/preferences.xml:7
 msgid  "Set HOME directory read-only"
@@ -683,8 +726,7 @@ msgstr "Chemin racine hôte en lecture seule"
 
 #: ../src/gui/preferences.xml:9
 msgid  "Mounts the host root directory as read-only. Requires 'Mount Host Root Path' to be enabled"
-msgstr ""
-"Monte le répertoire racine hôte en lecture seule. Nécessite que 'Mount Host Root Path' soit activé"
+msgstr "Monte le répertoire racine hôte en lecture seule. Nécessite que 'Mount Host Root Path' soit activé"
 
 #: ../src/gui/preferences.xml:10
 msgid  "Path for temp files"
@@ -716,8 +758,7 @@ msgstr "Fichier périphérique série (p. ex. /dev/ttyS0)"
 
 #: ../src/gui/preferences.xml:14
 msgid  "Path to the host serial device (e.g., /dev/ttyS0) for serial communication"
-msgstr ""
-"Chemin d'accès au périphérique série hôte (p. ex. /dev/ttyS0) pour la serielle Kommunikation"
+msgstr "Chemin d'accès au périphérique série hôte (p. ex. /dev/ttyS0) pour la serielle Kommunikation"
 
 #: ../src/gui/preferences.xml:16
 msgid  "Atari Screen"
@@ -726,8 +767,7 @@ msgstr "Écran Atari"
 #: ../src/gui/preferences.xml:16
 msgid  "Adjust the Atari screen resolution, refresh rate, scaling, and mouse hiding"
 msgstr ""
-"Ajuste la résolution de l'écran Atari, le taux de rafraîchissement, la mise à l'échelle et le "
-"masquage de la souris"
+"Ajuste la résolution de l'écran Atari, le taux de rafraîchissement, la mise à l'échelle et le masquage de la souris"
 
 #: ../src/gui/preferences.xml:17
 msgid  "Resolution (Width in Pixels)"
@@ -809,8 +849,7 @@ msgstr "Masquer le pointeur de la souris hôte"
 #: ../src/gui/preferences.xml:31
 msgid  "Hides the host operating system's mouse pointer when it is over the emulation window"
 msgstr ""
-"Masquer le pointeur de la souris du système d'exploitation hôte lorsqu'il est au-dessus de la "
-"fenêtre d'émulation"
+"Masquer le pointeur de la souris du système d'exploitation hôte lorsqu'il est au-dessus de la fenêtre d'émulation"
 
 #: ../src/gui/preferences.xml:32
 msgid  "Use relative mousemode"
@@ -855,9 +894,7 @@ msgstr "Émulation Atari"
 
 #: ../src/gui/preferences.xml:39
 msgid  "General emulation settings, including RAM size, language ROM, and menu behavior"
-msgstr ""
-"Paramètres d'émulation généraux, y compris la taille de la RAM, la ROM de langue et le "
-"comportement du menu"
+msgstr "Paramètres d'émulation généraux, y compris la taille de la RAM, la ROM de langue et le comportement du menu"
 
 #: ../src/gui/preferences.xml:40
 msgid  "Memory size (RAM in bytes)"
@@ -872,12 +909,9 @@ msgid  "Atari language"
 msgstr "Langue Atari"
 
 #: ../src/gui/preferences.xml:41
-msgid  ""
-"Selects the language ROM to be used by the emulation (affects keyboard layout and startup "
-"language)"
+msgid  "Selects the language ROM to be used by the emulation (affects keyboard layout and startup language)"
 msgstr ""
-"Sélectionne la ROM de langue à utiliser par l'émulation (affecte la disposition du clavier et la "
-"langue de démarrage)"
+"Sélectionne la ROM de langue à utiliser par l'émulation (affecte la disposition du clavier et la langue de démarrage)"
 
 #: ../src/gui/preferences.xml:42
 #: ../src/gui/preferences.xml:48
@@ -940,9 +974,7 @@ msgstr "Lecteurs additionnels"
 
 #: ../src/gui/preferences.xml:105
 msgid  "Manage additional mounted host folders or disk image files (A-Z) for the emulation"
-msgstr ""
-"Gère les dossiers hôtes montés supplémentaires ou les fichiers d'image disque (A-Z) pour "
-"l'émulation"
+msgstr "Gère les dossiers hôtes montés supplémentaires ou les fichiers d'image disque (A-Z) pour l'émulation"
 
 #: ../src/gui/preferences.xml:106
 msgid  "Path for Drive A:"

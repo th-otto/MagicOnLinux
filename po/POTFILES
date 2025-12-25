@@ -1,3 +1,5 @@
 ../src/gui/gxmessage.c
 ../src/gui/mxgtk-settings.c
 ../src/gui/mxqt-settings.cc
+../src/gui/nlstool.c
+../src/gui/pofile.c

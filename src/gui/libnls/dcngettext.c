@@ -15,7 +15,7 @@
 
 /* Similar to 'dcgettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_dcngettext(const char *domainname, const char *msgid1, const char *msgid2, unsigned long int n, int category)
+const char *libnls_dcngettext(const char *domainname, libnls_msgid_type msgid1, libnls_msgid_type msgid2, unsigned long int n, int category)
 {
 	struct libnls_domain_list *d;
 	
@@ -32,5 +32,9 @@ const char *libnls_dcngettext(const char *domainname, const char *msgid1, const 
 	/*
 	 * not our package, forward to libintl
 	 */
+#if 0
 	return (dcngettext)(domainname, msgid1, msgid2, n, LC_MESSAGES);
+#else
+	return NLS_NOKEY_ERROR;
+#endif
 }

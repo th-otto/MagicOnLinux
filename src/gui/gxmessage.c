@@ -57,8 +57,6 @@
 
 #define MAX_WINDOW_SIZE (G_MAXUINT16 / 2)
 
-#define ENABLE_NLS
-
 #ifdef ENABLE_NLS
 #include <libintl.h>
 #define _(String) gettext(String)

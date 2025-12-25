@@ -62,134 +62,125 @@ static int n_plurals(int plural_form)
 
 /* ------------------------------------------------------------------------- */
 
-const char *_libnls_internal_dngettext(const libnls_domain *domain, const char *key1, const char *key2, unsigned long n)
+const char *_libnls_internal_dngettext(const libnls_domain *domain, libnls_msgid_type msgid1, libnls_msgid_type msgid2, unsigned long n)
 {
-	unsigned int hash;
-	const nls_key_offset *chain;
-	nls_key_offset cmp;
+	nls_key_offset offset;
 	
 	/* check for empty string - often used - must return original address */
-	if (key1 == NULL || *key1 == '\0' || key2 == NULL || *key2 == '\0' || domain->current_translation.hash == NULL)
-		return key1;
-	hash = nls_hash2(key1, key2);
-	if ((chain = domain->current_translation.hash[hash]) != NULL)
+	if (msgid1 == 0 || msgid2 == 0)
+		return domain->keys;
+	if (domain->current_translation.translations != NULL && (offset = domain->current_translation.offsets[msgid1 - 1]) != 0)
 	{
-		while ((cmp = *chain++) != 0)
+		const char *key = domain->current_translation.translations + offset;
+		int nplurals = 0;
+		int id = 0;
+
+		switch (domain->current_translation.plural_form)
 		{
-			if (strcmp(&domain->keys[cmp], key1) == 0)
-			{
-				int nplurals = 0;
-				int id = 0;
-
-				/* strings are equal, return next string */
-				key1 = &domain->current_translation.translations[*chain++];
-				switch (domain->current_translation.plural_form)
-				{
-				case PLURAL_NONE:
-					/* should not happen */
-					nplurals = 1;
-					break;
-				case PLURAL_NOT_ONE:
-					nplurals = 2;
-					if (n != 1)
-						id = 1;
-					break;
-				case PLURAL_GREATER_ONE:
-					nplurals = 2;
-					if (n > 1)
-						id = 1;
-					break;
-				case PLURAL_RULE_8:
-					nplurals = 3;
-					if (n == 1)
-						;
-					else if (n >= 2 && n <= 4)
-						id = 1;
-					else
-						id = 2;
-					break;
-				case PLURAL_RULE_9:
-					nplurals = 3;
-					if ((n % 10) == 1 && (n % 100) != 11)
-						;
-					else if ((n % 10) >= 2 && (n % 10) <= 4 && ((n % 100) < 10 || (n % 100) >= 20))
-						id = 1;
-					else
-						id = 2;
-					break;
-				case PLURAL_RULE_10:
-					nplurals = 3;
-					if ((n % 10) == 1 && (n % 100) != 11)
-						;
-					else if (n != 0)
-						id = 1;
-					else
-						id = 2;
-					break;
-				case PLURAL_RULE_11:
-					nplurals = 3;
-					if (n == 1)
-						;
-					else if ((n % 10) >= 2 && (n % 10) <= 4 && ((n %100) < 10 || (n % 100) >= 20))
-						id = 1;
-					else
-						id = 2;
-					break;
-				case PLURAL_RULE_12:
-					nplurals = 3;
-					if (n == 1)
-						;
-					else if (n == 0 || ((n % 100) > 0 && (n % 100) < 20))
-						id = 1;
-					else
-						id = 2;
-					break;
-				case PLURAL_RULE_16:
-					nplurals = 3;
-					if ((n % 10) == 1 && (n % 100) != 11)
-						;
-					else if ((n % 10) >= 2 && (n % 10) <= 4 && ((n % 100) < 12 || (n % 100) >= 14))
-						id = 1;
-					else
-						id = 2;
-					break;
-				}
-				if (id < nplurals)
-				{
-					/*
-					 * find the plural translation
-					 */
-					while (--id >= 0)
-					{
-						while (*key1++ != '\0')
-							;
-					}
-				} else
-				{
-					/*
-				 	 * something went wrong. We evaluated an id that does not match the formula
-				 	 */
-				}
-				return key1;
-			}
-			/* the strings differ, next */
-			chain++;
+		case PLURAL_NONE:
+			/* should not happen */
+			nplurals = 1;
+			break;
+		case PLURAL_NOT_ONE:
+			nplurals = 2;
+			if (n != 1)
+				id = 1;
+			break;
+		case PLURAL_GREATER_ONE:
+			nplurals = 2;
+			if (n > 1)
+				id = 1;
+			break;
+		case PLURAL_RULE_8:
+			nplurals = 3;
+			if (n == 1)
+				;
+			else if (n >= 2 && n <= 4)
+				id = 1;
+			else
+				id = 2;
+			break;
+		case PLURAL_RULE_9:
+			nplurals = 3;
+			if ((n % 10) == 1 && (n % 100) != 11)
+				;
+			else if ((n % 10) >= 2 && (n % 10) <= 4 && ((n % 100) < 10 || (n % 100) >= 20))
+				id = 1;
+			else
+				id = 2;
+			break;
+		case PLURAL_RULE_10:
+			nplurals = 3;
+			if ((n % 10) == 1 && (n % 100) != 11)
+				;
+			else if (n != 0)
+				id = 1;
+			else
+				id = 2;
+			break;
+		case PLURAL_RULE_11:
+			nplurals = 3;
+			if (n == 1)
+				;
+			else if ((n % 10) >= 2 && (n % 10) <= 4 && ((n %100) < 10 || (n % 100) >= 20))
+				id = 1;
+			else
+				id = 2;
+			break;
+		case PLURAL_RULE_12:
+			nplurals = 3;
+			if (n == 1)
+				;
+			else if (n == 0 || ((n % 100) > 0 && (n % 100) < 20))
+				id = 1;
+			else
+				id = 2;
+			break;
+		case PLURAL_RULE_16:
+			nplurals = 3;
+			if ((n % 10) == 1 && (n % 100) != 11)
+				;
+			else if ((n % 10) >= 2 && (n % 10) <= 4 && ((n % 100) < 12 || (n % 100) >= 14))
+				id = 1;
+			else
+				id = 2;
+			break;
 		}
+		if (id < nplurals)
+		{
+			/*
+			 * find the plural translation
+			 */
+			while (--id >= 0)
+			{
+				while (*key++ != '\0')
+					;
+			}
+		} else
+		{
+			/*
+		 	 * something went wrong. We evaluated an id that does not match the formula
+		 	 */
+		}
+		return key;
 	}
-	/* not in hash, return original string, using germanic plural */
+	/* no translation, return original string, using germanic plural */
 	if (n != 1)
-		key1 = key2;
-	return key1;
-
+		msgid1 = msgid2;
+	return domain->keys + domain->languages[0].offsets[msgid1 - 1];
 }
 
 /* ------------------------------------------------------------------------- */
 
 /* Similar to 'gettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_ngettext(const char *msgid1, const char *msgid2, unsigned long int n)
+const char *libnls_ngettext(libnls_msgid_type msgid1, libnls_msgid_type msgid2, unsigned long int n)
 {
 	if (_libnls_current_domain == NULL)
+#if 0
 		return (dcngettext)(NULL, msgid1, msgid2, n, LC_MESSAGES);
+#else
+		return NULL;
+#endif
 	return _libnls_internal_dngettext(_libnls_current_domain, msgid1, msgid2, n);
 }

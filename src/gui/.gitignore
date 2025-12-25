@@ -5,5 +5,8 @@ preferences.xml.h
 *.moc
 qrc.cc
 nlstool
+nlstool-nonls
 langs.c
 libnls/plural.c
+*.tr.c
+*.tr.cc

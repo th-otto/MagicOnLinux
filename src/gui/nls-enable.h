@@ -16,9 +16,9 @@
 #define _(String) gettext(String)
 #define P_(String1, String2, n) ngettext(String1, String2, n)
 #endif
-#define N_(String) (String)
-#define NC_(Context, String) Context GETTEXT_CONTEXT_GLUE String
-#define C_(Context, String) gettext(_NC(Context, String))
+#define N_(String) ((char *)((unsigned long)(String)))
+#define NC_(Context, String) ((char *)((unsigned long)(String)))
+#define C_(Context, String) gettext(NC_(Context, String))
 #else
 #define _(String) String
 #define N_(String) String

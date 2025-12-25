@@ -43,7 +43,7 @@ const char *libnls_bindtextdomain(const char *domainname, const char *dirname, l
 		return (bindtextdomain)(domainname, dirname);
 	}
 	add_domain(domain);
-	return NULL;
+	return NULL; /* no previous directory */
 }
 
 /*** ---------------------------------------------------------------------- ***/

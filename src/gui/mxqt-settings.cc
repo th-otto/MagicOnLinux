@@ -25,10 +25,11 @@
 #endif
 #include <unistd.h>
 #include <assert.h>
-#define ENABLE_NLS
 #include "mxnls.h"
 #include "country.c"
 #include "qrc.cc"
+
+#define NOTYET 0
 
 #define EXIT_WINDOW_CLOSED (EXIT_FAILURE + EXIT_SUCCESS + 1)
 
@@ -85,15 +86,20 @@ public:
 	void setToolTip(const char *tooltip)
 	{
 		m_orig_tooltip = tooltip;
+#if NOTYET
 		QWidget::setToolTip(_(m_orig_tooltip));
+#endif
 	}
 	void retranslate_ui(bool enableTooltips)
 	{
+		(void)enableTooltips;
+#if NOTYET
 		QCheckBox::setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
+#endif
 	}
 protected:
 	QByteArray m_orig_text;
@@ -147,7 +153,9 @@ public:
 	{
 		m_orig_text = text.toUtf8().append('\0');
 		this->setObjectName(m_name);
+#if NOTYET
 		this->setText(_(m_orig_text));
+#endif
 	}
 	virtual const QString getPrefValue(void) { return bool_to_string(m_value); }
 	virtual void setPrefValue(const QString &v) { m_value = bool_from_string(v); }
@@ -169,16 +177,21 @@ public:
 	void setToolTip(const char *tooltip)
 	{
 		m_orig_tooltip = tooltip;
+#if NOTYET
 		QWidget::setToolTip(_(m_orig_tooltip));
+#endif
 	}
 public:
 	virtual void retranslate_ui(bool enableTooltips)
 	{
+		(void)enableTooltips;
+#if NOTYET
 		this->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
+#endif
 	}
 };
 
@@ -235,11 +248,14 @@ protected:
 public:
 	virtual void retranslate_ui(bool enableTooltips)
 	{
+		(void)enableTooltips;
+#if NOTYET
 		button_label->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
+#endif
 	}
 public:
 	void setButtonLabel(QLabel *label, QString text)
@@ -281,11 +297,14 @@ protected:
 public:
 	virtual void retranslate_ui(bool enableTooltips)
 	{
+		(void)enableTooltips;
+#if NOTYET
 		button_label->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
+#endif
 	}
 public:
 	void setButtonLabel(QLabel *label, QString text)
@@ -344,7 +363,9 @@ public:
 	void setToolTip(const char *tooltip)
 	{
 		m_orig_tooltip = tooltip;
+#if NOTYET
 		QWidget::setToolTip(_(m_orig_tooltip));
+#endif
 	}
 	virtual void populatePreferences(void)
 	{
@@ -377,11 +398,13 @@ protected:
 public:
 	virtual void retranslate_ui(bool enableTooltips)
 	{
+#if NOTYET
 		button_label->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
+#endif
 		if (hasFlags())
 		{
 			button_rdonly->retranslate_ui(enableTooltips);
@@ -450,7 +473,9 @@ public:
 	void setToolTip(const char *tooltip)
 	{
 		m_orig_tooltip = tooltip;
+#if NOTYET
 		QWidget::setToolTip(_(m_orig_tooltip));
+#endif
 	}
 	virtual void populatePreferences(void)
 	{
@@ -482,6 +507,8 @@ protected:
 public:
 	virtual void retranslate_ui(bool enableTooltips)
 	{
+		(void)enableTooltips;
+#if NOTYET
 		button_label->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
@@ -491,6 +518,7 @@ public:
 		{
 			QComboBox::setItemText(i, _(items[i].orig_text));
 		}
+#endif
 	}
 public:
 	void setButtonLabel(QLabel *label, QString text)
@@ -550,7 +578,9 @@ protected:
 	void setWindowTitle(const char *title)
 	{
 		m_orig_title = title;
+#if NOTYET
 		QMainWindow::setWindowTitle(_(m_orig_title));
+#endif
 	}
 	void quitApp(void);
 protected:
@@ -684,7 +714,11 @@ bool GuiWindow::writePreferences(void)
 	if (!file.open(QFile::WriteOnly | QFile::Truncate | QFile::Text))
 	{
 		QMessageBox dialog(QMessageBox::Critical,
+#if NOTYET
 			_(m_orig_title),
+#else
+			QString(),
+#endif
 			QString::asprintf(_("can't create %s:\n%s"), config_file.toUtf8().constData(), file.errorString().toUtf8().constData()),
 			QMessageBox::Cancel);
 		dialog.exec();
@@ -1572,7 +1606,9 @@ void GuiWindow::ok_clicked(void)
 
 void GuiWindow::retranslate_ui(bool enableTooltips)
 {
+#if NOTYET
 	QMainWindow::setWindowTitle(_(m_orig_title));
+#endif
 	for (int i = 0; i < notebook->count(); i++)
 	{
 		notebook->tabBar()->setTabText(i, _(tabNames[i].toUtf8().constData()));
@@ -1643,7 +1679,11 @@ void GuiWindow::cancel_clicked(void)
 	if (anyChanged())
 	{
 		QMessageBox dialog(QMessageBox::Question,
+#if NOTYET
 			_(m_orig_title),
+#else
+			QString(),
+#endif
 			_("You have unsaved changes. Do you want to discard them and quit?"),
 			QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
 		int response = dialog.exec();

@@ -1585,7 +1585,7 @@ void CMagiC::PutKeyToBuffer(uint8_t key)
     *m_pKbWrite++ = key;
     if (m_pKbWrite >= m_cKeyboardOrMouseData + KEYBOARDBUFLEN)
     {
-        m_pKbWrite = m_cKeyboardOrMouseData;
+        m_pKbWrite = m_cKeyboardOrMouseData;    // wrap
     }
 }
 
@@ -3154,10 +3154,12 @@ uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
  * @param[in] params            0: about to handle interrupt, 1: leaving interrupt
  * @param[in] addrOffset68k     Host address of 68k memory (unused)
  *
- * @return scancode or mouse code. Zero, in none is available
+ * @return scancode or mouse code. Zero, if none is available
  *
  * @note params = 0: called from ikbdsys(),
  *       params = 1: called from midikey_int() in MagiC kernel (MFP interrupt 6)
+ * @note The function ikbdsys() must ignore NUL bytes if they do not belong to
+ *       a mouse packet.
  *
  ************************************************************************************************/
 uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffset68k)

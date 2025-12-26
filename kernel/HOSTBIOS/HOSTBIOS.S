@@ -2985,14 +2985,16 @@ ikbdsys:
  lea		MSysX+MacSysX_GetKbOrMous(pc),a0
  MACPPCE
 
-   move.b   kbdvecs+$24,d1          ;ikbd_state
-   bne.b    handle_package          ;bin gerade beim Empfangen eines Pakets!
-;  Es ist kein Paket oder der Anfang eines solchen
-   cmpi.b   #$f6,d0                 ;Tastendruck ?
-   bcc.b    no_key
-   lea      iorec_kb,a0             ;Tastatur-IOREC
-   move.l   kbdvecs-4,a1            ;i.a. handle_key
-   jmp      (a1)
+ move.b	kbdvecs+$24,d1			; ikbd_state
+ bne.b	handle_package			; bin gerade beim Empfangen eines Pakets!
+; Es ist kein Paket oder der Anfang eines solchen
+ cmpi.b	#$f6,d0				; Tastendruck ?
+ bcc.b	no_key
+ tst.b	d0					; The emulator sometimes sets interrupt, but does not have data
+ beq.b	subr_dummy			; ignore NUL bytes from emulator
+ lea		iorec_kb,a0			; Tastatur-IOREC
+ move.l	kbdvecs-4,a1			; i.a. handle_key
+ jmp		(a1)
 
 ;Es ist kein Tastendruck, also Beginn eines Pakets
 no_key:

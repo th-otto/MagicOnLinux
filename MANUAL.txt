@@ -133,6 +133,7 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - Artworx v1.42 (complains about missing GDOS, needs case-insensitive drive)
 - CAB 1.5 (freeware)
 - Chagall v01.00
+- COPS [https://tho-otto.de/snapshots/cops/]
 - Cypress v1.50
 - FONTZ.PRG
 - GEMBENCH 4.03
@@ -146,7 +147,7 @@ Atari Applications that seem to work (whitelist, alphabetically)
 - GSTASM (single-app mode)
 - GSTFRAKT (single-app mode)
 - Highwire (needs NVDI or GDOS)
-- Intrface v2.29beta
+- Intrface 2.30 [https://storage.atari-source.org/atari/mirrors/chapelie.rma.ac.be/atari/programming/]
 - Krieg der Kerne (2/1987)
 - Kubis (5/1992)
 - LATTICE_C (single-app mode)

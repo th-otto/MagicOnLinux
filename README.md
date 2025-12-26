@@ -78,7 +78,7 @@ Atari RAM size is given in bytes and excludes video memory, which is managed sep
 Source files for the Atari code (MagiC kernel and applications) are also available in their respective repository, see below.
 
 # Screenshots
-<img alt="No" src="assets/Atari-Desktop - BW.png" width="1024">
+<img alt="No" src="assets/Atari-Desktop - 256 colours.png" width="1024">
 <img alt="Yes" src="assets/Settings.png" width="640">
 
 

@@ -37,10 +37,10 @@ extern const char *exception68k_to_name(uint32_t addr);
 #ifndef NDEBUG
 //#define M68K_BREAKPOINTS   4            // for debugging 68k code
 //#define M68K_WRITE_WATCHES 3            // for debugging 68k code
-//#define M68K_TRACE  8192
+//#define M68K_TRACE  1024
 
 #if defined(M68K_TRACE)
-extern uint32_t m68k_trace[M68K_TRACE][2];
+extern uint32_t m68k_trace[M68K_TRACE][3];
 #if defined(__cplusplus)
 extern "C" {
 #endif

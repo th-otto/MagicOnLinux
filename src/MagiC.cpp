@@ -759,6 +759,77 @@ void CMagiC::DumpAtariMem(const char *filename)
 
 /** **********************************************************************************************
  *
+ * @brief Initialise Atari-to-host callbacks
+ *
+ * @param[in] pMacXSysHdr       Atari/host inter-communication data
+ * @param[in] pXCmd         currently unused
+ *
+ ************************************************************************************************/
+void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr, CXCmd *pXCmd)
+{
+#ifndef NDEBUG
+    DebugInfo2("() - sizeof(CMagiC_CPPCCallback) = %u", (unsigned) sizeof(CMagiC_CPPCCallback));
+    typedef UINT32 (CMagiC::*CMagiC_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
+    DebugInfo2("() - sizeof(CMagiC_PPCCallback) = %u", (unsigned) sizeof(CMagiC_PPCCallback));
+#endif
+
+    assert(sizeof(CMagiC_CPPCCallback) == 16);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_init, &CMagiC::AtariInit, this);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_biosinit, &CMagiC::AtariBIOSInit, this);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_VdiInit, &CMagiC::AtariVdiInit, this);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_Exec68k, &CMagiC::AtariExec68k, this);
+    setCXCmdHostCallback(&pMacXSysHdr->MacSysX_Xcmd, &CXCmd::Command, pXCmd);
+    setHostCallback(&pMacXSysHdr->MacSysX_gettime,    AtariGettime);
+    setHostCallback(&pMacXSysHdr->MacSysX_settime,    AtariSettime);
+    setHostCallback(&pMacXSysHdr->MacSysX_Setscreen,  AtariSetscreen);
+    setHostCallback(&pMacXSysHdr->MacSysX_Setpalette, AtariSetpalette);
+    setHostCallback(&pMacXSysHdr->MacSysX_Setcolor,   AtariSetcolor);
+    setHostCallback(&pMacXSysHdr->MacSysX_VsetRGB,    AtariVsetRGB);
+    setHostCallback(&pMacXSysHdr->MacSysX_VgetRGB,    AtariVgetRGB);
+    setHostCallback(&pMacXSysHdr->MacSysX_syshalt,    AtariSysHalt);
+    setHostCallback(&pMacXSysHdr->MacSysX_syserr,     AtariSysErr);
+    setHostCallback(&pMacXSysHdr->MacSysX_coldboot,   AtariColdBoot);
+    setHostCallback(&pMacXSysHdr->MacSysX_exit,       AtariExit);
+    setHostCallback(&pMacXSysHdr->MacSysX_debugout,   AtariDebugOut);
+    setHostCallback(&pMacXSysHdr->MacSysX_error,      AtariError);
+    setHostCallback(&pMacXSysHdr->MacSysX_prtos,      &CMagiCPrint::AtariPrtOs);
+    setHostCallback(&pMacXSysHdr->MacSysX_prtin,      &CMagiCPrint::AtariPrtIn);
+    setHostCallback(&pMacXSysHdr->MacSysX_prtout,     &CMagiCPrint::AtariPrtOut);
+    setHostCallback(&pMacXSysHdr->MacSysX_prtouts,    &CMagiCPrint::AtariPrtOutS);
+    setHostCallback(&pMacXSysHdr->MacSysX_serconf,    &CMagiCSerial::AtariSerConf);
+    setHostCallback(&pMacXSysHdr->MacSysX_seris,      &CMagiCSerial::AtariSerIs);
+    setHostCallback(&pMacXSysHdr->MacSysX_seros,      &CMagiCSerial::AtariSerOs);
+    setHostCallback(&pMacXSysHdr->MacSysX_serin,      &CMagiCSerial::AtariSerIn);
+    setHostCallback(&pMacXSysHdr->MacSysX_serout,     &CMagiCSerial::AtariSerOut);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerOpen,    &CMagiCSerial::AtariSerOpen);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerClose,   &CMagiCSerial::AtariSerClose);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerRead,    &CMagiCSerial::AtariSerRead);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerWrite,   &CMagiCSerial::AtariSerWrite);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerStat,    &CMagiCSerial::AtariSerStat);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerIoctl,   &CMagiCSerial::AtariSerIoctl);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_GetKeybOrMouse, &CMagiC::AtariGetKeyboardOrMouseData, this);
+    setHostCallback(&pMacXSysHdr->MacSysX_dos_macfn, AtariDOSFn);
+    setCHostXFSHostCallback(&pMacXSysHdr->MacSysX_xfs, &CHostXFS::XFSFunctions, &m_HostXFS);
+    setCHostXFSHostCallback(&pMacXSysHdr->MacSysX_xfs_dev, &CHostXFS::XFSDevFunctions, &m_HostXFS);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_drv2devcode, &CMagiC::Drv2DevCode, this);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_rawdrvr, &CMagiC::RawDrvr, this);
+#if defined(MAGICLIN)
+    setHostCallback(&pMacXSysHdr->MacSysX_Daemon, MmxDaemon);
+    setHostCallback(&pMacXSysHdr->MacSysX_BlockDevice, CVolumeImages::AtariBlockDevice);
+    setHostCallback(&pMacXSysHdr->MacSysX_Network, CNetwork::AtariNetwork);
+#else
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_Daemon, &CMagiC::MmxDaemon, this);
+#endif
+    setHostCallback(&pMacXSysHdr->MacSysX_Yield, AtariYield);
+#pragma GCC diagnostic pop
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Create and initialise the virtual MagiC machine
  *
  * @param[in] pXCmd         currently unused
@@ -853,20 +924,20 @@ int CMagiC::init(CXCmd *pXCmd)
     */
 
     struct MacXSysHdr *pMacXSysHdr = (MacXSysHdr *) (m_BasePage + 1);
-    if (be32toh(pMacXSysHdr->MacSys_magic) != 'MagC')
+    if (be32toh(pMacXSysHdr->MacSysX_magic) != 'MagC')
     {
         DebugError2("() - magic value mismatch");
         return -2;
     }
-    if (be32toh(pMacXSysHdr->MacSys_len) != sizeof(*pMacXSysHdr))
+    if (be32toh(pMacXSysHdr->MacSysX_len) != sizeof(*pMacXSysHdr))
     {
         DebugError2("() -- Length of struct does not match (header: %u bytes, should be: %u bytes)",
-                         be32toh(pMacXSysHdr->MacSys_len), sizeof(*pMacXSysHdr));
+                         be32toh(pMacXSysHdr->MacSysX_len), sizeof(*pMacXSysHdr));
         return -3;
     }
-    if (be32toh(pMacXSysHdr->MacSys_verAtari) != MAGIC_KERNEL_API_VERSION)
+    if (be32toh(pMacXSysHdr->MacSysX_verAtari) != MAGIC_KERNEL_API_VERSION)
     {
-        DebugError2("() - Kernel API version mismatch, is %u instead of expected %u.", be32toh(pMacXSysHdr->MacSys_verAtari), MAGIC_KERNEL_API_VERSION);
+        DebugError2("() - Kernel API version mismatch, is %u instead of expected %u.", be32toh(pMacXSysHdr->MacSysX_verAtari), MAGIC_KERNEL_API_VERSION);
         //return -3;
     }
 
@@ -929,87 +1000,30 @@ int CMagiC::init(CXCmd *pXCmd)
     // Fill up members of the host/Atari shared structure, mainly calls from
     // virtual machine to host.
 
-#ifndef NDEBUG
-    DebugInfo2("() - sizeof(CMagiC_CPPCCallback) = %u", (unsigned) sizeof(CMagiC_CPPCCallback));
-    typedef UINT32 (CMagiC::*CMagiC_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
-    DebugInfo2("() - sizeof(CMagiC_PPCCallback) = %u", (unsigned) sizeof(CMagiC_PPCCallback));
-#endif
+    pMacXSysHdr->MacSysX_pixmap = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_PixMap) - (uint64_t) mem68k));
+    pMacXSysHdr->MacSysX_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) mem68k));
+    pMacXSysHdr->MacSysX_verMac = htobe32(10);       // must be 10, checked by kernel in HOSTBIOS.S
+    pMacXSysHdr->MacSysX_cpu = htobe16(20);          // 68020
+    pMacXSysHdr->MacSysX_fpu = htobe16(0);           // no FPU -- yet -- unfortunately
+    pMacXSysHdr->MacSysX_PPCAddr = 0;                // on 32-bit host: mem68k
+    pMacXSysHdr->MacSysX_VideoAddr = 0x80000000;     // on 32-bit host: CMagiCScreen::m_PixMap.baseAddr
+    initHostCallbacks(pMacXSysHdr, pXCmd);
 
-    assert(sizeof(CMagiC_CPPCCallback) == 16);
-
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-    pMacXSysHdr->MacSys_verMac = htobe32(10);
-    pMacXSysHdr->MacSys_cpu = htobe16(20);        // 68020
-    pMacXSysHdr->MacSys_fpu = htobe16(0);        // keine FPU
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_init, &CMagiC::AtariInit, this);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_biosinit, &CMagiC::AtariBIOSInit, this);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_VdiInit, &CMagiC::AtariVdiInit, this);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_Exec68k, &CMagiC::AtariExec68k, this);
-    pMacXSysHdr->MacSys_pixmap = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_PixMap) - (uint64_t) mem68k));
-    pMacXSysHdr->MacSys_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) mem68k));
-    setCXCmdHostCallback(&pMacXSysHdr->MacSys_Xcmd, &CXCmd::Command, pXCmd);
-    pMacXSysHdr->MacSys_PPCAddr = 0;                // on 32-bit host: mem68k
-    pMacXSysHdr->MacSys_VideoAddr = 0x80000000;        // on 32-bit host: CMagiCScreen::m_PixMap.baseAddr
-    setHostCallback(&pMacXSysHdr->MacSys_gettime,    AtariGettime);
-    setHostCallback(&pMacXSysHdr->MacSys_settime,    AtariSettime);
-    setHostCallback(&pMacXSysHdr->MacSys_Setscreen,  AtariSetscreen);
-    setHostCallback(&pMacXSysHdr->MacSys_Setpalette, AtariSetpalette);
-    setHostCallback(&pMacXSysHdr->MacSys_Setcolor,   AtariSetcolor);
-    setHostCallback(&pMacXSysHdr->MacSys_VsetRGB,    AtariVsetRGB);
-    setHostCallback(&pMacXSysHdr->MacSys_VgetRGB,    AtariVgetRGB);
-    setHostCallback(&pMacXSysHdr->MacSys_syshalt,    AtariSysHalt);
-    setHostCallback(&pMacXSysHdr->MacSys_syserr,     AtariSysErr);
-    setHostCallback(&pMacXSysHdr->MacSys_coldboot,   AtariColdBoot);
-    setHostCallback(&pMacXSysHdr->MacSys_exit,       AtariExit);
-    setHostCallback(&pMacXSysHdr->MacSys_debugout,   AtariDebugOut);
-    setHostCallback(&pMacXSysHdr->MacSys_error,      AtariError);
-    setHostCallback(&pMacXSysHdr->MacSys_prtos,      &CMagiCPrint::AtariPrtOs);
-    setHostCallback(&pMacXSysHdr->MacSys_prtin,      &CMagiCPrint::AtariPrtIn);
-    setHostCallback(&pMacXSysHdr->MacSys_prtout,     &CMagiCPrint::AtariPrtOut);
-    setHostCallback(&pMacXSysHdr->MacSys_prtouts,    &CMagiCPrint::AtariPrtOutS);
-    setHostCallback(&pMacXSysHdr->MacSys_serconf,    &CMagiCSerial::AtariSerConf);
-    setHostCallback(&pMacXSysHdr->MacSys_seris,      &CMagiCSerial::AtariSerIs);
-    setHostCallback(&pMacXSysHdr->MacSys_seros,      &CMagiCSerial::AtariSerOs);
-    setHostCallback(&pMacXSysHdr->MacSys_serin,      &CMagiCSerial::AtariSerIn);
-    setHostCallback(&pMacXSysHdr->MacSys_serout,     &CMagiCSerial::AtariSerOut);
-    setHostCallback(&pMacXSysHdr->MacSys_SerOpen,    &CMagiCSerial::AtariSerOpen);
-    setHostCallback(&pMacXSysHdr->MacSys_SerClose,   &CMagiCSerial::AtariSerClose);
-    setHostCallback(&pMacXSysHdr->MacSys_SerRead,    &CMagiCSerial::AtariSerRead);
-    setHostCallback(&pMacXSysHdr->MacSys_SerWrite,   &CMagiCSerial::AtariSerWrite);
-    setHostCallback(&pMacXSysHdr->MacSys_SerStat,    &CMagiCSerial::AtariSerStat);
-    setHostCallback(&pMacXSysHdr->MacSys_SerIoctl,   &CMagiCSerial::AtariSerIoctl);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_GetKeybOrMouse, &CMagiC::AtariGetKeyboardOrMouseData, this);
-    setHostCallback(&pMacXSysHdr->MacSys_dos_macfn, AtariDOSFn);
-    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs, &CHostXFS::XFSFunctions, &m_HostXFS);
-    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs_dev, &CHostXFS::XFSDevFunctions, &m_HostXFS);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_drv2devcode, &CMagiC::Drv2DevCode, this);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_rawdrvr, &CMagiC::RawDrvr, this);
-#if defined(MAGICLIN)
-    setHostCallback(&pMacXSysHdr->MacSys_Daemon, MmxDaemon);
-    setHostCallback(&pMacXSysHdr->MacSys_BlockDevice, CVolumeImages::AtariBlockDevice);
-    setHostCallback(&pMacXSysHdr->MacSys_Network, CNetwork::AtariNetwork);
-#else
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_Daemon, &CMagiC::MmxDaemon, this);
-#endif
-    setHostCallback(&pMacXSysHdr->MacSys_Yield, AtariYield);
-#pragma GCC diagnostic pop
 
     // 68k ssp and PC after reset
     setAtariBE32(mem68k + 0, 512*1024);        // 68k stack to 512k
-    setAtari32(mem68k + 4, /*big endian*/ pMacXSysHdr->MacSys_syshdr);
+    setAtari32(mem68k + 4, /*big endian*/ pMacXSysHdr->MacSysX_syshdr);
 
     // Get TOS SYSHDR (official, i.e. not MagiC specific)
 
-    struct SYSHDR *pSysHdr = (SYSHDR *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
+    struct SYSHDR *pSysHdr = (SYSHDR *) (mem68k + be32toh(pMacXSysHdr->MacSysX_syshdr));
 
     // Get addresses for kbshift, kbrepeat and act_pd, later used by emulator
 
     m_AtariKbData = mem68k + be32toh(pSysHdr->kbshift);
     m_pAtariActPd = (uint32_t *) (mem68k + be32toh(pSysHdr->_run));
     m_HostXFS.setActPdAddr(m_pAtariActPd);
-    m_pAtariActAppl = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSys_act_appl));
+    m_pAtariActAppl = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSysX_act_appl));
 
     /*
     * Calculate address ranges and checksum of kernel ROM, used for overwrite
@@ -1017,7 +1031,7 @@ int CMagiC::init(CXCmd *pXCmd)
     */
 
     uint32_t chksum = 0;
-    uint32_t *fromptr = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
+    uint32_t *fromptr = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSysX_syshdr));
     uint32_t *toptr = (uint32_t *) (mem68k + be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen));
 
     // start and end of write-protected 68k address range (system ROM)
@@ -1032,7 +1046,7 @@ int CMagiC::init(CXCmd *pXCmd)
 
     setAtariBE32(mem68k + os_chksum, chksum);
 
-    // dump Atari
+    // dump Atari, for debug purposes
     // DumpAtariMem("AtariMemAfterInit.data");
 
     //

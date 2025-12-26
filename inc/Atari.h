@@ -1023,72 +1023,72 @@ MACRO    MACPPCE
 struct MacXSysHdr
 {
     // Atari -> host
-    UINT32_BE    MacSys_magic;              // is 'MagC'
-    UINT32_BE    MacSys_len;                // length of this structure
-    PTR32_BE     MacSys_syshdr;             // address of Atari Syshdr
-    PTR32_BE     MacSys_keytabs;            // 5*128 bytes for keyboard tables
-    PTR32_BE     MacSys_mem_root;           // memory lists
-    PTR32_BE     MacSys_act_pd;             // pointer to current process
-    PTR32_BE     MacSys_act_appl;           // pointer to current task (appl)
-    UINT32_BE    MacSys_verAtari;           // version number of MagicMacX.OS resp. MAGICLIN.OS
+    UINT32_BE    MacSysX_magic;             // is 'MagC'
+    UINT32_BE    MacSysX_len;               // length of this structure
+    PTR32_BE     MacSysX_syshdr;            // address of Atari Syshdr
+    PTR32_BE     MacSysX_keytabs;           // 5*128 bytes for keyboard tables
+    PTR32_BE     MacSysX_mem_root;          // memory lists
+    PTR32_BE     MacSysX_act_pd;            // pointer to current process
+    PTR32_BE     MacSysX_act_appl;          // pointer to current task (appl)
+    UINT32_BE    MacSysX_verAtari;          // version number of MagicMacX.OS resp. MAGICLIN.OS
     // host -> Atari
-    UINT32_BE    MacSys_verMac;             // version number of this structure
-    UINT16_BE    MacSys_cpu;                // CPU (20 = 68020, 30=68030, 40=68040)
-    UINT16_BE    MacSys_fpu;                // FPU (0=nothing,4=68881,6=68882,8=68040)
-    PTR32x4_HOST MacSys_init;               // called on Atari warm boot
-    PTR32x4_HOST MacSys_biosinit;           // called after initialisation
-    PTR32x4_HOST MacSys_VdiInit;            // called after initialisation of VDI
-    PTR32_BE     MacSys_pixmap;             // 68k pointer, data for the VDI
-    PTR32_BE     MacSys_pMMXCookie;         // 68k pointer to MgMx Cookie
-    PTR32x4_HOST MacSys_Xcmd;               // XCMD commands
-    PTR32_HOST   MacSys_PPCAddr;            // actual host address of 68k address 0 (on 64-bit host: 0x00000000)
-    PTR32_HOST   MacSys_VideoAddr;          // actual host address of video memory (on 64-bit host: 0x80000000)
-    PTR32x4_HOST MacSys_Exec68k;            // here the host callback can run 68k code
-    PTR32_HOST   MacSys_gettime;            // LONG GetTime(void): get date and time
-    PTR32_HOST   MacSys_settime;            // void SetTime(LONG *time): set date and time
-    PTR32_HOST   MacSys_Setpalette;         // void Setpalette( int ptr[16] )
-    PTR32_HOST   MacSys_Setcolor;           // int Setcolor( int nr, int val )
-    PTR32_HOST   MacSys_VsetRGB;            // void VsetRGB( WORD index, WORD count, LONG *array )
-    PTR32_HOST   MacSys_VgetRGB;            // void VgetRGB( WORD index, WORD count, LONG *array )
-    PTR32_HOST   MacSys_syshalt;            // SysHalt( char *str ) "System halted"
-    PTR32_HOST   MacSys_syserr;             // SysErr( long val ) "a1 = 0 => bombs"
-    PTR32_HOST   MacSys_coldboot;           // ColdBoot(void) perform cold boot
-    PTR32_HOST   MacSys_exit;               // Exit(void) end program
-    PTR32_HOST   MacSys_debugout;           // MacPuts( char *str ) for debugging
-    PTR32_HOST   MacSys_error;              // d0 = -1: no graphics driver
-    PTR32_HOST   MacSys_prtos;              // Bcostat(void) for PRT
-    PTR32_HOST   MacSys_prtin;              // Cconin(void) for PRT
-    PTR32_HOST   MacSys_prtout;             // Cconout( void *params ) for PRT
-    PTR32_HOST   MacSys_prtouts;            // LONG PrnOuts({char *buf, LONG count}) character string to printer
-    PTR32_HOST   MacSys_serconf;            // Rsconf( void *params ) for ser1
-    PTR32_HOST   MacSys_seris;              // Bconstat(void) for ser1 (AUX)
-    PTR32_HOST   MacSys_seros;              // Bcostat(void) for ser1
-    PTR32_HOST   MacSys_serin;              // Cconin(void) for ser1
-    PTR32_HOST   MacSys_serout;             // Cconout( void *params ) for ser1
-    PTR32_HOST   MacSys_SerOpen;            // open serial port
-    PTR32_HOST   MacSys_SerClose;           // close serial port
-    PTR32_HOST   MacSys_SerRead;            // read multiple characters from serial port
-    PTR32_HOST   MacSys_SerWrite;           // write multiple characters to serial port
-    PTR32_HOST   MacSys_SerStat;            // read/write state for serial port
-    PTR32_HOST   MacSys_SerIoctl;           // Ioctl calls for serial port
-    PTR32x4_HOST MacSys_GetKeybOrMouse;     // get keys and mouse events
-    PTR32_HOST   MacSys_dos_macfn;          // DosFn({int,void*} *) DOS functions 0x60..0xfe
-    UINT32_BE    MacSys_xfs_version;        // version of host XFS
-    UINT32_BE    MacSys_xfs_flags;          // flags for host XFS
-    PTR32x4_HOST MacSys_xfs;                // central entry to host XFS
-    PTR32x4_HOST MacSys_xfs_dev;            // corresponding file driver
-    PTR32x4_HOST MacSys_drv2devcode;        // convert drive number to device number
-    PTR32x4_HOST MacSys_rawdrvr;            // LONG RawDrvr({int, long} *) Raw driver (eject) for Mac
+    UINT32_BE    MacSysX_verMac;            // version number of this structure
+    UINT16_BE    MacSysX_cpu;               // CPU (20 = 68020, 30=68030, 40=68040)
+    UINT16_BE    MacSysX_fpu;               // FPU (0=nothing,4=68881,6=68882,8=68040)
+    PTR32x4_HOST MacSysX_init;              // called on Atari warm boot
+    PTR32x4_HOST MacSysX_biosinit;          // called after initialisation
+    PTR32x4_HOST MacSysX_VdiInit;           // called after initialisation of VDI
+    PTR32_BE     MacSysX_pixmap;            // 68k pointer, data for the VDI
+    PTR32_BE     MacSysX_pMMXCookie;        // 68k pointer to MgMx Cookie
+    PTR32x4_HOST MacSysX_Xcmd;              // XCMD commands
+    PTR32_HOST   MacSysX_PPCAddr;           // actual host address of 68k address 0 (on 64-bit host: 0x00000000)
+    PTR32_HOST   MacSysX_VideoAddr;         // actual host address of video memory (on 64-bit host: 0x80000000)
+    PTR32x4_HOST MacSysX_Exec68k;           // here the host callback can run 68k code
+    PTR32_HOST   MacSysX_gettime;           // LONG GetTime(void): get date and time
+    PTR32_HOST   MacSysX_settime;           // void SetTime(LONG *time): set date and time
+    PTR32_HOST   MacSysX_Setpalette;        // void Setpalette( int ptr[16] )
+    PTR32_HOST   MacSysX_Setcolor;          // int Setcolor( int nr, int val )
+    PTR32_HOST   MacSysX_VsetRGB;           // void VsetRGB( WORD index, WORD count, LONG *array )
+    PTR32_HOST   MacSysX_VgetRGB;           // void VgetRGB( WORD index, WORD count, LONG *array )
+    PTR32_HOST   MacSysX_syshalt;           // SysHalt( char *str ) "System halted"
+    PTR32_HOST   MacSysX_syserr;            // SysErr( long val ) "a1 = 0 => bombs"
+    PTR32_HOST   MacSysX_coldboot;          // ColdBoot(void) perform cold boot
+    PTR32_HOST   MacSysX_exit;              // Exit(void) end program
+    PTR32_HOST   MacSysX_debugout;          // MacPuts( char *str ) for debugging
+    PTR32_HOST   MacSysX_error;             // d0 = -1: no graphics driver
+    PTR32_HOST   MacSysX_prtos;             // Bcostat(void) for PRT
+    PTR32_HOST   MacSysX_prtin;             // Cconin(void) for PRT
+    PTR32_HOST   MacSysX_prtout;            // Cconout( void *params ) for PRT
+    PTR32_HOST   MacSysX_prtouts;           // LONG PrnOuts({char *buf, LONG count}) character string to printer
+    PTR32_HOST   MacSysX_serconf;           // Rsconf( void *params ) for ser1
+    PTR32_HOST   MacSysX_seris;             // Bconstat(void) for ser1 (AUX)
+    PTR32_HOST   MacSysX_seros;             // Bcostat(void) for ser1
+    PTR32_HOST   MacSysX_serin;             // Cconin(void) for ser1
+    PTR32_HOST   MacSysX_serout;            // Cconout( void *params ) for ser1
+    PTR32_HOST   MacSysX_SerOpen;           // open serial port
+    PTR32_HOST   MacSysX_SerClose;          // close serial port
+    PTR32_HOST   MacSysX_SerRead;           // read multiple characters from serial port
+    PTR32_HOST   MacSysX_SerWrite;          // write multiple characters to serial port
+    PTR32_HOST   MacSysX_SerStat;           // read/write state for serial port
+    PTR32_HOST   MacSysX_SerIoctl;          // Ioctl calls for serial port
+    PTR32x4_HOST MacSysX_GetKeybOrMouse;    // get keys and mouse events
+    PTR32_HOST   MacSysX_dos_macfn;         // DosFn({int,void*} *) DOS functions 0x60..0xfe
+    UINT32_BE    MacSysX_xfs_version;       // version of host XFS
+    UINT32_BE    MacSysX_xfs_flags;         // flags for host XFS
+    PTR32x4_HOST MacSysX_xfs;               // central entry to host XFS
+    PTR32x4_HOST MacSysX_xfs_dev;           // corresponding file driver
+    PTR32x4_HOST MacSysX_drv2devcode;       // convert drive number to device number
+    PTR32x4_HOST MacSysX_rawdrvr;           // LONG RawDrvr({int, long} *) Raw driver (eject) for Mac
 #if defined(MAGICLIN)
-    PTR32_HOST   MacSys_Daemon;             // call for the mmx daemon
-    PTR32_HOST   MacSys_BlockDevice;        // new for MagicOnLinux
-    PTR32_HOST   MacSys_Network;            // network functions
-    PTR32_HOST   MacSys_Setscreen;          // XBIOS #5, void Setscreen(void *log, void *phys, int res)
+    PTR32_HOST   MacSysX_Daemon;            // call for the mmx daemon
+    PTR32_HOST   MacSysX_BlockDevice;       // new for MagicOnLinux
+    PTR32_HOST   MacSysX_Network;           // network functions
+    PTR32_HOST   MacSysX_Setscreen;         // XBIOS #5, void Setscreen(void *log, void *phys, int res)
 #else
     PTR32x4_HOST MacSys_Daemon;             // call for the mmx daemon
 #endif
-    PTR32_HOST   MacSys_Yield;              // call to yield CPU time (idle)
-    OldMmSysHdr  MacSys_OldHdr;             // for compatibility with Behne's code
+    PTR32_HOST   MacSysX_Yield;              // call to yield CPU time (idle)
+    OldMmSysHdr  MacSys_OldHdr;              // for compatibility with Behne's code
 } __attribute__((packed));
 
 /// signal handler, part of the MagiC process information structure

@@ -1035,8 +1035,19 @@ struct MacXSysHdr
     UINT32_BE    MacSysX_verMac;            // version number of this structure
     UINT16_BE    MacSysX_cpu;               // CPU (20 = 68020, 30=68030, 40=68040)
     UINT16_BE    MacSysX_fpu;               // FPU (0=nothing,4=68881,6=68882,8=68040)
+    #if MAGIC_KERNEL_API_VERSION > 0
+    PTR32_HOST   MacSysX_init;              // first initialisiation done
+    UINT32_BE    MacSysX_res2c;
+    UINT32_BE    MacSysX_res30;
+    UINT32_BE    MacSysX_res34;
+    PTR32_HOST   MacSysX_biosinit;          // called after initialisation
+    UINT32_BE    MacSysX_res3c;
+    UINT32_BE    MacSysX_res40;
+    PTR32_HOST   MacSysX_Dosound;
+    #else
     PTR32x4_HOST MacSysX_init;              // called on Atari warm boot
     PTR32x4_HOST MacSysX_biosinit;          // called after initialisation
+    #endif
     PTR32x4_HOST MacSysX_VdiInit;           // called after initialisation of VDI
     PTR32_BE     MacSysX_pixmap;            // 68k pointer, data for the VDI
     PTR32_BE     MacSysX_pMMXCookie;        // 68k pointer to MgMx Cookie

@@ -777,8 +777,14 @@ void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr, CXCmd *pXCmd)
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+    #if MAGIC_KERNEL_API_VERSION > 0
+    setHostCallback(&pMacXSysHdr->MacSysX_init, AtariInit);
+    setHostCallback(&pMacXSysHdr->MacSysX_biosinit, AtariBIOSInit);
+    setHostCallback(&pMacXSysHdr->MacSysX_Dosound, AtariDosound);
+    #else
     setCMagiCHostCallback(&pMacXSysHdr->MacSysX_init, &CMagiC::AtariInit, this);
     setCMagiCHostCallback(&pMacXSysHdr->MacSysX_biosinit, &CMagiC::AtariBIOSInit, this);
+    #endif
     setCMagiCHostCallback(&pMacXSysHdr->MacSysX_VdiInit, &CMagiC::AtariVdiInit, this);
     setCMagiCHostCallback(&pMacXSysHdr->MacSysX_Exec68k, &CMagiC::AtariExec68k, this);
     setCXCmdHostCallback(&pMacXSysHdr->MacSysX_Xcmd, &CXCmd::Command, pXCmd);
@@ -938,7 +944,7 @@ int CMagiC::init(CXCmd *pXCmd)
     if (be32toh(pMacXSysHdr->MacSysX_verAtari) != MAGIC_KERNEL_API_VERSION)
     {
         DebugError2("() - Kernel API version mismatch, is %u instead of expected %u.", be32toh(pMacXSysHdr->MacSysX_verAtari), MAGIC_KERNEL_API_VERSION);
-        //return -3;
+        return -3;
     }
 
     /*
@@ -1002,7 +1008,7 @@ int CMagiC::init(CXCmd *pXCmd)
 
     pMacXSysHdr->MacSysX_pixmap = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_PixMap) - (uint64_t) mem68k));
     pMacXSysHdr->MacSysX_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) mem68k));
-    pMacXSysHdr->MacSysX_verMac = htobe32(10);       // must be 10, checked by kernel in HOSTBIOS.S
+    pMacXSysHdr->MacSysX_verMac = htobe32(10);       // must be 10, checked by kernel in HOSTBIOS.S, mismatch -> 68k illegal instruction
     pMacXSysHdr->MacSysX_cpu = htobe16(20);          // 68020
     pMacXSysHdr->MacSysX_fpu = htobe16(0);           // no FPU -- yet -- unfortunately
     pMacXSysHdr->MacSysX_PPCAddr = 0;                // on 32-bit host: mem68k
@@ -2566,6 +2572,37 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
 #endif
     }
 
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS Dosound
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return previous content of Atari sound_data variable:
+ *              sound_data:     DS.L 1
+ *              sound_delay:    DS.B 1
+ *              sound_byte:     DS.B 1
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariDosound(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct DosoundParm
+    {
+        uint32_t fn;                // 0:XBIOS Dosound() / 1:click / 2:pling
+        uint32_t new_sound;         // 68k pointer to new sound data
+        uint32_t sound_vars;        // 68k address of sound_data, sound_delay und sound_byte
+    } __attribute__((packed));
+
+    const DosoundParm *theParm = (DosoundParm *) (addrOffset68k + params);
+    uint32_t fn = be32toh(theParm->fn);
+    const uint8_t *pSoundData = (uint8_t *) (addrOffset68k + be32toh(theParm->new_sound));
+    uint8_t *pSoundVariables = (uint8_t *) (addrOffset68k + be32toh(theParm->sound_vars));
+    DebugWarning2("(fn = %u, new_sound=0x%08x, sound_vars=0x%08x)", be32toh(theParm->fn), be32toh(theParm->new_sound), be32toh(theParm->sound_vars));
     return 0;
 }
 

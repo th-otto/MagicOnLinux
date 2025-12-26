@@ -417,21 +417,27 @@ ENDIF
 **********************************************************************
 
 MSysX:
- DC.L	'MagC'
- DC.L	MacSysX_sizeof		; MacSys_len
- DC.L	syshdr			; Adresse des Atari-Syshdr
- DC.L	tab_unshift		; 5*128 Bytes fÅr Tastaturtabellen
- DC.L	mem_root
- DC.L	act_pd
- DC.L	act_appl
- DC.L	0				; MacSys_verAtari
+ DC.L	'MagC'			; $00
+ DC.L	MacSysX_sizeof		; $04 MacSys_len
+ DC.L	syshdr			; $08 Adresse des Atari-Syshdr
+ DC.L	tab_unshift		; $0c 5*128 Bytes fÅr Tastaturtabellen
+ DC.L	mem_root			; $10
+ DC.L	act_pd			; $14
+ DC.L	act_appl			; $18
+ DC.L	1				; $1c MacSys_verAtari
 
- DC.L	0				; MacSys_verMac
- DC.W	0				; CPU (30=68030, 40=68040)
- DC.W	0				; FPU-Typ
- DCB.L	PTRLEN,0			; MacSys_Init
- DCB.L	PTRLEN,0			; MacSys_BiosInit
- DCB.L	PTRLEN,0			; MacSys_VdiInit
+ DC.L	0				; $20 MacSys_verMac
+ DC.W	0				; $24 CPU (30=68030, 40=68040)
+ DC.W	0				; $26 FPU-Typ
+ DC.L	0				; $28 MacSys_Init
+ DC.L	0				; $2c (reserviert)
+ DC.L	0				; $30 (reserviert)
+ DC.L	0				; $34 (reserviert)
+ DC.L	0				; $38 MacSys_BiosInit
+ DC.L	0				; $3c (reserviert)
+ DC.L	0				; $40 (reserviert)
+ DC.L	0				; $44 MacSysX_Dosound
+ DCB.L	PTRLEN,0			; $48 MacSys_VdiInit
  DC.L	0				; MacSys_pixmap
  DC.L	0				; MacSysX_pMMXCookie
  DCB.L	PTRLEN,0			; MacSysX_Xcmd
@@ -577,7 +583,7 @@ bot_ver_ok:
  DEBON
 
  lea		MSysX+MacSysX_init(pc),a0
- MACPPCE
+ MACPPC
 
  move.w	MSysX+MacSysX_fpu(pc),d0
  beq.b	bot_ok1				; keine FPU
@@ -792,7 +798,7 @@ _cpyloop3:
  DEB		'BIOS-Initialisierung abgeschlossen'
 
  lea		MSysX+MacSysX_biosinit(pc),a0	; PPC-Adresse
- MACPPCE							; Mac anspringen
+ MACPPC							; Mac anspringen
 
 * Interrupts zulassen
 
@@ -2385,14 +2391,24 @@ pling:
  jmp 	(a0)
 
 hdl_pling:
- move.l	#pling_data,sound_data
- clr.b	sound_delay
+ pea		sound_data
+ pea		pling_data
+ pea		2					; pling
+ lea		(sp),a1
+ lea		MSysX+MacSysX_Dosound(pc),a0 
+ MACPPC
+ adda	#12,sp
 pling_ende:
  rts
 
 hdl_klick:
- move.l	#klick_data,sound_data
- clr.b	sound_delay
+ pea		sound_data
+ pea		klick_data
+ pea		1					; klick
+ lea		(sp),a1
+ lea		MSysX+MacSysX_Dosound(pc),a0 
+ MACPPC
+ adda	#12,sp
  rts
 
 
@@ -2529,8 +2545,15 @@ Dosound:
  move.l	(a1),d0				; laufendes Tonprogramm
  move.l	(a0),d1				; neues Tonprogramm
  bmi.b	dsnd_get				;  ist -1 => laufendes zurÅckgeben
- move.l	d1,(a1)+				; neues setzen
- clr.b	(a1) 				; Flag lîschen
+ move.l	a1,-(sp)				; Zeiger auf sound_data, sound_delay und sound_byte 
+ move.l	d1,-(sp)				; neues Tonprogramm
+ clr.l	-(sp)				; dosound
+ lea		(sp),a1
+ lea		MSysX+MacSysX_Dosound(pc),a0 
+ MACPPC
+ adda	#12,sp
+* move.l	d1,(a1)+				; neues setzen
+* clr.b	(a1) 				; Flag lîschen
 dsnd_get:
  rte
 

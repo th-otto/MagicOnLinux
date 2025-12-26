@@ -2,22 +2,28 @@ PTRLEN	EQU	4		; Zeiger auf Elementfunktion braucht 4 Zeiger
 
 	OFFSET
 
-;Atari -> Mac
-MacSysX_magic:		DS.L 1		; ist 'MagC'
-MacSysX_len:		DS.L	1		; LÑnge der Struktur
-MacSysX_syshdr:	DS.L 1		; Adresse des Atari-Syshdr
-MacSysX_keytabs:	DS.L 1		; 5*128 Bytes fÅr Tastaturtabellen
-MacSysX_mem_root:	DS.L 1		; Speicherlisten
-MacSysX_act_pd:	DS.L 1		; Zeiger auf aktuellen Prozeû
-MacSysX_act_appl:	DS.L 1		; Zeiger auf aktuelle Task
-MacSysX_verAtari:	DS.L 1		; Versionsnummer MagicMacX.OS
-;Mac -> Atari
-MacSysX_verMac:	DS.L	1		; Versionsnummer der Struktur
-MacSysX_cpu:		DS.W 1		; CPU (30=68030, 40=68040)
-MacSysX_fpu:		DS.W 1		; FPU (0=nix,4=68881,6=68882,8=68040)
-MacSysX_init:		DS.L PTRLEN	; Wird beim Warmstart des Atari aufgerufen
-MacSysX_biosinit:	DS.L PTRLEN	; nach Initialisierung aufrufen
-MacSysX_VdiInit:	DS.L PTRLEN	; nach Initialisierung des VDI aufrufen
+;Atari -> Host
+MacSysX_magic:		DS.L 1		; $00 ist 'MagC'
+MacSysX_len:		DS.L	1		; $04 LÑnge der Struktur
+MacSysX_syshdr:	DS.L 1		; $08 Adresse des Atari-Syshdr
+MacSysX_keytabs:	DS.L 1		; $0c 5*128 Bytes fÅr Tastaturtabellen
+MacSysX_mem_root:	DS.L 1		; $10 Speicherlisten
+MacSysX_act_pd:	DS.L 1		; $14 Zeiger auf aktuellen Prozeû
+MacSysX_act_appl:	DS.L 1		; $18 Zeiger auf aktuelle Task
+MacSysX_verAtari:	DS.L 1		; $1c Versionsnummer MagicMacX.OS
+;Host -> Atari
+MacSysX_verMac:	DS.L	1		; $20 Versionsnummer der Struktur
+MacSysX_cpu:		DS.W 1		; $24 CPU (30=68030, 40=68040)
+MacSysX_fpu:		DS.W 1		; $26 FPU (0=nix,4=68881,6=68882,8=68040)
+MacSysX_init:		DS.L 1		; $28 Wird beim Warmstart des Atari aufgerufen
+MacSysX_res2c:		DS.L 1
+MacSysX_res30:		DS.L 1
+MacSysX_res34:		DS.L 1
+MacSysX_biosinit:	DS.L 1		; $38 nach Initialisierung aufrufen
+MacSysX_res3c:		DS.L 1
+MacSysX_res40:		DS.L 1
+MacSysX_Dosound:	DS.L 1
+MacSysX_VdiInit:	DS.L PTRLEN	; $48 nach Initialisierung des VDI aufrufen
 MacSysX_pixmap:	DS.L 1		; Daten fÅrs VDI
 MacSysX_pMMXCookie:	DS.L	1		; 68k-Zeiger auf MgMx-Cookie
 MacSysX_Xcmd:		DS.L PTRLEN	; XCMD-Kommandos

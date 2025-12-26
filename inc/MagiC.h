@@ -86,8 +86,8 @@ class CMagiC
     static void *_EmuThread(void *param);
     int EmuThread(void);
     static int IRQCallback(int IRQLine);
-    uint32_t AtariInit(uint32_t params, uint8_t *addrOffset68k);
-    uint32_t AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariInit(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k);
     uint32_t AtariVdiInit(uint32_t params, uint8_t *addrOffset68k);
     uint32_t AtariExec68k(uint32_t params, uint8_t *addrOffset68k);
     uint32_t OpenSerialBIOS(void);
@@ -95,13 +95,13 @@ class CMagiC
     static uint32_t AtariDOSFn(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariGettime(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSettime(uint32_t params, uint8_t *addrOffset68k);
-    static void *_Remote_AtariSysHalt( void *param );
     static uint32_t AtariSysHalt(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetscreen(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetpalette(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetcolor(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariDosound(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSysErr(uint32_t params, uint8_t *addrOffset68k);
     static void *_Remote_AtariSysErr( void *param );
     static uint32_t AtariColdBoot(uint32_t params, uint8_t *addrOffset68k);

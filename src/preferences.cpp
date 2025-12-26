@@ -213,6 +213,7 @@ int Preferences::init
     int relative_mouse_override,
     int memsize_override,
     const char *rootfs_override,
+    const char *kernel_override,
     bool rewrite_conf
 )
 {
@@ -275,6 +276,10 @@ int Preferences::init
     if ((rootfs_override != nullptr) && (strlen(rootfs_override) < sizeof(AtariRootfsPath)))
     {
         strcpy(AtariRootfsPath, rootfs_override);
+    }
+    if ((kernel_override != nullptr) && (strlen(kernel_override) < sizeof(AtariKernelPath)))
+    {
+        strcpy(AtariKernelPath, kernel_override);
     }
 
     //

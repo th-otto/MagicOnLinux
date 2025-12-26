@@ -42,6 +42,7 @@ static void print_opt(const struct option *options)
         "size",
         "EN|DE|FR",
         "path",
+        "kernel-file",
         "program",
         "atari_txtfile",
         "host_txtfile"
@@ -60,6 +61,7 @@ static void print_opt(const struct option *options)
         "             Atari RAM size, e.g. 512k or 4M or 3m",
         "            language for Atari localisation, either EN or DE or FR",
         "              location of C: drive (root fs)",
+        "       location of kernel file (MAGICLIN.OS)",
         "           choose editor program for -e option, to override xdg-open",
         "  convert text file from Atari to host format",
         "   convert text file from host to Atari format"
@@ -467,6 +469,7 @@ int main(int argc, char * const argv[])
     const char *arg_memsize = nullptr;
     const char *arg_lang = nullptr;
     const char *arg_rootfs = nullptr;
+    const char *arg_kernel = nullptr;
     int colour_mode = -1;
     bool double_vert = false;       // for ST medium resolution: double vertical size
     int width = -1;
@@ -504,12 +507,13 @@ int main(int argc, char * const argv[])
             {"memsize",           required_argument, nullptr, 'm' },
             {"lang",              required_argument, nullptr, 'l' },
             {"rootfs",            required_argument, nullptr, 'r' },
-            {"editor",            required_argument, nullptr,  0 },      // long_option_index 11
-            {"tconv-a2h",         required_argument, nullptr,  0 },      // long_option_index 12
-            {"tconv-h2a",         required_argument, nullptr,  0 },      // long_option_index 13
+            {"kernel",            required_argument, nullptr, 'k' },
+            {"editor",            required_argument, nullptr,  0 },      // long_option_index 12
+            {"tconv-a2h",         required_argument, nullptr,  0 },      // long_option_index 13
+            {"tconv-h2a",         required_argument, nullptr,  0 },      // long_option_index 14
             {nullptr,             0,                 nullptr,  0 }
         };
-        c = getopt_long(argc, argv, "hc:ewa:g:s:m:l:r:",
+        c = getopt_long(argc, argv, "hc:ewa:g:s:m:l:r:k:",
                         long_options, &long_option_index);
         //printf("getopt_long() -> %d (c = '%c'), long_option_index = %d\n", c, c, long_option_index);
 
@@ -534,17 +538,17 @@ int main(int argc, char * const argv[])
                     arg_mouse_mode = optarg;
                 }
                 else
-                if (long_option_index == 11)
+                if (long_option_index == 12)
                 {
                     editor_command = optarg;
                 }
                 else
-                if (long_option_index == 12)
+                if (long_option_index == 13)
                 {
                     file_a2h = optarg;
                 }
                 else
-                if (long_option_index == 13)
+                if (long_option_index == 14)
                 {
                     file_h2a = optarg;
                 }
@@ -585,6 +589,10 @@ int main(int argc, char * const argv[])
 
             case 'r':
                 arg_rootfs = optarg;
+                break;
+
+            case 'k':
+                arg_kernel = optarg;
                 break;
 
             case 'w':
@@ -711,7 +719,7 @@ int main(int argc, char * const argv[])
             printf("Just writing default values, additional options ignored!\n");
         }
         // just write defaults and ignore all other settings
-        Preferences::init(config, -1, -1, -1, -1, -1, false, -1, -1, nullptr, true);
+        Preferences::init(config, -1, -1, -1, -1, -1, false, -1, -1, nullptr, nullptr, true);
         return 0;
     }
 
@@ -751,7 +759,10 @@ int main(int argc, char * const argv[])
     */
 
     DebugInit(NULL /* stderr */);
-    if (Preferences::init(config, colour_mode, width, height, stretch_x, stretch_y, double_vert, relativeMouse, atari_memsize, arg_rootfs, false))
+    if (Preferences::init(config,
+                         colour_mode, width, height, stretch_x, stretch_y, double_vert,
+                         relativeMouse, atari_memsize,
+                         arg_rootfs, arg_kernel, false))
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }

@@ -244,7 +244,7 @@ CMagiC::CMagiC()
     m_CurrModifierKeys = 0;
     mem68k = nullptr;
     mem68kSize = 0;
-    m_BasePage = NULL;
+    m_BasePage = nullptr;
     memset(&m_EmuTaskID, 0, sizeof(m_EmuTaskID));
 
     m_EventId = 0;
@@ -670,7 +670,7 @@ int CMagiC::LoadReloc
 * (INTERN) Initialisierung von Atari68kData.m_VDISetupData
 *
 **********************************************************************/
-void CMagiC::Init_CookieData(MgMxCookieData *pCookieData)
+void CMagiC::initCookieData(MgMxCookieData *pCookieData)
 {
     pCookieData->mgmx_magic     = htobe32('MgMx');
     pCookieData->mgmx_version   = htobe32(PROGRAM_VERSION_MAJOR);
@@ -757,42 +757,39 @@ void CMagiC::DumpAtariMem(const char *filename)
 #endif
 
 
-/**********************************************************************
-*
-* Initialisierung
-* => 0 = OK, sonst = Fehler
-*
-* Virtueller 68k-Adreßraum:
-*
-*    Systemvariablen/(X)BIOS-Variablen
-*    frei
-*    Atari68kData                        <- _memtop
-*    Kernel-Basepage (256 Bytes)
-*    MacXSysHdr
-*    Rest des Kernels
-*    Ende des Atari-RAM
-*    Beginn des virtuellen VRAM            <- _v_bas_ad
-*    Ende des virtuellen VRAM
-*                                        <- _phystop
-*
-* Die Größe des virtuellen VRAM berechnet sich aus der Anzahl der
-* Bildschirmzeilen des Atari und der physikalischen (!) Bildschirm-
-* Zeilenlänge des Mac, d.h. ist abhängig von der physikalischen
-* Auflösung des Mac-Bildschirms.
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Create and initialise the virtual MagiC machine
+ *
+ * @param[in] pXCmd         currently unused
+ *
+ * @return non-zero in case of failure
+ * @retval -1   kernel file not found
+ * @retval -2   corrupt/invalid kernel file
+ * @retval -3   kernel file API mismatch
+ * @retval -4   unsufficient host memory
+ *
+ * @note Called once by the emulator thread
+ *
+ * @note The virtual machine address range starts with interrupt vectors, system variables,
+ *       followed by program and data memory managed by GEMDOS. Following is the kernel
+ *       basepage (256 bytes) and the kernel itself which can be configured to be write protected.
+ *       Finally, and additionally to the e.g. 8 Megabytes ST-RAM, the virtual screen memory is
+ *       located. Its size is calculated from dimension and bit depth of the emulated system,
+ *       plus some padding to avoid bus errors (The ST has 32768 bytes reserved for video,
+ *       from which 32000 are really used).
+ *
+ ************************************************************************************************/
 int CMagiC::init(CXCmd *pXCmd)
 {
     int err;
     Atari68kData *pAtari68kData;
-    struct MacXSysHdr *pMacXSysHdr;
-    struct SYSHDR *pSysHdr;
-    uint32_t AtariMemtop;        // Ende Atari-Benutzerspeicher
-    uint32_t chksum;
+    uint32_t AtariMemtop;       // end of GEMDOS memory, start of kernel basepage
 
 
-    // Konfiguration
+    /*
+    * Some debug output of the compiled-in configuration of the emulator
+    */
 
     DebugInfo2("() - MultiThread version for Linux");
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
@@ -810,12 +807,17 @@ int CMagiC::init(CXCmd *pXCmd)
 #else
     DebugInfo2("() - Writing to 68k interrupt vectors is not logged (makes the emulator a bit faster)");
 #endif
+    //DebugInfo2("() - Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
 
-    DebugInfo2("() - Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
-
-    // Tastaturtabelle lesen
+    /*
+    * Shall read the keyboard table, but currently unused
+    */
 
     (void) CMagiCKeyboard::init();
+
+    /*
+    * Allocate memory for virtual machine
+    */
 
     mem68kSize = Preferences::AtariMemSize;
     #if 0
@@ -825,44 +827,62 @@ int CMagiC::init(CXCmd *pXCmd)
     #else
     memVideo68kSize = CMagiCScreen::pixels_size;
     #endif
-    // get Atari memory
-    // TODO: In fact we do not have to add m_Video68ksize here, because video memory
-    //       is allocated separately as SDL surface in EmulatorRunner.
-    mem68k = (unsigned char *) malloc(mem68kSize + memVideo68kSize);
+    // Get Atari memory, not that the <memVideo68kSize> virtual screen RAM is allocated later
+    // and actually is an SDL surface.
+    mem68k = (unsigned char *) malloc(mem68kSize);
     if (mem68k == nullptr)
     {
-        showAlert("The emulator cannot reserve enough memory", "Reduce Atari memory size in configuration file");
-        return 1;
+        return -4;  // out-of-memory
     }
 
-    // Atari-Kernel lesen
+    /*
+    * Load MagiC kernel file to virtual machine memory
+    */
+
     err = LoadReloc(Preferences::AtariKernelPath, 0, -1, &m_BasePage);
-    switch(err)
-    {
-        case -1:
-            (void) showAlert("The emulator cannot find the kernel file MAGICLIN.OS", "Repair configuration file!");
-            break;
-        case -2:
-            (void) showAlert("The kernel file MAGICLIN.OS has been corrupted", "Repair configuration file!");
-            break;
-    }
-
     if (err)
     {
-        return err;
+        return err;     // -1 or -2
     }
     DebugInfo2("() - MagiC kernel loaded and relocated successfully");
 
-    // 68k Speicherbegrenzungen ausrechnen
+    /*
+    * Check kernel header for validity and version.
+    * The header is located directly behind the kernel basepage, i.e.
+    * a the beginning of its TEXT segment.
+    */
+
+    struct MacXSysHdr *pMacXSysHdr = (MacXSysHdr *) (m_BasePage + 1);
+    if (be32toh(pMacXSysHdr->MacSys_magic) != 'MagC')
+    {
+        DebugError2("() - magic value mismatch");
+        return -2;
+    }
+    if (be32toh(pMacXSysHdr->MacSys_len) != sizeof(*pMacXSysHdr))
+    {
+        DebugError2("() -- Length of struct does not match (header: %u bytes, should be: %u bytes)",
+                         be32toh(pMacXSysHdr->MacSys_len), sizeof(*pMacXSysHdr));
+        return -3;
+    }
+    if (be32toh(pMacXSysHdr->MacSys_verAtari) != MAGIC_KERNEL_API_VERSION)
+    {
+        DebugError2("() - Kernel API version mismatch, is %u instead of expected %u.", be32toh(pMacXSysHdr->MacSys_verAtari), MAGIC_KERNEL_API_VERSION);
+        //return -3;
+    }
+
+    /*
+    * Calculate 68k address ranges
+    */
+
     addr68kVideo = mem68kSize;
     DebugInfo2("() - Atari video mode is %s", Preferences::videoModeToString(Preferences::atariScreenColourMode));
     DebugInfo2("() - 68k video memory starts at 68k address 0x%08x and uses %u (0x%08x) bytes.", addr68kVideo, memVideo68kSize, memVideo68kSize);
     addr68kVideoEnd = addr68kVideo + memVideo68kSize;
     DebugInfo2("() - 68k video memory and general memory end is 0x%08x", addr68kVideoEnd);
 
-    //
-    // Initialise Atari system variables
-    //
+    /*
+    * Initialise Atari system variables
+    */
 
     setAtariBE32(mem68k + phystop,  addr68kVideoEnd);
     setAtariBE32(mem68k + _v_bas_ad, mem68kSize);
@@ -890,7 +910,7 @@ int CMagiC::init(CXCmd *pXCmd)
     setAtariBE16(mem68k +_cmdload, 0);            // boot AES
     setAtariBE16(mem68k +_nflops, 0);             // no floppy disk drives, yet
 
-    // Atari-68k-Daten setzen
+    // some Atari addresses
 
     pAtari68kData = (Atari68kData *) (mem68k + AtariMemtop);        // Pixmap inside Atari memory
     pAtari68kData->m_PixMap = CMagiCScreen::m_PixMap;             // copy host Pixmap to Atari memory
@@ -904,19 +924,10 @@ int CMagiC::init(CXCmd *pXCmd)
     DebugInfo2("() - basepage address of system = 0x%08lx (68k)", AtariMemtop + sizeof(Atari68kData));
     DebugInfo2("() - address of Atari68kData = 0x%08lx (68k)", AtariMemtop);
 
-    // neue Daten
+    initCookieData(&pAtari68kData->m_CookieData);
 
-    Init_CookieData(&pAtari68kData->m_CookieData);
-
-    // Alle Einträge der Übergabestruktur füllen
-
-    pMacXSysHdr = (MacXSysHdr *) (m_BasePage + 1);        // Zeiger hinter Basepage
-
-    if (be32toh(pMacXSysHdr->MacSys_magic) != 'MagC')
-    {
-        DebugError2("() - magic value mismatch");
-        goto err_inv_os;
-    }
+    // Fill up members of the host/Atari shared structure, mainly calls from
+    // virtual machine to host.
 
 #ifndef NDEBUG
     DebugInfo2("() - sizeof(CMagiC_CPPCCallback) = %u", (unsigned) sizeof(CMagiC_CPPCCallback));
@@ -926,14 +937,6 @@ int CMagiC::init(CXCmd *pXCmd)
 
     assert(sizeof(CMagiC_CPPCCallback) == 16);
 
-    if (be32toh(pMacXSysHdr->MacSys_len) != sizeof(*pMacXSysHdr))
-    {
-        DebugError2("() -- Length of struct does not match (header: %u bytes, should be: %u bytes)",
-                         be32toh(pMacXSysHdr->MacSys_len), sizeof(*pMacXSysHdr));
-        err_inv_os:
-        showAlert("The kernel file MAGICLIN.OS is invalid or outdated", "Review your configuration");
-        return(1);
-    }
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
@@ -993,36 +996,34 @@ int CMagiC::init(CXCmd *pXCmd)
     setHostCallback(&pMacXSysHdr->MacSys_Yield, AtariYield);
 #pragma GCC diagnostic pop
 
-    // ssp nach Reset
-    setAtariBE32(mem68k + 0, 512*1024);        // Stack auf 512k
-    // pc nach Reset
+    // 68k ssp and PC after reset
+    setAtariBE32(mem68k + 0, 512*1024);        // 68k stack to 512k
     setAtari32(mem68k + 4, /*big endian*/ pMacXSysHdr->MacSys_syshdr);
 
-    // TOS-SYSHDR bestimmen
+    // Get TOS SYSHDR (official, i.e. not MagiC specific)
 
-    pSysHdr = (SYSHDR *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
+    struct SYSHDR *pSysHdr = (SYSHDR *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
 
-    // Adresse für kbshift, kbrepeat und act_pd berechnen
+    // Get addresses for kbshift, kbrepeat and act_pd, later used by emulator
 
     m_AtariKbData = mem68k + be32toh(pSysHdr->kbshift);
     m_pAtariActPd = (uint32_t *) (mem68k + be32toh(pSysHdr->_run));
     m_HostXFS.setActPdAddr(m_pAtariActPd);
-
-    // Andere Atari-Strukturen
-
     m_pAtariActAppl = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSys_act_appl));
 
-    // Prüfsumme für das System berechnen
+    /*
+    * Calculate address ranges and checksum of kernel ROM, used for overwrite
+    * detection and, if configured, protection.
+    */
 
-    chksum = 0;
+    uint32_t chksum = 0;
     uint32_t *fromptr = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
     uint32_t *toptr = (uint32_t *) (mem68k + be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen));
 
-//    AdrOsRomStart = be32toh(pMacXSysHdr->MacSys_syshdr);            // Beginn schreibgeschützter Bereich
-    addrOsRomStart = be32toh((uint32_t) m_BasePage->p_tbase);        // Beginn schreibgeschützter Bereich
-    addrOsRomEnd = be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen);    // Ende schreibgeschützter Bereich
+    // start and end of write-protected 68k address range (system ROM)
+    addrOsRomStart = be32toh((uint32_t) m_BasePage->p_tbase);
+    addrOsRomEnd = be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen);
     DebugInfo2("() - OS ROM range from 0x%08x..0x%08x (68k)", addrOsRomStart, addrOsRomEnd);
-
     do
     {
         chksum += htobe32(*fromptr++);
@@ -1068,7 +1069,7 @@ int CMagiC::init(CXCmd *pXCmd)
     m68k_init();
     NFCreate();
 
-    // Emulator starten
+    // start 68k emulator
 
     addrOpcodeROM = mem68k;    // ROM == RAM
     m68k_set_int_ack_callback(IRQCallback);

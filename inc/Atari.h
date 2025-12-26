@@ -1022,7 +1022,7 @@ MACRO    MACPPCE
 #define MAGICLIN 1
 struct MacXSysHdr
 {
-    // Atari -> Mac
+    // Atari -> host
     UINT32_BE    MacSys_magic;              // is 'MagC'
     UINT32_BE    MacSys_len;                // length of this structure
     PTR32_BE     MacSys_syshdr;             // address of Atari Syshdr
@@ -1030,8 +1030,8 @@ struct MacXSysHdr
     PTR32_BE     MacSys_mem_root;           // memory lists
     PTR32_BE     MacSys_act_pd;             // pointer to current process
     PTR32_BE     MacSys_act_appl;           // pointer to current task (appl)
-    UINT32_BE    MacSys_verAtari;           // version number of MagicMacX.OS
-    // Mac -> Atari
+    UINT32_BE    MacSys_verAtari;           // version number of MagicMacX.OS resp. MAGICLIN.OS
+    // host -> Atari
     UINT32_BE    MacSys_verMac;             // version number of this structure
     UINT16_BE    MacSys_cpu;                // CPU (20 = 68020, 30=68030, 40=68040)
     UINT16_BE    MacSys_fpu;                // FPU (0=nothing,4=68881,6=68882,8=68040)

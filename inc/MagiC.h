@@ -77,7 +77,8 @@ class CMagiC
         MgMxCookieData m_CookieData;
     } __attribute__((packed));
 
-    void Init_CookieData(MgMxCookieData *pCookieData);
+    void initCookieData(MgMxCookieData *pCookieData);
+    void initHostCallbacks(struct MacXSysHdr *pMacXSysHdr, CXCmd *pXCmd);
     static int relocate(FILE *f, uint32_t file_size, uint8_t *tbase, const ExeHeader *exehead);
     int LoadReloc(const char *path, uint32_t stackSize, int32_t  reladdr, BasePage **basePage);
     int GetKbBufferFree(void);

@@ -809,6 +809,23 @@ int EmulationRunner::EmulatorThread(void *param)
     if (err)
     {
         DebugError2("() => %d", err);
+
+        switch(err)
+        {
+            case -1:
+                (void) showAlert("The emulator cannot find the kernel file MAGICLIN.OS", "Review configuration file!");
+                break;
+            case -2:
+                (void) showAlert("The kernel file MAGICLIN.OS is invalid or corrupted", "Review configuration file!");
+                break;
+            case -3:
+                (void) showAlert("The kernel file MAGICLIN.OS has a wrong kernel API version", "Review configuration file!");
+                break;
+            case -4:
+                (void) showAlert("The emulator cannot reserve enough memory", "Reduce Atari memory size in configuration file");
+                break;
+        }
+
         m_bQuitLoop = true;     // leave main loop
         return 0;
     }

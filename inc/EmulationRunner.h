@@ -26,8 +26,6 @@
 // system headers
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
-//#include <OpenGL/gl.h>        // needed?
-//#include <OpenGL/glu.h>        // needed?
 // user headers
 #include "MagiC.h"
 #include "MagiCScreen.h"

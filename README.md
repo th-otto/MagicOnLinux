@@ -16,7 +16,7 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 
 # How To Build (Linux, tested with Ubuntu 24.04)
 
-- sudo apt install libsdl2-dev gxmessage
+- sudo apt install libsdl2-dev libsdl2-mixer-dev gxmessage
 - cd ~/Documents
 - git clone https://gitlab.com/AndreasK/magiclinux
 - git clone https://gitlab.com/AndreasK/AtariX
@@ -147,3 +147,9 @@ License: http://www.gzip.org/zlib/zlib_license.html
 
 **Atari VDI Drivers**
 Copyright: Wilfried und Sven Behne, License: mit freundlicher Genehmigung
+
+**Klick**
+https://freesound.org/people/BryanSaraiva/sounds/820351/
+
+**Ding**
+https://freesound.org/people/datasoundsample/sounds/638638/

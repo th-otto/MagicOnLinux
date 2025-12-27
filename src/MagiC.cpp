@@ -43,6 +43,7 @@
 #include "conversion.h"
 #include "gui.h"
 #include "nf_objs.h"
+#include "audio.h"
 
 //#define _DEBUG_KB_CRITICAL_REGION 1
 
@@ -2602,7 +2603,18 @@ uint32_t CMagiC::AtariDosound(uint32_t params, uint8_t *addrOffset68k)
     uint32_t fn = be32toh(theParm->fn);
     const uint8_t *pSoundData = (uint8_t *) (addrOffset68k + be32toh(theParm->new_sound));
     uint8_t *pSoundVariables = (uint8_t *) (addrOffset68k + be32toh(theParm->sound_vars));
-    DebugWarning2("(fn = %u, new_sound=0x%08x, sound_vars=0x%08x)", be32toh(theParm->fn), be32toh(theParm->new_sound), be32toh(theParm->sound_vars));
+    DebugInfo2("(fn = %u, new_sound=0x%08x, sound_vars=0x%08x)", be32toh(theParm->fn), be32toh(theParm->new_sound), be32toh(theParm->sound_vars));
+    if (fn == 1)
+    {
+        CAudio::play_click();
+    }
+    else
+    if (fn == 2)
+    {
+        CAudio::play_pling();
+    }
+    (void) pSoundData;
+    (void) pSoundVariables;
     return 0;
 }
 

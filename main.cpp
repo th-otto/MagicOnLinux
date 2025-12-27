@@ -448,7 +448,7 @@ static void conv_text_host2atari(const char *file_h2a)
     }
 }
 
-
+#include "audio.h"
 /** **********************************************************************************************
  *
  * @brief Main function
@@ -783,6 +783,7 @@ int main(int argc, char * const argv[])
     CMagiCPrint::init();
     CMagiCSerial::init();
     m68k_init();
+    CAudio::init("assets/820351_17769113-lq.mp3", "assets/638638_433684-lq.mp3");
     CMagiCScreen::init();
     if (EmulationRunner::init())
     {
@@ -795,6 +796,7 @@ int main(int argc, char * const argv[])
     EmulationRunner::StartEmulatorThread();
     EmulationRunner::EventLoop();
     CMagiCScreen::exit();
+    CAudio::exit();
     CMagiCPrint::exit();
     CMagiCSerial::exit();
 

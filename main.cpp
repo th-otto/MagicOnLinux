@@ -783,7 +783,8 @@ int main(int argc, char * const argv[])
     CMagiCPrint::init();
     CMagiCSerial::init();
     m68k_init();
-    CAudio::init("assets/820351_17769113-lq.mp3", "assets/638638_433684-lq.mp3");
+    //CAudio::init("assets/820351_17769113-lq.mp3", "assets/638638_433684-lq.mp3");
+    CAudio::init(nullptr, nullptr);
     CMagiCScreen::init();
     if (EmulationRunner::init())
     {

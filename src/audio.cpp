@@ -24,6 +24,8 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
+#include <audio_click.h>
+#include <audio_pling.h>
 #include "audio.h"
 
 
@@ -140,18 +142,44 @@ int CAudio::init(const char *click, const char *pling)
         return -4;
     }
 
-    music_click = Mix_LoadMUS(click);
-    if (music_click == nullptr)
+    if (click != nullptr)
     {
-        printf("Mix_LoadMUS() -> %s\n", Mix_GetError());
-        return -5;
+        music_click = Mix_LoadMUS(click);
+        if (music_click == nullptr)
+        {
+            printf("Mix_LoadMUS() -> %s\n", Mix_GetError());
+            return -5;
+        }
+    }
+    else
+    {
+        SDL_RWops *music_click_data = SDL_RWFromMem((void *) audio_click_data_mp3, sizeof(audio_click_data_mp3));
+        music_click = Mix_LoadMUSType_RW(music_click_data, MUS_MP3, 1);
+        if (music_click == nullptr)
+        {
+            printf("Mix_LoadMUS() -> %s\n", Mix_GetError());
+            return -5;
+        }
     }
 
-    music_pling = Mix_LoadMUS(pling);
-    if (music_pling == nullptr)
+    if (pling != nullptr)
     {
-        printf("Mix_LoadMUS() -> %s\n", Mix_GetError());
-        return -5;
+        music_pling = Mix_LoadMUS(pling);
+        if (music_pling == nullptr)
+        {
+            printf("Mix_LoadMUS() -> %s\n", Mix_GetError());
+            return -5;
+        }
+    }
+    else
+    {
+        SDL_RWops *music_pling_data = SDL_RWFromMem((void *) audio_pling_data_mp3, sizeof(audio_pling_data_mp3));
+        music_pling = Mix_LoadMUSType_RW(music_pling_data, MUS_MP3, 1);
+        if (music_pling == nullptr)
+        {
+            printf("Mix_LoadMUS() -> %s\n", Mix_GetError());
+            return -5;
+        }
     }
 
     return 0;

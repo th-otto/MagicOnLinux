@@ -12,7 +12,9 @@ This is kind of successor of:
 * *MagicMac X* for MacOS X on PPC (32-bit application) and
 * *AtariX* for macOS up to 10.13 "High Sierra" (32-bit application).
 
-Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture, any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file partially remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution will be to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
+Basically MagicOnLinux is an extended and improved AtariX with removed GUI and replaced host file system; in particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture, any callback from emulated to emulator had to be replaced with a new, different concept.
+
+Additionally to AtariX and its predecessors, MagicOnLinux has limited hardware emulation, mainly for video registers, for higher compatibility, basic sound for key click and bell, and network support.
 
 # How To Build (Linux, tested with Ubuntu 24.04)
 
@@ -67,6 +69,8 @@ You can install the program with "sudo make install". This copies the executable
 
 Run the application with "magiclinux/build/magic-on-linux".
 
+Try to e.g. add command line parameter "--atari-screen-mode=st-high" for misbehaving programs.
+
 Use parameter "-h" or "--help" for an explanation of the parameters.
 
 Especially helpful: parameter "-e" to open the configuration file in a text editor.
@@ -87,11 +91,13 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Emulates MC68020 processor
 * Arbitrary screen sizes and colour depths
 * Zoom, helpful for original 640x400 or 640x200 resolution
+* Basic, limited hardware emulation for video registers
+* Basic sound, key click and bell only.
 * Full access to host file system, up to root
 * Mounts Atari volume or floppy disk images and primary partions of MBR partitioned disk images.
+* Mount file systems, folder or image, via Drag&Drop, readable or read-only.
 * Copy/paste clipboard text between host and emulated system.
 * Command line option to convert Atari text files to UTF-8 and vice-versa, including line endings between CR/LF and LF.
-* Mount file systems, folder or image, via Drag&Drop, readable or read-only.
 * Some command line switches are provided to override config file settings.
 
 # Remarks
@@ -104,8 +110,9 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 
 # Bugs and Agenda
 
-* Musashi emulator sources should be synchronised with latest version (see below).
 * Atari root file system (like MAGIC_C) folder should be automatically created.
+* 68882 FPU emulation should be added, i.e. the line-F-opcodes should work.
+* Musashi emulator sources might be synchronised with latest version (see below).
 
 # Example Command to Create a Volume Image:
 

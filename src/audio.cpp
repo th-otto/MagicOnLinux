@@ -22,7 +22,6 @@
 *
 */
 
-#include <SDL2/SDL.h>
 #include <SDL2/SDL_mixer.h>
 #include <audio_click.h>
 #include <audio_pling.h>
@@ -30,7 +29,9 @@
 
 
 #if 0
-// without mixer
+//
+// sample code without mixer -- reasonable?
+//
 struct AudioData
 {
     Uint8* position;
@@ -56,7 +57,7 @@ void audioCallback(void* userData, Uint8* stream, int streamLength)
     audio->length -= length;
 }
 
-int main(int argc, char** argv)
+int play_file(const char *filePath)
 {
     SDL_Init(SDL_INIT_AUDIO);
 
@@ -67,7 +68,8 @@ int main(int argc, char** argv)
 
     if (SDL_LoadWAV(filePath, &wavSpec, &wavStart, &wavLength) == NULL)
     {
-        cerr << "Error: file could not be loaded as an audio file." << endl;
+        printf("SDL_LoadWAV() -> %s\n", SDL_GetError());
+        return -1;
     }
 
     AudioData audio;
@@ -79,15 +81,13 @@ int main(int argc, char** argv)
 
     SDL_AudioDeviceID audioDevice;
     audioDevice = SDL_OpenAudioDevice(NULL, 0, &wavSpec, NULL, SDL_AUDIO_ALLOW_ANY_CHANGE);
-
     if (audioDevice == 0)
     {
-        cerr << "Error: " << SDL_GetError() << endl;
-        return 1;
+        printf("SDL_OpenAudioDevice() -> %s\n", SDL_GetError());
+        return -2;
     }
 
     SDL_PauseAudioDevice(audioDevice, 0);
-
     while (audio.length > 0)
     {
         SDL_Delay(100);
@@ -116,15 +116,21 @@ static Mix_Music *music_click = nullptr;
 static Mix_Music *music_pling = nullptr;
 
 
+/** **********************************************************************************************
+ *
+ * @brief Initialise audio class
+ *
+ * @param[in]  click    path of an mp3 file for the keyboard click sound, or nullptr
+ * @param[in]  pling    path of an mp3 file for the bell sound, or nullptr
+ *
+ * @return zero or error code
+ *
+ * @note If nullptr is passed as mp3 file, the internal sounds are used.
+ *
+ ************************************************************************************************/
 int CAudio::init(const char *click, const char *pling)
 {
     static const int init_flags = MIX_INIT_MP3;
-
-    if (SDL_Init(SDL_INIT_AUDIO) < 0)
-    {
-        printf("SDL_Init(SDL_INIT_AUDIO) -> %s\n", Mix_GetError());
-        return -1;
-    }
 
     if (init_flags != Mix_Init(init_flags))
     {
@@ -132,15 +138,19 @@ int CAudio::init(const char *click, const char *pling)
         return -2;
     }
 
-    static const int frequency = 22050;
+    static const int frequency = 48000;
     static const Uint16 format = AUDIO_S16SYS;
     static const int channels = 2;
-    static const int chunksize = 640;
+    static const int chunksize = 1024;
     if (Mix_OpenAudio(frequency, format, channels, chunksize))
     {
         printf("Mix_OpenAudio() -> %s\n", Mix_GetError());
         return -4;
     }
+
+    /*
+    * Key click sound
+    */
 
     if (click != nullptr)
     {
@@ -157,10 +167,14 @@ int CAudio::init(const char *click, const char *pling)
         music_click = Mix_LoadMUSType_RW(music_click_data, MUS_MP3, 1);
         if (music_click == nullptr)
         {
-            printf("Mix_LoadMUS() -> %s\n", Mix_GetError());
+            printf("Mix_LoadMUSType_RW() -> %s\n", Mix_GetError());
             return -5;
         }
     }
+
+    /*
+    * Bell sound (^G)
+    */
 
     if (pling != nullptr)
     {
@@ -177,7 +191,7 @@ int CAudio::init(const char *click, const char *pling)
         music_pling = Mix_LoadMUSType_RW(music_pling_data, MUS_MP3, 1);
         if (music_pling == nullptr)
         {
-            printf("Mix_LoadMUS() -> %s\n", Mix_GetError());
+            printf("Mix_LoadMUSType_RW() -> %s\n", Mix_GetError());
             return -5;
         }
     }
@@ -185,11 +199,21 @@ int CAudio::init(const char *click, const char *pling)
     return 0;
 }
 
+
+/** **********************************************************************************************
+ *
+ * @brief De-initialise audio class, free all related resources
+ *
+ * @note Waits until the last music has been played.
+ *
+ ************************************************************************************************/
 void CAudio::exit()
 {
     while (Mix_PlayingMusic())
     {
     }
+
+    Mix_CloseAudio();
 
     if (music_click != nullptr)
     {
@@ -202,10 +226,14 @@ void CAudio::exit()
         Mix_FreeMusic(music_pling);
         music_pling = nullptr;
     }
-
-    SDL_Quit();
 }
 
+
+/** **********************************************************************************************
+ *
+ * @brief Play keyboard click sound
+ *
+ ************************************************************************************************/
 void CAudio::play_click()
 {
     if ((music_click != nullptr) && Mix_PlayMusic(music_click, 0))    // 0: play once and stop
@@ -213,6 +241,13 @@ void CAudio::play_click()
         printf("Mix_PlayMusic() -> %s\n", Mix_GetError());
     }
 }
+
+
+/** **********************************************************************************************
+ *
+ * @brief Play bell sound
+ *
+ ************************************************************************************************/
 void CAudio::play_pling()
 {
     if ((music_pling != nullptr) && Mix_PlayMusic(music_pling, 0))    // 0: play once and stop

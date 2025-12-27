@@ -30,6 +30,7 @@
 
 // debug output for debug configuration
 #if !defined(NDEBUG)
+//#define _DEBUG_MAGIC
 //#define _DEBUG_BASEPAGE
 //#define _DEBUG_KBD_AND_MOUSE
 //#define _DEBUG_KB_CRITICAL_REGION

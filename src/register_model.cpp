@@ -198,7 +198,7 @@ class CVideoAddress : public CRegisterModel
                 case    5: return (physaddr >> 16) & 0xff;  // high byte
                 case    7: return (physaddr >> 8) & 0xff;   // mid byte
                 case    9: return (physaddr) & 0xff;        // low byte
-                case 0x0a: return 0;                            // sync mode
+                case 0x0a: return 0;                        // sync mode
                 case 0x0d: return (physaddr) & 0xff;        // low byte
             }
         }

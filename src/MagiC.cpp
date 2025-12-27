@@ -45,7 +45,13 @@
 #include "nf_objs.h"
 #include "audio.h"
 
-//#define _DEBUG_KB_CRITICAL_REGION 1
+#if !defined(_DEBUG_MAGIC)
+ #undef DebugInfo
+ #define DebugInfo(...)
+ #undef DebugInfo2
+ #define DebugInfo2(...)
+#endif
+
 
 static CMagiC *pTheMagiC = nullptr;
 
@@ -762,13 +768,13 @@ void CMagiC::DumpAtariMem(const char *filename)
  *
  * @brief Initialise Atari-to-host callbacks
  *
- * @param[in] pMacXSysHdr       Atari/host inter-communication data
+ * @param[in] pMacXSysHdr   Atari/host inter-communication data
  * @param[in] pXCmd         currently unused
  *
  ************************************************************************************************/
 void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr, CXCmd *pXCmd)
 {
-#ifndef NDEBUG
+#if 0
     DebugInfo2("() - sizeof(CMagiC_CPPCCallback) = %u", (unsigned) sizeof(CMagiC_CPPCCallback));
     typedef UINT32 (CMagiC::*CMagiC_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
     DebugInfo2("() - sizeof(CMagiC_PPCCallback) = %u", (unsigned) sizeof(CMagiC_PPCCallback));
@@ -1420,9 +1426,6 @@ int CMagiC::EmuThread( void )
 
         if (m_bInterruptMouseKeyboardPending)
         {
-#ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::EmuThread() --- Enter critical region m_KbCriticalRegionId");
-#endif
             OS_EnterCriticalRegion(&m_KbCriticalRegionId);
             if (GetKbBufferFree() < 3)
             {
@@ -1458,9 +1461,6 @@ int CMagiC::EmuThread( void )
                     EMU_INTPENDING_KBMOUSE);
 */
             OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::EmuThread() --- Exited critical region m_KbCriticalRegionId");
-#endif
             m_bWaitEmulatorForIRQCallback = true;
             while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
                 m68k_execute();        // warte bis IRQ-Callback
@@ -1569,6 +1569,7 @@ int CMagiC::GetKbBufferFree( void )
     return(KEYBOARDBUFLEN - nCharsInBuffer - 1);
 }
 
+
 /**********************************************************************
 *
 * Called from both SDL event loop thread and emulation thread.
@@ -1648,16 +1649,10 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
     {
         //    CDebug::DebugInfo("CMagiC::SendKeyboard() --- message == %08x, keyUp == %d", message, (int) keyUp);
 
-#ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboard() --- Enter critical region m_KbCriticalRegionId");
-#endif
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
         if (GetKbBufferFree() < 1)
         {
             OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
-#endif
             DebugError2("() -- keyboard buffer full. Ignore key press");
             return 1;
         }
@@ -1678,9 +1673,6 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
         if (!val)
         {
             OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
-#endif
             DebugError2("() -- unknown key. Ignore key press");
             return 0;
         }
@@ -1702,9 +1694,6 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
                     EMU_INTPENDING_KBMOUSE);
 
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
-#endif
     }
 
     return 0;    // OK
@@ -1775,9 +1764,6 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
         }
     */
         m_CurrModifierKeys = modifiers;
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboardShift() --- Enter critical region m_KbCriticalRegionId");
-    #endif
         OS_EnterCriticalRegion(m_KbCriticalRegionId, kDurationForever);
         for    (;;)
         {
@@ -1792,9 +1778,6 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
             if (GetKbBufferFree() < nKeys)
             {
                 OS_ExitCriticalRegion(m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-                CDebug::DebugInfo("CMagiC::SendKeyboardShift() --- Exited critical region m_KbCriticalRegionId");
-    #endif
                 DebugError("CMagiC::SendKeyboardShift() --- Tastenpuffer ist voll");
                 return(1);
             }
@@ -1819,9 +1802,6 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
                 EMU_INTPENDING_KBMOUSE);
 
         OS_ExitCriticalRegion(m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboardShift() --- Exited critical region m_KbCriticalRegionId");
-    #endif
     }
 
     return 0;    // OK
@@ -1850,9 +1830,6 @@ int CMagiC::SendMousePosition(int x, int y)
         if (y < 0)
             y = 0;
 
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendMousePosition() --- Enter critical region m_KbCriticalRegionId");
-    #endif
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
         m_InterruptMouseWhere.x = (short) x;
         m_InterruptMouseWhere.y = (short) y;
@@ -1865,9 +1842,6 @@ int CMagiC::SendMousePosition(int x, int y)
                 EMU_INTPENDING_KBMOUSE);
 
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendMousePosition() --- Exited critical region m_KbCriticalRegionId");
-    #endif
     }
 
     return 0;    // OK
@@ -1928,9 +1902,6 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
             return 1;
         }
 
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendMouseButton() --- Enter critical region m_KbCriticalRegionId");
-    #endif
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
 #if 0
         if (!Preferences::KeyCodeForRightMouseButton)
@@ -1976,9 +1947,6 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
                 EMU_INTPENDING_KBMOUSE);
 
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendMouseButton() --- Exited critical region m_KbCriticalRegionId");
-    #endif
     }
 
     return 0;    // OK
@@ -3067,20 +3035,10 @@ uint32_t CMagiC::AtariExit(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
 {
-#ifndef NDEBUG
-    const unsigned char *text = addrOffset68k + params;
-    //printf((char *) text);
-    DebugInfo2("(%s)", CConversion::textAtari2Host(text));
-/*
-    if ((text[0] == 'A') && (text[1] == 'E') && (text[2] == 'S'))
-    {
-        int68k_enable(0);   // TODO: remove
-    }
-*/
-#else
+    DebugInfo2("(%s)", CConversion::textAtari2Host(addrOffset68k + params));
     (void) params;
     (void) addrOffset68k;
-#endif
+
     return 0;
 }
 
@@ -3214,7 +3172,7 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
     {
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
         // no data to process
-        return 0;  // no mouse or keyboard events to process
+        return 0;  // no mouse or keyboard events to process, note that caller must explicitly ignore zeros
     }
 
     // read byte from mouse/keyboard ringbuffer

@@ -693,28 +693,6 @@ int main(int argc, char * const argv[])
     }
 
     /*
-    * Additional parameters are treated as Atari files to open.
-    */
-
-    if (optind < argc)
-    {
-        unsigned startno = 0;
-        while (optind < argc)
-        {
-            if (startno < MAX_START_APPS)
-            {
-                printf("autostart %s\n", argv[optind]);
-                Preferences::AtariStartApplications[startno++] = argv[optind];
-            }
-            else
-            {
-                printf("Ignore %s\n", argv[optind]);
-            }
-            optind++;
-        }
-    }
-
-    /*
     * Write default parameters and exit
     */
 
@@ -767,6 +745,7 @@ int main(int argc, char * const argv[])
     */
 
     DebugInit(NULL /* stderr */);
+    //DebugInit("/tmp/magic-on-linux.log");
     if (Preferences::init(config,
                          colour_mode, width, height, stretch_x, stretch_y, double_vert,
                          relativeMouse, atari_memsize,
@@ -781,6 +760,28 @@ int main(int argc, char * const argv[])
     if (localise(arg_lang))
     {
         return 4;
+    }
+
+    /*
+    * Additional parameters are treated as Atari files to open.
+    */
+
+    if (optind < argc)
+    {
+        unsigned startno = 0;
+        while (optind < argc)
+        {
+            if (startno < MAX_START_APPS)
+            {
+                printf("autostart %s\n", argv[optind]);
+                Preferences::AtariStartApplications[startno++] = CConversion::copyString(argv[optind]);
+            }
+            else
+            {
+                printf("Ignore %s\n", argv[optind]);
+            }
+            optind++;
+        }
     }
 
     /*
@@ -808,6 +809,7 @@ int main(int argc, char * const argv[])
     CAudio::exit();
     CMagiCPrint::exit();
     CMagiCSerial::exit();
+    Preferences::exit();
 
     return 0;
 }

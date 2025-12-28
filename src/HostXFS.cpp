@@ -447,6 +447,30 @@ int CHostXFS::getDrvNo(char c)
 
 /** **********************************************************************************************
  *
+ * @brief Check if a given path is an Atari path
+ *
+ * @param[in]   path         Atari path or not
+ *
+ * @return true, if path is an Atari path
+ *
+ ************************************************************************************************/
+bool CHostXFS::isAtariPath(const char *path)
+{
+    if (strlen(path) >= 2)
+    {
+        int drv = getDrvNo(path[0]);
+        if ((drv >= 0) && (path[1] == ':'))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Convert Atari path to host path
  *
  * @param[in]   src          Atari path

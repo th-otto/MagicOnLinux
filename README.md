@@ -71,13 +71,13 @@ Run these steps to (1) register the application with its icon and (2) register A
 - sudo ./install-mime-types.sh
 - popd
 
-The first step copies the executable file, a ".desktop" file and an icon file to usually "/usr/local/", if not otherwise specified (see above). Otherwise, MagicOnLinux will always show your system theme's default icon for uninstalled applications.
+The first step copies the executable file, a ".desktop" file and an icon file to usually "/usr/local/", if not otherwise specified (see above). Otherwise, MagicOnLinux will always be represented with your system theme's generic application icon.
 
-The second step copies a specification of Atari program files with their respective icon to the system database. Afterwards, you should see ".PRG" files etc. with the Atari logo in your file manager (e.g. Nautilus), and a double click on them should start magic-on-linux.
+The second step copies a description of Atari program files with their respective icon to the system database. Afterwards, you should see ".PRG" files etc. with the Atari logo in your file manager (e.g. Nautilus). Further, a double click on an Atari program inside your host file manager should start magic-on-linux and immediately run the double-clicked Atari program inside the emulator. You can also auto-run multiple Atari applications, up to four. However, note that each time you double click an Atari program, an new instance of the emulator will be started. This behaviour may be changed in future.
 
 # How To Run
 
-Run the application with "magiclinux/build/magic-on-linux".
+Without having installed the application, run it with "magiclinux/build/magic-on-linux". If installed, you can omit the path, start it from your application manager or even with a double click on any Atari program.
 
 Try to e.g. add command line parameter "--atari-screen-mode=st-high" for misbehaving programs.
 

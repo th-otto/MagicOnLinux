@@ -374,6 +374,24 @@ int Preferences::init
 
 /** **********************************************************************************************
  *
+ * @brief De-inialise, free all allocated resources
+ *
+ ************************************************************************************************/
+void Preferences::exit()
+{
+    for (unsigned startno = 0; startno < MAX_START_APPS; startno++)
+    {
+        if (AtariStartApplications[startno] != nullptr)
+        {
+            free((void *) AtariStartApplications[startno]);
+            AtariStartApplications[startno] = nullptr;
+        }
+    }
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Get text description of video mode
  *
  * @param[in]  mode     video mode

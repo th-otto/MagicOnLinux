@@ -3220,22 +3220,44 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
         //
 
         case 1:
+        {
             // TODO: OS_EnterCriticalRegion(&m_AECriticalRegionId);
-            if (Preferences::AtariStartApplications[0] != nullptr)
+            const char *path = Preferences::AtariStartApplications[0];
+            if (path != nullptr)
             {
-                if (strlen(Preferences::AtariStartApplications[0]) < 255)
+                uint8_t *pBuf = addrOffset68k + be32toh(theMmxDaemonParm->parm);
+                if (!pTheMagiC->m_HostXFS.isAtariPath(path))
                 {
-                    // Copy path of application to start to MMXDAEMN
-                    uint8_t *pBuf = addrOffset68k + be32toh(theMmxDaemonParm->parm);
-                    strcpy((char *) pBuf, Preferences::AtariStartApplications[0]);
-                    ret = E_OK;
+                    //
+                    // If the path is a host path, directly convert it to Atari path in the caller's buffer
+                    //
+
+                    if (pTheMagiC->m_HostXFS.hostPath2AtariPath(path, 'C' - 'A', pBuf, 256) == 0)
+                    {
+                        ret = E_OK;
+                    }
                 }
                 else
                 {
-                    DebugError2("() -- path length overflow");
+                    //
+                    // If the path is an Atari path, check for overflow and copy it to the caller's buffer.
+                    // TODO: convert non-ASCII characters from host to Atari
+                    //
+
+                    if (strlen(Preferences::AtariStartApplications[0]) < 255)
+                    {
+                        // Copy path of application to start to MMXDAEMN
+                        strcpy((char *) pBuf, Preferences::AtariStartApplications[0]);
+                        ret = E_OK;
+                    }
+                    else
+                    {
+                        DebugError2("() -- path length overflow");
+                    }
                 }
 
                 // update queue
+                free((void *) Preferences::AtariStartApplications[0]);
                 for (unsigned i = 0; i < MAX_START_APPS; i++)
                 {
                     Preferences::AtariStartApplications[i] = Preferences::AtariStartApplications[i + 1];
@@ -3248,6 +3270,7 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
             }
             // TODO: OS_ExitCriticalRegion(&m_AECriticalRegionId);
             break;
+        }
 
         //
         // Atari queries shutdown status

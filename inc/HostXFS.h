@@ -74,6 +74,9 @@ class CHostXFS
     // range check has been done before. TODO: any actions necessary here?
     // drv_close() already has been called.
     void eject(uint16_t drv);
+    bool isAtariPath(const char *path);
+    int atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned bufsiz);
+    int hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned bufsiz);
 
     // called from main thread. TODO: add semaphore
     void setNewDrv(uint16_t drv, const char *allocated_path, bool longnames, bool readonly)
@@ -249,8 +252,6 @@ class CHostXFS
                 bool upperCase, bool toAtari);
     static INT32 hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz);
     static int getDrvNo(char c);
-    int atariPath2HostPath(const unsigned char *src, unsigned default_drv, char *dst, unsigned bufsiz);
-    int hostPath2AtariPath(const char *src, unsigned default_drv, char unsigned *dst, unsigned bufsiz);
 
     static int atariFnameToHostFname(const unsigned char *src, bool upperCase, char *dst, unsigned bufsiz);
     int atariFnameToHostFnameCond8p3(uint16_t drv, const unsigned char *atari_fname, char *host_fname, unsigned bufsiz);

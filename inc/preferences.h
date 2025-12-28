@@ -92,6 +92,7 @@ class Preferences
                     const char *rootfs_override,
                     const char *kernel_override,
                     bool rewrite_conf);
+    static void exit();
     static const char *videoModeToString(enAtariScreenColourMode mode);
     static const char *videoModeToShortString(enAtariScreenColourMode mode);
 

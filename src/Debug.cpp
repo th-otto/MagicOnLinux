@@ -49,6 +49,10 @@ void CDebug::_DebugInit(const char *debugFileName)
 	{
 		dbgFile = fopen(debugFileName, "wt");
 	}
+    else
+    {
+        dbgFile = stderr;
+    }
 }
 
 
@@ -89,7 +93,7 @@ void CDebug::_DebugPrint(const char *head, const char *format, va_list arglist)
 	}
 	else
 	{
-		fprintf(stderr, "%s\n", line);
+		fprintf(dbgFile, "%s\n", line);
 	}
 }
 

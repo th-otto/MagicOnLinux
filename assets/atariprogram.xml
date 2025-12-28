@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
+    <mime-type type="application/atariprogram">
+    <comment>Atari program file</comment>
+    <magic priority="50">
+        <match value="0x60" type="byte" offset="0">
+            <match value="0x1a" type="byte" offset="1"/>
+        </match>
+    </magic>
+    <glob pattern="*.PRG"/>
+    <glob pattern="*.APP"/>
+    <glob pattern="*.ACC"/>
+    <glob pattern="*.TOS"/>
+    <glob pattern="*.TTP"/>
+    <generic-icon name="atariprogram"/>
+    </mime-type>
+</mime-info>
+

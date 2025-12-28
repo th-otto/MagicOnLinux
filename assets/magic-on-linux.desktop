@@ -1,9 +1,10 @@
 [Desktop Entry]
 Encoding=UTF-8
 Name=MagicOnLinux
+GenericName=Atari/MagiC Emulator
 Comment=High Level Emulator for running Atari/MagiC programs
 Comment[de]=High-Level-Emulator für Atari/MagiC-Programme
-Exec=magic-on-linux
+Exec=magic-on-linux %F
 MimeType=application/atariprogram
 Icon=magic-on-linux
 #use absolute path in case the icon is not found:

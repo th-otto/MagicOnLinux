@@ -3,9 +3,7 @@
     <mime-type type="application/atariprogram">
     <comment>Atari program file</comment>
     <magic priority="50">
-        <match value="0x60" type="byte" offset="0">
-            <match value="0x1a" type="byte" offset="1"/>
-        </match>
+        <match type="big16" offset="0" value="0x601a"/>
     </magic>
     <glob pattern="*.PRG"/>
     <glob pattern="*.APP"/>
@@ -15,4 +13,3 @@
     <generic-icon name="atariprogram"/>
     </mime-type>
 </mime-info>
-

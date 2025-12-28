@@ -7,4 +7,4 @@ update-mime-database -V /usr/share/mime
 update-icon-caches /usr/local/share/icons
 update-desktop-database /usr/local/share/applications
 
-#xdg-mime uninstall --novendor --mode system atariprogram.xml
+#xdg-mime uninstall --novendor --mode system assets/atariprogram.xml

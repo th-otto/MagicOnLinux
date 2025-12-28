@@ -61,9 +61,19 @@ You might replace CMAKE_BUILD_TYPE with "Debug" (to get debug log output) or omi
 
 Alternatively you can put your Atari root file system (drive C:) and kernel (MAGICLIN.OS) anywhere and configure the emulator accordingly.
 
-# How To Install
+# How To Install (Optional)
 
-You can install the program with "sudo make install". This copies the executable file, a ".desktop" file and an icon file to usually "/usr/local/", if not otherwise specified (see above). Otherwise, MagicOnLinux will always show your system theme's default icon for uninstalled applications.
+Run these steps to (1) register the application with its icon and (2) register Atari executable files with file icon and default application:
+
+- pushd magiclinux/build
+- sudo make install
+- cd ..
+- sudo ./install-mime-types.sh
+- popd
+
+The first step copies the executable file, a ".desktop" file and an icon file to usually "/usr/local/", if not otherwise specified (see above). Otherwise, MagicOnLinux will always show your system theme's default icon for uninstalled applications.
+
+The second step copies a specification of Atari program files with their respective icon to the system database. Afterwards, you should see ".PRG" files etc. with the Atari logo in your file manager (e.g. Nautilus), and a double click on them should start magic-on-linux.
 
 # How To Run
 
@@ -160,3 +170,6 @@ https://freesound.org/people/BryanSaraiva/sounds/820351/
 
 **Ding**
 https://freesound.org/people/datasoundsample/sounds/638638/
+
+**Atari MIME program icon**
+https://www.pngegg.com/en/png-mlumk

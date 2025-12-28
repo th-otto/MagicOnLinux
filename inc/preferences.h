@@ -40,6 +40,8 @@
 #define ATARI_RAM_SIZE_MIN          (800*1024)          // 800 KiB ..
 #define ATARI_RAM_SIZE_MAX          (2U*1024*1024*1024)  // .. 2 GiB
 
+#define MAX_START_APPS 4        // number of Atari applications that can be started from host
+
 
 // Atari screen colour mode
 typedef enum
@@ -120,6 +122,7 @@ class Preferences
     static unsigned ScreenRefreshFrequency;
     //static bool m_bPPC_VDI_Patch;                 // used for native VDI output on PPC
     static struct ethernet_options eth[MAX_ETH];
+    static const char *AtariStartApplications[MAX_START_APPS];
 
     static const char *drvPath[NDRIVES];
     static unsigned drvFlags[NDRIVES];              // see above (read-only, ...)

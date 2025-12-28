@@ -147,6 +147,7 @@ unsigned Preferences::AtariScreenHeight = 768;
 unsigned Preferences::AtariScreenStretchX = 2;
 unsigned Preferences::AtariScreenStretchY = 2;
 unsigned Preferences::ScreenRefreshFrequency = 60;
+const char *Preferences::AtariStartApplications[MAX_START_APPS];
 //bool Preferences::bPPC_VDI_Patch;
 struct ethernet_options Preferences::eth[MAX_ETH] =
 {

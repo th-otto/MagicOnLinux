@@ -3186,12 +3186,20 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Programmstart aus Apple-Events abholen
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: MMXDAEMON polling
+ *
+ * @param[in] params            0: about to handle interrupt, 1: leaving interrupt
+ * @param[in] addrOffset68k     Host address of 68k memory (unused)
+ *
+ * @return zero or error code
+ *
+ * @note The MMXDAEMON provides an interface between the host and the Atari shell.
+ *       It regularly polls for host shutdown and for starting Atari applications from
+ *       the host's file manager or command line.
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
 {
     uint32_t ret;
@@ -3207,30 +3215,44 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
 
     switch(be16toh(theMmxDaemonParm->cmd))
     {
-        // ermittle zu startende Programme/Dateien aus AppleEvent 'odoc'
+        //
+        // run Atari programs, initiated by host
+        //
+
         case 1:
-#if 0
-            OS_EnterCriticalRegion(&m_AECriticalRegionId);
-            if (m_iNoOfAtariFiles)
+            // TODO: OS_EnterCriticalRegion(&m_AECriticalRegionId);
+            if (Preferences::AtariStartApplications[0] != nullptr)
             {
-                unsigned char *pBuf;
-                // Es liegen Anforderungen vor.
-                // Zieladresse:
-                pBuf = addrOffset68k + be32toh(theMmxDaemonParm->parm);
-                // von Quelladresse kopieren
-                strcpy((char *) pBuf, m_szStartAtariFiles[m_iOldestAtariFile]);
-                ret = E_OK;
-                m_iNoOfAtariFiles--;
+                if (strlen(Preferences::AtariStartApplications[0]) < 255)
+                {
+                    // Copy path of application to start to MMXDAEMN
+                    uint8_t *pBuf = addrOffset68k + be32toh(theMmxDaemonParm->parm);
+                    strcpy((char *) pBuf, Preferences::AtariStartApplications[0]);
+                    ret = E_OK;
+                }
+                else
+                {
+                    DebugError2("() -- path length overflow");
+                }
+
+                // update queue
+                for (unsigned i = 0; i < MAX_START_APPS; i++)
+                {
+                    Preferences::AtariStartApplications[i] = Preferences::AtariStartApplications[i + 1];
+                }
+                Preferences::AtariStartApplications[MAX_START_APPS - 1] = nullptr;
             }
             else
+            {
                 ret = (uint32_t) EFILNF;
-            OS_ExitCriticalRegion(&m_AECriticalRegionId);
-#else
-            ret = (uint32_t) EFILNF;
-#endif
+            }
+            // TODO: OS_ExitCriticalRegion(&m_AECriticalRegionId);
             break;
 
-        // ermittle shutdown-Status
+        //
+        // Atari queries shutdown status
+        //
+
         case 2:
             ret = (uint32_t) pTheMagiC->m_bShutdown;
             break;

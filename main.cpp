@@ -67,7 +67,7 @@ static void print_opt(const struct option *options)
         "   convert text file from host to Atari format"
     };
 
-    puts("Usage:");
+    puts("Usage: magic-on-linux {options} [atari-programs ..]");
     int index = 0;
     while(options->name != nullptr)
     {
@@ -693,17 +693,25 @@ int main(int argc, char * const argv[])
     }
 
     /*
-    * Ignore additional parameters
+    * Additional parameters are treated as Atari files to open.
     */
 
     if (optind < argc)
     {
-        printf("additional options ignored: ");
+        unsigned startno = 0;
         while (optind < argc)
         {
-            printf("%s ", argv[optind++]);
+            if (startno < MAX_START_APPS)
+            {
+                printf("autostart %s\n", argv[optind]);
+                Preferences::AtariStartApplications[startno++] = argv[optind];
+            }
+            else
+            {
+                printf("Ignore %s\n", argv[optind]);
+            }
+            optind++;
         }
-        printf("\n");
     }
 
     /*

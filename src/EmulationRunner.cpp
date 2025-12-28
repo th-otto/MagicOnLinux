@@ -642,6 +642,7 @@ void EmulationRunner::EventLoop(void)
                 break;
 
             case SDL_QUIT:
+                m_Emulator.SendShutdown();      // -> MMXDAEMON
                 m_Emulator.TerminateThread();
                 m_bQuitLoop = true;
                 break;

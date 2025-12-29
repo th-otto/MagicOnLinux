@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mime-info xmlns='http://www.freedesktop.org/standards/shared-mime-info'>
     <mime-type type="application/atariprogram">
-    <sub-class-of type="application/octet-stream"/>
-    <comment>Atari program file</comment>
-    <magic priority="50">
-        <match type="big16" offset="0" value="0x601a"/>
-    </magic>
-    <glob pattern="*.PRG"/>
-    <glob pattern="*.APP"/>
-    <glob pattern="*.ACC"/>
-    <glob pattern="*.TOS"/>
-    <glob pattern="*.TTP"/>
-    <generic-icon name="atariprogram"/>
+        <sub-class-of type="application/octet-stream"/>
+        <comment>Atari program file</comment>
+        <magic priority="50">
+            <match type="big16" offset="0" value="0x601a"/>
+        </magic>
+        <glob pattern="*.PRG"/>
+        <glob pattern="*.APP"/>
+        <glob pattern="*.ACC"/>
+        <glob pattern="*.TOS"/>
+        <glob pattern="*.TTP"/>
+        <generic-icon name="atariprogram"/>
     </mime-type>
 </mime-info>

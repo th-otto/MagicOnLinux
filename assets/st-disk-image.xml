@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+	<mime-type type="application/x-st-disk-image">
+		<sub-class-of type="application/octet-stream"/>
+		<comment>ST disk image</comment>
+		<glob pattern="*.st"/>
+		<generic-icon name="application-x-st-disk-image"/>
+	</mime-type>
+</mime-info>

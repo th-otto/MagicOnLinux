@@ -47,6 +47,7 @@ class EmulationRunner
   private:
 
     static uint32_t LoopTimer(Uint32 interval, void* param);
+    static bool convertKeyEvent(SDL_KeyboardEvent *ev);
     static void HandleUserEvents(SDL_Event* event);
     static void EmulatorWindowUpdate(void);
     static void _OpenWindow(void);

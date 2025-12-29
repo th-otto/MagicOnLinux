@@ -51,7 +51,7 @@ rwabs() does not support physical sector numbers, yet. Maybe that is not really 
 Omicron Basic Compiler 3.06 (crash, and when ejecting "omikron_basic_compiler_3_06_omikron.st", system crashes)
 
 With no VT52.PRG, if starting MCMD, it takes forever until screen gets white,
-here nine seconds. Why?
+here nine seconds. Why? This delay is hard coded to the kernel, because VT52 might time while being loaded from floppy disk.
 
 NVDI seems to freeze during start when ASSIGN.SYS is missing?
 
@@ -59,12 +59,8 @@ mcmd shows "0 bytes free"
 
 Keep aspect ratio during window resize?
 
-Emulator should check version of MAGICLIN.OS to make sure the API matches.
-
 What is XHDI, and shall it be supported? It seems that DFS_FAT.S, the MagiC internal (V)FAT12/16/32
 file system driver, supports this to get information about a storage volume.
-
-system info control panel shows 29.12.2003 as kernel build date. Update!
 
 Drag & Drop file systems treats every file as image. If one image is invalid, no further images can be mounted.
 Maybe provide a list of supported file names extensions (.st, .image, .diskimage).

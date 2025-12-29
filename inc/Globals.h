@@ -43,7 +43,6 @@ extern "C" {
 // compile time switches
 
 #ifdef _DEBUG
-
 //#define _DEBUG_NO_ATARI_KB_INTERRUPTS
 //#define _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
 //#define _DEBUG_NO_ATARI_HZ200_INTERRUPTS

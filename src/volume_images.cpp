@@ -802,7 +802,7 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
     {
         case 1:
             // void hdv_init(void)
-            DebugWarning("() - hdv_init() ignored");
+            DebugWarning2("() - hdv_init() ignored");
             return E_OK;
 
         case 2:

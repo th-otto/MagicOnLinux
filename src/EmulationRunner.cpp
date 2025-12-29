@@ -369,12 +369,12 @@ uint32_t EmulationRunner::LoopTimer(Uint32 interval, void *param)
 
     if (p->m_EmulatorRunning)
     {
-        p->m_Emulator.SendHz200();
+        p->m_Emulator.sendHz200();
         p->m_200HzCnt++;
         if ((p->m_200HzCnt % 4) == 0)
         {
             // VBL interrupt runs with 50 Hz
-            p->m_Emulator.SendVBL();
+            p->m_Emulator.sendVBL();
         }
 
         if (((p->m_200HzCnt % 8) == 0) && (gbAtariVideoBufChanged))
@@ -450,6 +450,66 @@ const char *SDL_WindowEventID_to_str(SDL_WindowEventID id)
     }
 
     return "UNKNOWN";
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Special handling for some keys
+ *
+ * @param[in,out] event         The event can be changed or left unchanged
+ *
+ * @return false, if event has been handled, otherwise true
+ *
+ ************************************************************************************************/
+bool EmulationRunner::convertKeyEvent(SDL_KeyboardEvent *ev)
+{
+    static const uint8_t kbshift_sh_ctrl_alt_mask = (KBSHIFT_SHIFT_RIGHT + KBSHIFT_SHIFT_LEFT + KBSHIFT_CTRL + KBSHIFT_ALT + KBSHIFT_ALTGR);
+    uint8_t kbshift_masked = m_Emulator.getKbshift() & kbshift_sh_ctrl_alt_mask;
+    if ((ev->keysym.scancode == SDL_SCANCODE_GRAVE) &&  (kbshift_masked == KBSHIFT_CTRL + KBSHIFT_ALT))
+    {
+        ev->keysym.scancode = SDL_SCANCODE_ESCAPE;
+        return true;   // continue processing with the changed scancode
+    }
+
+    //
+    // Alt-Cursor for mouse move emulation in absolute mode
+    // Note that the key-release event is ignored here.
+    // Also note that there will be no Atari key click sound, because
+    // the event is handled in the emulator only.
+    //
+
+    if ((kbshift_masked & KBSHIFT_ALT) && !Preferences::bRelativeMouse &&
+        ((ev->keysym.scancode == SDL_SCANCODE_LEFT) || (ev->keysym.scancode == SDL_SCANCODE_RIGHT) ||
+         (ev->keysym.scancode == SDL_SCANCODE_UP) || (ev->keysym.scancode == SDL_SCANCODE_DOWN)))
+    {
+        if (ev->type == SDL_KEYDOWN)
+        {
+            int x, y;
+            bool isShift = kbshift_masked & (KBSHIFT_SHIFT_RIGHT + KBSHIFT_SHIFT_LEFT);
+            int factor = (isShift) ? 1 : 8;
+
+            if ((ev->keysym.scancode == SDL_SCANCODE_LEFT) || (ev->keysym.scancode == SDL_SCANCODE_UP))
+            {
+                factor = -factor;
+            }
+
+            (void) SDL_GetGlobalMouseState(&x, &y);
+            if ((ev->keysym.scancode == SDL_SCANCODE_LEFT) || (ev->keysym.scancode == SDL_SCANCODE_RIGHT))
+            {
+                x += factor * Preferences::AtariScreenStretchX;
+            }
+            else
+            {
+                y += factor * Preferences::AtariScreenStretchY;
+            }
+
+            SDL_WarpMouseGlobal(x, y);
+        }
+        return false;   // no further handling
+    }
+
+    return true;   // continue processing with the unchanged scancode
 }
 
 
@@ -570,16 +630,16 @@ void EmulationRunner::EventLoop(void)
             case SDL_KEYDOWN:
             case SDL_KEYUP:
                 {
-                    const SDL_KeyboardEvent *ev = &event.key;
+                    SDL_KeyboardEvent *ev = &event.key;
                     DebugInfo2("() - type %s", ev->type == SDL_KEYUP ? "up" : "down");
                     DebugInfo2("() - state %s", ev->state == SDL_PRESSED ? "pressed" : "released");
                     DebugInfo2("() - scancode = %08x (%d), keycode = %08x, mod = %04x", ev->keysym.scancode, ev->keysym.scancode, ev->keysym.sym, ev->keysym.mod);
 
-                    (void) m_Emulator.SendSdlKeyboard(ev->keysym.scancode, ev->type == SDL_KEYUP);
+                    if (convertKeyEvent(ev))
+                    {
+                        (void) m_Emulator.sendSdlKeyboard(ev->keysym.scancode, ev->type == SDL_KEYUP);
+                    }
                 }
-                // Quit when user presses a key.
-                //m_bQuitLoop = true;
-                //showPreferencesWindow();
                 break;
 
             case SDL_MOUSEMOTION:
@@ -591,7 +651,7 @@ void EmulationRunner::EventLoop(void)
                     {
                         double xrel = (double) (ev->xrel) / m_hostScreenStretchX;
                         double yrel = (double) (ev->yrel) / m_hostScreenStretchY;
-                        m_Emulator.SendMouseMovement(xrel, yrel);
+                        m_Emulator.sendMouseMovement(xrel, yrel);
                     }
                     else
                     {
@@ -599,7 +659,7 @@ void EmulationRunner::EventLoop(void)
                         double yd = (double) (ev->y) / m_hostScreenStretchY;
                         int x = (int) (xd + 0.5);   // rounding
                         int y = (int) (yd + 0.5);
-                        m_Emulator.SendMousePosition(x, y);
+                        m_Emulator.sendMousePosition(x, y);
                     }
                 }
                 break;
@@ -619,7 +679,7 @@ void EmulationRunner::EventLoop(void)
                     if (atariMouseButton >= 0)
                     {
                         // left button is 0, right button is 1
-                        m_Emulator.SendMouseButton(atariMouseButton, ev->type == SDL_MOUSEBUTTONDOWN);
+                        m_Emulator.sendMouseButton(atariMouseButton, ev->type == SDL_MOUSEBUTTONDOWN);
                     }
                 }
                 break;
@@ -642,8 +702,8 @@ void EmulationRunner::EventLoop(void)
                 break;
 
             case SDL_QUIT:
-                m_Emulator.SendShutdown();      // -> MMXDAEMON
-                m_Emulator.TerminateThread();
+                m_Emulator.sendShutdown();      // -> MMXDAEMON
+                m_Emulator.terminateThread();
                 m_bQuitLoop = true;
                 break;
 
@@ -831,7 +891,7 @@ int EmulationRunner::EmulatorThread(void *param)
         return 0;
     }
 
-    err = m_Emulator.CreateThread();
+    err = m_Emulator.createThread();
     if (err)
     {
         DebugError2("() - m_Emulator.CreateThread() => %d", err);
@@ -842,7 +902,7 @@ int EmulationRunner::EmulatorThread(void *param)
 
     m_EmulatorRunning = true;
 
-    m_Emulator.StartExec();
+    m_Emulator.startExec();
 
     DebugInfo2("() =>");
     return 0;

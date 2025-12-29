@@ -44,31 +44,32 @@ class CMagiC
 
     // initialisation
     int init(CXCmd *pXCmd);
-    int CreateThread(void);         // create emulator thread
-    void StartExec(void);           // ... let it run
-    void StopExec(void);            // ... pause it
-    void TerminateThread(void);     // terminate it
+    int createThread(void);         // create emulator thread
+    void startExec(void);           // ... let it run
+    void stopExec(void);            // ... pause it
+    void terminateThread(void);     // terminate it
 
-    int SendSdlKeyboard(int sdlScanCode, bool KeyUp);
+    int sendSdlKeyboard(int sdlScanCode, bool KeyUp);
     void sendKbshift(uint8_t atari_kbshift);
+    unsigned getKbshift();
     #if 0
     int SendKeyboardShift(uint32_t modifiers);
     #endif
-    int SendMousePosition(int x, int y);
-    int SendMouseMovement(double xrel, double yrel);
-    int SendMouseButton(unsigned int NumOfButton, bool bIsDown);
-    int SendHz200(void);
-    int SendVBL(void);
-    void SendBusError(uint32_t addr, const char *AccessMode);
+    int sendMousePosition(int x, int y);
+    int sendMouseMovement(double xrel, double yrel);
+    int sendMouseButton(unsigned int NumOfButton, bool bIsDown);
+    int sendHz200(void);
+    int sendVBL(void);
+    void sendBusError(uint32_t addr, const char *AccessMode);
     //void SendAtariFile(const char *pBuf); // remnant from MagicMac(X) and AtariX
     bool sendDragAndDropFile(const char *allocated_path);
-    void SendShutdown(void);
+    void sendShutdown(void);
     //void ChangeXFSDrive(short drvNr);
     static void GetActAtariPrg(const char **pName, uint32_t *pact_pd);
     bool m_bEmulatorIsRunning;
     bool m_bEmulatorHasEnded;
     bool m_bShutdown;
-    void DumpAtariMem(const char *filename);
+    void dumpAtariMem(const char *filename);
 
    private:
     struct Atari68kData

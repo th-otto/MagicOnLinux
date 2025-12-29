@@ -96,11 +96,11 @@ void print_app(uint32_t addr68k)
 
 void sendBusError(uint32_t addr, const char *AccessMode)
 {
-    pTheMagiC->SendBusError(addr, AccessMode);
+    pTheMagiC->sendBusError(addr, AccessMode);
 }
 void sendVBL(void)
 {
-    pTheMagiC->SendVBL();
+    pTheMagiC->sendVBL();
 }
 void getActAtariPrg(const char **pName, uint32_t *pact_pd)
 {
@@ -632,7 +632,7 @@ int CMagiC::LoadReloc
 
         for (i = 0; i < sizeof(BasePage); i++)
         {
-            DebugInfo("CMagiC::LoadReloc() - BasePage[%d] = 0x%02x", i, p[i]);
+            DebugInfo2("() - BasePage[%d] = 0x%02x", i, p[i]);
         }
     }
     #endif
@@ -721,7 +721,7 @@ static void PixmapToBigEndian(MXVDI_PIXMAP *thePixMap)
 /*
     if (thePixMap->pixelFormat == k32BGRAPixelFormat)
     {
-        DebugInfo("PixmapToBigEndian() -- k32BGRAPixelFormat => k32ARGBPixelFormat");
+        DebugInfo2("() -- k32BGRAPixelFormat => k32ARGBPixelFormat");
         thePixMap->pixelFormat = htobe32(k32ARGBPixelFormat);
     }
 */
@@ -748,14 +748,14 @@ void CMagiC::DumpAtariMem(const char *filename)
 
     if (!m_RAM68k)
     {
-        DebugError("DumpAtariMem() -- kein Atari-Speicher?!?");
+        DebugError2("() -- no Atari memory?!?");
         return;
     }
 
     f = fopen(filename, "wb");
     if (!f)
     {
-        DebugError("DumpAtariMem() -- kann Datei nicht erstellen.");
+        DebugError2("() -- cannot create dump file.");
         return;
     }
     fwrite(m_RAM68k, 1, m_RAM68ksize, f);
@@ -1222,7 +1222,7 @@ void CMagiC::ChangeXFSDrive(short drvNr)
 *
 **********************************************************************/
 
-int CMagiC::CreateThread( void )
+int CMagiC::createThread( void )
 {
     if (m_BasePage == nullptr)
     {
@@ -1246,37 +1246,16 @@ int CMagiC::CreateThread( void )
     OS_CreateCriticalRegion(&m_ScrCriticalRegionId);
 
     // create emulation thread
-    int err = pthread_create(
-        &m_EmuTaskID,    // out: thread descriptor
-        nullptr,        // no special attributes, use default
-        _EmuThread,        // start routine
-        this                // Parameter
-        );
-    if (err)
+    if (pthread_create(
+            &m_EmuTaskID,    // out: thread descriptor
+            nullptr,        // no special attributes, use default
+            _EmuThread,        // start routine
+            this                // Parameter
+            ))
     {
-        DebugError("CMagiC::CreateThread() - Fehler beim Erstellen des Threads");
-        return err;
+        DebugError2("() : pthread_create() -> %s", strerror(errno));
+        return -1;
     }
-
-    DebugInfo("CMagiC::CreateThread() - erfolgreich");
-
-    /*
-    //TODO: is there a task weight?
-    //errl = MPSetTaskWeight(m_EmuTaskID, 300);    // 100 ist default, 200 ist die blue task
-
-    // Workaround für Fehler in OS X 10.0.0
-    if (errl > 0)
-    {
-        DebugWarning("CMagiC::CreateThread() - Betriebssystem-Fehler beim Priorisieren des Threads");
-        errl = 0;
-    }
-
-    if (errl)
-    {
-        DebugError("CMagiC::CreateThread() - Fehler beim Priorisieren des Threads");
-        return errl;
-    }
-    */
 
     return 0;
 }
@@ -1289,7 +1268,7 @@ int CMagiC::CreateThread( void )
 *
 **********************************************************************/
 
-void CMagiC::StartExec( void )
+void CMagiC::startExec( void )
 {
     m_bCanRun = true;        // darf laufen
     m_AtariKbData[0] = 0;        // kbshift löschen
@@ -1307,7 +1286,7 @@ void CMagiC::StartExec( void )
 *
 **********************************************************************/
 
-void CMagiC::StopExec( void )
+void CMagiC::stopExec( void )
 {
     m68k_StopExecution();   // leave inner emulation loop
     m_bCanRun = false;        // darf nicht laufen
@@ -1320,13 +1299,13 @@ void CMagiC::StopExec( void )
 *
 **********************************************************************/
 
-void CMagiC::TerminateThread(void)
+void CMagiC::terminateThread(void)
 {
-    DebugInfo("CMagiC::TerminateThread()");
+    DebugInfo2("()");
     OS_SetEvent(
             &m_EventId,
             EMU_EVNT_TERM);
-    StopExec();
+    stopExec();
 }
 
 
@@ -1359,18 +1338,18 @@ int CMagiC::EmuThread( void )
         {
             // wir warten darauf, daß wir laufen dürfen
 
-            DebugInfo("CMagiC::EmuThread() -- MPWaitForEvent");
+            DebugInfo2("() -- MPWaitForEvent");
             OS_WaitForEvent(
                         &m_EventId,
                         &EventFlags);
 
-            DebugInfo("CMagiC::EmuThread() -- MPWaitForEvent beendet");
+            DebugInfo2("() -- MPWaitForEvent done");
 
             // wir prüfen, ob wir zum Beenden aufgefordert wurden
 
             if (EventFlags & EMU_EVNT_TERM)
             {
-                DebugInfo("CMagiC::EmuThread() -- normaler Abbruch");
+                DebugInfo2("() -- normal break");
                 goto end_of_thread;    // normaler Abbruch, Thread-Ende
             }
         }
@@ -1429,7 +1408,7 @@ int CMagiC::EmuThread( void )
             OS_EnterCriticalRegion(&m_KbCriticalRegionId);
             if (GetKbBufferFree() < 3)
             {
-                DebugError("CMagiC::EmuThread() --- Tastenpuffer ist voll");
+                DebugError2("() --- Tastenpuffer ist voll");
             }
             else
             {
@@ -1600,7 +1579,7 @@ void CMagiC::PutKeyToBuffer(uint8_t key)
 *
 **********************************************************************/
 
-void CMagiC::SendBusError(uint32_t addr, const char *AccessMode)
+void CMagiC::sendBusError(uint32_t addr, const char *AccessMode)
 {
     m68k_StopExecution();
     m_bBusErrorPending = true;
@@ -1618,7 +1597,7 @@ void CMagiC::SendBusError(uint32_t addr, const char *AccessMode)
 *
 **********************************************************************/
 
-void CMagiC::SendShutdown(void)
+void CMagiC::sendShutdown(void)
 {
     m_bShutdown = true;
 }
@@ -1636,7 +1615,7 @@ void CMagiC::SendShutdown(void)
  * @note Called from main event loop
  *
  ************************************************************************************************/
-int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
+int CMagiC::sendSdlKeyboard(int sdlScanCode, bool keyUp)
 {
     unsigned char val;
 
@@ -1647,7 +1626,7 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
 
     if (m_bEmulatorIsRunning)
     {
-        //    CDebug::DebugInfo("CMagiC::SendKeyboard() --- message == %08x, keyUp == %d", message, (int) keyUp);
+        //    CDebug::DebugInfo2("() --- message == %08x, keyUp == %d", message, (int) keyUp);
 
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
         if (GetKbBufferFree() < 1)
@@ -1655,16 +1634,6 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
             OS_ExitCriticalRegion(&m_KbCriticalRegionId);
             DebugError2("() -- keyboard buffer full. Ignore key press");
             return 1;
-        }
-
-        // Special handling of Ctrl-Alt-SDL_SCANCODE_GRAVE
-        // TODO: Remove? MagiC task handler can be activated with Cmd-Alt-Ctrl-Esc instead
-
-        static const uint8_t kbshift_sh_ctrl_alt_mask = (KBSHIFT_SHIFT_RIGHT + KBSHIFT_SHIFT_LEFT + KBSHIFT_CTRL + KBSHIFT_ALT + KBSHIFT_ALTGR);
-        uint8_t kbshift_masked = m_AtariKbData[0] & kbshift_sh_ctrl_alt_mask;
-        if ((sdlScanCode == 0x35) &&  (kbshift_masked == KBSHIFT_CTRL + KBSHIFT_ALT))
-        {
-            sdlScanCode = 0x29;     // SDL_SCANCODE_ESCAPE
         }
 
         // Convert from SDL to Atari scancode
@@ -1697,6 +1666,26 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
     }
 
     return 0;    // OK
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get Atari kbshift system variable
+ *
+ * @return Atari kbshift value
+ *
+ ************************************************************************************************/
+unsigned CMagiC::getKbshift(void)
+{
+    if (m_bEmulatorIsRunning)
+    {
+        return m_AtariKbData[0];
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 
@@ -1778,11 +1767,11 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
             if (GetKbBufferFree() < nKeys)
             {
                 OS_ExitCriticalRegion(m_KbCriticalRegionId);
-                DebugError("CMagiC::SendKeyboardShift() --- Tastenpuffer ist voll");
+                DebugError2("() -- keyboard buffer is full");
                 return(1);
             }
 
-    //        CDebug::DebugInfo("CMagiC::SendKeyboardShift() --- val == 0x%04x", (int) val);
+    //        CDebug::DebugInfo2("() --- val == 0x%04x", (int) val);
             PutKeyToBuffer(val);
             // Bei CapsLock wird der break code automatisch mitgeschickt
             if (bAutoBreak)
@@ -1817,7 +1806,7 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
 *
 **********************************************************************/
 
-int CMagiC::SendMousePosition(int x, int y)
+int CMagiC::sendMousePosition(int x, int y)
 {
 #ifdef _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
     return 0;
@@ -1855,7 +1844,7 @@ int CMagiC::SendMousePosition(int x, int y)
 * Rückgabe != 0, wenn die letzte Nachricht noch aussteht.
 *
 **********************************************************************/
-int CMagiC::SendMouseMovement(double xrel, double yrel)
+int CMagiC::sendMouseMovement(double xrel, double yrel)
 {
     if (m_bEmulatorIsRunning)
     {
@@ -1888,7 +1877,7 @@ int CMagiC::SendMouseMovement(double xrel, double yrel)
 *
 **********************************************************************/
 
-int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
+int CMagiC::sendMouseButton(unsigned int NumOfButton, bool bIsDown)
 {
 #ifdef _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
     return 0;
@@ -1898,7 +1887,7 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
     {
         if (NumOfButton > 1)
         {
-            DebugWarning("CMagiC::SendMouseButton() --- Mausbutton %d nicht unterstützt", NumOfButton + 1);
+            DebugWarning2("() -- mouse button %d is not supported", NumOfButton + 1);
             return 1;
         }
 
@@ -1964,7 +1953,7 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
 *
 **********************************************************************/
 
-int CMagiC::SendHz200(void)
+int CMagiC::sendHz200(void)
 {
 #ifdef _DEBUG_NO_ATARI_HZ200_INTERRUPTS
     return 0;
@@ -1982,7 +1971,7 @@ int CMagiC::SendHz200(void)
             //atomic_store(p_bVideoBufChanged, true);
             if (!m_AtariShutDownDelay)
             {
-                DebugInfo("CMagiC::SendHz200() -- execute delayed shutdown");
+                DebugInfo2("() -- execute delayed shutdown");
 
                 // Emulator-Thread anhalten
                 pTheMagiC->m_bCanRun = false;
@@ -2019,7 +2008,7 @@ int CMagiC::SendHz200(void)
 *
 **********************************************************************/
 
-int CMagiC::SendVBL(void)
+int CMagiC::sendVBL(void)
 {
 #ifdef _DEBUG_NO_ATARI_VBL_INTERRUPTS
     return 0;
@@ -2142,7 +2131,7 @@ uint32_t CMagiC::AtariExec68k(uint32_t params, uint8_t *addrOffset68k)
 
     if (m68k_context_size() > 1024)
     {
-        DebugError("CMagiC::AtariExec68k() --- Kontext zu groß");
+        DebugError2("() -- Context too large");
         return(0xffffffff);
     }
 
@@ -2186,7 +2175,7 @@ uint32_t CMagiC::AtariDOSFn(uint32_t params, uint8_t *addrOffset68k)
     (void) addrOffset68k;
 #if defined(_DEBUG)
     AtariDOSFnParm *theAtariDOSFnParm = (AtariDOSFnParm *) (addrOffset68k + params);
-    DebugInfo("CMagiC::AtariDOSFn(fn = 0x%x)", be16toh(theAtariDOSFnParm->dos_fnr));
+    DebugInfo2("(fn = 0x%x)", be16toh(theAtariDOSFnParm->dos_fnr));
 #endif
     return (uint32_t) EINVFN;
 }
@@ -2908,7 +2897,7 @@ uint32_t CMagiC::AtariSysHalt(uint32_t params, uint8_t *addrOffset68k)
 // Daten werden getrennt von der Nachricht geliefert
 
     showAlert("The emulator was halted", errMsg);
-    pTheMagiC->StopExec();
+    pTheMagiC->stopExec();
     return 0;
 }
 
@@ -2947,15 +2936,15 @@ uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
     GetActAtariPrg(&AtariPrgFname, &act_pd);
     m68k_pc = be32toh(*((uint32_t *) (addrOffset68k + proc_stk + 2)));
 
-    DebugInfo("CMagiC::AtariSysErr() -- act_pd = 0x%08lx", act_pd);
-    DebugInfo("CMagiC::AtariSysErr() -- Prozeßpfad = %s", (AtariPrgFname) ? AtariPrgFname : "<unknown>");
+    DebugInfo2("() -- act_pd = 0x%08lx", act_pd);
+    DebugInfo2("() -- Prozeßpfad = %s", (AtariPrgFname) ? AtariPrgFname : "<unknown>");
 #if defined(_DEBUG)
     if (m68k_pc < mem68kSize - 8)
     {
         uint16_t opcode1 = be16toh(*((uint16_t *) (addrOffset68k + m68k_pc)));
         uint16_t opcode2 = be16toh(*((uint16_t *) (addrOffset68k + m68k_pc + 2)));
         uint16_t opcode3 = be16toh(*((uint16_t *) (addrOffset68k + m68k_pc + 4)));
-        DebugInfo("CMagiC::AtariSysErr() -- opcode = 0x%04x 0x%04x 0x%04x", (unsigned) opcode1, (unsigned) opcode2, (unsigned) opcode3);
+        DebugInfo2("() -- opcode = 0x%04x 0x%04x 0x%04x", (unsigned) opcode1, (unsigned) opcode2, (unsigned) opcode3);
     }
 #endif
 
@@ -3070,7 +3059,7 @@ uint32_t CMagiC::AtariError(uint32_t params, uint8_t *addrOffset68k)
      [Quit MagiCMacX]
      */
     showAlert("The emulated system could not find a suitable video driver", "Review configuration file!");
-    pTheMagiC->StopExec();    // fatal error for execution thread
+    pTheMagiC->stopExec();    // fatal error for execution thread
     return 0;
 }
 
@@ -3109,7 +3098,7 @@ uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
 /*
     if (EventFlags & EMU_EVNT_TERM)
     {
-        DebugInfo("CMagiC::EmuThread() -- normaler Abbruch");
+        DebugInfo2("() -- normaler Abbruch");
         break;    // normaler Abbruch, Thread-Ende
     }
 */

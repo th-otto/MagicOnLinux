@@ -6,12 +6,16 @@ of the emulator. Not only some colourful icons will be shown for the emulator an
 programs in the host system, you also can run Atari programs by double click or context menu
 from your host's file manager.
 
-The Atari memory size is given in bytes and excludes video memory which is handled separately.
-On command line, the size can be specified in kbytes or Mbytes.
-This might later change in configuration.
+Floppy disk and other volume or disk images can be activated via drag&drop or via command line.
+Only one image parameter is evaluated, and the accepted filename extensions are defined
+in config.h (currently "st,raw-disk-image,img,fd,qd"). You can also pass them in your
+file manager, either with double-click or with the context menu entry "Open with...".
+The ".st" file type belongs to the Hatari emulator. See "install_mime_types.h" and run the
+commands that are commented out, depending on if you have installed Hatari or not.
 
 Drag&Drop of disk or volume images currently only assigns drives A: and B: and only mounts the
-first primary partition of multi-partition images.
+first primary partition of multi-partition images. To access multi-partition images you must
+assign them in the config file.
 
 If you for example specify "atari_drv_P" and "atari_drv_Q" with the same disk image file path,
 the logical drive Q: will be the first usable partition, and P: will be the second one etc..
@@ -22,6 +26,10 @@ cannot be opened (due to wrong format e.g.), the emulator detects a failed mount
 (boot sector read, but nothing else read or written) and removes the logical drive so that
 it can be reassigned.
 
+In the config file, Atari memory size is given in bytes and excludes video memory which is handled
+separately. On command line, the size can be specified in kbytes or Mbytes. Note that allocating
+more than 14 MB is discouraged (see below).
+
 
 Workarounds and Flaws
 =====================
@@ -31,7 +39,7 @@ visible in the MagiC task manager or if VT52.PRG is missing, when the screen wid
 height are not dividable by the system character size (8x8 or 8x16).
 To avoid this effect, the geometry is adjusted accordingly.
 
-With no VT52.PRG, if starting a TOS program like MCMD, it takes forever until the screen gets white.
+With no VT52.PRG, if starting a TOS program like MCMD, it takes a long time until the screen gets white.
 This results from the MagiC kernel which used to work with slow floppy disk drives.
 
 Contrary to other emulators, MagicOnLinux synchronises the mouse pointer positions of host and
@@ -41,11 +49,6 @@ mode was introduced. It can be activated in the config file or via command line 
 Note that in standard (i.e. absolute) mode, the mouse emulation key combinations
 Alt-Cursor and Alt-Shift-Cursor must be emulated by the host. As side effect there will be no
 keypress click sound then, contrary to Alt-Ins for emulation of the left mouse button.
-
-Currently floppy disk and other volume or disk images can be activated via drag&drop.
-It would be nice if they could also be opened from the command line or by double-click them
-in your host file manager. Note that Hatari provides an icon and MIME types (not tested by me)
-for these.
 
 
 Graphics Modes
@@ -89,7 +92,12 @@ are relatively slow. Maybe they are useful for specific Atari software.
 Limitations
 ===========
 
-Atari RAM size is limited to 2 GB. No idea, if such large RAM would make any sense.
+Atari RAM size is limited to 2 GB, but, however, should be not larger than 14 MB.
+Otherwise the address range 0x00e00000..0x01000000 will be normal RAM, and any
+old or badly written program accessing the ST compatible I/O register range
+will corrupt memory. For example, many programs write to address 0xfffffa42
+to check for an installed 68881 FPU, and if they instead use the 24-bit address
+0x00fffa42, they will undetectedly corrupt RAM.
 
 In virtual drive U: the symbolic links are not updated when virtual drives are ejected or added.
 This is a limitation or design flaw of the MagiC kernel, to be more precise: "DFS_U.S".
@@ -103,11 +111,6 @@ Secondary MBR partitions may be added later.
 MagicOnLinux mounts floppy images in format ".st" (which is just a usual image), but
 neither .stx nor .msa.
 
-In Ubuntu, most disk or volume images can be activated just by double-click. Note that the
-"gnome-disk-image-mounter" must be run from command line with parameter "-w" or "--writable" to make the image writable.
-However, it seems that at least not all ".st" images are accepted, maybe because of some details
-in the boot sector that are not fully MS-DOS conformant.
-
 The .msa format (Magic Shadow Archiver) shall preserve copy-protection information. It can be converted
 using "tools/hmsa" in the Hatari source directory (obviously by losing copy-protection data).
 A standlone version can be found here:
@@ -116,6 +119,11 @@ https://web.archive.org/web/20060507110406/https://www.uni-ulm.de/~s_thuth/ix/ms
 The .stx format also contains raw floppy disk data, to preserve copy-protection. It can be
 read with Hatari. Hatari conveniently mounts host directories, so that files can be
 easily copied from .stx or .msa as A: to a virtual drive C:.
+
+In Ubuntu, most disk or volume images can be activated just by double-click. Note that the
+"gnome-disk-image-mounter" must be run from command line with parameter "-w" or "--writable" to make the image writable.
+However, it seems that at least not all ".st" images are accepted, maybe because of some details
+in the boot sector that are not fully MS-DOS conformant.
 
 
 This and That

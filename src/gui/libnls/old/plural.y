@@ -40,8 +40,8 @@
 #pragma warn -rch
 #endif
 
-/* we want the parse function to be called PLURAL_PARSE. */
-#define yyparse PLURAL_PARSE
+/* we want the parse function to be called libnls_parse_plural_expression. */
+#define yyparse libnls_parse_plural_expression
 
 %}
 %parse-param {struct parse_args *arg}
@@ -77,7 +77,7 @@ static void free_args(int nargs, struct expression **args)
 
 	for (i = nargs - 1; i >= 0; i--)
 	{
-		FREE_EXPRESSION(args[i]);
+		libnls_free_plural_expression(args[i]);
 		args[i] = NULL;
 	}
 }
@@ -338,7 +338,7 @@ static int yylex(YYSTYPE *lval, struct parse_args *arg)
 		break;
 
 	case '%':
-		lval->op = module;
+		lval->op = modulo;
 		result = MULOP2;
 		break;
 
@@ -379,22 +379,22 @@ static int yylex(YYSTYPE *lval, struct parse_args *arg)
 }
 
 
-void FREE_EXPRESSION(struct expression *exp)
+void libnls_free_plural_expression(struct expression *exp)
 {
-	if (exp == NULL || exp == &GERMANIC_PLURAL)
+	if (exp == NULL || exp == &_libnls_germanic_plural)
 		return;
 
 	/* Handle the recursive case. */
 	switch (exp->nargs)
 	{
 	case 3:
-		FREE_EXPRESSION(exp->val.args[2]);
+		libnls_free_plural_expression(exp->val.args[2]);
 		/* fall through */
 	case 2:
-		FREE_EXPRESSION(exp->val.args[1]);
+		libnls_free_plural_expression(exp->val.args[1]);
 		/* fall through */
 	case 1:
-		FREE_EXPRESSION(exp->val.args[0]);
+		libnls_free_plural_expression(exp->val.args[0]);
 		/* fall through */
 	default:
 		break;

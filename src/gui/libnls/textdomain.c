@@ -74,7 +74,12 @@ const char *libnls_bind_textdomain_codeset(const char *domainname, const char *c
 const char *libnls_textdomain(const char *domainname)
 {
 	struct libnls_domain_list *d;
-	
+
+	/*
+	 * this is needed if setlocale() has already been called before calling textdomain()
+	 */	
+	_libnls_set_domain();
+
 	for (d = _libnls_all_domains; d != NULL; d = d->next)
 	{
 		if (strcmp(d->domain->package, domainname) == 0)

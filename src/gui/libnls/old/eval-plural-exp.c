@@ -63,7 +63,8 @@ static int plural_eval_recurse(const struct expression *pexp, unsigned long int 
 			result = plural_eval_recurse(pexp->val.args[0], &arg, allowed_depth);
 			if (result < 0)
 				return result;
-			return arg == 0;
+			*n = arg == 0;
+			return PE_OK;
 		}
 		break;
 	case 2:
@@ -118,7 +119,7 @@ static int plural_eval_recurse(const struct expression *pexp, unsigned long int 
 						return PE_INTDIV;
 					*n = left_arg / right_arg;
 					return PE_OK;
-				case module:
+				case modulo:
 					if (right_arg == 0)
 						return PE_INTDIV;
 					*n = left_arg % right_arg;
@@ -182,7 +183,7 @@ static int plural_eval_recurse(const struct expression *pexp, unsigned long int 
 
 
 /* Evaluates a plural expression PEXP for n=N.  */
-int PLURAL_EVAL(const struct expression *pexp, unsigned long int n)
+int libnls_plural_eval(const struct expression *pexp, unsigned long int n)
 {
 	int result;
 
@@ -314,7 +315,7 @@ static void plural_print_recursive(const struct expression *pexp, struct plural_
 					case divide:
 						*args->buf++ = PLURAL_C_DIV;
 						break;
-					case module:
+					case modulo:
 						*args->buf++ = PLURAL_C_MOD;
 						break;
 					case plus:
@@ -437,9 +438,9 @@ static void plural_print_recursive(const struct expression *pexp, struct plural_
 /*
  * convert the expression tree into a simple string
  * that can be iteratively scanned at runtime by
- * EVAL_PLURAL_STRING
+ * libnls_plural_eval_string
  */
-int PLURAL_PRINT(const struct expression *pexp, char *buf, size_t size, int utf8)
+int libnls_plural_print(const struct expression *pexp, char *buf, size_t size, int utf8)
 {
 	struct plural_print_args args;
 	

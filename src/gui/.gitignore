@@ -6,6 +6,7 @@ preferences.xml.h
 qrc.cc
 nlstool
 nlstool-nonls
+expreval-test
 langs.c
 libnls/plural.c
 *.tr.c

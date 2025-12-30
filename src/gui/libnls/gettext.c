@@ -7,7 +7,6 @@
 #undef dngettext
 #include "libnls.h"
 #include "libnlsI.h"
-#include "nlshash.h"
 
 /*****************************************************************************/
 /* ------------------------------------------------------------------------- */
@@ -29,8 +28,8 @@ const char *_libnls_internal_dgettext(const libnls_domain *domain, libnls_msgid_
 /* ------------------------------------------------------------------------- */
 
 /* Look up MSGID in the current default message catalog for the current
-   LC_MESSAGES locale.  If not found, returns MSGID itself (the default
-   text).  */
+   LC_MESSAGES locale. If not found, returns MSGID itself (the default
+   text). */
 const char *libnls_gettext(libnls_msgid_type msgid)
 {
 	if (_libnls_current_domain == NULL)
@@ -40,4 +39,17 @@ const char *libnls_gettext(libnls_msgid_type msgid)
 		return NLS_NOKEY_ERROR;
 #endif
 	return _libnls_internal_dgettext(_libnls_current_domain, msgid);
+}
+
+/* ------------------------------------------------------------------------- */
+
+/* Look up MSGID in the message catalog for the "C" locale.
+   If not found, returns NULL. */
+const char *libnls_gettext_clocale(libnls_msgid_type msgid)
+{
+	if (_libnls_current_domain == NULL)
+		return NLS_NOKEY_ERROR;
+	if (msgid == 0)
+		return _libnls_current_domain->keys;
+	return _libnls_current_domain->keys + _libnls_current_domain->languages[0].offsets[msgid - 1];
 }

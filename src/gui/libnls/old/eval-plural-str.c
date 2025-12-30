@@ -46,7 +46,7 @@ static void print_stack(unsigned long *stack, int depth, const char *op)
 #endif
 
 /* Evaluates a plural string EXP for n=N.  */
-int PLURAL_EVAL_STRING(const char *exp, unsigned long int n)
+int libnls_plural_eval_string(const char *exp, unsigned long int n)
 {
 	unsigned long stack[EVAL_MAXDEPTH];
 	int stack_depth = 0;
@@ -108,6 +108,16 @@ int PLURAL_EVAL_STRING(const char *exp, unsigned long int n)
 			}
 			stack[stack_depth - 1] = stack[stack_depth - 1] == 0;
 			PRINT_STACK("!");
+			break;
+
+		case PLURAL_C_CMPL:
+			assert(stack_depth >= 1);
+			if (stack_depth < 1)
+			{
+				return PE_ASSERT;
+			}
+			stack[stack_depth - 1] = ~stack[stack_depth - 1];
+			PRINT_STACK("~");
 			break;
 
 		case PLURAL_C_LOR:
@@ -186,6 +196,17 @@ int PLURAL_EVAL_STRING(const char *exp, unsigned long int n)
 			stack_depth--;
 			stack[stack_depth - 1] = stack[stack_depth - 1] + stack[stack_depth];
 			PRINT_STACK("+");
+			break;
+
+		case PLURAL_C_XOR:
+			assert(stack_depth >= 2);
+			if (stack_depth < 2)
+			{
+				return PE_ASSERT;
+			}
+			stack_depth--;
+			stack[stack_depth - 1] = stack[stack_depth - 1] ^ stack[stack_depth];
+			PRINT_STACK("^");
 			break;
 
 		case PLURAL_C_SUB:

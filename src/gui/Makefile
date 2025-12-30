@@ -77,11 +77,13 @@ LIBNLS_OBJS = \
 	libnls/textdomain.o \
 	libnls/setlocale.o \
 	libnls/localename.o \
-	libnls/eval-plural-exp.o \
-	libnls/eval-plural-str.o \
-	libnls/plural-exp.o \
-	libnls/plural.o \
 	libnls/plurals.o \
+	libnls/expreval.o \
+	libnls/expreval-exp.o \
+	libnls/expreval-str.o \
+	libnls/expreval-silent.o \
+	libnls/expreval-print.o \
+	libnls/expreval-node.o \
 	$(empty)
 
 all:: $(PROGRAMS)
@@ -96,10 +98,10 @@ ifeq ($(ENABLE_NLS),yes)
 gxmessage: gxmessage.tr.c $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
-mxgtk-settings: mxgtk-settings.tr.c country.o preferences.xml.h langs.o libnls/libnls.a $(MAKEFILE_LIST)
+mxgtk-settings: mxgtk-settings.tr.c country.o preferences.xml.h langs.o libnls/libnls.a
 	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< langs.o libnls/libnls.a $(GTK_LIBS) $(LDFLAGS)
 
-mxqt-settings: mxqt-settings.tr.cc country.o preferences.xml.h mxqt-settings.moc langs.o qrc.o libnls/libnls.a $(MAKEFILE_LIST)
+mxqt-settings: mxqt-settings.tr.cc country.o preferences.xml.h mxqt-settings.moc langs.o qrc.o libnls/libnls.a
 	$(CXX) $(CXXFLAGS) -o $@ $(QT_CFLAGS) $< langs.o libnls/libnls.a $(QT_LIBS) $(LDFLAGS)
 
 nlstool: nlstool-nonls
@@ -140,24 +142,24 @@ else
 gxmessage: gxmessage.c $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
-mxgtk-settings: mxgtk-settings.c country.o preferences.xml.h $(MAKEFILE_LIST)
+mxgtk-settings: mxgtk-settings.c country.o preferences.xml.h
 	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
-mxqt-settings: mxqt-settings.cc country.o preferences.xml.h mxqt-settings.moc langs.o qrc.o libnls/libnls.a $(MAKEFILE_LIST)
+mxqt-settings: mxqt-settings.cc country.o preferences.xml.h mxqt-settings.moc langs.o qrc.o libnls/libnls.a
 	$(CXX) $(CXXFLAGS) -o $@ $(QT_CFLAGS) $< $(QT_LIBS) $(LDFLAGS)
 
 endif
 
-mxqt-settings.moc: mxqt-settings.cc $(MAKEFILE_LIST)
+mxqt-settings.moc: mxqt-settings.cc
 	$(MOC) -o$@ $<
 
-preferences.xml.h: preferences.xml $(MAKEFILE_LIST)
+preferences.xml.h: preferences.xml
 	sed -e 's/"/\\"/g' -e 's/^/"/' -e 's/$$/"/' $< > $@
 
 qrc.o: qrc.cc
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-qrc.cc: icons.qrc $(wildcard icons/*) $(MAKEFILE_LIST)
+qrc.cc: icons.qrc $(wildcard icons/*)
 	$(RCC) --namespace -g cpp -o $@ $<
 
 country.o: country.c
@@ -175,12 +177,12 @@ libnls/libnls.a: $(LIBNLS_OBJS)
 	@$(RM) $@
 	ar rcs $@ $(LIBNLS_OBJS)
 
-$(LIBNLS_OBJS): libnls/libnls.h libnls/libnlsI.h
+$(LIBNLS_OBJS): libnls/libnls.h libnls/libnlsI.h libnls/expreval.h libnls/expreval-internal.h $(MAKEFILE_LIST)
 
-libnls/plural.o: libnls/plural.c
+expreval-test: libnls/expreval.c libnls/expreval-exp.c libnls/expreval-silent.c libnls/expreval-print.o libnls/plurals.o
+	$(CC) $(CFLAGS) -o $@ -DMAIN $< libnls/expreval-exp.c libnls/expreval-print.c libnls/plurals.o $(LDFLAGS)
 
-libnls/plural.c: libnls/plural.y
-	$(YACC) $(YFLAGS) --output $@ $<
+libnls/expreval-silent.o: libnls/expreval-silent.c libnls/expreval.c
 
 clean::
 	$(RM) *.o libnls/*.o libnls/*.a $(PROGRAMS) nlstool-nonls preferences.xml.h *.moc qrc.cc libnls/plural.c langs.c *.tr.*

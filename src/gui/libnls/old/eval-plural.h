@@ -29,7 +29,9 @@
 #endif
 
 #define PLURAL_C_VAR  'n'
-#define PLURAL_C_NOT  '~'
+#define PLURAL_C_NOT  '!'
+#define PLURAL_C_CMPL '~'
+#define PLURAL_C_XOR  '^'
 #define PLURAL_C_LOR  '|'
 #define PLURAL_C_LAND '&'
 #define PLURAL_C_MULT '*'
@@ -42,10 +44,10 @@
 #define PLURAL_C_LE   '('
 #define PLURAL_C_GE   ')'
 #define PLURAL_C_EQ   '='
-#define PLURAL_C_NE   '!'
+#define PLURAL_C_NE   '#'
 #define PLURAL_C_QUEST '?'
 
-int PLURAL_EVAL(const struct expression *pexp, unsigned long int n);
-int PLURAL_EVAL_STRING(const char *exp, unsigned long int n);
+int libnls_plural_eval(const struct expression *pexp, unsigned long int n);
+int libnls_plural_eval_string(const char *exp, unsigned long int n);
 
 #endif /* _PLURAL_EVAL_H */

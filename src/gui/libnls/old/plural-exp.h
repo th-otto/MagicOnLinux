@@ -41,7 +41,7 @@ enum expression_operator
 	/* Binary operators:  */
 	mult,							/* Multiplication.  */
 	divide,							/* Division.  */
-	module,							/* Modulo operation.  */
+	modulo,							/* Modulo operation.  */
 	plus,							/* Addition.  */
 	minus,							/* Subtraction.  */
 	less_than,						/* Comparison.  */
@@ -78,29 +78,11 @@ struct parse_args
 };
 
 
-/* Names for the functions are a problem.  This source code is used
-   1. in the GNU C Library library,
-   2. in the GNU libintl library,
-   3. in the GNU gettext tools.
-   The function names in each situation must be different, to allow for
-   binary incompatible changes in 'struct expression'.  Furthermore,
-   1. in the GNU C Library library, the names have a __ prefix,
-   2.+3. in the GNU libintl library and in the GNU gettext tools, the names
-     must follow ANSI C and not start with __.
-   So we have to distinguish the three cases.  */
-#define FREE_EXPRESSION _libnls_free_plural_expression
-#define PLURAL_PARSE _libnls_parse_plural_expression
-#define GERMANIC_PLURAL _libnls_germanic_plural
-#define EXTRACT_PLURAL_EXPRESSION _libnls_extract_plural_expression
-#define PLURAL_PRINT _libnls_plural_print
-#define PLURAL_EVAL _libnls_plural_eval
-#define PLURAL_EVAL_STRING _libnls_plural_eval_string
+extern struct expression _libnls_germanic_plural;
 
-extern struct expression GERMANIC_PLURAL;
-
-void FREE_EXPRESSION(struct expression *exp);
-int PLURAL_PARSE(struct parse_args *arg);
-int EXTRACT_PLURAL_EXPRESSION(const char *nullentry, struct expression **pluralp, int *npluralsp);
+void libnls_free_plural_expression(struct expression *exp);
+int libnls_parse_plural_expression(struct parse_args *arg);
+int libnls_extract_plural_expression(const char *nullentry, struct expression **pluralp, int *npluralsp);
 
 /* Evaluating a parsed plural expression.  */
 
@@ -114,7 +96,7 @@ enum eval_status
 	PE_OK = 0          /* Evaluation succeeded, produced a value */
 };
 
-int PLURAL_PRINT(const struct expression *pexp, char *buf, size_t size, int utf8);
+int libnls_plural_print(const struct expression *pexp, char *buf, size_t size, int utf8);
 
 
 #ifdef __cplusplus

@@ -19,36 +19,37 @@ typedef unsigned short nls_key_offset;
  * Possible plural forms supported
  */
 enum {
-	PLURAL_NONE,        /* nplurals=1; plural=0; ja, ko, zh */
-	PLURAL_NOT_ONE,     /* nplurals=2; plural=n != 1; (most common) */
-	PLURAL_GREATER_ONE, /* nplurals=2; plural=(n > 1); fr, pt_BR */
-	PLURAL_RULE_3,      /* nplurals=2; plural=(n%10!=1 || n%100==11); is */
-	PLURAL_RULE_4,      /* nplurals=2; plural=(n != 0); jv */
-	PLURAL_RULE_5,      /* nplurals=2; plural=n%10==1 ? 0 : 1; mk */
-	PLURAL_RULE_6,      /* nplurals=2; plural=(n==1 || n==2 || n==3 || (n%10!=4 && n%10!=6 && n%10!=9)); tl */
-	PLURAL_RULE_7,      /* nplurals=2; plural=(n<=1 || (n>=11 && n<=99)); tzm */
-	PLURAL_RULE_8,      /* nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2; cs, sk */
-	PLURAL_RULE_9,      /* nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2); bs, hr, sh, sr */
-	PLURAL_RULE_10,     /* nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2); lv */
-	PLURAL_RULE_11,     /* nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2); pl */
-	PLURAL_RULE_12,     /* nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2; ro */
-	PLURAL_RULE_13,     /* nplurals=3; plural=(n==1) ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2; csb */
-	PLURAL_RULE_14,     /* nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2; me */
-	PLURAL_RULE_15,     /* nplurals=3; plural=(n==0 ? 0 : n==1 ? 1 : 2); cv, iu */
-	PLURAL_RULE_16,     /* nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>=14) ? 1 : 2; be, ru, uk */
-	PLURAL_RULE_17,     /* nplurals=3; plural=(n%10==0 || (n%100>=11 && n%100<=19) ? 0 : n%10==1 && n%100!=11 ? 1 : 2); prg */
-	PLURAL_RULE_18,     /* nplurals=3; plural=(n==0 || n==1 ? 0 : n>=2 && n<=10 ? 1 : 2); shi */
-	PLURAL_RULE_19,     /* nplurals=4; plural=(n==1 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : n%10==0 || (n%100>10 && n%100<20) ? 2 : 3); lt */
-	PLURAL_RULE_20,     /* nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || n%100==4 ? 2 : 3); sl */
-	PLURAL_RULE_21,     /* nplurals=4; plural=(n==1) ? 0 : (n==2) ? 1 : (n != 8 && n != 11) ? 2 : 3; cy */
-	PLURAL_RULE_22,     /* nplurals=4; plural=(n==1 || n==11) ? 0 : (n==2 || n==12) ? 1 : (n > 2 && n < 20) ? 2 : 3; gd */
-	PLURAL_RULE_23,     /* nplurals=4; plural=(n==1) ? 0 : (n==2) ? 1 : (n == 3) ? 2 : 3; kw */
-	PLURAL_RULE_24,     /* nplurals=4; plural=(n==1 ? 0 : n==0 || ( n%100>1 && n%100<11) ? 1 : (n%100>10 && n%100<20 ) ? 2 : 3); mt */
-	PLURAL_RULE_25,     /* nplurals=4; plural=(n%10==1 ? 0 : n%10==2 ? 1 : n%100==0 || n%100==20 || n%100==40 || n%100==60 || n%100==80 ? 2 : 3); gv */
-	PLURAL_RULE_26,     /* nplurals=5; plural=n==1 ? 0 : n==2 ? 1 : n<7 ? 2 : n < 11 ? 3 : 4; ga */
-	PLURAL_RULE_27,     /* nplurals=5; plural=(n%10==1 && n%100!=11 && n%100!=71 && n%100!=91 ? 0 : n%10==2 && n%100!=12 && n%100!=72 && n%100!=92 ? 1 : ((n%10>=3 && n%10<=4) || n%10==9) && (n%100<10 || n%100>19) && (n%100<70 || n%100>79) && (n%100<90 || n%100>99) ? 2 : n!=0 && n%1000000==0 ? 3 : 4); br */
-	PLURAL_RULE_28,     /* nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5); ar */
-	PLURAL_RULE_29,     /* nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n==3 ? 3 : n==6 ? 4 : 5); cy? */
+	PLURAL_UNKNOWN = -1, /* unknown form; must evaluate string */
+	PLURAL_NONE,         /* nplurals=1; plural=0; ja, ko, zh */
+	PLURAL_NOT_ONE,      /* nplurals=2; plural=n != 1; (most common) */
+	PLURAL_GREATER_ONE,  /* nplurals=2; plural=(n > 1); fr, pt_BR */
+	PLURAL_RULE_3,       /* nplurals=2; plural=(n%10!=1 || n%100==11); is */
+	PLURAL_RULE_4,       /* nplurals=2; plural=(n != 0); jv */
+	PLURAL_RULE_5,       /* nplurals=2; plural=n%10==1 ? 0 : 1; mk */
+	PLURAL_RULE_6,       /* nplurals=2; plural=(n==1 || n==2 || n==3 || (n%10!=4 && n%10!=6 && n%10!=9)); tl */
+	PLURAL_RULE_7,       /* nplurals=2; plural=(n<=1 || (n>=11 && n<=99)); tzm */
+	PLURAL_RULE_8,       /* nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2; cs, sk */
+	PLURAL_RULE_9,       /* nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2); bs, hr, sh, sr */
+	PLURAL_RULE_10,      /* nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n != 0 ? 1 : 2); lv */
+	PLURAL_RULE_11,      /* nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2); pl */
+	PLURAL_RULE_12,      /* nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < 20)) ? 1 : 2; ro */
+	PLURAL_RULE_13,      /* nplurals=3; plural=(n==1) ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2; csb */
+	PLURAL_RULE_14,      /* nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2; me */
+	PLURAL_RULE_15,      /* nplurals=3; plural=(n==0 ? 0 : n==1 ? 1 : 2); cv, iu */
+	PLURAL_RULE_16,      /* nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>=14) ? 1 : 2; be, ru, uk */
+	PLURAL_RULE_17,      /* nplurals=3; plural=(n%10==0 || (n%100>=11 && n%100<=19) ? 0 : n%10==1 && n%100!=11 ? 1 : 2); prg */
+	PLURAL_RULE_18,      /* nplurals=3; plural=(n==0 || n==1 ? 0 : n>=2 && n<=10 ? 1 : 2); shi */
+	PLURAL_RULE_19,      /* nplurals=4; plural=(n==1 ? 0 : n%10>=2 && (n%100<10 || n%100>=20) ? 1 : n%10==0 || (n%100>10 && n%100<20) ? 2 : 3); lt */
+	PLURAL_RULE_20,      /* nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100==3 || n%100==4 ? 2 : 3); sl */
+	PLURAL_RULE_21,      /* nplurals=4; plural=(n==1) ? 0 : (n==2) ? 1 : (n != 8 && n != 11) ? 2 : 3; cy */
+	PLURAL_RULE_22,      /* nplurals=4; plural=(n==1 || n==11) ? 0 : (n==2 || n==12) ? 1 : (n > 2 && n < 20) ? 2 : 3; gd */
+	PLURAL_RULE_23,      /* nplurals=4; plural=(n==1) ? 0 : (n==2) ? 1 : (n == 3) ? 2 : 3; kw */
+	PLURAL_RULE_24,      /* nplurals=4; plural=(n==1 ? 0 : n==0 || ( n%100>1 && n%100<11) ? 1 : (n%100>10 && n%100<20 ) ? 2 : 3); mt */
+	PLURAL_RULE_25,      /* nplurals=4; plural=(n%10==1 ? 0 : n%10==2 ? 1 : n%100==0 || n%100==20 || n%100==40 || n%100==60 || n%100==80 ? 2 : 3); gv */
+	PLURAL_RULE_26,      /* nplurals=5; plural=n==1 ? 0 : n==2 ? 1 : n<7 ? 2 : n < 11 ? 3 : 4; ga */
+	PLURAL_RULE_27,      /* nplurals=5; plural=(n%10==1 && n%100!=11 && n%100!=71 && n%100!=91 ? 0 : n%10==2 && n%100!=12 && n%100!=72 && n%100!=92 ? 1 : ((n%10>=3 && n%10<=4) || n%10==9) && (n%100<10 || n%100>19) && (n%100<70 || n%100>79) && (n%100<90 || n%100>99) ? 2 : n!=0 && n%1000000==0 ? 3 : 4); br */
+	PLURAL_RULE_28,      /* nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5); ar */
+	PLURAL_RULE_29,      /* nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n==3 ? 3 : n==6 ? 4 : 5); cy? */
 };
 
 #define ISO639_CODE_LEN 5
@@ -94,6 +95,9 @@ typedef unsigned int libnls_msgid_type;
    text).  */
 const char *libnls_gettext(libnls_msgid_type __msgid);
 #define gettext(__msgid) libnls_gettext((libnls_msgid_type)(size_t)(__msgid))
+
+const char *libnls_gettext_clocale(libnls_msgid_type msgid);
+#define gettext_clocale(__msgid) libnls_gettext_clocale((libnls_msgid_type)(size_t)(__msgid))
 
 /* Look up MSGID in the DOMAINNAME message catalog for the current
    LC_MESSAGES locale.  */

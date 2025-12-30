@@ -13,7 +13,24 @@
 #include "nls-enable.h"
 #include "libnls/country.h"
 #include "pofile.h"
-#include "libnls/plural-exp.h"
+
+/*
+ * memory
+ */
+
+#define g_malloc(n) xmalloc(n)
+#define g_free(ptr) free(ptr)
+#define g_calloc(n, s) xcalloc((size_t)(n), (size_t)(s))
+#define g_malloc0(n) xcalloc((size_t)(n), 1)
+#define g_realloc(ptr, s) xrealloc(ptr, s)
+
+#define g_new(t, n) ((t *)g_malloc((size_t)(n) * sizeof(t)))
+#define g_new0(t, n) ((t *)g_malloc0((size_t)(n) * sizeof(t)))
+#define g_renew(t, p, n) ((t *)g_realloc(p, (size_t)(n) * sizeof(t)))
+#define g_strdup(s) xstrdup(s)
+
+#include "libnls/expreval.h"
+#include "libnls/expreval-internal.h"
 #include "libnls/libnlsI.h"
 
 #define KINFO(x) errout x
@@ -142,16 +159,6 @@ static void *xrealloc(void *b, size_t s)
 	if (a == NULL)
 		fatal("%s", strerror(errno));
 	return a;
-}
-
-/* ------------------------------------------------------------------------- */
-
-static void g_free(void *s)
-{
-	if (s)
-	{
-		free(s);
-	}
 }
 
 /* ------------------------------------------------------------------------- */
@@ -815,16 +822,16 @@ static _BOOL parse_ae(po_domain *domain, const char *fname, char *msgstr, ae_t *
 	if (a->plural_form != NULL)
 	{
 		int nplurals;
-		struct expression *pluralp;
+		ExprEvalNode *pluralp;
 
-		if (EXTRACT_PLURAL_EXPRESSION(a->plural_form, &pluralp, &nplurals))
+		if (libnls_extract_plural_expression(a->plural_form, &pluralp, &nplurals))
 		{
 			char buf[200];
 			const struct _nls_plural *plural;
 
-			PLURAL_PRINT(pluralp, buf, sizeof(buf), FALSE);
+			libnls_expreval_print_expression(pluralp, buf, sizeof(buf), FALSE);
 			domain->nplurals = nplurals;
-			for (plural = nls_plurals; plural->exp != NULL; plural++)
+			for (plural = libnls_plurals; plural->exp != NULL; plural++)
 			{
 				if (strcmp(plural->str, buf) == 0)
 				{
@@ -837,7 +844,7 @@ static _BOOL parse_ae(po_domain *domain, const char *fname, char *msgstr, ae_t *
 			error(_("%s: syntax error in Plural-Forms entry"), fname);
 			ret = FALSE;
 		}
-		FREE_EXPRESSION(pluralp);
+		libnls_free_expression(pluralp);
 
 		if (domain->plural_form == NULL)
 		{

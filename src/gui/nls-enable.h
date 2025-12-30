@@ -1,6 +1,7 @@
 #ifdef ENABLE_NLS
 #ifdef FORCE_LIBINTL
 #include <libintl.h>
+#define gettext_clocale(msgid) msgid
 #else
 #include "libnls/libnls.h"
 #define DECLARE_DOMAIN(package) extern libnls_domain __libnls_cat(package, _domain)

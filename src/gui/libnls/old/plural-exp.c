@@ -41,7 +41,7 @@ static struct expression plone = {
 	{ { NULL, NULL, NULL }, 1 }
 };
 
-struct expression GERMANIC_PLURAL = {
+struct expression _libnls_germanic_plural = {
 	2,									/* nargs */
 	not_equal,							/* operation */
 	{ { &plvar, &plone, NULL }, 0 }
@@ -49,12 +49,12 @@ struct expression GERMANIC_PLURAL = {
 
 #define ISSPACE(c) ((c) == ' ' || (c) == '\t' || (c) == '\n')
 
-int EXTRACT_PLURAL_EXPRESSION(const char *nullentry, struct expression **pluralp, int *npluralsp)
+int libnls_extract_plural_expression(const char *nullentry, struct expression **pluralp, int *npluralsp)
 {
 	/* By default we are using the Germanic form: singular form only
 	   for `one', the plural form otherwise.  Yes, this is also what
 	   English is using since English is a Germanic language.  */
-	*pluralp = &GERMANIC_PLURAL;
+	*pluralp = &_libnls_germanic_plural;
 	*npluralsp = 2;
 
 	if (nullentry != NULL)
@@ -95,7 +95,7 @@ int EXTRACT_PLURAL_EXPRESSION(const char *nullentry, struct expression **pluralp
 						++plural;
 					args.cp = plural;
 					args.res = NULL;
-					if (PLURAL_PARSE(&args) == PE_OK)
+					if (libnls_parse_plural_expression(&args) == PE_OK)
 					{
 						*pluralp = args.res;
 						return TRUE;
@@ -120,8 +120,8 @@ static void check_n(struct expression *pluralp, const char *eval_str, int nplura
 	int id1;
 	int id2;
 
-	id1 = PLURAL_EVAL(pluralp, n);
-	id2 = PLURAL_EVAL_STRING(eval_str, n);
+	id1 = libnls_plural_eval(pluralp, n);
+	id2 = libnls_plural_eval_string(eval_str, n);
 	/* printf("%lu: %d %d\n", n, id1, id2); */
 	fflush(stdout);
 	if (id1 < 0 || id1 >= nplurals)
@@ -141,13 +141,13 @@ static void check(const struct _nls_plural *plural)
 	unsigned long n;
 	const char *exp = plural->exp;
 
-	if (EXTRACT_PLURAL_EXPRESSION(exp, &pluralp, &nplurals) == FALSE)
+	if (libnls_extract_plural_expression(exp, &pluralp, &nplurals) == FALSE)
 	{
 		fprintf(stderr, "%s: syntax error\n", plural->id_str);
 	} else
 	{
 		printf("%s: %s: %d ", plural->id_str, exp, nplurals);
-		if (PLURAL_PRINT(pluralp, buf, sizeof(buf), FALSE) == FALSE)
+		if (libnls_plural_print(pluralp, buf, sizeof(buf), FALSE) == FALSE)
 		{
 			printf("\n");
 			fflush(stdout);
@@ -157,7 +157,7 @@ static void check(const struct _nls_plural *plural)
 			fputs(buf, stdout);
 			printf("\n");
 			if (strcmp(buf, plural->str) != 0)
-				fprintf(stderr, "%s: eval strings differ\n", plural->id_str);
+				fprintf(stderr, "%s: eval strings differ: '%s' != '%s'\n", plural->id_str, buf, plural->str);
 				
 			for (n = 0; n < 20; n++)
 			{
@@ -165,7 +165,7 @@ static void check(const struct _nls_plural *plural)
 			}
 		}
 	}
-	FREE_EXPRESSION(pluralp);
+	libnls_free_plural_expression(pluralp);
 }
 
 
@@ -173,7 +173,7 @@ int main(void)
 {
 	const struct _nls_plural *plural;
 	
-	for (plural = nls_plurals; plural->exp != NULL; plural++)
+	for (plural = libnls_plurals; plural->exp != NULL; plural++)
 		check(plural);
 
 	return 0;
@@ -197,19 +197,19 @@ int main(void)
 	unsigned long loops;
 	const char *str = "nplurals=2; plural=n != 1;";
 
-	if (EXTRACT_PLURAL_EXPRESSION(str, &pluralp, &nplurals) == FALSE)
+	if (libnls_extract_plural_expression(str, &pluralp, &nplurals) == FALSE)
 	{
 		fprintf(stderr, "%s: syntax error\n", str);
 	} else
 	{
-		PLURAL_PRINT(pluralp, buf, sizeof(buf), FALSE);
+		libnls_plural_print(pluralp, buf, sizeof(buf), FALSE);
 		
 		gettimeofday(&start, NULL);
 		end_time = start.tv_sec * 1000000L + start.tv_usec + BENCH_TIME;
 		loops = 0;
 		do
 		{
-			PLURAL_EVAL(pluralp, n);
+			libnls_plural_eval(pluralp, n);
 			loops++;
 			gettimeofday(&end, NULL);
 		} while (end.tv_sec * 1000000L + end.tv_usec < end_time);
@@ -220,7 +220,7 @@ int main(void)
 		loops = 0;
 		do
 		{
-			PLURAL_EVAL_STRING(buf, n);
+			libnls_plural_eval_string(buf, n);
 			loops++;
 			gettimeofday(&end, NULL);
 		} while (end.tv_sec * 1000000L + end.tv_usec < end_time);

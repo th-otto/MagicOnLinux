@@ -801,7 +801,17 @@ void EmulationRunner::HandleUserEvents(SDL_Event* event)
             }
             break;
 
+        case POLL_MOUNT:
+            // This is a message from MMXDAEMON
+            if (Preferences::mountDriveParameter != nullptr)
+            {
+                (void) m_Emulator.sendDragAndDropFile(Preferences::mountDriveParameter);
+                Preferences::mountDriveParameter = nullptr;
+            }
+            break;
+
         default:
+            DebugWarning2("() - unhandled SDL user event %u", event->user.code);
             break;
     }
 }

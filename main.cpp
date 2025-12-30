@@ -771,14 +771,29 @@ int main(int argc, char * const argv[])
         unsigned startno = 0;
         while (optind < argc)
         {
+            const char *arg = argv[optind];
+            const char *ext = strrchr(arg, '.');
+            if (ext && !strcasecmp(ext, ".st"))
+            {
+                // floppy disk image
+                if (Preferences::mountDriveParameter == nullptr)
+                {
+                    Preferences::mountDriveParameter = CConversion::copyString(arg);
+                }
+                else
+                {
+                    printf("ERROR: additional floppy disk image ignored: %s\n", arg);
+                }
+            }
+            else
             if (startno < MAX_START_APPS)
             {
-                printf("autostart %s\n", argv[optind]);
-                Preferences::AtariStartApplications[startno++] = CConversion::copyString(argv[optind]);
+                printf("autostart %s\n", arg);
+                Preferences::AtariStartApplications[startno++] = CConversion::copyString(arg);
             }
             else
             {
-                printf("Ignore %s\n", argv[optind]);
+                printf("Ignore %s\n", arg);
             }
             optind++;
         }

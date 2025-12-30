@@ -80,3 +80,4 @@ class EmulationRunner
 const int RUN_EMULATOR_WINDOW_UPDATE = 1;
 const int OPEN_EMULATOR_WINDOW =2;
 const int RUN_EMULATOR = 3;
+const int POLL_MOUNT = 4;

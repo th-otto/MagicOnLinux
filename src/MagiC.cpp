@@ -2782,8 +2782,8 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
         {
             mount_buttons = mount_buttons_ab;
             answerA = 101;
-            answerA_ro = 102;
-            answerB = 103;
+            answerB = 102;
+            answerA_ro = 103;
             answerB_ro = 104;
         }
         else
@@ -3210,6 +3210,19 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
 
         case 1:
         {
+            // mounting drive seems to fail if done during Atari boot phase
+            if (Preferences::mountDriveParameter != nullptr)
+            {
+                // Send user event to event loop
+                SDL_Event event;
+
+                event.type = SDL_USEREVENT;
+                event.user.code = 4;
+                event.user.data1 = 0;
+                event.user.data2 = 0;
+                SDL_PushEvent(&event);
+            }
+
             // TODO: OS_EnterCriticalRegion(&m_AECriticalRegionId);
             const char *path = Preferences::AtariStartApplications[0];
             if (path != nullptr)

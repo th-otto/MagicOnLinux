@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1990-225 Andreas Kromke, andreas.kromke@gmail.com
+ * Copyright (C) 1990-2025 Andreas Kromke, andreas.kromke@gmail.com
  *
  * This program is free software; you can redistribute it or
  * modify it under the terms of the GNU General Public License
@@ -62,26 +62,9 @@ extern "C" {
 #define setAtari32(addr, val) \
     *((uint32_t *) (addr)) = val;
 
-
-typedef struct
-{
-	uint16_t bottom;
-	uint16_t left;
-	uint16_t right;
-	uint16_t top;
-} Rect;
-
-typedef struct
-{
-	int16_t x;
-	int16_t y;
-} Point;
-
-
 //
 // global variables and functions
 //
-
 
 // -> MagiC.cpp
 void sendBusError(uint32_t addr, const char *AccessMode);

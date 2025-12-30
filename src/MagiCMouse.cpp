@@ -38,10 +38,12 @@
 #define CURY     -0x156
 
 uint8_t *CMagiCMouse::m_pLineAVars;
-Point CMagiCMouse::m_PtActAtariPos;             // current position
-Point CMagiCMouse::m_PtActHostPos;              // desired position
-double CMagiCMouse::mPtActHostMovPosX;
-double CMagiCMouse::mPtActHostMovPosY;
+int CMagiCMouse::m_actAtariPosX;             // current position
+int CMagiCMouse::m_actAtariPosY;
+int CMagiCMouse::m_actHostPosX;              // desired position
+int CMagiCMouse::m_actHostPosY;              // desired position
+double CMagiCMouse::m_actHostMovPosX;
+double CMagiCMouse::m_actHostMovPosY;
 bool CMagiCMouse::m_bActAtariMouseButton[2];    // current state
 bool CMagiCMouse::m_bActHostMouseButton[2];     // desired state
 
@@ -56,13 +58,14 @@ bool CMagiCMouse::m_bActHostMouseButton[2];     // desired state
  * @return currently returns always zero
  *
  ************************************************************************************************/
-int CMagiCMouse::init(uint8_t *pLineAVars, Point PtPos)
+int CMagiCMouse::init(uint8_t *pLineAVars, int posX, int posY)
 {
     m_bActAtariMouseButton[0] = m_bActAtariMouseButton[1] = false;
     m_bActHostMouseButton[0] = m_bActHostMouseButton[1] = false;
 
     m_pLineAVars = pLineAVars;
-    m_PtActAtariPos = PtPos;
+    m_actAtariPosX = posX;
+    m_actAtariPosY = posY;
 
     return 0;
 }
@@ -81,9 +84,9 @@ bool CMagiCMouse::setNewMovement(double vx, double vy)
 {
     if (m_pLineAVars != nullptr)
     {
-        mPtActHostMovPosX += vx;        // accumulate fractions
-        mPtActHostMovPosY += vy;
-        return ((int) mPtActHostMovPosX != 0) || ((int) mPtActHostMovPosY != 0);
+        m_actHostMovPosX += vx;        // accumulate fractions
+        m_actHostMovPosY += vy;
+        return ((int) m_actHostMovPosX != 0) || ((int) m_actHostMovPosY != 0);
     }
     else
         return false;
@@ -99,15 +102,16 @@ bool CMagiCMouse::setNewMovement(double vx, double vy)
  * @return true: Atari mouse must be moved, false: no movement necessary
  *
  ************************************************************************************************/
-bool CMagiCMouse::setNewPosition(Point PtPos)
+bool CMagiCMouse::setNewPosition(int posX, int posY)
 {
     if (m_pLineAVars != nullptr)
     {
-        m_PtActHostPos = PtPos;
+        m_actHostPosY = posY;
+        m_actHostPosX = posX;
         // get current Atari mouse position from Atari memory (big endian)
-        m_PtActAtariPos.y = getAtariBE16(m_pLineAVars + CURY);
-        m_PtActAtariPos.x = getAtariBE16(m_pLineAVars + CURX);
-        return (m_PtActHostPos.y != m_PtActAtariPos.y) || (m_PtActHostPos.x != m_PtActAtariPos.x);
+        m_actAtariPosY = getAtariBE16(m_pLineAVars + CURY);
+        m_actAtariPosX = getAtariBE16(m_pLineAVars + CURX);
+        return (m_actHostPosY != m_actAtariPosY) || (m_actHostPosX != m_actAtariPosX);
     }
     else
         return false;
@@ -157,13 +161,13 @@ bool CMagiCMouse::getNewPositionAndButtonState(int8_t packet[3])
     // Determine the way to go to the desired mouse pointer position
     if (Preferences::bRelativeMouse)
     {
-        xdiff = (int) mPtActHostMovPosX;
-        ydiff = (int) mPtActHostMovPosY;
+        xdiff = (int) m_actHostMovPosX;
+        ydiff = (int) m_actHostMovPosY;
     }
     else
     {
-        xdiff = m_PtActHostPos.x - m_PtActAtariPos.x;
-        ydiff = m_PtActHostPos.y - m_PtActAtariPos.y;
+        xdiff = m_actHostPosX - m_actAtariPosX;
+        ydiff = m_actHostPosY - m_actAtariPosY;
     }
 
     // Check if we already reached the desired position and if
@@ -193,11 +197,11 @@ bool CMagiCMouse::getNewPositionAndButtonState(int8_t packet[3])
             *packet = (xdiff > 0) ? (int8_t) 127 : (int8_t) -127;
         if (Preferences::bRelativeMouse)
         {
-           mPtActHostMovPosX -= *packet++;
+           m_actHostMovPosX -= *packet++;
         }
         else
         {
-            m_PtActAtariPos.x += *packet++;
+            m_actAtariPosX += *packet++;
         }
 
         // The mouse packet allows vertical movements up to 127 pixels.
@@ -207,11 +211,11 @@ bool CMagiCMouse::getNewPositionAndButtonState(int8_t packet[3])
             *packet = (ydiff > 0) ? (int8_t) 127 : (int8_t) -127;
         if (Preferences::bRelativeMouse)
         {
-            mPtActHostMovPosY -= *packet++;
+            m_actHostMovPosY -= *packet++;
         }
         else
         {
-            m_PtActAtariPos.y += *packet++;
+            m_actAtariPosY += *packet++;
         }
     }
 

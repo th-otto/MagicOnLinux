@@ -4,6 +4,7 @@
 #include "Debug.h"
 #include "conversion.h"
 #include "preferences.h"
+#include "volume_images.h"
 #include "MagiCScreen.h"
 #include "MagiCPrint.h"
 #include "MagiCSerial.h"
@@ -772,8 +773,7 @@ int main(int argc, char * const argv[])
         while (optind < argc)
         {
             const char *arg = argv[optind];
-            const char *ext = strrchr(arg, '.');
-            if (ext && !strcasecmp(ext, ".st"))
+            if (CVolumeImages::isImageName(arg))
             {
                 // floppy disk image
                 if (Preferences::mountDriveParameter == nullptr)

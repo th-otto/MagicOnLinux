@@ -269,7 +269,7 @@ CMagiC::CMagiC()
     m_bInterruptVBLPending = false;
     m_bInterruptMouseKeyboardPending = false;
     m_bInterruptMouseButton[0] = m_bInterruptMouseButton[1] = false;
-    m_InterruptMouseWhere.y = m_InterruptMouseWhere.x = 0;
+    m_InterruptMouseWhereY = m_InterruptMouseWhereX = 0;
     m_InterruptMouseMoveRelX = m_InterruptMouseMoveRelY = 0.0;
     m_bInterruptPending = false;
     m_LineAVars = nullptr;
@@ -1420,7 +1420,7 @@ int CMagiC::EmuThread( void )
                 }
                 else
                 {
-                    bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhere);
+                    bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhereX, m_InterruptMouseWhereY);
                 }
                 bNewKey = (m_pKbRead != m_pKbWrite);
                 if (bNewBstate[0] || bNewBstate[1] || bNewMpos || bNewKey)
@@ -1820,8 +1820,8 @@ int CMagiC::sendMousePosition(int x, int y)
             y = 0;
 
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
-        m_InterruptMouseWhere.x = (short) x;
-        m_InterruptMouseWhere.y = (short) y;
+        m_InterruptMouseWhereX = x;
+        m_InterruptMouseWhereY = y;
         m_bInterruptMouseKeyboardPending = true;
         m68k_StopExecution();
 
@@ -2083,14 +2083,13 @@ uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
 #endif
 //    (void) params;
 //    (void) addrOffset68k;
-    Point PtAtariMousePos;
 
     m_LineAVars = addrOffset68k + params;
     // Aktuelle Mausposition: Bildschirmmitte
-    PtAtariMousePos.x = (short) ((CMagiCScreen::m_PixMap.bounds_right - CMagiCScreen::m_PixMap.bounds_left) >> 1);
-    PtAtariMousePos.y = (short) ((CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top) >> 1);
+    int AtariMousePosX = ((CMagiCScreen::m_PixMap.bounds_right - CMagiCScreen::m_PixMap.bounds_left) >> 1);
+    int AtariMousePosY = ((CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top) >> 1);
     CMagiCKeyboard::init();
-    CMagiCMouse::init(m_LineAVars, PtAtariMousePos);
+    CMagiCMouse::init(m_LineAVars, AtariMousePosX, AtariMousePosY);
 
     return 0;
 }
@@ -2872,6 +2871,10 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
                     showAlert("This file seems not to be a FAT12/16/32 volume:", allocated_path);
                 }
             }
+        }
+        else
+        {
+            DebugError2("() -- No diskimage: %s", allocated_path);
         }
     }
     else

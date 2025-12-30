@@ -113,6 +113,45 @@ void CVolumeImages::exit(void)
 
 /** **********************************************************************************************
  *
+ * @brief Check file extension for volume or disk image
+ *
+ * @param[in]  path         disk image path
+ *
+ * @return true, if file extension matches
+ *
+ ************************************************************************************************/
+bool CVolumeImages::isImageName(const char *path)
+{
+    static const char *extensions = DISKIMAGE_FILENAME_EXT;
+    const char *ext = strrchr(path, '.');
+    if (ext == nullptr)
+    {
+        return false;
+    }
+    unsigned extlen = strlen(++ext);
+
+    const char *cmp = extensions;
+    while(*cmp)
+    {
+        const char *s = strchr(cmp, ',');
+        unsigned len = (s == nullptr) ? strlen(cmp) : (s - cmp);
+        if ((extlen == len) && !strncasecmp(ext, cmp, len))
+        {
+            return true;
+        }
+        cmp += len;
+        if (*cmp == ',')
+        {
+            cmp++;
+        }
+    }
+
+    return false;   // unknown file name extension
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Check if image has already been registered
  *
  * @param[in]  path         disk image path

@@ -145,7 +145,8 @@ class CMagiC
     bool m_bInterrupt200HzPending;
     bool m_bInterruptVBLPending;
     bool m_bInterruptMouseKeyboardPending;
-    Point m_InterruptMouseWhere;        // for absolute mouse mode
+    int m_InterruptMouseWhereX;         // for absolute mouse mode
+    int m_InterruptMouseWhereY;         // for absolute mouse mode
     double m_InterruptMouseMoveRelX;    // for relative mouse mode
     double m_InterruptMouseMoveRelY;
     bool m_bInterruptMouseButton[2];

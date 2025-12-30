@@ -29,18 +29,20 @@
 class CMagiCMouse
 {
    public:
-    static int init(uint8_t *pLineAVars, Point PtPos);
-    static bool setNewPosition(Point PtPos);
+    static int init(uint8_t *pLineAVars, int posX, int posY);
+    static bool setNewPosition(int posX, int posY);
     static bool setNewMovement(double vx, double vy);
     static bool setNewButtonState(unsigned int NumOfButton, bool bIsDown);
     static bool getNewPositionAndButtonState(int8_t packet[3]);
 
    private:
     static uint8_t *m_pLineAVars;
-    static Point m_PtActAtariPos;           // current
-    static Point m_PtActHostPos;            // goal
-    static double mPtActHostMovPosX;        // accumulated movement vector
-    static double mPtActHostMovPosY;
+    static int m_actAtariPosX;            // current
+    static int m_actAtariPosY;
+    static int m_actHostPosX;             // goal
+    static int m_actHostPosY;
+    static double m_actHostMovPosX;       // accumulated movement vector
+    static double m_actHostMovPosY;
     static bool m_bActAtariMouseButton[2];  // current
     static bool m_bActHostMouseButton[2];   // goal
 };

@@ -109,6 +109,19 @@ Atari RAM size is given in bytes and excludes video memory, which is managed sep
 
 Source files for the Atari code (MagiC kernel and applications) are also available in their respective repository, see below.
 
+# Uninstall Application
+
+Run:
+
+- sudo ./uninstall.sh
+
+to unregister the application, its icons and MIME types.
+To also remove the configuration file, root filesystem and the application itself:
+
+- rm ~/.config/magiclinux.conf
+- rm -rf ~/Documents/MAGIC_C
+- rm -rf build/*
+
 # Screenshots
 <img alt="No" src="assets/Atari-Desktop - 256 colours.png" width="1024">
 <img alt="Yes" src="assets/Settings.png" width="640">

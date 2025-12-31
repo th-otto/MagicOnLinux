@@ -6,7 +6,3 @@ xdg-icon-resource install --context mimetypes --size 512 assets/atariprogram.png
 update-mime-database -V /usr/share/mime
 update-icon-caches /usr/local/share/icons
 update-desktop-database /usr/local/share/applications
-
-# This is the uninstall command:
-#xdg-mime uninstall --novendor --mode system assets/atariprogram.xml
-

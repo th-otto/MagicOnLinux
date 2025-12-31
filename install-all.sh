@@ -22,4 +22,3 @@ else
     sudo ./install-image-mime-types.sh
 fi
 ./install-rootfs.sh
-

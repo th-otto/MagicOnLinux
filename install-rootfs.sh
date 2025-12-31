@@ -9,4 +9,3 @@ cp -rpn rootfs $ROOTFS
 echo "localise Atari root filesystem to $INITIAL_LANGUAGE ..."
 touch $ROOTFS/MAGICLIN.OS
 $ROOTFS/LANG/LOCALISE.SH $INITIAL_LANGUAGE
-

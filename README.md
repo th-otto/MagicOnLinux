@@ -16,9 +16,9 @@ Basically MagicOnLinux is an extended and improved AtariX with removed GUI and r
 
 Additionally to AtariX and its predecessors, MagicOnLinux has limited hardware emulation, mainly for video registers, for higher compatibility, basic sound for key click and bell, and network support.
 
-# How to Build and Install on Linux (new method, untested)
+# How to Build and Install on Linux (new method, partially tested)
 
-(This is the new method, yet untested. Use method below if it does not work!)
+(Use method below, if it does not work!)
 
 - git clone https://gitlab.com/AndreasK/magiclinux
 - cd magiclinux

@@ -1302,6 +1302,9 @@ void CMagiC::stopExec( void )
 void CMagiC::terminateThread(void)
 {
     DebugInfo2("()");
+    #if defined(M68K_TRACE)
+        m68k_trace_print();
+    #endif
     OS_SetEvent(
             &m_EventId,
             EMU_EVNT_TERM);
@@ -2196,15 +2199,10 @@ uint32_t CMagiC::AtariGettime(uint32_t params, uint8_t *addrOffset68k)
     (void) addrOffset68k;
 
     time_t t = time(nullptr);
-    struct tm tm;
-    (void) localtime_r(&t, &tm);
-
-    return (tm.tm_sec >> 1) |
-           (tm.tm_min << 5) |
-           (tm.tm_hour << 11) |
-           (tm.tm_mday << 16) |
-           (tm.tm_mon << 21) |
-           ((tm.tm_year) - 80) << 25;
+    uint16_t time;
+    uint16_t date;
+    CConversion::hostDateToDosDate(t, &time, &date);
+    return ((uint32_t) time) | (((uint32_t) date) << 16);
 }
 
 

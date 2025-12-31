@@ -16,7 +16,39 @@ Basically MagicOnLinux is an extended and improved AtariX with removed GUI and r
 
 Additionally to AtariX and its predecessors, MagicOnLinux has limited hardware emulation, mainly for video registers, for higher compatibility, basic sound for key click and bell, and network support.
 
-# How To Build (Linux, tested with Ubuntu 24.04)
+# How to Build and Install on Linux (new method, untested)
+
+(This is the new method, yet untested. Use method below if it does not work!)
+
+- git clone https://gitlab.com/AndreasK/magiclinux
+- cd magiclinux
+
+Optionally edit "install-all.sh".
+Optionaly edit install-rootfs.sh to change rootfs path or initial Atari language.
+Optionally adapt some default values in "CMakeLists.txt", e.g. set CMAKE_BUILD_TYPE to "Debug"
+
+Then:
+
+- ./install-all.sh
+
+This should build the emulator program, install it and also register the respective file types and icons.
+Finally the Atari root filesystem (C:) is created, populated and configured for your default language.
+
+Alternative root filesystems can be found here: https://tho-otto.de/snapshots/magicmac/.
+Make sure that the MAGICLIN.OS files match!
+
+# How to Build and Install on macOS
+
+- git clone https://gitlab.com/AndreasK/magiclinux
+- cd magiclinux
+
+Optionaly edit install-rootfs.sh to change rootfs path or initial Atari language.
+
+- Follow the instructions in MACOS.txt.
+- ./install_rootfs.sh
+
+
+# Old Method: How To Build (Linux, tested with Ubuntu 24.04)
 
 - sudo apt install libsdl2-dev libsdl2-mixer-dev gxmessage
 - cd ~/Documents
@@ -61,23 +93,9 @@ You might replace CMAKE_BUILD_TYPE with "Debug" (to get debug log output) or omi
 
 Alternatively you can put your Atari root file system (drive C:) and kernel (MAGICLIN.OS) anywhere and configure the emulator accordingly.
 
-# How To Install (Optional)
-
-Run these steps to (1) register the application with its icon and (2) register Atari executable files with file icon and default application:
-
-- pushd magiclinux/build
-- sudo make install
-- cd ..
-- sudo ./install-mime-types.sh
-- popd
-
-The first step copies the executable file, a ".desktop" file and an icon file to usually "/usr/local/", if not otherwise specified (see above). Otherwise, MagicOnLinux will always be represented with your system theme's generic application icon.
-
-The second step copies a description of Atari program files with their respective icon to the system database. Afterwards, you should see ".PRG" files etc. with the Atari logo in your file manager (e.g. Nautilus). Further, a double click on an Atari program inside your host file manager should start magic-on-linux and immediately run the double-clicked Atari program inside the emulator. You can also auto-run multiple Atari applications, up to four. However, note that each time you double click an Atari program, an new instance of the emulator will be started. This behaviour may be changed in future.
-
 # How To Run
 
-Without having installed the application, run it with "magiclinux/build/magic-on-linux". If installed, you can omit the path, start it from your application manager or even with a double click on any Atari program.
+If properly installed, start the program magic-on-linux from command line, from your application manager or via an Atari program or ".st" floppy disk image, with double click or "open with...". Otherwise you can find the executable under build/magic-on-linux.
 
 Try to e.g. add command line parameter "--atari-screen-mode=st-high" for misbehaving programs.
 
@@ -120,7 +138,6 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 
 # Bugs and Agenda
 
-* Atari root file system (like MAGIC_C) folder should be automatically created.
 * 68882 FPU emulation should be added, i.e. the line-F-opcodes should work.
 * Musashi emulator sources might be synchronised with latest version (see below).
 

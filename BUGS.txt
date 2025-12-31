@@ -65,7 +65,6 @@ file system driver, supports this to get information about a storage volume.
 Drag & Drop file systems treats every file as image. If one image is invalid, no further images can be mounted.
 Maybe provide a list of supported file names extensions (.st, .image, .diskimage).
 
-
 GEMBENCH crashes (why?) and corrupts the whole emulated system. Why? Is there a deadlock in the emulator?
 
 MGEDIT should be killable via MagiC task manager, but in most time this leads to a total system crash.

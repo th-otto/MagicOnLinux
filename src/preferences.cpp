@@ -443,6 +443,56 @@ const char *Preferences::videoModeToShortString(enAtariScreenColourMode mode)
 
 /** **********************************************************************************************
  *
+ * @brief Get video mode from string, used for command line parameter
+ *
+ * @param[in]  mode_str     video mode (textual)
+ *
+ * @return video mode or -1 for unknown
+ *
+ ************************************************************************************************/
+enAtariScreenColourMode Preferences::getVideoModeFromString(const char *mode_str)
+{
+    if (!strcasecmp(mode_str, "16m") || !strcasecmp(mode_str, "tc"))
+    {
+        return atariScreenMode16M;
+    }
+
+    if (!strcasecmp(mode_str, "32k") || !strcasecmp(mode_str, "hc"))
+    {
+        return atariScreenModeHC;
+    }
+
+    if (!strcmp(mode_str, "256"))
+    {
+        return atariScreenMode256;
+    }
+
+    if (!strcmp(mode_str, "16"))
+    {
+        return atariScreenMode16;
+    }
+
+    if (!strcasecmp(mode_str, "16ip"))
+    {
+        return atariScreenMode16ip;
+    }
+
+    if (!strcmp(mode_str, "4") || !strcasecmp(mode_str, "4ip"))
+    {
+        return atariScreenMode4ip;
+    }
+
+    if (!strcmp(mode_str, "2") || !strcasecmp(mode_str, "mono"))
+    {
+        return atariScreenMode2;
+    }
+
+    return (enAtariScreenColourMode) -1;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Write configuration file
  *
  * @param[in]  cfgfile   path

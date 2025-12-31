@@ -95,6 +95,7 @@ class Preferences
     static void exit();
     static const char *videoModeToString(enAtariScreenColourMode mode);
     static const char *videoModeToShortString(enAtariScreenColourMode mode);
+    static enAtariScreenColourMode getVideoModeFromString(const char *mode_str);
 
     static unsigned AtariMemSize;
     static char AtariLanguage[16];                  // empty for default, or EN/DE/FR

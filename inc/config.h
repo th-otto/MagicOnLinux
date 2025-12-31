@@ -19,10 +19,10 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#define PROGRAM_NAME "MagicOnLinux v0.4"
-#define VERSION_STRING "0.4"
+#define PROGRAM_NAME "MagicOnLinux v0.9"
+#define VERSION_STRING "0.9"
 #define PROGRAM_VERSION_MAJOR 0
-#define PROGRAM_VERSION_MINOR 4
+#define PROGRAM_VERSION_MINOR 9
 #define MAGIC_KERNEL_API_VERSION  1     // must match the API of the loaded kernel file
 
 #define STE_COLOUR_PALETTE      // STe has additional low bit at positions 3,7 and 11

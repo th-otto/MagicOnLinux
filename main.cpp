@@ -5,6 +5,7 @@
 #include "conversion.h"
 #include "preferences.h"
 #include "volume_images.h"
+#include "audio.h"
 #include "MagiCScreen.h"
 #include "MagiCPrint.h"
 #include "MagiCSerial.h"
@@ -37,7 +38,7 @@ static void print_opt(const struct option *options)
         nullptr,
         nullptr,
         "mode",
-        "[wxh][x][b][ip]",
+        "wxh|wxhxm|m",
         "w[xh]",
         "abs|rel",
         "size",
@@ -56,7 +57,7 @@ static void print_opt(const struct option *options)
         "              configuration file (default: ~/.config/magiclinux.conf)",
         "             write configuration file with default values and exit",
         "   Atari compatibility mode st-low/mid/high, overrides --geometry",
-        " e.g. 640x400x2ip or 800x600 or 8, overrides config file",
+        "     size wxh and colour mode m (mono/4/16/16ip/256/hc/tc)",
         "            e.g. 2x2 or 2 or 2x4, overrides config file",
         "       mouse mode: absolute or relative",
         "             Atari RAM size, e.g. 512k or 4M or 3m",
@@ -99,7 +100,7 @@ static void print_opt(const struct option *options)
 
 /** **********************************************************************************************
  *
- * @brief Evaluate Atari screen geometry command line parameter
+ * @brief Evaluate Atari screen geometry command line parameter wxhxg or wxh or g
  *
  * @param[in]  str          parameter given as string
  * @param[out] mode         colour mode or unchanged
@@ -113,101 +114,79 @@ static void print_opt(const struct option *options)
  ************************************************************************************************/
 static int eval_geometry(const char *str, int *mode, int *width, int *height)
 {
-    unsigned w, h, b;
-    char c1, c2;
-    bool ip;
-    bool wh = true;
-
-    int n = sscanf(str, "%ux%ux%u%c%c", &w, &h, &b, &c1, &c2);
-
-    if ((n == 5) && (tolower(c1) == 'i') && (tolower(c2) == 'p'))
+    const char *s = strchr(str, 'x');
+    if (s == nullptr)
     {
-        ip = true;
-    }
-    else
-    if (n == 3)
-    {
-        ip = false;
-    }
-    else
-    if (n == 2)
-    {
-        b = 0;     // no colour mode, leave default
-    }
-    else
-    if ((n == 1) && ((n = sscanf(str, "%u%c%c", &b, &c1, &c2)) >= 1))
-    {
-        ip = ((n == 3) && (tolower(c1) == 'i') && (tolower(c2) == 'p'));
-        w = -1;
-        h = -1;
-        wh = false;
-    }
-    else
-    {
-        printf("malformed geometry argument\n");
-        return 3;
+        s = strchr(str, 'X');
     }
 
-    if (wh)
+    //
+    // ONE value: only mode is given
+    //
+
+    if (s == nullptr)
     {
-        if ((w < ATARI_SCREEN_WIDTH_MIN)  || (w > ATARI_SCREEN_WIDTH_MAX) ||
-            (h < ATARI_SCREEN_HEIGHT_MIN) || (h > ATARI_SCREEN_HEIGHT_MAX))
+        int m = Preferences::getVideoModeFromString(str);
+        if (m < 0)
         {
-            printf("Invalid Atari screen size\n");
-            return 4;
+            printf("Invalid colour mode\n");
+            return 1;
         }
+        *mode = m;
+        return 0;
     }
 
-    if (b == 24)
+    //
+    // more than one value, so first field is width
+    //
+
+    int w = atoi(str);
+    if ((w < ATARI_SCREEN_WIDTH_MIN)  || (w > ATARI_SCREEN_WIDTH_MAX))
     {
-        b = 32;                         // 24-bit or 32-bit is the same
+        printf("Invalid Atari screen width\n");
+        return 4;
     }
 
-    if ((b == 32) && !ip)
+    //
+    // advance to next delimiter
+    //
+
+    str = s + 1;    // skip delimiter 'x'
+    s = strchr(str, 'x');
+    if (s == nullptr)
     {
-        *mode = atariScreenMode16M;       // 32-bit true colour
-    }
-    else
-    if ((b == 16) && !ip)
-    {
-        *mode = atariScreenModeHC;       // 16-bit high colour
-    }
-    else
-    if ((b == 8) && !ip)
-    {
-        *mode = atariScreenMode256;       // 8-bit with 256 colour palette
-    }
-    else
-    if ((b == 4) && !ip)
-    {
-        *mode = atariScreenMode16;       // 4-bit
-    }
-    else
-    if ((b == 4) && ip)
-    {
-        *mode = atariScreenMode16ip;       // 4-bit interleaved plane
-    }
-    else
-    if ((b == 2) && ip)
-    {
-        *mode = atariScreenMode4ip;       // 2-bit interleaved plane
-    }
-    else
-    if ((b == 1) && !ip)
-    {
-        *mode = atariScreenMode2;       // monochrome
-    }
-    else
-    if (b != 0)
-    {
-        printf("unsupported colour mode\n");
-        return 3;
+        s = strchr(str, 'X');
     }
 
-    *width = w;      // use instead of those in config file
+    //
+    // second field must be height
+    //
+
+    int h = atoi(str);
+    if ((w < ATARI_SCREEN_HEIGHT_MIN)  || (w > ATARI_SCREEN_HEIGHT_MAX))
+    {
+        printf("Invalid Atari screen height\n");
+        return 4;
+    }
+
+    //
+    // if there are three fields, the last one must be colour mode
+    //
+
+    if (s != nullptr)
+    {
+        int m = Preferences::getVideoModeFromString(s + 1);
+        if (m < 0)
+        {
+            printf("Invalid colour mode\n");
+            return 1;
+        }
+        *mode = m;
+    }
+
+    *width = w;
     *height = h;
-
-    return 0;
+    return 0;   // no error
 }
 
 
@@ -449,7 +428,7 @@ static void conv_text_host2atari(const char *file_h2a)
     }
 }
 
-#include "audio.h"
+
 /** **********************************************************************************************
  *
  * @brief Main function

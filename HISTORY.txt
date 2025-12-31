@@ -1,0 +1,4 @@
+2025-12-25
+
+Colour mode encoding of command line parameter "-g" changed, for consistency.
+Install and uninstall scripts added.

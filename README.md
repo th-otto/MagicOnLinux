@@ -111,7 +111,7 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 
 # Uninstall Application
 
-Run:
+For Linux, run:
 
 - sudo ./uninstall.sh
 

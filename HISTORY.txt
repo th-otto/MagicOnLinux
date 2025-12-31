@@ -2,3 +2,8 @@
 
 Colour mode encoding of command line parameter "-g" changed, for consistency.
 Install and uninstall scripts added.
+
+2026-01-01
+
+Xbios Gettime() corrected. Month was 0..11 instead of 1..12.
+Handling of command line parameter "atari-screen-mode" corrected.

@@ -381,6 +381,31 @@ class CVideoResolution : public CRegisterModel
         *p_success = true;
         return mode;
     }
+
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
+    {
+        addr -= start_addr;
+
+        if ((len != 1) || (addr > 2))
+        {
+            // only support 8-bit writes to the first three bytes
+            *p_success = false;
+            return;
+        }
+
+        uint8_t mode = CMagiCScreen::getAtariScreenMode();
+        if ((addr == 0) || (addr == 1))
+        {
+            // ST register: return invalid value 3 for ST incompatible resolution
+            if (mode != datum)
+            {
+                // we could show an alert here
+                DebugError("Failed attempt to change ST resolution from %u to %u", mode, datum);
+            }
+        }
+
+        *p_success = true;
+    }
 };
 
 

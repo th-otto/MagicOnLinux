@@ -1,3 +1,45 @@
+GFABASIC 3.6 hängt in folgender Schleife:
+
+lblA7E4:
+ tst.l    lbl2D12             *00A7E4=4ab900002d12
+ beq.s    lblA7E4             *00A7EA=67f8
+
+Hier wird die Variable geschrieben.
+Das ist wohl der clockvec-Handler von GFABASIC.
+
+lblA7BA:
+ move.l   a0,lbl2D12          *00A7BA=23c800002d12
+ rts                          *00A7C0=4e75
+
+Hier wird darauf Bezug genommen:
+
+lblA7C2:
+ move.w   #$22,-(sp)
+ trap     #$e                 * xbios Kbdvbase
+ addq.l   #2,sp
+ movea.l  d0,a3               * a3 = Zeiger auf KBDVBASE
+ adda.w   #$18,a3             * a3 = Zeiger auf KBDVBASE.kb_joyvec
+ move.l   (a3),-(sp)          * alter Funktionszeiger auf Stack
+ move.l   #lblA7BA,(a3)       * neuen Funktionszeiger setzen
+ clr.l    lbl2D12             * lösche Variable, auf die wir warten
+
+Man kann GFABASIC.PRG "patchen", indem man ersetzt
+
+    4a b9 00 00 2d 12 67 f8
+
+durch
+
+    4a b9 00 00 2d 12 4e 71
+
+Außerdem sollte mit mit LIMITMEM den "heap" begrenzen.
+Aber warum zur Hölle wartet das Programm auf den Joystick?
+
+Das Programm läuft in ST-high und ST-mid. Wenn es in ST-Low gestartet wird, versucht es,
+die Auflösung in ST-mid zu ändern.
+
+
+
+
 Sound:
 
 Das sind die Systemvariablen:

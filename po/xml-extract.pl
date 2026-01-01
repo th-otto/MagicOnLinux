@@ -21,25 +21,19 @@ my %comments = ();
 ## Always print first
 $| = 1;
 
+my $OUT;
+open $OUT, ">>", "/dev/stdout";
+# binmode(OUT) if $^O eq 'MSWin32';
+
 while (@ARGV > 0)
 {
 	$FILE = $ARGV[0];
-	&extract;
+	&convert;
 	shift @ARGV;
 }
+&msg_write;
+# close OUT;
 
-
-my $OUT;
-
-sub extract
-{
-	&convert;
-
-	open $OUT, ">>", "/dev/stdout";
-	# binmode(OUT) if $^O eq 'MSWin32';
-	&msg_write;
-	# close OUT;
-}
 
 sub convert
 {
@@ -188,6 +182,28 @@ sub msg_write
 {
 	my $filename = $FILE;
 	
+print << 'EOF';
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the MagicOnLinux package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid  ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+EOF
+
 	for my $message (@messages_sorted)
 	{
 		my $offsetlines = 1;

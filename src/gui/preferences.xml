@@ -49,23 +49,23 @@
        <select value="1" _label="German" icon="flag-de"/>
        <select value="2" _label="French" icon="flag-fr"/>
        <select value="3" _label="English (UK)" icon="flag-gb"/>
-       <!-- not supported yet:
+       <!-- no translations available yet:
        <select value="4" _label="Spanish" icon="flag-es"/>
        <select value="5" _label="Italian" icon="flag-it"/>
        <select value="6" _label="Swedish" icon="flag-se"/>
        <select value="7" _label="French (Switzerland)" icon="flag-ch"/>
        <select value="8" _label="German (Switzerland)" icon="flag-ch"/>
-       <select value="9" _label="French" icon="flag-fr"/>
+       <select value="9" _label="Turkish" icon="flag-tr"/>
        <select value="10" _label="Finnish" icon="flag-fi"/>
        <select value="11" _label="Norwegian" icon="flag-no"/>
        <select value="12" _label="Danish" icon="flag-dk"/>
        <select value="13" _label="Arabic" icon="flag-sa"/>
        <select value="14" _label="Dutch" icon="flag-nl"/>
        <select value="15" _label="Hungarian" icon="flag-hu"/>
-       <select value="16" _label="Polish" icon="flag-pl"/>
-       <select value="17" _label="Lithuanian" icon="flag-lt"/>
-       <select value="18" _label="Russian" icon="flag-ru"/>
-       <select value="19" _label="Lithuanian" icon="flag-lt"/>
+       <select value="16" _label="Czech" icon="flag-cz"/>
+       <select value="17" _label="Polish" icon="flag-pl"/>
+       <select value="18" _label="Lithuanian" icon="flag-lt"/>
+       <select value="19" _label="Russian" icon="flag-ru"/>
        <select value="20" _label="Estonian" icon="flag-ee"/>
        <select value="21" _label="Belarusian" icon="flag-by"/>
        <select value="22" _label="Ukrainian" icon="flag-ua"/>

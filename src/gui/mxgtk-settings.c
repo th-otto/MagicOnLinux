@@ -10,6 +10,7 @@
 #define GDK_DISABLE_DEPRECATION_WARNINGS
 #define GTK_DISABLE_DEPRECATION_WARNINGS
 #define GLIB_DISABLE_DEPRECATION_WARNINGS
+#define GDK_PIXBUF_DISABLE_DEPRECATION_WARNINGS
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +18,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <sys/stat.h>
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstrict-prototypes"
 #include <gtk/gtk.h>
@@ -52,6 +54,7 @@ enum {
 	CHOICE_COL_TEXT,
 	CHOICE_COL_ORIG_TEXT,
 	CHOICE_COL_VALUE,
+	CHOICE_COL_ICON,
 	CHOICE_NUM_COLS
 };
 
@@ -902,6 +905,7 @@ static void parseXml(GuiWindow *gui)
 					GtkCellRenderer *cell;
 					GtkWidget *combo_box;
 					const xml_widget_choice *c;
+					GtkWidget *cellview;
 			
 					label = gtk_label_new(_(widget->label));
 					widget_set_translation(label, widget->label);
@@ -909,19 +913,24 @@ static void parseXml(GuiWindow *gui)
 					gtk_widget_show(label);
 					table_attach(section_table, label, section_row, 0);
 #ifdef FORCE_LIBINTL
-					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT);
+					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, GDK_TYPE_PIXBUF);
 #else
-					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT);
+					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, GDK_TYPE_PIXBUF);
 #endif
 					assert(store);
-					cell = gtk_cell_renderer_text_new();
-					assert(cell);
 					combo_box = gtk_combo_box_new_with_model(GTK_TREE_MODEL(store));
 					assert(combo_box);
-					gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo_box), cell, TRUE);
-					gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo_box), cell, "text", CHOICE_COL_TEXT, NULL);
 					widget_set_tooltip(combo_box, widget->tooltip);
 					gui->translation_list = g_slist_append(gui->translation_list, combo_box);
+					cell = gtk_cell_renderer_pixbuf_new();
+					assert(cell);
+					gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo_box), cell, TRUE);
+					gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo_box), cell, "pixbuf", CHOICE_COL_ICON, NULL);
+					cell = gtk_cell_renderer_text_new();
+					assert(cell);
+					gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo_box), cell, TRUE);
+					gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo_box), cell, "text", CHOICE_COL_TEXT, NULL);
+
 					gtk_widget_show(combo_box);
 					table_attach(section_table, combo_box, section_row, 1);
 					settings_widget = combo_box;
@@ -934,13 +943,23 @@ static void parseXml(GuiWindow *gui)
 						gtk_widget_set_sensitive(combo_box, FALSE);
 #endif
 					}
+					cellview = gtk_cell_view_new();
 					for (c = widget->u.choice.choices; c->label != NULL; c++)
 					{
 						GtkTreeIter iter;
+						GdkPixbuf *pixbuf;
 
 						gtk_list_store_append(store, &iter);
-						gtk_list_store_set(store, &iter, CHOICE_COL_TEXT, _(c->label), CHOICE_COL_ORIG_TEXT, U_(c->label), CHOICE_COL_VALUE, c->value, -1);
+						pixbuf = NULL;
+						if (c->icon_name != NULL)
+						{
+							pixbuf = gtk_widget_render_icon(cellview, c->icon_name, GTK_ICON_SIZE_BUTTON, NULL);
+						}
+						gtk_list_store_set(store, &iter, CHOICE_COL_TEXT, _(c->label), CHOICE_COL_ORIG_TEXT, U_(c->label), CHOICE_COL_VALUE, c->value, CHOICE_COL_ICON, pixbuf, -1);
+						if (pixbuf)
+							g_object_unref(pixbuf);
 					}
+					gtk_widget_destroy(cellview);
 				}
 				break;
 			}
@@ -1950,6 +1969,229 @@ static void cb_window_destroy(GtkWidget *widget, GdkEvent *event, gpointer data)
 
 /*** ---------------------------------------------------------------------- ***/
 
+/* This function registers our custom toolbar icons, so they can be themed.
+ */
+
+static GdkPixbuf *gtk_load_image_from_data(const unsigned char *data)
+{
+	GdkPixbuf *pixbuf;
+	
+	pixbuf = gdk_pixbuf_new_from_inline(-1, data, FALSE, NULL);
+	if (!gdk_pixbuf_get_has_alpha(pixbuf))
+	{
+		guint8 const *src_pixel = gdk_pixbuf_get_pixels(pixbuf);
+		/*
+		 * use color of first pixel for transparent.
+		 * This is what LR_LOADTRANSPARENT from the win32 version also does
+		 */
+		GdkPixbuf *icon = gdk_pixbuf_add_alpha(pixbuf, TRUE, src_pixel[0], src_pixel[1], src_pixel[2]);
+		gdk_pixbuf_unref(pixbuf);
+		pixbuf = icon;
+	}
+	return pixbuf;
+}
+
+/*** ---------------------------------------------------------------------- ***/
+
+static void register_icon(GtkIconFactory *factory, const char *stock_id, const unsigned char *data)
+{
+	GdkPixbuf *pixbuf;
+	GtkIconSet *icon_set;
+	pixbuf = gtk_load_image_from_data(data);
+	icon_set = gtk_icon_set_new_from_pixbuf(pixbuf);
+	gtk_icon_factory_add(factory, stock_id, icon_set);
+	gtk_icon_set_unref(icon_set);
+	gdk_pixbuf_unref(pixbuf);
+}
+
+extern unsigned char const flag_us_data[];
+extern unsigned char const flag_de_data[];
+extern unsigned char const flag_fr_data[];
+extern unsigned char const flag_gb_data[];
+extern unsigned char const flag_es_data[];
+extern unsigned char const flag_it_data[];
+extern unsigned char const flag_se_data[];
+extern unsigned char const flag_ch_data[];
+extern unsigned char const flag_tr_data[];
+extern unsigned char const flag_fi_data[];
+extern unsigned char const flag_no_data[];
+extern unsigned char const flag_dk_data[];
+extern unsigned char const flag_sa_data[];
+extern unsigned char const flag_nl_data[];
+extern unsigned char const flag_hu_data[];
+extern unsigned char const flag_cz_data[];
+extern unsigned char const flag_pl_data[];
+extern unsigned char const flag_lt_data[];
+extern unsigned char const flag_ru_data[];
+extern unsigned char const flag_ee_data[];
+extern unsigned char const flag_by_data[];
+extern unsigned char const flag_ua_data[];
+extern unsigned char const flag_sk_data[];
+extern unsigned char const flag_ro_data[];
+extern unsigned char const flag_bg_data[];
+extern unsigned char const flag_si_data[];
+extern unsigned char const flag_hr_data[];
+extern unsigned char const flag_rs_data[];
+extern unsigned char const flag_me_data[];
+extern unsigned char const flag_mk_data[];
+extern unsigned char const flag_gr_data[];
+extern unsigned char const flag_lv_data[];
+extern unsigned char const flag_il_data[];
+extern unsigned char const flag_za_data[];
+extern unsigned char const flag_pt_data[];
+extern unsigned char const flag_be_data[];
+extern unsigned char const flag_jp_data[];
+extern unsigned char const flag_cn_data[];
+extern unsigned char const flag_kr_data[];
+extern unsigned char const flag_vn_data[];
+extern unsigned char const flag_in_data[];
+extern unsigned char const flag_ir_data[];
+extern unsigned char const flag_mn_data[];
+extern unsigned char const flag_np_data[];
+extern unsigned char const flag_la_data[];
+extern unsigned char const flag_kh_data[];
+extern unsigned char const flag_id_data[];
+extern unsigned char const flag_bd_data[];
+extern unsigned char const flag_ca_data[];
+
+static void register_stock_icons(void)
+{
+	struct ConstGtkStockItem {
+		const char *stock_id;
+		const char *label;
+		GdkModifierType modifier;
+		guint keyval;
+		const char *translation_domain;
+	};
+	int i;
+	static_assert(sizeof(struct ConstGtkStockItem) == sizeof(GtkStockItem));
+
+	static struct ConstGtkStockItem const items[] = {
+		{ "flag-us", N_("English (USA)"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-de", N_("German"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-fr", N_("French"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-gb", N_("English (UK)"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-es", N_("Spanish"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-it", N_("Italian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-se", N_("Swedish"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-ch", N_("French (Switzerland)"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-ch", N_("German (Switzerland)"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-tr", N_("Turkish"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-fi", N_("Finnish"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-no", N_("Norwegian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-dk", N_("Danish"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-sa", N_("Arabic"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-nl", N_("Dutch"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-hu", N_("Hungarian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-cz", N_("Czech"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-pl", N_("Polish"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-lt", N_("Lithuanian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-ru", N_("Russian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-ee", N_("Estonian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-by", N_("Belarusian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-ua", N_("Ukrainian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-sk", N_("Slovak"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-ro", N_("Romanian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-bg", N_("Bulgarian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-si", N_("Slovenian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-hr", N_("Croatian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-rs", N_("Serbian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-me", N_("Serbian (Montenegro)"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-mk", N_("Macedonian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-gr", N_("Greek"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-lv", N_("Latvian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-il", N_("Hebrew"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-za", N_("Afrikaans"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-pt", N_("Portuguese"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-be", N_("Walloon"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-jp", N_("Japanese"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-cn", N_("Chinese"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-kr", N_("Korean"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-vn", N_("Vietnamese"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-in", N_("Hindi"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-ir", N_("Persian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-mn", N_("Mongolian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-np", N_("Nepali"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-la", N_("Lao"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-kh", N_("Khmer"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-id", N_("Indonesian"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-bd", N_("Bengali"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+		{ "flag-ca", N_("Catalan"), (GdkModifierType)0, 0, _STRINGIFY(GETTEXT_PACKAGE) },
+	};
+	static const unsigned char *const pixbuf_data[] = {
+		flag_us_data,
+		flag_de_data,
+		flag_fr_data,
+		flag_gb_data,
+		flag_es_data,
+		flag_it_data,
+		flag_se_data,
+		flag_ch_data,
+		flag_ch_data,
+		flag_tr_data,
+		flag_fi_data,
+		flag_no_data,
+		flag_dk_data,
+		flag_sa_data,
+		flag_nl_data,
+		flag_hu_data,
+		flag_cz_data,
+		flag_pl_data,
+		flag_lt_data,
+		flag_ru_data,
+		flag_ee_data,
+		flag_by_data,
+		flag_ua_data,
+		flag_sk_data,
+		flag_ro_data,
+		flag_bg_data,
+		flag_si_data,
+		flag_hr_data,
+		flag_rs_data,
+		flag_me_data,
+		flag_mk_data,
+		flag_gr_data,
+		flag_lv_data,
+		flag_il_data,
+		flag_za_data,
+		flag_pt_data,
+		flag_be_data,
+		flag_jp_data,
+		flag_cn_data,
+		flag_kr_data,
+		flag_vn_data,
+		flag_in_data,
+		flag_ir_data,
+		flag_mn_data,
+		flag_np_data,
+		flag_la_data,
+		flag_kh_data,
+		flag_id_data,
+		flag_bd_data,
+		flag_ca_data,
+	};
+	static gboolean registered = FALSE;
+	GtkIconFactory *factory;
+	
+	if (registered)
+		return;
+
+	gtk_stock_add_static((const GtkStockItem *)items, G_N_ELEMENTS(items));
+	factory = gtk_icon_factory_new();
+	gtk_icon_factory_add_default(factory);
+	
+	for (i = 0; i < (int)G_N_ELEMENTS(items); i++)
+	{
+		register_icon(factory, items[i].stock_id, pixbuf_data[i]);
+	}
+
+	g_object_unref(factory);
+
+	registered = TRUE;
+}
+
+/*** ---------------------------------------------------------------------- ***/
+
 static void window_create(GuiWindow *gui)
 {
 	GtkWidget *vbox;
@@ -1981,6 +2223,8 @@ static void window_create(GuiWindow *gui)
 	g_signal_connect(G_OBJECT(gui->window), "key_press_event", G_CALLBACK(cb_key_press), gui);
 #endif
 	g_signal_connect(G_OBJECT(gui->window), "delete-event", G_CALLBACK(cb_deleted), gui);
+
+	register_stock_icons();
 
 	title = N_("MagicOnLinux Settings");
 	gtk_window_set_title(GTK_WINDOW(gui->window), _(title));
@@ -2206,7 +2450,8 @@ int main(int argc, char **argv)
 #ifdef ENABLE_NLS
 	retranslate_ui(&gui);
 #endif
-
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(gui.notebook), 0);
+	
 	/* open the window */
 	gtk_widget_show(gui.window);
 #if GTK_CHECK_VERSION(4, 0, 0)

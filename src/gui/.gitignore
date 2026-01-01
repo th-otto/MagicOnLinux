@@ -8,7 +8,9 @@ qrc.cc
 nlstool
 nlstool-nonls
 expreval-test
+gen-pixbuf-csource
 langs.c
 libnls/plural.c
 *.tr.c
 *.tr.cc
+icons/*.png.h

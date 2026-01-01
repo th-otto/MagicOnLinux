@@ -113,16 +113,16 @@ all-no:
 # but if that is the only line that changes, leave the original intact,
 # to help in revision control systems
 #
-$(srcdir)/$(GETTEXT_PACKAGE).pot: $(srcdir)/$(POTFILES) $(top_srcdir)/src/gui/preferences.xml $(srcdir)/Makefile
+$(srcdir)/$(GETTEXT_PACKAGE).pot: $(srcdir)/$(POTFILES) $(top_srcdir)/src/gui/preferences.xml $(srcdir)/xml-extract.pl $(srcdir)/Makefile
 	@echo generating $@; \
-	$(XGETTEXT) $(XGETTEXT_ARGS) $(XGETTEXT_KEYWORDS) $(POTFILES) --output=$@.$$$$; \
-	sed -i.orig 's/^"Language: \\n/"Language: en_US\\n/' $@.$$$$; \
-	echo "" >> $@.$$$$; \
-	$(PERL) $(srcdir)/xml-extract.pl $(top_srcdir)/src/gui/preferences.xml >> $@.$$$$; \
-	sed -e '/^"POT-Creation-Date: /d' $@.$$$$ > $@.$$$$.1; \
-	sed -e '/^"POT-Creation-Date: /d' $@ > $@.$$$$.2 2>/dev/null; \
-	if diff -q $@.$$$$.1 $@.$$$$.2 >/dev/null; then $(RM) $@.$$$$; touch $@; else mv $@.$$$$ $@; fi; \
-	$(RM) $@.$$$$.1 $@.$$$$.2 $@.$$$$.orig
+	$(XGETTEXT) $(XGETTEXT_ARGS) $(XGETTEXT_KEYWORDS) $(POTFILES) --output=$(GETTEXT_PACKAGE).$$$$.pot; \
+	$(PERL) $(srcdir)/xml-extract.pl $(top_srcdir)/src/gui/preferences.xml > preferences$$$$.pot; \
+	$(XGETTEXT) -o $(GETTEXT_PACKAGE).new.$$$$.pot preferences$$$$.pot $(GETTEXT_PACKAGE).$$$$.pot; \
+	sed -i.orig 's/^"Language: \\n/"Language: en_US\\n/' $(GETTEXT_PACKAGE).new.$$$$.pot; \
+	sed -e '/^"POT-Creation-Date: /d' $(GETTEXT_PACKAGE).new.$$$$.pot > $(GETTEXT_PACKAGE).$$$$.1; \
+	sed -e '/^"POT-Creation-Date: /d' $@ > $(GETTEXT_PACKAGE).$$$$.2 2>/dev/null; \
+	if diff -q $(GETTEXT_PACKAGE).$$$$.1 $(GETTEXT_PACKAGE).$$$$.2 >/dev/null; then $(RM) $(GETTEXT_PACKAGE).new.$$$$.pot; touch $@; else mv $(GETTEXT_PACKAGE).new.$$$$.pot $@; fi; \
+	$(RM) $(GETTEXT_PACKAGE).$$$$.pot $(GETTEXT_PACKAGE).$$$$.1 $(GETTEXT_PACKAGE).$$$$.2 $(GETTEXT_PACKAGE).new.$$$$.pot.orig preferences$$$$.pot
 
 install: install-data
 install-data: install-data-$(USE_NLS)

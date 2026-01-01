@@ -18,8 +18,8 @@
 msgid  ""
 msgstr ""
 "Project-Id-Version: MagicOnLinux 0.3\n"
-"Report-Msgid-Bugs-To: https://github.com/th-otto/MagicOnLinux/issues\n"
-"POT-Creation-Date: 2026-01-01 12:13+0100\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-01-01 17:04+0100\n"
 "PO-Revision-Date: 2004-03-26 07:04+0100\n"
 "Last-Translator: Jan Matis <matis@bgs.sk>\n"
 "Language-Team: slovak <matis@hq.sk>\n"
@@ -29,15 +29,722 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
+#: ../src/gui/preferences.xml:3
+msgid  "Host Paths"
+msgstr ""
+
+#: ../src/gui/preferences.xml:3
+msgid  "Configure kernel, rootfs, and temporary paths on the host system"
+msgstr ""
+
+#: ../src/gui/preferences.xml:4
+msgid  "Kernel File (ROM)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:4
+msgid  "Path to the Atari Kernel/ROM file (e.g., MAGICLIN.OS)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:5
+msgid  "Path for boot filesystem (Folder)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:5
+msgid  "Path to the host directory containing the root filesystem of the emulation"
+msgstr ""
+
+#: ../src/gui/preferences.xml:6
+msgid  "Mount $HOME directory as drive H:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:6
+msgid  "If enabled, mounts the host home directory (~/) as U:/home inside the emulation"
+msgstr ""
+
+#: ../src/gui/preferences.xml:7
+msgid  "Set HOME directory read-only"
+msgstr ""
+
+#: ../src/gui/preferences.xml:7
+msgid  "Mounts the host home directory as read-only. Requires 'Mount $HOME...' to be enabled"
+msgstr ""
+
+#: ../src/gui/preferences.xml:8
+msgid  "Mount host root directory (/)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:8
+msgid  "If enabled, mounts the host root directory (/) for full system access"
+msgstr ""
+
+#: ../src/gui/preferences.xml:9
+msgid  "Set root directory read-only"
+msgstr ""
+
+#: ../src/gui/preferences.xml:9
+msgid  "Mounts the host root directory as read-only. Requires 'Mount Host Root Path' to be enabled"
+msgstr ""
+
+#: ../src/gui/preferences.xml:10
+msgid  "Path for temp files"
+msgstr ""
+
+#: ../src/gui/preferences.xml:10
+msgid  "Host directory used by the emulation for temporary files"
+msgstr ""
+
+#: ../src/gui/preferences.xml:12
+msgid  "Host Devices"
+msgstr ""
+
+#: ../src/gui/preferences.xml:12
+msgid  "Set the host device paths for serial communication and printing"
+msgstr ""
+
+#: ../src/gui/preferences.xml:13
+msgid  "Print command (program/file)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:13
+msgid  "Command or device path used to handle printing output from the emulation"
+msgstr ""
+
+#: ../src/gui/preferences.xml:14
+msgid  "Serial device (e.g., /dev/ttyS0)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:14
+msgid  "Path to the host serial device (e.g., /dev/ttyS0) for serial communication"
+msgstr ""
+
+#: ../src/gui/preferences.xml:16
+msgid  "Atari Screen"
+msgstr ""
+
+#: ../src/gui/preferences.xml:16
+msgid  "Adjust the Atari screen resolution, refresh rate, scaling, and mouse hiding"
+msgstr ""
+
+#: ../src/gui/preferences.xml:17
+msgid  "Resolution (Width in Pixels)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:17
+#: ../src/gui/preferences.xml:18
+msgid  "The display resolution in pixels for the Atari screen window"
+msgstr ""
+
+#: ../src/gui/preferences.xml:18
+msgid  "Resolution (Height in Pixels)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:19
+msgid  "X Stretch Factor (Scaling)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:19
+msgid  "Horizontal scaling factor (1 = normal, 2 = double width, etc.)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:20
+msgid  "Y Stretch Factor (Scaling)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:20
+msgid  "Vertical scaling factor (1 = normal, 2 = double height, etc"
+msgstr ""
+
+#: ../src/gui/preferences.xml:21
+msgid  "Refresh Rate (Hz)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:21
+msgid  "Target screen refresh rate in Hertz (Hz)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:22
+msgid  "Screen color mode"
+msgstr ""
+
+#: ../src/gui/preferences.xml:22
+msgid  "Select the color depth or graphics mode used for the screen"
+msgstr ""
+
+#: ../src/gui/preferences.xml:23
+msgid  "24-bit true color"
+msgstr ""
+
+#: ../src/gui/preferences.xml:24
+msgid  "16-bit high color"
+msgstr ""
+
+#: ../src/gui/preferences.xml:25
+msgid  "256 colors, packed pixels"
+msgstr ""
+
+#: ../src/gui/preferences.xml:26
+msgid  "16 colors, packed pixels"
+msgstr ""
+
+#: ../src/gui/preferences.xml:27
+msgid  "16 colors, interleaved planes"
+msgstr ""
+
+#: ../src/gui/preferences.xml:28
+msgid  "4 colors, interleaved planes"
+msgstr ""
+
+#: ../src/gui/preferences.xml:29
+msgid  "monochrome"
+msgstr ""
+
+#: ../src/gui/preferences.xml:31
+msgid  "Hide host mouse"
+msgstr ""
+
+#: ../src/gui/preferences.xml:31
+msgid  "Hides the host operating system's mouse pointer when it is over the emulation window"
+msgstr ""
+
+#: ../src/gui/preferences.xml:32
+msgid  "Use relative mousemode"
+msgstr ""
+
+#: ../src/gui/preferences.xml:32
+msgid  "Tells SDL to send relative mouse movements"
+msgstr ""
+
+#: ../src/gui/preferences.xml:34
+msgid  "Window Placement"
+msgstr ""
+
+#: ../src/gui/preferences.xml:34
+msgid  "Define the window's position (X/Y) and which display it should appear on"
+msgstr ""
+
+#: ../src/gui/preferences.xml:35
+msgid  "Monitor"
+msgstr ""
+
+#: ../src/gui/preferences.xml:35
+msgid  "The display number (e.g., 0, 1, 2) on which the window should appear"
+msgstr ""
+
+#: ../src/gui/preferences.xml:36
+msgid  "Window position X (left)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:36
+#: ../src/gui/preferences.xml:37
+msgid  "Window position coordinates relative to the top-left corner of the screen"
+msgstr ""
+
+#: ../src/gui/preferences.xml:37
+msgid  "Window position Y (top)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:39
+msgid  "Atari Emulation"
+msgstr ""
+
+#: ../src/gui/preferences.xml:39
+msgid  "General emulation settings, including RAM size, language ROM, and menu behavior"
+msgstr ""
+
+#: ../src/gui/preferences.xml:40
+msgid  "Memory size (RAM in bytes)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:40
+msgid  "Amount of RAM allocated to the emulated system (e.g., 8MB, 32MB)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:41
+msgid  "Atari language"
+msgstr ""
+
+#: ../src/gui/preferences.xml:41
+msgid  "Selects the language ROM to be used by the emulation (affects keyboard layout and startup language)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:42
+#: ../src/gui/preferences.xml:48
+#: ../src/gui/mxgtk-settings.c:2070
+msgid  "English (USA)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:43
+#: ../src/gui/preferences.xml:49
+#: ../src/gui/mxgtk-settings.c:2071
+msgid  "German"
+msgstr ""
+
+#: ../src/gui/preferences.xml:44
+#: ../src/gui/preferences.xml:50
+#: ../src/gui/mxgtk-settings.c:2072
+msgid  "French"
+msgstr ""
+
+#: ../src/gui/preferences.xml:46
+msgid  "Application language"
+msgstr ""
+
+#: ../src/gui/preferences.xml:46
+msgid  "Selects the language for this application"
+msgstr ""
+
+#: ../src/gui/preferences.xml:47
+msgid  "System Default"
+msgstr ""
+
+#: ../src/gui/preferences.xml:51
+#: ../src/gui/mxgtk-settings.c:2073
+msgid  "English (UK)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:52
+#: ../src/gui/mxgtk-settings.c:2074
+msgid  "Spanish"
+msgstr ""
+
+#: ../src/gui/preferences.xml:53
+#: ../src/gui/mxgtk-settings.c:2075
+msgid  "Italian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:54
+#: ../src/gui/mxgtk-settings.c:2076
+msgid  "Swedish"
+msgstr ""
+
+#: ../src/gui/preferences.xml:55
+#: ../src/gui/mxgtk-settings.c:2077
+msgid  "French (Switzerland)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:56
+#: ../src/gui/mxgtk-settings.c:2078
+msgid  "German (Switzerland)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:57
+#: ../src/gui/mxgtk-settings.c:2079
+msgid  "Turkish"
+msgstr ""
+
+#: ../src/gui/preferences.xml:58
+#: ../src/gui/mxgtk-settings.c:2080
+msgid  "Finnish"
+msgstr ""
+
+#: ../src/gui/preferences.xml:59
+#: ../src/gui/mxgtk-settings.c:2081
+msgid  "Norwegian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:60
+#: ../src/gui/mxgtk-settings.c:2082
+msgid  "Danish"
+msgstr ""
+
+#: ../src/gui/preferences.xml:61
+#: ../src/gui/mxgtk-settings.c:2083
+msgid  "Arabic"
+msgstr ""
+
+#: ../src/gui/preferences.xml:62
+#: ../src/gui/mxgtk-settings.c:2084
+msgid  "Dutch"
+msgstr ""
+
+#: ../src/gui/preferences.xml:63
+#: ../src/gui/mxgtk-settings.c:2085
+msgid  "Hungarian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:64
+#: ../src/gui/mxgtk-settings.c:2086
+msgid  "Czech"
+msgstr ""
+
+#: ../src/gui/preferences.xml:65
+#: ../src/gui/mxgtk-settings.c:2087
+msgid  "Polish"
+msgstr ""
+
+#: ../src/gui/preferences.xml:66
+#: ../src/gui/mxgtk-settings.c:2088
+msgid  "Lithuanian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:67
+#: ../src/gui/mxgtk-settings.c:2089
+msgid  "Russian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:68
+#: ../src/gui/mxgtk-settings.c:2090
+msgid  "Estonian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:69
+#: ../src/gui/mxgtk-settings.c:2091
+msgid  "Belarusian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:70
+#: ../src/gui/mxgtk-settings.c:2092
+msgid  "Ukrainian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:71
+#: ../src/gui/mxgtk-settings.c:2093
+msgid  "Slovak"
+msgstr ""
+
+#: ../src/gui/preferences.xml:72
+#: ../src/gui/mxgtk-settings.c:2094
+msgid  "Romanian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:73
+#: ../src/gui/mxgtk-settings.c:2095
+msgid  "Bulgarian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:74
+#: ../src/gui/mxgtk-settings.c:2096
+msgid  "Slovenian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:75
+#: ../src/gui/mxgtk-settings.c:2097
+msgid  "Croatian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:76
+#: ../src/gui/mxgtk-settings.c:2098
+msgid  "Serbian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:77
+#: ../src/gui/mxgtk-settings.c:2099
+msgid  "Serbian (Montenegro)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:78
+#: ../src/gui/mxgtk-settings.c:2100
+msgid  "Macedonian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:79
+#: ../src/gui/mxgtk-settings.c:2101
+msgid  "Greek"
+msgstr ""
+
+#: ../src/gui/preferences.xml:80
+#: ../src/gui/mxgtk-settings.c:2102
+msgid  "Latvian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:81
+#: ../src/gui/mxgtk-settings.c:2103
+msgid  "Hebrew"
+msgstr ""
+
+#: ../src/gui/preferences.xml:82
+#: ../src/gui/mxgtk-settings.c:2104
+msgid  "Afrikaans"
+msgstr ""
+
+#: ../src/gui/preferences.xml:83
+#: ../src/gui/mxgtk-settings.c:2105
+msgid  "Portuguese"
+msgstr ""
+
+#: ../src/gui/preferences.xml:84
+#: ../src/gui/mxgtk-settings.c:2106
+msgid  "Walloon"
+msgstr ""
+
+#: ../src/gui/preferences.xml:85
+#: ../src/gui/mxgtk-settings.c:2107
+msgid  "Japanese"
+msgstr ""
+
+#: ../src/gui/preferences.xml:86
+#: ../src/gui/mxgtk-settings.c:2108
+msgid  "Chinese"
+msgstr ""
+
+#: ../src/gui/preferences.xml:87
+#: ../src/gui/mxgtk-settings.c:2109
+msgid  "Korean"
+msgstr ""
+
+#: ../src/gui/preferences.xml:88
+#: ../src/gui/mxgtk-settings.c:2110
+msgid  "Vietnamese"
+msgstr ""
+
+#: ../src/gui/preferences.xml:89
+#: ../src/gui/mxgtk-settings.c:2111
+msgid  "Hindi"
+msgstr ""
+
+#: ../src/gui/preferences.xml:90
+#: ../src/gui/mxgtk-settings.c:2112
+msgid  "Persian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:91
+#: ../src/gui/mxgtk-settings.c:2113
+msgid  "Mongolian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:92
+#: ../src/gui/mxgtk-settings.c:2114
+msgid  "Nepali"
+msgstr ""
+
+#: ../src/gui/preferences.xml:93
+#: ../src/gui/mxgtk-settings.c:2115
+msgid  "Lao"
+msgstr ""
+
+#: ../src/gui/preferences.xml:94
+#: ../src/gui/mxgtk-settings.c:2116
+msgid  "Khmer"
+msgstr ""
+
+#: ../src/gui/preferences.xml:95
+#: ../src/gui/mxgtk-settings.c:2117
+msgid  "Indonesian"
+msgstr ""
+
+#: ../src/gui/preferences.xml:96
+#: ../src/gui/mxgtk-settings.c:2118
+msgid  "Bengali"
+msgstr ""
+
+#: ../src/gui/preferences.xml:97
+#: ../src/gui/mxgtk-settings.c:2119
+msgid  "Catalan"
+msgstr ""
+
+#: ../src/gui/preferences.xml:99
+msgid  "Show host menu"
+msgstr ""
+
+#: ../src/gui/preferences.xml:99
+msgid  "If enabled, the host menu bar (File, View, Help, etc.) is visible"
+msgstr ""
+
+#: ../src/gui/preferences.xml:100
+msgid  "Auto start MagiC"
+msgstr ""
+
+#: ../src/gui/preferences.xml:100
+msgid  "If enabled, the emulation starts immediately upon application launch"
+msgstr ""
+
+#: ../src/gui/preferences.xml:101
+msgid  "Show Help Tooltips"
+msgstr ""
+
+#: ../src/gui/preferences.xml:101
+msgid  "Toggle help tooltips for all widgets"
+msgstr ""
+
+#: ../src/gui/preferences.xml:103
+msgid  "Additional Drives"
+msgstr ""
+
+#: ../src/gui/preferences.xml:103
+msgid  "Manage additional mounted host folders or disk image files (A-Z) for the emulation"
+msgstr ""
+
+#: ../src/gui/preferences.xml:104
+msgid  "Path for Drive A:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:105
+msgid  "Path for Drive B:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:108
+msgid  "Path for Drive D:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:109
+msgid  "Path for Drive E:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:110
+msgid  "Path for Drive F:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:111
+msgid  "Path for Drive G:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:114
+msgid  "Path for Drive I:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:115
+msgid  "Path for Drive J:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:116
+msgid  "Path for Drive K:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:117
+msgid  "Path for Drive L:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:120
+msgid  "Path for Drive N:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:121
+msgid  "Path for Drive O:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:122
+msgid  "Path for Drive P:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:123
+msgid  "Path for Drive Q:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:124
+msgid  "Path for Drive R:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:125
+msgid  "Path for Drive S:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:126
+msgid  "Path for Drive T:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:129
+msgid  "Path for Drive V:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:130
+msgid  "Path for Drive W:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:131
+msgid  "Path for Drive X:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:132
+msgid  "Path for Drive Y:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:133
+msgid  "Path for Drive Z:"
+msgstr ""
+
+#: ../src/gui/preferences.xml:135
+msgid  "Network"
+msgstr ""
+
+#: ../src/gui/preferences.xml:135
+msgid  "Configure network settings for the emulated Ethernet device (ETH0)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:136
+msgid  "Network Type"
+msgstr ""
+
+#: ../src/gui/preferences.xml:136
+msgid  "Select the Ethernet emulation mode (e.g., Disabled, TAP/Tunnel)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:137
+msgid  "Disabled"
+msgstr ""
+
+#: ../src/gui/preferences.xml:138
+msgid  "Bridge"
+msgstr ""
+
+#: ../src/gui/preferences.xml:139
+msgid  "Point-to-Point"
+msgstr ""
+
+#: ../src/gui/preferences.xml:141
+msgid  "Tunnel Device"
+msgstr ""
+
+#: ../src/gui/preferences.xml:141
+msgid  "The host's virtual network interface name (e.g., tap0)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:142
+msgid  "Host IP"
+msgstr ""
+
+#: ../src/gui/preferences.xml:142
+msgid  "The IP address of the Host's side of the virtual link"
+msgstr ""
+
+#: ../src/gui/preferences.xml:143
+msgid  "Atari IP"
+msgstr ""
+
+#: ../src/gui/preferences.xml:143
+msgid  "The IP address assigned to the emulated Atari device"
+msgstr ""
+
+#: ../src/gui/preferences.xml:144
+msgid  "Netmask"
+msgstr ""
+
+#: ../src/gui/preferences.xml:144
+msgid  "The network mask for the virtual subnet"
+msgstr ""
+
+#: ../src/gui/preferences.xml:145
+msgid  "Gateway"
+msgstr ""
+
+#: ../src/gui/preferences.xml:145
+msgid  "The gateway IP address (usually the host IP)"
+msgstr ""
+
+#: ../src/gui/preferences.xml:146
+msgid  "MAC address"
+msgstr ""
+
+#: ../src/gui/preferences.xml:146
+msgid  "The unique MAC address for the emulated device"
+msgstr ""
+
+#: ../src/gui/preferences.xml:147
+msgid  "Interrupt Level"
+msgstr ""
+
+#: ../src/gui/preferences.xml:147
+msgid  "The interrupt level used by the emulated device (4 is standard)"
+msgstr ""
+
 #: ../src/gui/gxmessage.c:398
-#: ../src/gui/mxgtk-settings.c:248
+#: ../src/gui/mxgtk-settings.c:251
 msgid  "_OK"
 msgstr "_V poriadku"
 
 #: ../src/gui/gxmessage.c:400
-#: ../src/gui/mxgtk-settings.c:250
-#: ../src/gui/mxgtk-settings.c:1836
-#: ../src/gui/mxgtk-settings.c:1904
+#: ../src/gui/mxgtk-settings.c:253
+#: ../src/gui/mxgtk-settings.c:1855
+#: ../src/gui/mxgtk-settings.c:1923
 msgid  "_Cancel"
 msgstr "_Zrušiť"
 
@@ -250,57 +957,57 @@ msgstr "%s: je požadovaný text správy\n"
 msgid  "Try `%s --help' for more information\n"
 msgstr "Skúste `%s --help' pre viac informácií\n"
 
-#: ../src/gui/mxgtk-settings.c:497
+#: ../src/gui/mxgtk-settings.c:500
 #: ../src/gui/mxqt-settings.cc:1548
 msgid  "Accept and confirm the changes in this dialog"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:498
+#: ../src/gui/mxgtk-settings.c:501
 #: ../src/gui/mxqt-settings.cc:1549
 msgid  "Discard the current changes and close the dialog"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:762
+#: ../src/gui/mxgtk-settings.c:765
 #: ../src/gui/mxqt-settings.cc:428
 msgid  "Select a Folder"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:762
+#: ../src/gui/mxgtk-settings.c:765
 #: ../src/gui/mxqt-settings.cc:428
 msgid  "Select a File"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:801
+#: ../src/gui/mxgtk-settings.c:804
 #: ../src/gui/mxqt-settings.cc:1267
 msgid  "read-only"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:804
+#: ../src/gui/mxgtk-settings.c:807
 #: ../src/gui/mxqt-settings.cc:1268
 msgid  "Mount drive in read-only mode, preventing writes from the emulation"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:813
+#: ../src/gui/mxgtk-settings.c:816
 #: ../src/gui/mxqt-settings.cc:1271
 msgid  "DOS 8+3 format"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:816
+#: ../src/gui/mxgtk-settings.c:819
 #: ../src/gui/mxqt-settings.cc:1272
 msgid  "Force 8.3 short filenames (FAT-style) on host directories"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:825
+#: ../src/gui/mxgtk-settings.c:828
 #: ../src/gui/mxqt-settings.cc:1275
 msgid  "case insensitive"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:828
+#: ../src/gui/mxgtk-settings.c:831
 #: ../src/gui/mxqt-settings.cc:1276
 msgid  "Ignore case sensitivity when accessing files/folders"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:994
+#: ../src/gui/mxgtk-settings.c:1013
 #: ../src/gui/mxqt-settings.cc:737
 #, c-format
 msgid  ""
@@ -309,72 +1016,72 @@ msgid  ""
 msgstr ""
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1425
+#: ../src/gui/mxgtk-settings.c:1444
 #, c-format
 msgid  "%s:%d: unknown section '%s'\n"
 msgstr ""
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1457
+#: ../src/gui/mxgtk-settings.c:1476
 #, c-format
 msgid  "%s:%d: Syntax error: %s"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:1834
-#: ../src/gui/mxgtk-settings.c:1902
+#: ../src/gui/mxgtk-settings.c:1853
+#: ../src/gui/mxgtk-settings.c:1921
 msgid  "_Save"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:1835
-#: ../src/gui/mxgtk-settings.c:1903
+#: ../src/gui/mxgtk-settings.c:1854
+#: ../src/gui/mxgtk-settings.c:1922
 msgid  "_Delete"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:1844
+#: ../src/gui/mxgtk-settings.c:1863
 msgid  "You have unsaved changes. Do you want to save them and quit?"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:1912
+#: ../src/gui/mxgtk-settings.c:1931
 #: ../src/gui/mxqt-settings.cc:1591
 msgid  "You have unsaved changes. Do you want to discard them and quit?"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:1985
+#: ../src/gui/mxgtk-settings.c:2229
 #: ../src/gui/mxqt-settings.cc:1460
 msgid  "MagicOnLinux Settings"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2054
+#: ../src/gui/mxgtk-settings.c:2298
 msgid  "Sets the client geometry of the main window"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2054
+#: ../src/gui/mxgtk-settings.c:2298
 msgid  "GEOMETRY"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2055
+#: ../src/gui/mxgtk-settings.c:2299
 #: ../src/gui/mxqt-settings.cc:1673
 msgid  "Specify an alternative configuration file path"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2055
+#: ../src/gui/mxgtk-settings.c:2299
 #: ../src/gui/mxqt-settings.cc:1673
 msgid  "FILE"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2056
+#: ../src/gui/mxgtk-settings.c:2300
 msgid  "Show version information and exit"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2057
+#: ../src/gui/mxgtk-settings.c:2301
 msgid  "Show help information and exit"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2086
+#: ../src/gui/mxgtk-settings.c:2330
 msgid  "GTK Configurator for MagicOnLinux"
 msgstr ""
 
-#: ../src/gui/mxgtk-settings.c:2113
+#: ../src/gui/mxgtk-settings.c:2357
 msgid  "error parsing command line"
 msgstr ""
 
@@ -690,479 +1397,6 @@ msgstr ""
 #: ../src/gui/pofile.c:3238
 #, c-format
 msgid  "cannot create %s: %s"
-msgstr ""
-
-#: ../src/gui/preferences.xml:3
-msgid  "Host Paths"
-msgstr ""
-
-#: ../src/gui/preferences.xml:3
-msgid  "Configure kernel, rootfs, and temporary paths on the host system"
-msgstr ""
-
-#: ../src/gui/preferences.xml:4
-msgid  "Kernel File (ROM)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:4
-msgid  "Path to the Atari Kernel/ROM file (e.g., MAGICLIN.OS)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:5
-msgid  "Path for boot filesystem (Folder)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:5
-msgid  "Path to the host directory containing the root filesystem of the emulation"
-msgstr ""
-
-#: ../src/gui/preferences.xml:6
-msgid  "Mount $HOME directory as drive H:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:6
-msgid  "If enabled, mounts the host home directory (~/) as U:/home inside the emulation"
-msgstr ""
-
-#: ../src/gui/preferences.xml:7
-msgid  "Set HOME directory read-only"
-msgstr ""
-
-#: ../src/gui/preferences.xml:7
-msgid  "Mounts the host home directory as read-only. Requires 'Mount $HOME...' to be enabled"
-msgstr ""
-
-#: ../src/gui/preferences.xml:8
-msgid  "Mount host root directory (/)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:8
-msgid  "If enabled, mounts the host root directory (/) for full system access"
-msgstr ""
-
-#: ../src/gui/preferences.xml:9
-msgid  "Set root directory read-only"
-msgstr ""
-
-#: ../src/gui/preferences.xml:9
-msgid  "Mounts the host root directory as read-only. Requires 'Mount Host Root Path' to be enabled"
-msgstr ""
-
-#: ../src/gui/preferences.xml:10
-msgid  "Path for temp files"
-msgstr ""
-
-#: ../src/gui/preferences.xml:10
-msgid  "Host directory used by the emulation for temporary files"
-msgstr ""
-
-#: ../src/gui/preferences.xml:12
-msgid  "Host Devices"
-msgstr ""
-
-#: ../src/gui/preferences.xml:12
-msgid  "Set the host device paths for serial communication and printing"
-msgstr ""
-
-#: ../src/gui/preferences.xml:13
-msgid  "Print command (program/file)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:13
-msgid  "Command or device path used to handle printing output from the emulation"
-msgstr ""
-
-#: ../src/gui/preferences.xml:14
-msgid  "Serial device (e.g., /dev/ttyS0)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:14
-msgid  "Path to the host serial device (e.g., /dev/ttyS0) for serial communication"
-msgstr ""
-
-#: ../src/gui/preferences.xml:16
-msgid  "Atari Screen"
-msgstr ""
-
-#: ../src/gui/preferences.xml:16
-msgid  "Adjust the Atari screen resolution, refresh rate, scaling, and mouse hiding"
-msgstr ""
-
-#: ../src/gui/preferences.xml:17
-msgid  "Resolution (Width in Pixels)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:17
-#: ../src/gui/preferences.xml:18
-msgid  "The display resolution in pixels for the Atari screen window"
-msgstr ""
-
-#: ../src/gui/preferences.xml:18
-msgid  "Resolution (Height in Pixels)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:19
-msgid  "X Stretch Factor (Scaling)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:19
-msgid  "Horizontal scaling factor (1 = normal, 2 = double width, etc.)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:20
-msgid  "Y Stretch Factor (Scaling)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:20
-msgid  "Vertical scaling factor (1 = normal, 2 = double height, etc"
-msgstr ""
-
-#: ../src/gui/preferences.xml:21
-msgid  "Refresh Rate (Hz)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:21
-msgid  "Target screen refresh rate in Hertz (Hz)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:22
-msgid  "Screen color mode"
-msgstr ""
-
-#: ../src/gui/preferences.xml:22
-msgid  "Select the color depth or graphics mode used for the screen"
-msgstr ""
-
-#: ../src/gui/preferences.xml:23
-msgid  "24-bit true color"
-msgstr ""
-
-#: ../src/gui/preferences.xml:24
-msgid  "16-bit high color"
-msgstr ""
-
-#: ../src/gui/preferences.xml:25
-msgid  "256 colors, packed pixels"
-msgstr ""
-
-#: ../src/gui/preferences.xml:26
-msgid  "16 colors, packed pixels"
-msgstr ""
-
-#: ../src/gui/preferences.xml:27
-msgid  "16 colors, interleaved planes"
-msgstr ""
-
-#: ../src/gui/preferences.xml:28
-msgid  "4 colors, interleaved planes"
-msgstr ""
-
-#: ../src/gui/preferences.xml:29
-msgid  "monochrome"
-msgstr ""
-
-#: ../src/gui/preferences.xml:31
-msgid  "Hide host mouse"
-msgstr ""
-
-#: ../src/gui/preferences.xml:31
-msgid  "Hides the host operating system's mouse pointer when it is over the emulation window"
-msgstr ""
-
-#: ../src/gui/preferences.xml:32
-msgid  "Use relative mousemode"
-msgstr ""
-
-#: ../src/gui/preferences.xml:32
-msgid  "Tells SDL to send relative mouse movements"
-msgstr ""
-
-#: ../src/gui/preferences.xml:34
-msgid  "Window Placement"
-msgstr ""
-
-#: ../src/gui/preferences.xml:34
-msgid  "Define the window's position (X/Y) and which display it should appear on"
-msgstr ""
-
-#: ../src/gui/preferences.xml:35
-msgid  "Monitor"
-msgstr ""
-
-#: ../src/gui/preferences.xml:35
-msgid  "The display number (e.g., 0, 1, 2) on which the window should appear"
-msgstr ""
-
-#: ../src/gui/preferences.xml:36
-msgid  "Window position X (left)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:36
-#: ../src/gui/preferences.xml:37
-msgid  "Window position coordinates relative to the top-left corner of the screen"
-msgstr ""
-
-#: ../src/gui/preferences.xml:37
-msgid  "Window position Y (top)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:39
-msgid  "Atari Emulation"
-msgstr ""
-
-#: ../src/gui/preferences.xml:39
-msgid  "General emulation settings, including RAM size, language ROM, and menu behavior"
-msgstr ""
-
-#: ../src/gui/preferences.xml:40
-msgid  "Memory size (RAM in bytes)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:40
-msgid  "Amount of RAM allocated to the emulated system (e.g., 8MB, 32MB)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:41
-msgid  "Atari language"
-msgstr ""
-
-#: ../src/gui/preferences.xml:41
-msgid  "Selects the language ROM to be used by the emulation (affects keyboard layout and startup language)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:42
-#: ../src/gui/preferences.xml:48
-msgid  "English (USA)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:43
-#: ../src/gui/preferences.xml:49
-msgid  "German"
-msgstr ""
-
-#: ../src/gui/preferences.xml:44
-#: ../src/gui/preferences.xml:50
-msgid  "French"
-msgstr ""
-
-#: ../src/gui/preferences.xml:46
-msgid  "Application language"
-msgstr ""
-
-#: ../src/gui/preferences.xml:46
-msgid  "Selects the language for this application"
-msgstr ""
-
-#: ../src/gui/preferences.xml:47
-msgid  "System Default"
-msgstr ""
-
-#: ../src/gui/preferences.xml:51
-msgid  "English (UK)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:101
-msgid  "Show host menu"
-msgstr ""
-
-#: ../src/gui/preferences.xml:101
-msgid  "If enabled, the host menu bar (File, View, Help, etc.) is visible"
-msgstr ""
-
-#: ../src/gui/preferences.xml:102
-msgid  "Auto start MagiC"
-msgstr ""
-
-#: ../src/gui/preferences.xml:102
-msgid  "If enabled, the emulation starts immediately upon application launch"
-msgstr ""
-
-#: ../src/gui/preferences.xml:103
-msgid  "Show Help Tooltips"
-msgstr ""
-
-#: ../src/gui/preferences.xml:103
-msgid  "Toggle help tooltips for all widgets"
-msgstr ""
-
-#: ../src/gui/preferences.xml:105
-msgid  "Additional Drives"
-msgstr ""
-
-#: ../src/gui/preferences.xml:105
-msgid  "Manage additional mounted host folders or disk image files (A-Z) for the emulation"
-msgstr ""
-
-#: ../src/gui/preferences.xml:106
-msgid  "Path for Drive A:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:107
-msgid  "Path for Drive B:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:110
-msgid  "Path for Drive D:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:111
-msgid  "Path for Drive E:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:112
-msgid  "Path for Drive F:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:113
-msgid  "Path for Drive G:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:116
-msgid  "Path for Drive I:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:117
-msgid  "Path for Drive J:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:118
-msgid  "Path for Drive K:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:119
-msgid  "Path for Drive L:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:122
-msgid  "Path for Drive N:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:123
-msgid  "Path for Drive O:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:124
-msgid  "Path for Drive P:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:125
-msgid  "Path for Drive Q:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:126
-msgid  "Path for Drive R:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:127
-msgid  "Path for Drive S:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:128
-msgid  "Path for Drive T:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:131
-msgid  "Path for Drive V:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:132
-msgid  "Path for Drive W:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:133
-msgid  "Path for Drive X:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:134
-msgid  "Path for Drive Y:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:135
-msgid  "Path for Drive Z:"
-msgstr ""
-
-#: ../src/gui/preferences.xml:137
-msgid  "Network"
-msgstr ""
-
-#: ../src/gui/preferences.xml:137
-msgid  "Configure network settings for the emulated Ethernet device (ETH0)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:138
-msgid  "Network Type"
-msgstr ""
-
-#: ../src/gui/preferences.xml:138
-msgid  "Select the Ethernet emulation mode (e.g., Disabled, TAP/Tunnel)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:139
-msgid  "Disabled"
-msgstr ""
-
-#: ../src/gui/preferences.xml:140
-msgid  "Bridge"
-msgstr ""
-
-#: ../src/gui/preferences.xml:141
-msgid  "Point-to-Point"
-msgstr ""
-
-#: ../src/gui/preferences.xml:143
-msgid  "Tunnel Device"
-msgstr ""
-
-#: ../src/gui/preferences.xml:143
-msgid  "The host's virtual network interface name (e.g., tap0)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:144
-msgid  "Host IP"
-msgstr ""
-
-#: ../src/gui/preferences.xml:144
-msgid  "The IP address of the Host's side of the virtual link"
-msgstr ""
-
-#: ../src/gui/preferences.xml:145
-msgid  "Atari IP"
-msgstr ""
-
-#: ../src/gui/preferences.xml:145
-msgid  "The IP address assigned to the emulated Atari device"
-msgstr ""
-
-#: ../src/gui/preferences.xml:146
-msgid  "Netmask"
-msgstr ""
-
-#: ../src/gui/preferences.xml:146
-msgid  "The network mask for the virtual subnet"
-msgstr ""
-
-#: ../src/gui/preferences.xml:147
-msgid  "Gateway"
-msgstr ""
-
-#: ../src/gui/preferences.xml:147
-msgid  "The gateway IP address (usually the host IP)"
-msgstr ""
-
-#: ../src/gui/preferences.xml:148
-msgid  "MAC address"
-msgstr ""
-
-#: ../src/gui/preferences.xml:148
-msgid  "The unique MAC address for the emulated device"
-msgstr ""
-
-#: ../src/gui/preferences.xml:149
-msgid  "Interrupt Level"
-msgstr ""
-
-#: ../src/gui/preferences.xml:149
-msgid  "The interrupt level used by the emulated device (4 is standard)"
 msgstr ""
 
 #~ msgid  "%s: can't have both -entry and -timeout\n"

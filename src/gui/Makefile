@@ -97,12 +97,27 @@ all:: $(PROGRAMS)
 .cc.o:
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
+FLAG_ICONS = $(wildcard icons/*.png)
+
+define ICON_TEMPLATE
+$(1).h: $(1) gen-pixbuf-csource
+	./gen-pixbuf-csource --raw --extern --name=$(subst -,_,$(notdir $(basename $(1))))_data $(1) > $$@.tmp && mv $$@.tmp $$@ || { $(RM) $$@.tmp; false; }
+
+endef
+$(foreach ICON,$(FLAG_ICONS),$(eval $(call ICON_TEMPLATE,$(ICON))))
+
+gen-pixbuf-csource: $(srcdir)/gen-pixbuf-csource.c
+	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
+
+gtkrc.o: gtkrc.c $(addsuffix .h,$(FLAG_ICONS))
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 ifeq ($(ENABLE_NLS),yes)
 gxmessage: gxmessage.tr.c $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) -DNLS_TRANSLATE_TR -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
-mxgtk-settings: mxgtk-settings.tr.c country.o preferences.xml.h langs.o libnls/libnls.a preferences.xml.tr.c
-	$(CC) $(CFLAGS) -DNLS_TRANSLATE_TR -o $@ $(GTK_CFLAGS) $< langs.o libnls/libnls.a $(GTK_LIBS) $(LDFLAGS)
+mxgtk-settings: mxgtk-settings.tr.c country.o preferences.xml.h langs.o libnls/libnls.a preferences.xml.tr.c gtkrc.o
+	$(CC) $(CFLAGS) -DNLS_TRANSLATE_TR -o $@ $(GTK_CFLAGS) $< langs.o gtkrc.o libnls/libnls.a $(GTK_LIBS) $(LDFLAGS)
 
 mxqt-settings: mxqt-settings.tr.cc country.o preferences.xml.h mxqt-settings.moc langs.o qrc.o libnls/libnls.a preferences.xml.tr.c
 	$(CXX) $(CXXFLAGS) -DNLS_TRANSLATE_TR -o $@ $(QT_CFLAGS) $< langs.o libnls/libnls.a $(QT_LIBS) $(LDFLAGS)
@@ -153,8 +168,8 @@ else
 gxmessage: gxmessage.c $(MAKEFILE_LIST)
 	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
 
-mxgtk-settings: mxgtk-settings.c country.o preferences.xml.h preferences.xml.c
-	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< $(GTK_LIBS) $(LDFLAGS)
+mxgtk-settings: mxgtk-settings.c country.o preferences.xml.h preferences.xml.c gtkrc.o
+	$(CC) $(CFLAGS) -o $@ $(GTK_CFLAGS) $< gtkrc.o $(GTK_LIBS) $(LDFLAGS)
 
 mxqt-settings: mxqt-settings.cc country.o preferences.xml.h preferences.xml.c mxqt-settings.moc qrc.o libnls/libnls.a
 	$(CXX) $(CXXFLAGS) -o $@ $(QT_CFLAGS) $< $(QT_LIBS) $(LDFLAGS)
@@ -176,8 +191,9 @@ $(srcdir)/preferences.xml:
 qrc.o: qrc.cc
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
-qrc.cc: icons.qrc $(wildcard icons/*)
+qrc.cc: icons.qrc $(FLAG_ICONS)
 	$(RCC) --namespace -g cpp -o $@ $<
+
 
 country.o: country.c
 langs.o: langs.c
@@ -187,7 +203,7 @@ $(NLSTOOL_OBJS): pofile.h nls-enable.h libnls/libnls.h $(MAKEFILE_LIST)
 nlstool: $(NLSTOOL_OBJS) libnls/libnls.a
 	$(CC) $(CFLAGS) -o $@ $(NLSTOOL_OBJS) libnls/libnls.a $(LDFLAGS)
 
-langs.c: nlstool-nonls $(POTFILES)
+langs.c: nlstool-nonls $(POTFILES) $(PO_DIR)/$(GETTEXT_PACKAGE).pot
 	./nlstool-nonls -p $(PO_DIR) --default-domain $(GETTEXT_PACKAGE) -o $@ make || { $(RM) $@; false; }
 
 libnls/libnls.a: $(LIBNLS_OBJS)
@@ -203,3 +219,6 @@ libnls/expreval-silent.o: libnls/expreval-silent.c libnls/expreval.c
 
 clean::
 	$(RM) *.o libnls/*.o libnls/*.a $(PROGRAMS) nlstool-nonls preferences.xml.h preferences.xml.c *.moc qrc.cc libnls/plural.c langs.c *.tr.*
+
+echo::
+	echo $(FLAG_ICONS)

@@ -1320,6 +1320,7 @@ int CMagiC::EmuThread( void )
     bool bNewBstate[2];
     bool bNewMpos;
     bool bNewKey;
+    bool bNewJoystick;
 
 
     m_bEmulatorIsRunning = true;
@@ -1405,8 +1406,17 @@ int CMagiC::EmuThread( void )
             }
             else
             {
+                /*
+                * Mouse buttons
+                */
+
                 bNewBstate[0] = CMagiCMouse::setNewButtonState(0, m_bInterruptMouseButton[0]);
                 bNewBstate[1] = CMagiCMouse::setNewButtonState(1, m_bInterruptMouseButton[1]);
+
+                /*
+                * Mouse movement
+                */
+
                 if (Preferences::bRelativeMouse)
                 {
                     bNewMpos = CMagiCMouse::setNewMovement(m_InterruptMouseMoveRelX, m_InterruptMouseMoveRelY);
@@ -1415,8 +1425,21 @@ int CMagiC::EmuThread( void )
                 {
                     bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhereX, m_InterruptMouseWhereY);
                 }
+
+                /*
+                * Keyboard
+                */
+
                 bNewKey = (m_pKbRead != m_pKbWrite);
-                if (bNewBstate[0] || bNewBstate[1] || bNewMpos || bNewKey)
+
+                /*
+                * Joystick
+                */
+
+                bNewJoystick = m_bInterruptJoystickButtons;
+                m_bInterruptJoystickButtons = false;
+
+                if (bNewBstate[0] || bNewBstate[1] || bNewMpos || bNewKey || bNewJoystick)
                 {
                     // The "no kbd/mouse data" error occurs with 0 0 1 0:
                     // DebugInfo2("() -- ikbd pending = %u %u %u %u", bNewBstate[0], bNewBstate[1], bNewMpos, bNewKey);
@@ -1435,7 +1458,9 @@ int CMagiC::EmuThread( void )
             OS_ExitCriticalRegion(&m_KbCriticalRegionId);
             m_bWaitEmulatorForIRQCallback = true;
             while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
+            {
                 m68k_execute();        // warte bis IRQ-Callback
+            }
         }
 
         // aufgelaufene 200Hz-Interrupts bearbeiten
@@ -1921,6 +1946,40 @@ int CMagiC::sendMouseButton(unsigned int NumOfButton, bool bIsDown)
         }
 
         m_bInterruptMouseKeyboardPending = true;
+        m68k_StopExecution();
+
+        // wake up emulator, if in "idle task"
+        OS_SetEvent(
+                &m_InterruptEventsId,
+                EMU_INTPENDING_KBMOUSE);
+
+        OS_ExitCriticalRegion(&m_KbCriticalRegionId);
+    }
+
+    return 0;    // OK
+}
+
+
+/**********************************************************************
+*
+* Joystick-Status schicken.
+*
+* Wird von der "main event loop" aufgerufen.
+*
+**********************************************************************/
+
+int CMagiC::sendJoystickState(uint8_t header, uint8_t state)
+{
+    if (m_bEmulatorIsRunning)
+    {
+        OS_EnterCriticalRegion(&pTheMagiC->m_KbCriticalRegionId);
+
+        pTheMagiC->PutKeyToBuffer(header);    // joystick #0
+        pTheMagiC->PutKeyToBuffer(state);    // bits 0..3: directions, bit 7: fire
+
+        m_bInterruptJoystickButtons = true;
+        m_bInterruptMouseKeyboardPending = true;
+
         m68k_StopExecution();
 
         // wake up emulator, if in "idle task"
@@ -2562,7 +2621,7 @@ uint32_t CMagiC::AtariBconout(uint32_t params, uint8_t *addrOffset68k)
     struct BconoutParm
     {
         uint16_t devno;             // 3: MIDI, 4: IKDB, TODO: more to come
-        PTR32_BE data;            // 68k-pointer to character
+        PTR32_BE data;            // 68k-pointer to character, as 16-bit word
     } __attribute__((packed));
 
     const BconoutParm *theParm = (BconoutParm *) (addrOffset68k + params);
@@ -2572,6 +2631,25 @@ uint32_t CMagiC::AtariBconout(uint32_t params, uint8_t *addrOffset68k)
     datum <<= 8;
     datum += *pData;        // 16-bit big endian
     DebugWarning2("(devno = %u, c = 0x%04x)", devno, datum);
+
+    if ((devno == 4) && (datum == 0x16))
+    {
+        // Joystick interrogation (IKBD $16)
+        SDL_Event event;
+
+        event.type = SDL_USEREVENT;
+        event.user.code = USEREVENT_POLL_JOYSTICK_STATE;
+        event.user.data1 = 0;
+        event.user.data2 = 0;
+        SDL_PushEvent(&event);
+    }
+    else
+    if ((devno == 4) && (datum == 8))
+    {
+        // Set relative mouse position reporting (IKBD $08)
+        DebugWarning2("() -- Set relative mouse position reporting (IKBD $08)");
+    }
+
     return 0;
 }
 
@@ -3310,7 +3388,7 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
                 SDL_Event event;
 
                 event.type = SDL_USEREVENT;
-                event.user.code = 4;
+                event.user.code = USEREVENT_POLL_MOUNT;
                 event.user.data1 = 0;
                 event.user.data2 = 0;
                 SDL_PushEvent(&event);

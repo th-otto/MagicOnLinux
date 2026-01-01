@@ -157,7 +157,7 @@ int EmulationRunner::StartEmulatorThread(void)
         SDL_Event event;
 
         event.type = SDL_USEREVENT;
-        event.user.code = RUN_EMULATOR;
+        event.user.code = USEREVENT_RUN_EMULATOR;
         event.user.data1 = 0;
         event.user.data2 = 0;
 
@@ -193,7 +193,7 @@ int EmulationRunner::OpenWindow(void)
         SDL_Event event;
 
         event.type = SDL_USEREVENT;
-        event.user.code = OPEN_EMULATOR_WINDOW;
+        event.user.code = USEREVENT_OPEN_EMULATOR_WINDOW;
         event.user.data1 = 0;
         event.user.data2 = 0;
 
@@ -385,7 +385,7 @@ uint32_t EmulationRunner::LoopTimer(Uint32 interval, void *param)
             SDL_Event event;
 
             event.type = SDL_USEREVENT;
-            event.user.code = RUN_EMULATOR_WINDOW_UPDATE;
+            event.user.code = USEREVENT_RUN_EMULATOR_WINDOW_UPDATE;
             event.user.data1 = 0;
             event.user.data2 = 0;
 
@@ -780,28 +780,28 @@ void EmulationRunner::HandleUserEvents(SDL_Event* event)
 {
     switch (event->user.code)
     {
-        case OPEN_EMULATOR_WINDOW:
+        case USEREVENT_OPEN_EMULATOR_WINDOW:
             if (m_sdl_window == nullptr)
             {
                 _OpenWindow();
             }
             break;
 
-        case RUN_EMULATOR:
+        case USEREVENT_RUN_EMULATOR:
             if (m_EmulatorThread == nullptr)
             {
                 _StartEmulatorThread();
             }
             break;
 
-        case RUN_EMULATOR_WINDOW_UPDATE:
+        case USEREVENT_RUN_EMULATOR_WINDOW_UPDATE:
             if (m_sdl_window != nullptr)
             {
                 EmulatorWindowUpdate();
             }
             break;
 
-        case POLL_MOUNT:
+        case USEREVENT_POLL_MOUNT:
             // This is a message from MMXDAEMON
             if (Preferences::mountDriveParameter != nullptr)
             {
@@ -809,6 +809,12 @@ void EmulationRunner::HandleUserEvents(SDL_Event* event)
                 Preferences::mountDriveParameter = nullptr;
             }
             break;
+
+        case USEREVENT_POLL_JOYSTICK_STATE:
+        {
+            (void) m_Emulator.sendJoystickState(0xfe, 0x00);
+            break;
+        }
 
         default:
             DebugWarning2("() - unhandled SDL user event %u", event->user.code);

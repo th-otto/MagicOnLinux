@@ -36,6 +36,13 @@
 
 #define KEYBOARDBUFLEN  32
 
+// SDL user events, messages from emulator thread to GUI thread
+const int USEREVENT_RUN_EMULATOR_WINDOW_UPDATE = 1;
+const int USEREVENT_OPEN_EMULATOR_WINDOW =2;
+const int USEREVENT_RUN_EMULATOR = 3;
+const int USEREVENT_POLL_MOUNT = 4;
+const int USEREVENT_POLL_JOYSTICK_STATE = 5;
+
 class CMagiC
 {
    public:
@@ -58,6 +65,7 @@ class CMagiC
     int sendMousePosition(int x, int y);
     int sendMouseMovement(double xrel, double yrel);
     int sendMouseButton(unsigned int NumOfButton, bool bIsDown);
+    int sendJoystickState(uint8_t header, uint8_t state);
     int sendHz200(void);
     int sendVBL(void);
     void sendBusError(uint32_t addr, const char *AccessMode);
@@ -154,6 +162,7 @@ class CMagiC
     double m_InterruptMouseMoveRelX;    // for relative mouse mode
     double m_InterruptMouseMoveRelY;
     bool m_bInterruptMouseButton[2];
+    bool m_bInterruptJoystickButtons;
     bool m_bInterruptPending;
     bool m_bWaitEmulatorForIRQCallback;
 

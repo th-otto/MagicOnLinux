@@ -226,7 +226,8 @@ Atari applications that might work partially (greylist)
 - Font Expert, FONTEX.PRG (might run in single application mode)
 - RSCTEXT (direct video memory access, might work with 640x400)
 - ST-Pascal (direct memory access, then bus error)
-- Tempus Word <<<=== herausfinden, welche Dateien er nicht findet
+- GFABASIC 3.6 runs in single application mode in ST-high and ST-mid, otherwise total crash. Asks IKBD for Joystick status.
+- Tempus Word <<<=== find out, what files is missing and cannot find
 
 
 Atari applications that do not work at all (blacklist)
@@ -237,7 +238,6 @@ Atari applications that do not work at all (blacklist)
 - DBASE (why?)
 - Easydraw (first complains about missing GDOS, but then crashes and overwrites memory)
 - EASYRIDR
-- GFABASIC 3.6 (message "AtariSetColor() - not supported") shows white screen, system is hanging
 - GEM2 Wordchart (bus error)
 - NRSC 2.4 (writing to I/O)
 - Omicron Basic Compiler 3.06 (crash, and when ejecting "omikron_basic_compiler_3_06_omikron.st", system crashes)

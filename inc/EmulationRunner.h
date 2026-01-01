@@ -76,8 +76,3 @@ class EmulationRunner
     static bool m_bQuitLoop;
     static unsigned m_200HzCnt;
 };
-
-const int RUN_EMULATOR_WINDOW_UPDATE = 1;
-const int OPEN_EMULATOR_WINDOW =2;
-const int RUN_EMULATOR = 3;
-const int POLL_MOUNT = 4;

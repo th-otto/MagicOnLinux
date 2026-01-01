@@ -11,4 +11,5 @@ XFS function FTRUNCATE repaired.
 XFS function Fdatime() repaired.
 
 New emulator callbacks for bios Bconin/Bconout/Bconstat/Bcostat, currently only for MIDI and IKBD.
+Joystick interrogation (IKBD $16) implemented, for GFABASIC.
 Kernel API number increased.

@@ -49,10 +49,6 @@ MSGMERGE = msgmerge --no-fuzzy-matching --width=120
 
 PO_LINGUAS=$(shell grep -v "^#" $(srcdir)/LINGUAS)
 
-USER_LINGUAS=$(shell if test -n "$(LINGUAS)"; then LLINGUAS="$(LINGUAS)"; ALINGUAS="$(PO_LINGUAS)"; for lang in $$LLINGUAS; do if test -n "`grep '^$$lang$$' $(srcdir)/LINGUAS 2>/dev/null`" -o -n "`echo $$ALINGUAS|tr ' ' '\n'|grep '^$$lang$$'`"; then printf "$$lang "; fi; done; fi)
-
-USE_LINGUAS=$(shell if test -n "$(USER_LINGUAS)" -o -n "$(LINGUAS)"; then LLINGUAS="$(USER_LINGUAS)"; else if test -n "$(PO_LINGUAS)"; then LLINGUAS="$(PO_LINGUAS)"; else LLINGUAS="$(PO_LINGUAS)"; fi; fi; for lang in $$LLINGUAS; do printf "$$lang "; done)
-
 POFILES=$(addsuffix .po,$(PO_LINGUAS))
 
 DISTFILES = Makefile POTFILES $(POFILES)
@@ -60,7 +56,7 @@ EXTRA_DISTFILES = LINGUAS
 
 POTFILES = $(shell grep -v "^#" $(srcdir)/POTFILES)
 
-CATALOGS=$(addsuffix .gmo,$(USE_LINGUAS))
+CATALOGS=$(addsuffix .gmo,$(PO_LINGUAS))
 
 XGETTEXT_KEYWORDS = \
 	--keyword=_ \
@@ -112,29 +108,36 @@ all: all-$(USE_NLS)
 all-yes: $(CATALOGS)
 all-no:
 
+#
+# we don't want to remove the "POT-Creation-Date: " line from messages.pot,
+# but if that is the only line that changes, leave the original intact,
+# to help in revision control systems
+#
 $(srcdir)/$(GETTEXT_PACKAGE).pot: $(srcdir)/$(POTFILES) $(top_srcdir)/src/gui/preferences.xml $(srcdir)/Makefile
 	@echo generating $@; \
-	$(XGETTEXT) $(XGETTEXT_ARGS) $(XGETTEXT_KEYWORDS) $(POTFILES) --output=$@.tmp; \
-	echo "" >> $@.tmp; \
-	$(PERL) $(srcdir)/xml-extract.pl $(top_srcdir)/src/gui/preferences.xml >> $@.tmp; \
-	sed -i 's/Language: \\n/Language: en_US\\n/' $@.tmp; \
-	mv $@.tmp $@
+	$(XGETTEXT) $(XGETTEXT_ARGS) $(XGETTEXT_KEYWORDS) $(POTFILES) --output=$@.$$$$; \
+	sed -i.orig 's/^"Language: \\n/"Language: en_US\\n/' $@.$$$$; \
+	echo "" >> $@.$$$$; \
+	$(PERL) $(srcdir)/xml-extract.pl $(top_srcdir)/src/gui/preferences.xml >> $@.$$$$; \
+	sed -e '/^"POT-Creation-Date: /d' $@.$$$$ > $@.$$$$.1; \
+	sed -e '/^"POT-Creation-Date: /d' $@ > $@.$$$$.2 2>/dev/null; \
+	if diff -q $@.$$$$.1 $@.$$$$.2 >/dev/null; then $(RM) $@.$$$$; touch $@; else mv $@.$$$$ $@; fi; \
+	$(RM) $@.$$$$.1 $@.$$$$.2 $@.$$$$.orig
 
 install: install-data
 install-data: install-data-$(USE_NLS)
 install-data-no: all
 install-data-yes: all
-	linguas="$(USE_LINGUAS)"; \
+	linguas="$(PO_LINGUAS)"; \
 	for lang in $$linguas; do \
 	  dir=$(DESTDIR)$(localedir)/$$lang/LC_MESSAGES; \
 	  $(mkdir_p) $$dir; \
 	  if test -r $$lang.gmo; then \
-	    $(INSTALL_DATA) $$lang.gmo $$dir/$(GETTEXT_PACKAGE).mo; \
 	    echo "installing $$lang.gmo as $$dir/$(GETTEXT_PACKAGE).mo"; \
+	    $(INSTALL_DATA) $$lang.gmo $$dir/$(GETTEXT_PACKAGE).mo; \
 	  else \
+	    echo "installing $(srcdir)/$$lang.gmo as $$dir/$(GETTEXT_PACKAGE).mo"; \
 	    $(INSTALL_DATA) $(srcdir)/$$lang.gmo $$dir/$(GETTEXT_PACKAGE).mo; \
-	    echo "installing $(srcdir)/$$lang.gmo as" \
-		 "$$dir/$(GETTEXT_PACKAGE).mo"; \
 	  fi; \
 	done
 
@@ -147,14 +150,14 @@ install-exec installcheck:
 uninstall:
 	linguas="$(PO_LINGUAS)"; \
 	for lang in $$linguas; do \
-	  rm -f $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES/$(GETTEXT_PACKAGE).mo; \
-	  rm -f $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES/$(GETTEXT_PACKAGE).mo.m; \
+	  $(RM) $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES/$(GETTEXT_PACKAGE).mo; \
+	  $(RM) $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES/$(GETTEXT_PACKAGE).mo.m; \
 	done
 
 check: all $(srcdir)/$(GETTEXT_PACKAGE).pot
 
 mostlyclean:
-	$(RM) *.old.po cat-id-tbl.tmp *.mo *.gmo
+	$(RM) *.old.po *.mo *.gmo
 
 clean: mostlyclean
 
@@ -181,25 +184,29 @@ dist distdir: $(DISTFILES)
 
 update-po: $(srcdir)/Makefile $(srcdir)/$(GETTEXT_PACKAGE).pot
 	@tmpdir=`pwd`; \
-	linguas="$(USE_LINGUAS)"; \
+	linguas="$(PO_LINGUAS)"; \
 	for lang in $$linguas; do \
 	  printf "$$lang: "; \
-	  result="`$(MSGMERGE) -o $$tmpdir/$$lang.new.po $$lang $(srcdir)/$(GETTEXT_PACKAGE).pot`"; \
+	  result="`$(MSGMERGE) -o $$tmpdir/$$lang.new.$$$$.po $$lang $(srcdir)/$(GETTEXT_PACKAGE).pot`"; \
 	  if $$result; then \
-	    if cmp $(srcdir)/$$lang.po $$tmpdir/$$lang.new.po >/dev/null 2>&1; then \
-	      rm -f $$tmpdir/$$lang.new.po; \
+	    sed -e '/^"POT-Creation-Date: /d' $(srcdir)/$$lang.po > $$tmpdir/$$lang.new.$$$$.po.1; \
+	    sed -e '/^"POT-Creation-Date: /d' $$tmpdir/$$lang.new.$$$$.po > $$tmpdir/$$lang.new.$$$$.po.2; \
+	    if cmp $$tmpdir/$$lang.new.$$$$.po.1 $$tmpdir/$$lang.new.$$$$.po.2 >/dev/null 2>&1; then \
+	      $(RM) $$tmpdir/$$lang.new.$$$$.po; \
+	      touch $$lang.po; \
             else \
-	      if mv -f $$tmpdir/$$lang.new.po $$lang.po; then \
+	      if mv -f $$tmpdir/$$lang.new.$$$$.po $$lang.po; then \
 	        :; \
 	      else \
-	        echo "msgmerge for $$lang.po failed: cannot move $$tmpdir/$$lang.new.po to $$lang.po" 1>&2; \
-	        rm -f $$tmpdir/$$lang.new.po; \
+	        echo "msgmerge for $$lang.po failed: cannot move $$tmpdir/$$lang.new.$$$$.po to $$lang.po" 1>&2; \
+	        $(RM) $$tmpdir/$$lang.new.$$$$.po; \
 	        exit 1; \
 	      fi; \
 	    fi; \
+	    $(RM) $$tmpdir/$$lang.new.$$$$.po.1 $$tmpdir/$$lang.new.$$$$.po.2; \
 	  else \
 	    echo "msgmerge for $$lang.gmo failed!"; \
-	    rm -f $$tmpdir/$$lang.new.po; \
+	    $(RM) $$tmpdir/$$lang.new.$$$$.po; \
 	  fi; \
 	done
 
@@ -210,15 +217,14 @@ update-po: $(srcdir)/Makefile $(srcdir)/$(GETTEXT_PACKAGE).pot
 generate_potfiles_in:
 	@tmp=po.$$$$ ;				\
 	 file=$(srcdir)/POTFILES;			\
-	 ( cd $(srcdir);			\
-	   ( grep -l '_("' ../src/*.cpp ;	\
-	     grep -l '_("' ../inc/*.h ;	\
-	     grep -l '_("' ../src/gui/*.[ch] ;	\
-	     grep -l '_("' ../src/gui/*.cc 	\
-	     ) | sort	\
-	  ) > $$tmp &&				\
+	 files="$(filter-out %.tr.c,$(filter-out %.tr.cc,\
+	  $(wildcard $(top_srcdir)/src/*.cpp) \
+	   $(wildcard $(top_srcdir)/inc/*.h) \
+	   $(wildcard $(top_srcdir)/src/gui/*.[ch]) \
+	   $(wildcard $(top_srcdir)/src/gui/*.cc)))"; \
+	 grep -l '_("' $$files | sed -e 's@$(top_srcdir)/@../@' | sort > $$tmp &&				\
 	 mv $$tmp $$file &&			\
-	 echo "created `pwd`/$$file" || $(RM) $tmp
+	 echo "created $$file" || $(RM) $tmp
 
 # Tell versions [3.59,3.63) of GNU make not to export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

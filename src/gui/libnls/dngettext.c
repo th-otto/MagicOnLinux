@@ -15,7 +15,7 @@
 
 /* Similar to 'dgettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_dngettext(const char *domainname, libnls_msgid_type msgid1, libnls_msgid_type msgid2, unsigned long int n)
+const char *libnls_dngettext(const char *domainname, libnls_msgid_type msgid1, unsigned long int n)
 {
 	struct libnls_domain_list *d;
 	
@@ -23,7 +23,7 @@ const char *libnls_dngettext(const char *domainname, libnls_msgid_type msgid1, l
 	{
 		if (strcmp(d->domain->package, domainname) == 0)
 		{
-			return _libnls_internal_dngettext(d->domain, msgid1, msgid2, n);
+			return _libnls_internal_dngettext(d->domain, msgid1, n);
 		}
 	}
 	/*

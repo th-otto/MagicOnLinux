@@ -16,7 +16,6 @@ my $input;
 my %messages = ();
 my @messages_sorted = ();
 my %loc = ();
-my %count = ();
 my %comments = ();
 
 ## Always print first
@@ -37,7 +36,7 @@ sub extract
 	&convert;
 
 	open $OUT, ">>", "/dev/stdout";
-	# binmode (OUT) if $^O eq 'MSWin32';
+	# binmode(OUT) if $^O eq 'MSWin32';
 	&msg_write;
 	# close OUT;
 }
@@ -46,10 +45,10 @@ sub convert
 {
 	## Reading the file
 	{
-		local (*IN);
+		local(*IN);
 		local $/; #slurp mode
-		open (IN, "<$FILE") || die "can't open $FILE: $!";
-		binmode (IN);
+		open(IN, "<$FILE") || die "can't open $FILE: $!";
+		binmode(IN);
 		$input = <IN>;
 		close IN;
 	}
@@ -76,12 +75,12 @@ sub escape($)
 sub add_message($$)
 {
 	my ($string, $lineno) = @_;
-	if (!defined $messages{$string})
+	if (!defined($messages{$string}))
 	{
 		push @messages_sorted, $string;
 		$messages{$string} = [];
 	}
-	push @{$loc{$string}}, $lineno if defined $lineno;
+	push @{$loc{$string}}, $lineno if defined($lineno);
 }
 
 sub tree_comment
@@ -142,7 +141,7 @@ sub tree_start
 	# print "$lineno: start $tag\n";
 	while (my $attr = shift)
 	{
-		my $value = shift || "";
+		my $value = shift;
 		if ($attr eq "msgctxt")
 		{
 			$msgctxt = "$value\004";
@@ -187,17 +186,15 @@ sub readXml
 
 sub msg_write
 {
-	my @msgids;
 	my $filename = $FILE;
 	
-	@msgids = @messages_sorted;
-	for my $message (@msgids)
+	for my $message (@messages_sorted)
 	{
 		my $offsetlines = 1;
 		my $context = undef;
 		
 		$offsetlines++ if $message =~ /%/;
-		if (defined ($comments{$message}))
+		if (defined($comments{$message}))
 		{
 			while ($comments{$message} =~ m/\n/g)
 			{
@@ -205,8 +202,8 @@ sub msg_write
 			}
 		}
 		print $OUT "#. " . $comments{$message} . "\n"
-			if (defined $comments{$message});
-		if (defined $loc{$message})
+			if (defined($comments{$message}));
+		if (defined($loc{$message}))
 		{
 			for my $lineno (@{$loc{$message}})
 			{
@@ -221,7 +218,7 @@ sub msg_write
 			print $OUT "msgctxt \"" . $context . "\"\n"; 
 			$message = $2;
 		}
-		my @lines = split (/\n/, $message, -1);
+		my @lines = split(/\n/, $message, -1);
 		print $OUT "msgid  ";
 		print $OUT "\"\"\n"
 			if (@lines > 1);

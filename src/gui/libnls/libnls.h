@@ -54,6 +54,8 @@ enum {
 
 #define ISO639_CODE_LEN 5
 
+typedef unsigned int libnls_msgid_type;
+
 typedef struct _libnls_translation {
 	int tos_country_code;
 	char lang_id[ISO639_CODE_LEN + 1];
@@ -65,6 +67,7 @@ typedef struct _libnls_translation {
 typedef struct _libnls_domain {
 	const char *package;
 	const char *keys;
+	libnls_msgid_type num_keys;
 	const libnls_translation *languages;
 	libnls_translation current_translation;
 } libnls_domain;
@@ -85,8 +88,6 @@ typedef struct _libnls_domain {
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef unsigned int libnls_msgid_type;
 
 /* Redirect the functions to those prefixed with "libnls_". */
 
@@ -111,19 +112,19 @@ const char *libnls_dcgettext(const char *__domainname, libnls_msgid_type __msgid
 
 /* Similar to 'gettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_ngettext(libnls_msgid_type __msgid1, libnls_msgid_type __msgid2, unsigned long int __n);
-#define ngettext(__msgid1, __msgid2, __n) libnls_ngettext((libnls_msgid_type)(size_t)(__msgid1), (libnls_msgid_type)(size_t)(__msgid2), __n)
+const char *libnls_ngettext(libnls_msgid_type __msgid1, unsigned long int __n);
+#define ngettext(__msgid1, __msgid2, __n) libnls_ngettext((libnls_msgid_type)(size_t)(__msgid1), __n)
 
 
 /* Similar to 'dgettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_dngettext(const char *__domainname, libnls_msgid_type __msgid1, libnls_msgid_type __msgid2, unsigned long int __n);
-#define dngettext(__domainname, __msgid1, __msgid2, __n) libnls_dngettext(__domainname, (libnls_msgid_type)(size_t)(__msgid1), (libnls_msgid_type)(size_t)(__msgid2), __n)
+const char *libnls_dngettext(const char *__domainname, libnls_msgid_type __msgid1, unsigned long int __n);
+#define dngettext(__domainname, __msgid1, __msgid2, __n) libnls_dngettext(__domainname, (libnls_msgid_type)(size_t)(__msgid1), __n)
 
 /* Similar to 'dcgettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_dcngettext(const char *__domainname, libnls_msgid_type __msgid1, libnls_msgid_type __msgid2, unsigned long int __n, int __category);
-#define dcngettext(__domainname, __msgid1, __msgid2, __n, __category) libnls_dcngettext(__domainname, (libnls_msgid_type)(size_t)(__msgid1), (libnls_msgid_type)(size_t)(__msgid2), __n, __category)
+const char *libnls_dcngettext(const char *__domainname, libnls_msgid_type __msgid1, unsigned long int __n, int __category);
+#define dcngettext(__domainname, __msgid1, __msgid2, __n, __category) libnls_dcngettext(__domainname, (libnls_msgid_type)(size_t)(__msgid1), __n, __category)
 
 
 /* Set the current default message catalog to DOMAINNAME.

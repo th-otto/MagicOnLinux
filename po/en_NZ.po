@@ -19,7 +19,7 @@ msgid  ""
 msgstr ""
 "Project-Id-Version: MagicOnLinux 0.3\n"
 "Report-Msgid-Bugs-To: https://github.com/th-otto/MagicOnLinux/issues\n"
-"POT-Creation-Date: 2025-12-27 15:16+0100\n"
+"POT-Creation-Date: 2026-01-01 12:13+0100\n"
 "PO-Revision-Date: 2025-12-10 11:35+0100\n"
 "Last-Translator: Timothy Richard Musson <trmusson@gmail.com>\n"
 "Language-Team: New Zealand English <en@li.org>\n"
@@ -30,12 +30,14 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 
 #: ../src/gui/gxmessage.c:398
-#: ../src/gui/mxgtk-settings.c:249
+#: ../src/gui/mxgtk-settings.c:248
 msgid  "_OK"
 msgstr "_OK"
 
 #: ../src/gui/gxmessage.c:400
-#: ../src/gui/mxgtk-settings.c:251
+#: ../src/gui/mxgtk-settings.c:250
+#: ../src/gui/mxgtk-settings.c:1836
+#: ../src/gui/mxgtk-settings.c:1904
 msgid  "_Cancel"
 msgstr "_Cancel"
 
@@ -248,58 +250,58 @@ msgstr "%s: message text is required\n"
 msgid  "Try `%s --help' for more information\n"
 msgstr "Try `%s --help' for more information\n"
 
-#: ../src/gui/mxgtk-settings.c:480
-#: ../src/gui/mxqt-settings.cc:1640
+#: ../src/gui/mxgtk-settings.c:497
+#: ../src/gui/mxqt-settings.cc:1548
 msgid  "Accept and confirm the changes in this dialog"
 msgstr "Accept and confirm the changes in this dialog"
 
-#: ../src/gui/mxgtk-settings.c:481
-#: ../src/gui/mxqt-settings.cc:1641
+#: ../src/gui/mxgtk-settings.c:498
+#: ../src/gui/mxqt-settings.cc:1549
 msgid  "Discard the current changes and close the dialog"
 msgstr "Discard the current changes and close the dialog"
 
-#: ../src/gui/mxgtk-settings.c:781
-#: ../src/gui/mxqt-settings.cc:425
+#: ../src/gui/mxgtk-settings.c:762
+#: ../src/gui/mxqt-settings.cc:428
 msgid  "Select a Folder"
 msgstr "Select a Folder"
 
-#: ../src/gui/mxgtk-settings.c:781
-#: ../src/gui/mxqt-settings.cc:425
+#: ../src/gui/mxgtk-settings.c:762
+#: ../src/gui/mxqt-settings.cc:428
 msgid  "Select a File"
 msgstr "Select a File"
 
-#: ../src/gui/mxgtk-settings.c:819
-#: ../src/gui/mxqt-settings.cc:1281
+#: ../src/gui/mxgtk-settings.c:801
+#: ../src/gui/mxqt-settings.cc:1267
 msgid  "read-only"
 msgstr "read-only"
 
-#: ../src/gui/mxgtk-settings.c:822
-#: ../src/gui/mxqt-settings.cc:1282
+#: ../src/gui/mxgtk-settings.c:804
+#: ../src/gui/mxqt-settings.cc:1268
 msgid  "Mount drive in read-only mode, preventing writes from the emulation"
 msgstr "Mount drive in read-only mode, preventing writes from the emulation"
 
-#: ../src/gui/mxgtk-settings.c:831
-#: ../src/gui/mxqt-settings.cc:1285
+#: ../src/gui/mxgtk-settings.c:813
+#: ../src/gui/mxqt-settings.cc:1271
 msgid  "DOS 8+3 format"
 msgstr "DOS 8+3 format"
 
-#: ../src/gui/mxgtk-settings.c:834
-#: ../src/gui/mxqt-settings.cc:1286
+#: ../src/gui/mxgtk-settings.c:816
+#: ../src/gui/mxqt-settings.cc:1272
 msgid  "Force 8.3 short filenames (FAT-style) on host directories"
 msgstr "Force 8.3 short filenames (FAT-style) on host directories"
 
-#: ../src/gui/mxgtk-settings.c:843
-#: ../src/gui/mxqt-settings.cc:1289
+#: ../src/gui/mxgtk-settings.c:825
+#: ../src/gui/mxqt-settings.cc:1275
 msgid  "case insensitive"
 msgstr "case insensitive"
 
-#: ../src/gui/mxgtk-settings.c:846
-#: ../src/gui/mxqt-settings.cc:1290
+#: ../src/gui/mxgtk-settings.c:828
+#: ../src/gui/mxqt-settings.cc:1276
 msgid  "Ignore case sensitivity when accessing files/folders"
 msgstr "Ignore case sensitivity when accessing files/folders"
 
-#: ../src/gui/mxgtk-settings.c:1138
-#: ../src/gui/mxqt-settings.cc:722
+#: ../src/gui/mxgtk-settings.c:994
+#: ../src/gui/mxqt-settings.cc:737
 #, c-format
 msgid  ""
 "can't create %s:\n"
@@ -309,90 +311,111 @@ msgstr ""
 "%s"
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1569
+#: ../src/gui/mxgtk-settings.c:1425
 #, c-format
 msgid  "%s:%d: unknown section '%s'\n"
 msgstr "%s:%d: unknown section '%s'\n"
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1601
+#: ../src/gui/mxgtk-settings.c:1457
 #, c-format
 msgid  "%s:%d: Syntax error: %s"
 msgstr "%s:%d: Syntax error: %s"
 
-#: ../src/gui/mxgtk-settings.c:1976
+#: ../src/gui/mxgtk-settings.c:1834
+#: ../src/gui/mxgtk-settings.c:1902
+msgid  "_Save"
+msgstr "_Save"
+
+#: ../src/gui/mxgtk-settings.c:1835
+#: ../src/gui/mxgtk-settings.c:1903
+msgid  "_Delete"
+msgstr "_Delete"
+
+#: ../src/gui/mxgtk-settings.c:1844
 msgid  "You have unsaved changes. Do you want to save them and quit?"
 msgstr "You have unsaved changes. Do you want to save them and quit?"
 
-#: ../src/gui/mxgtk-settings.c:2034
-#: ../src/gui/mxqt-settings.cc:1687
+#: ../src/gui/mxgtk-settings.c:1912
+#: ../src/gui/mxqt-settings.cc:1591
 msgid  "You have unsaved changes. Do you want to discard them and quit?"
 msgstr "You have unsaved changes. Do you want to discard them and quit?"
 
-#: ../src/gui/mxgtk-settings.c:2103
-#: ../src/gui/mxqt-settings.cc:1554
+#: ../src/gui/mxgtk-settings.c:1985
+#: ../src/gui/mxqt-settings.cc:1460
 msgid  "MagicOnLinux Settings"
 msgstr "MagicOnLinux Settings"
 
-#: ../src/gui/mxgtk-settings.c:2172
+#: ../src/gui/mxgtk-settings.c:2054
 msgid  "Sets the client geometry of the main window"
 msgstr "Sets the client geometry of the main window"
 
-#: ../src/gui/mxgtk-settings.c:2172
+#: ../src/gui/mxgtk-settings.c:2054
 msgid  "GEOMETRY"
 msgstr "GEOMETRY"
 
-#: ../src/gui/mxgtk-settings.c:2173
-#: ../src/gui/mxqt-settings.cc:1769
+#: ../src/gui/mxgtk-settings.c:2055
+#: ../src/gui/mxqt-settings.cc:1673
 msgid  "Specify an alternative configuration file path"
 msgstr "Specify an alternative configuration file path"
 
-#: ../src/gui/mxgtk-settings.c:2173
-#: ../src/gui/mxqt-settings.cc:1769
+#: ../src/gui/mxgtk-settings.c:2055
+#: ../src/gui/mxqt-settings.cc:1673
 msgid  "FILE"
 msgstr "FILE"
 
-#: ../src/gui/mxgtk-settings.c:2174
+#: ../src/gui/mxgtk-settings.c:2056
 msgid  "Show version information and exit"
 msgstr "Show version information and exit"
 
-#: ../src/gui/mxgtk-settings.c:2175
+#: ../src/gui/mxgtk-settings.c:2057
 msgid  "Show help information and exit"
 msgstr "Show help information and exit"
 
-#: ../src/gui/mxgtk-settings.c:2204
+#: ../src/gui/mxgtk-settings.c:2086
 msgid  "GTK Configurator for MagicOnLinux"
 msgstr "GTK Configurator for MagicOnLinux"
 
-#: ../src/gui/mxgtk-settings.c:2231
+#: ../src/gui/mxgtk-settings.c:2113
 msgid  "error parsing command line"
 msgstr "error parsing command line"
 
 #. FIXME: use dialog
-#: ../src/gui/mxqt-settings.cc:1159
+#: ../src/gui/mxqt-settings.cc:922
+#, c-format
+msgid  "value %ld out of range %ld..%ld"
+msgstr "value %ld out of range %ld..%ld"
+
+#: ../src/gui/mxqt-settings.cc:1104
+msgid  "unknown key"
+msgstr "unknown key"
+
+#. FIXME: use dialog
+#. remove trailing newline
+#: ../src/gui/mxqt-settings.cc:1176
 #, c-format
 msgid  "Syntax error in configuration file:%d: %s"
 msgstr "Syntax error in configuration file:%d: %s"
 
-#: ../src/gui/mxqt-settings.cc:1768
+#: ../src/gui/mxqt-settings.cc:1672
 msgid  "ID of the parent window"
 msgstr "ID of the parent window"
 
-#: ../src/gui/nlstool.c:117
+#: ../src/gui/nlstool.c:123
 #, c-format
 msgid  "%s - Create translations from PO files\n"
 msgstr "%s - Create translations from PO files\n"
 
-#: ../src/gui/nlstool.c:118
+#: ../src/gui/nlstool.c:124
 #, c-format
 msgid  "Usage: %s [<options>] [make|translate]\n"
 msgstr "Usage: %s [<options>] [make|translate]\n"
 
-#: ../src/gui/nlstool.c:119
+#: ../src/gui/nlstool.c:125
 msgid  "Commands are:\n"
 msgstr "Commands are:\n"
 
-#: ../src/gui/nlstool.c:120
+#: ../src/gui/nlstool.c:126
 msgid  ""
 "  make                         read all files listed in LINGUAS,\n"
 "                               and create C-source for translations\n"
@@ -400,157 +423,159 @@ msgstr ""
 "  make                         read all files listed in LINGUAS,\n"
 "                               and create C-source for translations\n"
 
-#: ../src/gui/nlstool.c:122
+#: ../src/gui/nlstool.c:128
 msgid  "  translate <lang> <files>     translate C-sources\n"
 msgstr "  translate <lang> <files>     translate C-sources\n"
 
-#: ../src/gui/nlstool.c:124
+#: ../src/gui/nlstool.c:130
 msgid  "Options are:\n"
 msgstr "Options are:\n"
 
-#: ../src/gui/nlstool.c:125
+#: ../src/gui/nlstool.c:131
 msgid  "   -v, --verbose               emit some progress messages\n"
 msgstr "   -v, --verbose               emit some progress messages\n"
 
-#: ../src/gui/nlstool.c:126
+#: ../src/gui/nlstool.c:132
 msgid  "   -p, --podir <dir>           lookup po-files in <dir>\n"
 msgstr "   -p, --podir <dir>           lookup po-files in <dir>\n"
 
-#: ../src/gui/nlstool.c:127
+#: ../src/gui/nlstool.c:133
 msgid  "   -o, --output <file>         write output to <file>\n"
 msgstr "   -o, --output <file>         write output to <file>\n"
 
-#: ../src/gui/nlstool.c:128
+#: ../src/gui/nlstool.c:134
 msgid  "   -d, --default-domain <name> specify packagename\n"
 msgstr "   -d, --default-domain <name> specify packagename\n"
 
-#: ../src/gui/nlstool.c:129
+#: ../src/gui/nlstool.c:135
 msgid  "   -k, --keys <name>           name of the key string table\n"
 msgstr "   -k, --keys <name>           name of the key string table\n"
 
-#: ../src/gui/nlstool.c:130
+#: ../src/gui/nlstool.c:136
 msgid  "       --version               print version and exit\n"
 msgstr "       --version               print version and exit\n"
 
-#: ../src/gui/nlstool.c:131
+#: ../src/gui/nlstool.c:137
 msgid  "       --help                  print this help and exit\n"
 msgstr "       --help                  print this help and exit\n"
 
-#: ../src/gui/nlstool.c:138
+#: ../src/gui/nlstool.c:144
 #, c-format
 msgid  "%s version %s\n"
 msgstr "%s version %s\n"
 
-#: ../src/gui/nlstool.c:221
+#: ../src/gui/nlstool.c:241
 #, c-format
 msgid  "%s: unknown command %s\n"
 msgstr "%s: unknown command %s\n"
 
-#: ../src/gui/pofile.c:62
+#: ../src/gui/pofile.c:79
 msgid  "Warning: "
 msgstr "Warning: "
 
-#: ../src/gui/pofile.c:76
+#: ../src/gui/pofile.c:93
 msgid  "Fatal: "
 msgstr "Fatal: "
 
-#: ../src/gui/pofile.c:91
+#: ../src/gui/pofile.c:108
 msgid  "Error: "
 msgstr "Error: "
 
-#: ../src/gui/pofile.c:712
+#: ../src/gui/pofile.c:719
 #, c-format
 msgid  "%s: empty administrative entry"
 msgstr "%s: empty administrative entry"
 
-#: ../src/gui/pofile.c:732
+#: ../src/gui/pofile.c:739
 #, c-format
 msgid  "%s: fields in administrative entry must end with \\n"
 msgstr "%s: fields in administrative entry must end with \\n"
 
-#: ../src/gui/pofile.c:765
-#: ../src/gui/pofile.c:770
-#: ../src/gui/pofile.c:775
+#: ../src/gui/pofile.c:772
+#: ../src/gui/pofile.c:777
+#: ../src/gui/pofile.c:782
 #, c-format
 msgid  "%s: Expecting \"%s\" in administrative entry"
 msgstr "%s: Expecting \"%s\" in administrative entry"
 
-#: ../src/gui/pofile.c:780
+#: ../src/gui/pofile.c:787
 #, c-format
 msgid  "%s: MIME version must be 1.0"
 msgstr "%s: MIME version must be 1.0"
 
-#: ../src/gui/pofile.c:785
+#: ../src/gui/pofile.c:792
 #, c-format
 msgid  "%s: Content-Transfer-Encoding must be 8bit"
 msgstr "%s: Content-Transfer-Encoding must be 8bit"
 
-#: ../src/gui/pofile.c:793
+#: ../src/gui/pofile.c:800
 #, c-format
 msgid  "%s: missing charset"
 msgstr "%s: missing charset"
 
-#: ../src/gui/pofile.c:802
+#: ../src/gui/pofile.c:809
 #, c-format
 msgid  "%s: charset unsupported: %s"
 msgstr "%s: charset unsupported: %s"
 
-#: ../src/gui/pofile.c:810
+#: ../src/gui/pofile.c:817
 #, c-format
 msgid  "%s: language '%s' does not match '%s' from LINGUAS"
 msgstr "%s: language '%s' does not match '%s' from LINGUAS"
 
-#: ../src/gui/pofile.c:837
+#: ../src/gui/pofile.c:844
 #, c-format
 msgid  "%s: syntax error in Plural-Forms entry"
 msgstr "%s: syntax error in Plural-Forms entry"
 
-#: ../src/gui/pofile.c:844
+#: ../src/gui/pofile.c:851
 #, c-format
 msgid  "%s: unknown Plural-Forms entry"
 msgstr "%s: unknown Plural-Forms entry"
 
-#: ../src/gui/pofile.c:853
+#: ../src/gui/pofile.c:860
 #, c-format
 msgid  "%s: missing Plural-Forms entry"
 msgstr "%s: missing Plural-Forms entry"
 
-#: ../src/gui/pofile.c:863
+#: ../src/gui/pofile.c:870
 #, c-format
 msgid  "%s: bad administrative entry"
 msgstr "%s: bad administrative entry"
 
-#: ../src/gui/pofile.c:910
+#: ../src/gui/pofile.c:917
 msgid  "too far backward"
 msgstr "too far backward"
 
-#: ../src/gui/pofile.c:1175
+#: ../src/gui/pofile.c:1182
 msgid  "EOF reached inside comment"
 msgstr "EOF reached inside comment"
 
-#: ../src/gui/pofile.c:1241
 #: ../src/gui/pofile.c:1248
+#: ../src/gui/pofile.c:1255
 #, c-format
 msgid  "%s:%d: EOF reached inside string"
 msgstr "%s:%d: EOF reached inside string"
 
-#: ../src/gui/pofile.c:1264
-#: ../src/gui/pofile.c:1291
+#: ../src/gui/pofile.c:1271
+#: ../src/gui/pofile.c:1298
 #, c-format
 msgid  "%s:%d: EOS inside string"
 msgstr "%s:%d: EOS inside string"
 
-#: ../src/gui/pofile.c:1308
+#: ../src/gui/pofile.c:1315
 #, c-format
 msgid  "%s:%d: internationalized messages should not contain the '\\v' escape sequence"
 msgstr "%s:%d: internationalized messages should not contain the '\\v' escape sequence"
 
-#: ../src/gui/pofile.c:1331
+#: ../src/gui/pofile.c:1338
 #, c-format
 msgid  "%s:%d: invalid control sequence '\\%c'"
 msgstr "%s:%d: invalid control sequence '\\%c'"
 
-#: ../src/gui/pofile.c:1589
+#. something went wrong. messages.pot not up-to-date?
+#: ../src/gui/pofile.c:1596
+#: ../src/gui/pofile.c:1825
 #, c-format
 msgid  ""
 "msgid '%s' not found in %s\n"
@@ -559,14 +584,15 @@ msgstr ""
 "msgid '%s' not found in %s\n"
 "(run 'xgettext' to generate it)"
 
-#: ../src/gui/pofile.c:1658
-#: ../src/gui/pofile.c:1836
-#: ../src/gui/pofile.c:1913
+#: ../src/gui/pofile.c:1665
+#: ../src/gui/pofile.c:1883
+#: ../src/gui/pofile.c:2053
+#: ../src/gui/pofile.c:2130
 #, c-format
 msgid  "could not open %s: %s"
 msgstr "could not open %s: %s"
 
-#: ../src/gui/pofile.c:1708
+#: ../src/gui/pofile.c:1715
 #, c-format
 msgid  ""
 "_(\"...\" with no closing )\n"
@@ -575,101 +601,101 @@ msgstr ""
 "_(\"...\" with no closing )\n"
 "the string is %s"
 
-#: ../src/gui/pofile.c:1822
+#: ../src/gui/pofile.c:2039
 #, c-format
 msgid  "LINGUAS: bad lang specification \"%s\""
 msgstr "LINGUAS: bad lang specification \"%s\""
 
-#: ../src/gui/pofile.c:1859
-#: ../src/gui/pofile.c:1929
+#: ../src/gui/pofile.c:2076
+#: ../src/gui/pofile.c:2146
 #, c-format
 msgid  "%s:%d: syntax error"
 msgstr "%s:%d: syntax error"
 
-#: ../src/gui/pofile.c:2019
+#: ../src/gui/pofile.c:2236
 #, c-format
 msgid  "%s:%d: stray ref ignored"
 msgstr "%s:%d: stray ref ignored"
 
-#: ../src/gui/pofile.c:2110
+#: ../src/gui/pofile.c:2327
 #, c-format
 msgid  "%s:%d: unsupported entry %s"
 msgstr "%s:%d: unsupported entry %s"
 
-#: ../src/gui/pofile.c:2142
+#: ../src/gui/pofile.c:2359
 #, c-format
 msgid  "%s:%d: missing msgid"
 msgstr "%s:%d: missing msgid"
 
-#: ../src/gui/pofile.c:2150
+#: ../src/gui/pofile.c:2367
 #, c-format
 msgid  "%s:%d: wrong number of plural forms"
 msgstr "%s:%d: wrong number of plural forms"
 
-#: ../src/gui/pofile.c:2157
+#: ../src/gui/pofile.c:2374
 #, c-format
 msgid  "%s:%d: administrative entry must not have plural or context"
 msgstr "%s:%d: administrative entry must not have plural or context"
 
-#: ../src/gui/pofile.c:2219
+#: ../src/gui/pofile.c:2436
 #, c-format
 msgid  "%s:%d: duplicate entry %s"
 msgstr "%s:%d: duplicate entry %s"
 
-#: ../src/gui/pofile.c:2241
+#: ../src/gui/pofile.c:2458
 #, c-format
 msgid  "%s:%d: entries do not both end with '\\n' in translation of '%s' to '%s'"
 msgstr "%s:%d: entries do not both end with '\\n' in translation of '%s' to '%s'"
 
-#: ../src/gui/pofile.c:2251
+#: ../src/gui/pofile.c:2468
 #, c-format
 msgid  "%s:%d: entries do not both begin with '\\n' in translation of '%s' to '%s'"
 msgstr "%s:%d: entries do not both begin with '\\n' in translation of '%s' to '%s'"
 
-#: ../src/gui/pofile.c:2293
+#: ../src/gui/pofile.c:2510
 #, c-format
 msgid  "%s:%d: syntax error (c = '%c')"
 msgstr "%s:%d: syntax error (c = '%c')"
 
-#: ../src/gui/pofile.c:2337
+#: ../src/gui/pofile.c:2554
 msgid  "LINGUAS: no languages found"
 msgstr "LINGUAS: no languages found"
 
-#: ../src/gui/pofile.c:2405
+#: ../src/gui/pofile.c:2622
 #, c-format
 msgid  "unknown language %s"
 msgstr "unknown language %s"
 
-#: ../src/gui/pofile.c:2450
+#: ../src/gui/pofile.c:2667
 #, c-format
 msgid  "%s.po: untranslated: '%s'\n"
 msgstr "%s.po: untranslated: '%s'\n"
 
-#: ../src/gui/pofile.c:2460
+#: ../src/gui/pofile.c:2677
 #, c-format
 msgid  "%s.po: translated %lu, untranslated %lu\n"
 msgstr "%s.po: translated %lu, untranslated %lu\n"
 
-#: ../src/gui/pofile.c:2534
+#: ../src/gui/pofile.c:2751
 #, c-format
 msgid  "%s: length of keys %lu does not fit into nls_key_offset"
 msgstr "%s: length of keys %lu does not fit into nls_key_offset"
 
-#: ../src/gui/pofile.c:2642
+#: ../src/gui/pofile.c:2859
 #, c-format
 msgid  "%s.po: keys %lu (%lu bytes), translations %lu bytes\n"
 msgstr "%s.po: keys %lu (%lu bytes), translations %lu bytes\n"
 
-#: ../src/gui/pofile.c:2652
+#: ../src/gui/pofile.c:2869
 #, c-format
 msgid  "%s: length of translations %lu does not fit into nls_key_offset"
 msgstr "%s: length of translations %lu does not fit into nls_key_offset"
 
-#: ../src/gui/pofile.c:3006
+#: ../src/gui/pofile.c:3230
 msgid  "I only translate .c files"
 msgstr "I only translate .c files"
 
-#: ../src/gui/pofile.c:3014
+#: ../src/gui/pofile.c:3238
 #, c-format
 msgid  "cannot create %s: %s"
 msgstr "cannot create %s: %s"

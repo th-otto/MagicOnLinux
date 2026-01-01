@@ -1,3 +1,12 @@
+#ifdef FORCE_LIBINTL
+#ifdef NLS_TRANSLATE_TR
+#undef NLS_TRANSLATE_TR
+#include "mxqt-settings.cc"
+#define NLS_TRANSLATE_TR
+#endif
+#endif
+
+#if !defined(NLS_TRANSLATE_TR) || !defined(FORCE_LIBINTL)
 #include <iostream>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QMainWindow>
@@ -17,7 +26,6 @@
 #include <QtWidgets/QPlainTextEdit>
 #include <QtWidgets/QLineEdit>
 #include <QtGui/QtGui>
-#include <QtCore/QXmlStreamReader>
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QtGui/QAction>
 #else
@@ -29,26 +37,22 @@
 #include "country.c"
 #include "qrc.cc"
 
-#define NOTYET 0
-
 #define EXIT_WINDOW_CLOSED (EXIT_FAILURE + EXIT_SUCCESS + 1)
 
 static char const program_name[] = "mxqt-settings";
 static char const program_version[] = "1.0";
 
-enum {
-	TYPE_NONE,
-	TYPE_PATH,
-	TYPE_FOLDER,
-	TYPE_STRING,
-	TYPE_INT,
-	TYPE_UINT,
-	TYPE_BOOL,
-	TYPE_CHOICE
-};
-
 #define _STRINGIFY1(x) #x
 #define _STRINGIFY(x) _STRINGIFY1(x)
+
+/*
+ * C-data generated from preferences.xml
+ */
+#if defined(ENABLE_NLS) && !defined(FORCE_LIBINTL)
+#include "preferences.xml.tr.c"
+#else
+#include "preferences.xml.c"
+#endif
 
 /*** ---------------------------------------------------------------------- ***/
 
@@ -81,30 +85,32 @@ class Q_WIDGETS_EXPORT TranslatableCheckBox: public QCheckBox
 public:
 	TranslatableCheckBox(const char *label) : QCheckBox(_(label))
 	{
-		m_orig_text = label;
+		m_orig_text = U_(label);
 	}
 	void setToolTip(const char *tooltip)
 	{
-		m_orig_tooltip = tooltip;
-#if NOTYET
+		m_orig_tooltip = U_(tooltip);
 		QWidget::setToolTip(_(m_orig_tooltip));
-#endif
 	}
 	void retranslate_ui(bool enableTooltips)
 	{
-		(void)enableTooltips;
-#if NOTYET
 		QCheckBox::setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
-#endif
 	}
 protected:
+#ifdef FORCE_LIBINTL
 	QByteArray m_orig_text;
 	QByteArray m_orig_tooltip;
+#else
+	libnls_msgid_type m_orig_text;
+	libnls_msgid_type m_orig_tooltip;
+#endif
 };
+
+/*** ---------------------------------------------------------------------- ***/
 
 class Q_WIDGETS_EXPORT PrefWidget
 {
@@ -115,15 +121,16 @@ public:
 	QByteArray m_name;
 	const char *element_name;
 
-	PrefWidget(int type, const char *element_name, QString &section, QString &name, bool gui_only) :
+	PrefWidget(int type, const char *element_name, QString &section, const char *name, bool gui_only) :
 		type(type),
 		gui_only(gui_only),
 		m_section(section.toUtf8().append('\0')),
-		m_name(name.toUtf8().append('\0')),
+		m_name(name),
 		element_name(element_name)
 	{
-		if (name.isEmpty())
+		if (name == NULL || *name == '\0')
 		{
+			// should not happen as it is already checked by xml-dump.pl
 			qWarning("%s missing name", element_name);
 		}
 	}
@@ -136,26 +143,36 @@ public:
 	const char *name(void) { return m_name.constData(); }
 	const char *section(void) { return m_section.constData(); }
 protected:
+#ifdef FORCE_LIBINTL
 	QByteArray m_orig_text;
 	QByteArray m_orig_tooltip;
+#else
+	libnls_msgid_type m_orig_text;
+	libnls_msgid_type m_orig_tooltip;
+#endif
+	void setToolTip(QWidget *parent, const char *tooltip)
+	{
+		m_orig_tooltip = U_(tooltip);
+		parent->setToolTip(_(m_orig_tooltip));
+	}
 public:
 	virtual void retranslate_ui(bool enableTooltips) = 0;
 };
 
+/*** ---------------------------------------------------------------------- ***/
+
 class Q_WIDGETS_EXPORT PrefBool : public QCheckBox, public PrefWidget
 {
 public:
-	PrefBool(QString &section, QString &name, QString &text, bool default_value, bool gui_only) :
+	PrefBool(QString &section, const char *name, const char *text, bool default_value, bool gui_only) :
 		PrefWidget(TYPE_BOOL, "bool", section, name, gui_only),
 		m_value(default_value),
 		m_default_value(default_value),
 		m_orig_value(default_value)
 	{
-		m_orig_text = text.toUtf8().append('\0');
+		m_orig_text = U_(text);
 		this->setObjectName(m_name);
-#if NOTYET
 		this->setText(_(m_orig_text));
-#endif
 	}
 	virtual const QString getPrefValue(void) { return bool_to_string(m_value); }
 	virtual void setPrefValue(const QString &v) { m_value = bool_from_string(v); }
@@ -174,26 +191,19 @@ private:
 	bool m_default_value;
 	bool m_orig_value;
 public:
-	void setToolTip(const char *tooltip)
-	{
-		m_orig_tooltip = tooltip;
-#if NOTYET
-		QWidget::setToolTip(_(m_orig_tooltip));
-#endif
-	}
+	void setToolTip(const char *tooltip) { PrefWidget::setToolTip(static_cast<QWidget *>(this), tooltip); }
 public:
 	virtual void retranslate_ui(bool enableTooltips)
 	{
-		(void)enableTooltips;
-#if NOTYET
 		this->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
-#endif
 	}
 };
+
+/*** ---------------------------------------------------------------------- ***/
 
 /*
  * QSpinBox can only hold values of type int,
@@ -202,11 +212,11 @@ public:
 class Q_WIDGETS_EXPORT PrefInt : public QDoubleSpinBox, public PrefWidget
 {
 public:
-	PrefInt(QString &section, QString &name, const QString &default_value, bool gui_only) :
+	PrefInt(QString &section, const char *name, long default_value, bool gui_only) :
 		PrefWidget(TYPE_INT, "int", section, name, gui_only),
-		m_value(default_value.toLong()),
-		m_default_value(default_value.toLong()),
-		m_orig_value(default_value.toLong())
+		m_value(default_value),
+		m_default_value(default_value),
+		m_orig_value(default_value)
 	{
 		this->setObjectName(m_name);
 		this->setDecimals(0);
@@ -246,29 +256,30 @@ private:
 protected:
 	QLabel *button_label;
 public:
+	void setToolTip(const char *tooltip) { PrefWidget::setToolTip(static_cast<QWidget *>(this), tooltip); }
 	virtual void retranslate_ui(bool enableTooltips)
 	{
-		(void)enableTooltips;
-#if NOTYET
 		button_label->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
-#endif
 	}
 public:
-	void setButtonLabel(QLabel *label, QString text)
+	void setButtonLabel(QLabel *label, const char *text)
 	{
-		m_orig_text = text.toUtf8().append('\0');
+		m_orig_text = U_(text);
 		button_label = label;
+		label->setText(_(m_orig_text));
 	}
 };
+
+/*** ---------------------------------------------------------------------- ***/
 
 class Q_WIDGETS_EXPORT PrefString : public QLineEdit, public PrefWidget
 {
 public:
-	PrefString(QString &section, QString &name, const QString &default_value, bool gui_only) :
+	PrefString(QString &section, const char *name, const QString &default_value, bool gui_only) :
 		PrefWidget(TYPE_STRING, "string", section, name, gui_only),
 		m_value(default_value),
 		m_default_value(default_value),
@@ -295,35 +306,32 @@ private:
 protected:
 	QLabel *button_label;
 public:
+	void setToolTip(const char *tooltip) { PrefWidget::setToolTip(static_cast<QWidget *>(this), tooltip); }
 	virtual void retranslate_ui(bool enableTooltips)
 	{
-		(void)enableTooltips;
-#if NOTYET
 		button_label->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
-#endif
 	}
 public:
-	void setButtonLabel(QLabel *label, QString text)
+	void setButtonLabel(QLabel *label, const char *text)
 	{
-		m_orig_text = text.toUtf8().append('\0');
+		m_orig_text = U_(text);
 		button_label = label; 
+		label->setText(_(m_orig_text));
 	}
 };
+
+/*** ---------------------------------------------------------------------- ***/
 
 class Q_WIDGETS_EXPORT PrefPath : public QPushButton, public PrefWidget
 {
 	Q_OBJECT
 
-#define NO_FLAGS -1
-#define DRV_FLAG_RDONLY         1   /* read-only */
-#define DRV_FLAG_8p3            2   /* filenames in 8+3 format, uppercase */
-#define DRV_FLAG_CASE_INSENS    4   /* case insensitive, e.g. (V)FAT or HFS(+) */
 public:
-	PrefPath(QString &section, QString &name, const QString &default_value, bool gui_only, bool isFolder = false) :
+	PrefPath(QString &section, const char *name, const QString &default_value, bool gui_only, bool isFolder = false) :
 		PrefWidget(isFolder ? TYPE_FOLDER : TYPE_PATH, isFolder ? "folder" : "path", section, name, gui_only),
 		info(default_value),
 		m_default_value(default_value),
@@ -360,13 +368,7 @@ public:
 	int m_flags;
 	int m_default_flags;
 	int m_orig_flags;
-	void setToolTip(const char *tooltip)
-	{
-		m_orig_tooltip = tooltip;
-#if NOTYET
-		QWidget::setToolTip(_(m_orig_tooltip));
-#endif
-	}
+	void setToolTip(const char *tooltip) { PrefWidget::setToolTip(static_cast<QWidget *>(this), tooltip); }
 	virtual void populatePreferences(void)
 	{
 		setText(getFilename());
@@ -398,13 +400,11 @@ protected:
 public:
 	virtual void retranslate_ui(bool enableTooltips)
 	{
-#if NOTYET
 		button_label->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
 		else
 			QWidget::setToolTip(QString());
-#endif
 		if (hasFlags())
 		{
 			button_rdonly->retranslate_ui(enableTooltips);
@@ -413,12 +413,15 @@ public:
 		}
 	}
 public:
-	void setButtonLabel(QLabel *label, QString text)
+	void setButtonLabel(QLabel *label, const char *text)
 	{
-		m_orig_text = text.toUtf8().append('\0');
+		m_orig_text = U_(text);
 		button_label = label;
+		label->setText(_(m_orig_text));
 	}
 };
+
+/*** ---------------------------------------------------------------------- ***/
 
 void PrefPath::select_path(void)
 {
@@ -444,20 +447,26 @@ void PrefPath::select_path(void)
 	}
 }
 
+/*** ---------------------------------------------------------------------- ***/
+
 class Q_WIDGETS_EXPORT PrefChoice : public QComboBox, public PrefWidget
 {
 	Q_OBJECT
 
 public:
-	PrefChoice(QString &section, QString &name, const QString &default_value, bool gui_only) :
+	PrefChoice(QString &section, const char *name, int default_value, bool gui_only) :
 		PrefWidget(TYPE_CHOICE, "choice", section, name, gui_only),
-		m_value(default_value.toInt()),
-		m_default_value(default_value.toInt()),
-		m_orig_value(default_value.toInt())
+		m_value(default_value),
+		m_default_value(default_value),
+		m_orig_value(default_value)
 	{
 		this->setObjectName(m_name);
 	}
+#ifdef FORCE_LIBINTL
 	typedef struct { QByteArray orig_text; int value; } choiceItem;
+#else
+	typedef struct { libnls_msgid_type orig_text; int value; } choiceItem;
+#endif
 	QVector <choiceItem> items;
 	virtual const QString getPrefValue(void) { return QString().setNum(items[m_value].value); }
 	virtual void setPrefValue(const QString &v) { m_value = v.toInt(); }
@@ -470,13 +479,7 @@ public:
 public:
 	int minval;
 	int maxval;
-	void setToolTip(const char *tooltip)
-	{
-		m_orig_tooltip = tooltip;
-#if NOTYET
-		QWidget::setToolTip(_(m_orig_tooltip));
-#endif
-	}
+	void setToolTip(const char *tooltip) { PrefWidget::setToolTip(static_cast<QWidget *>(this), tooltip); }
 	virtual void populatePreferences(void)
 	{
 		/*
@@ -499,16 +502,20 @@ public:
 	}
 	void addItem(const char *text, const QIcon &icon, int value)
 	{
+#ifdef FORCE_LIBINTL
 		items.push_back({text, value});
 		QComboBox::addItem(icon, _(text));
+#else
+		libnls_msgid_type msgid = U_(text);
+		items.push_back({msgid, value});
+		QComboBox::addItem(icon, _(msgid));
+#endif
 	}
 protected:
 	QLabel *button_label;
 public:
 	virtual void retranslate_ui(bool enableTooltips)
 	{
-		(void)enableTooltips;
-#if NOTYET
 		button_label->setText(_(m_orig_text));
 		if (enableTooltips)
 			QWidget::setToolTip(_(m_orig_tooltip));
@@ -518,15 +525,17 @@ public:
 		{
 			QComboBox::setItemText(i, _(items[i].orig_text));
 		}
-#endif
 	}
 public:
-	void setButtonLabel(QLabel *label, QString text)
+	void setButtonLabel(QLabel *label, const char *text)
 	{
-		m_orig_text = text.toUtf8().append('\0');
+		m_orig_text = U_(text);
 		button_label = label;
+		label->setText(_(m_orig_text));
 	}
 };
+
+/*** ---------------------------------------------------------------------- ***/
 
 class Q_WIDGETS_EXPORT GuiWindow : public QMainWindow
 {
@@ -544,7 +553,11 @@ public:
 	int exit_code;
 
 	QTabWidget *notebook;
+#ifdef FORCE_LIBINTL
 	QStringList tabNames;
+#else
+	std::vector<libnls_msgid_type> tabNames;
+#endif
 	QStringList section_names;
 	PrefChoice *language_choice;
 
@@ -577,19 +590,22 @@ protected:
 	
 	void setWindowTitle(const char *title)
 	{
-		m_orig_title = title;
-#if NOTYET
+		m_orig_title = U_(title);
 		QMainWindow::setWindowTitle(_(m_orig_title));
-#endif
 	}
 	void quitApp(void);
 protected:
+#ifdef FORCE_LIBINTL
 	QByteArray m_orig_title;
+#else
+	libnls_msgid_type m_orig_title;
+#endif
 	QDialogButtonBox *button_box;
 	QPushButton *ok_button;
 	QPushButton *cancel_button;
 };
 
+/*** ---------------------------------------------------------------------- ***/
 
 class Q_WIDGETS_EXPORT QGridWidget : public QWidget
 {
@@ -608,6 +624,8 @@ public:
 private:
 	QGridLayout layout;
 };
+
+/*** ---------------------------------------------------------------------- ***/
 
 class Q_WIDGETS_EXPORT QBox : public QFrame
 {
@@ -642,6 +660,7 @@ public:
 	}
 };
 
+/*** ---------------------------------------------------------------------- ***/
 
 class Q_WIDGETS_EXPORT QVBox : public QBox
 {
@@ -714,11 +733,7 @@ bool GuiWindow::writePreferences(void)
 	if (!file.open(QFile::WriteOnly | QFile::Truncate | QFile::Text))
 	{
 		QMessageBox dialog(QMessageBox::Critical,
-#if NOTYET
 			_(m_orig_title),
-#else
-			QString(),
-#endif
 			QString::asprintf(_("can't create %s:\n%s"), config_file.toUtf8().constData(), file.errorString().toUtf8().constData()),
 			QMessageBox::Cancel);
 		dialog.exec();
@@ -903,7 +918,8 @@ bool GuiWindow::eval_int(long &outval, long minval, long maxval, const char *&in
 	{
 		if (maxval > minval && (value < minval || value > maxval))
 		{
-			qWarning("value %ld out of range %ld..%ld", value, minval, maxval);
+			// FIXME: use dialog
+			qWarning(_("value %ld out of range %ld..%ld"), value, minval, maxval);
 			return false;
 		}
 		outval = value;
@@ -1085,7 +1101,7 @@ bool GuiWindow::evaluatePreferencesLine(const char *line, bool gui_only)
 		}
 	}
 
-	qCritical("unknown key\n");
+	qCritical(_("unknown key"));
 	return false;
 }
 
@@ -1108,7 +1124,7 @@ bool GuiWindow::getPreferences(void)
 	if (!file.open(QFile::ReadOnly | QFile::Text))
 	{
 		/* Configuration file does not exist. Use defaults. */
-		// qWarning("%s does not exist", config_file.toUtf8().constData());
+		// qWarning(_("%s does not exist, using defaults"), config_file.toUtf8().constData());
 		return true;
 	}
 	while (!file.atEnd())
@@ -1156,6 +1172,7 @@ bool GuiWindow::getPreferences(void)
 		if (!nline_ok)
 		{
 			/* FIXME: use dialog */
+			line.chop(1); // remove trailing newline
 			qCritical(_("Syntax error in configuration file:%d: %s"), lineno, line.constData());
 		}
 		ok &= nline_ok;
@@ -1171,64 +1188,30 @@ bool GuiWindow::getPreferences(void)
 /*
  * XML Parser
  */
-class PreferenceParser : public QXmlStreamReader
-{
-public:
-	PreferenceParser(const char *data, GuiWindow &gui);
-
-	void start_element(void);
-	void end_element(void);
-
-protected:
-	GuiWindow &gui;
-	QString section_name;
-	QGridWidget *section_table;
-	int section_row;
-	int tab_index;
-	PrefChoice *choice;
-};
-
-PreferenceParser::PreferenceParser(const char *data, GuiWindow &gui) :
-	QXmlStreamReader(data),
-	gui(gui),
-	section_name(),
-	section_table(nullptr),
-	section_row(0),
-	tab_index(0),
-	choice(nullptr)
-{
-}
 
 /*** ---------------------------------------------------------------------- ***/
 
-void PreferenceParser::start_element(void)
+void GuiWindow::parseXml(void)
 {
-	QString element_name = this->name().toString();
-	QString name = this->attributes().value("name").toString();
-	QString icon_name = this->attributes().value("icon").toString();
-	QString display = this->attributes().value("_label").toUtf8().constData();
-	QString tooltip = this->attributes().value("_tooltip").toUtf8().constData();
-	QString default_value = this->attributes().value("default").toString();
-	bool scrolled = this->attributes().hasAttribute("scrolled");
-	bool gui_only = this->attributes().hasAttribute("gui");
+	int tab_index;
+	const xml_section *section;
 
-	// fprintf(stderr, "start_element: %s %s\n", element_name.toUtf8().constData(), name.toUtf8().constData());
-	if (display.isEmpty())
-		display = name;
-	if (element_name == "preferences")
+	pref_show_tooltips = nullptr;
+	language_choice = nullptr;
+	
+	tab_index = 0;
+	for (section = xml_sections; section < &xml_sections[sizeof(xml_sections) / sizeof(xml_sections[0])]; section++)
 	{
-		; /* ignore */
-	} else if (element_name == "section")
-	{
+		int section_row;
+		QGridWidget *section_table;
+		const xml_widget *widget;
 		QWidget *parent;
-
-		assert(section_table == nullptr);
-		assert(!name.isEmpty());
-		section_name = QString(name);
-		gui.section_names.push_back(section_name);
-		section_row = 0;
+		
+		QString section_name(section->name);
+		section_names.push_back(section_name);
 		section_table = new QGridWidget();
-		if (scrolled)
+		
+		if (section->scrolled)
 		{
 			/*
 			 * put the path list in a scrolled window, it gets too large
@@ -1245,160 +1228,139 @@ void PreferenceParser::start_element(void)
 		{
 			parent = section_table;
 		}
-		if (icon_name.isEmpty())
-			gui.notebook->addTab(parent, _(display.toUtf8().constData()));
+
+		if (section->icon_name == NULL)
+			notebook->addTab(parent, _(section->label));
 		else
-			gui.notebook->addTab(parent, QIcon::fromTheme(icon_name), _(display.toUtf8().constData()));
-		gui.tabNames.push_back(display);
+			notebook->addTab(parent, QIcon::fromTheme(section->icon_name), _(section->label));
+		tabNames.push_back(U_(section->label));
 		tab_index++;
-	} else if (element_name == "folder" || element_name == "path")
-	{
-		int flags = NO_FLAGS;
-		assert(section_table != nullptr);
-		auto label = new QLabel(_(display.toUtf8().constData()));
-		if (this->attributes().hasAttribute("flags"))
-			flags = this->attributes().value("flags").toInt();
-		section_table->addWidget(label, section_row, 0);
-		auto button = new PrefPath(section_name, name, default_value, gui_only, element_name == "folder");
-		button->setFlags(flags);
-		button->m_default_flags = flags;
-		button->m_orig_flags = flags;
-		section_table->addWidget(button, section_row, 1);
-		button->setToolTip(tooltip.toUtf8().constData());
-		button->setButtonLabel(label, display);
-		label->setBuddy(button);
-		gui.addSetting(button);
-		if (name == "atari_drv_c" ||
-			name == "atari_drv_h" ||
-			name == "atari_drv_m" ||
-			name == "atari_drv_u")
-			button->setEnabled(false);
-		if (button->hasFlags())
+		section_row = 0;
+		for (widget = section->widgets; widget->type != TYPE_NONE; widget++)
 		{
-			section_row++;
-			auto hbox = new QHBox();
+			switch (widget->type)
+			{
+			case TYPE_FOLDER:
+			case TYPE_PATH:
+				{
+					auto label = new QLabel();
+					section_table->addWidget(label, section_row, 0);
+					auto button = new PrefPath(section_name, widget->name, widget->u.path.default_value, widget->gui_only, widget->type == TYPE_FOLDER);
+					button->setFlags(widget->u.path.flags);
+					button->m_default_flags = widget->u.path.flags;
+					button->m_orig_flags = widget->u.path.flags;
+					section_table->addWidget(button, section_row, 1);
+					button->setToolTip(widget->tooltip);
+					button->setButtonLabel(label, widget->label);
+					label->setBuddy(button);
+					addSetting(button);
+					if (strcmp(widget->name, "atari_drv_c") == 0 ||
+						strcmp(widget->name, "atari_drv_h") == 0 ||
+						strcmp(widget->name, "atari_drv_m") == 0 ||
+						strcmp(widget->name, "atari_drv_u") == 0)
+						button->setEnabled(false);
+					if (button->hasFlags())
+					{
+						section_row++;
+						auto hbox = new QHBox();
+			
+						button->button_rdonly = new TranslatableCheckBox(N_("read-only"));
+						button->button_rdonly->setToolTip(N_("Mount drive in read-only mode, preventing writes from the emulation"));
+						hbox->addWidget(button->button_rdonly);
+						
+						button->button_dosnames = new TranslatableCheckBox(N_("DOS 8+3 format"));
+						button->button_dosnames->setToolTip(N_("Force 8.3 short filenames (FAT-style) on host directories"));
+						hbox->addWidget(button->button_dosnames);
+						
+						button->button_insensitive = new TranslatableCheckBox(N_("case insensitive"));
+						button->button_insensitive->setToolTip(N_("Ignore case sensitivity when accessing files/folders"));
+						hbox->addWidget(button->button_insensitive);
+						
+						section_table->addWidget(hbox, section_row, 1, 1, 2);
+					}
+					section_row++;
+				}
+				break;
+			
+			case TYPE_STRING:
+				{
+					auto label = new QLabel();
+					section_table->addWidget(label, section_row, 0);
+					auto entry = new PrefString(section_name, widget->name, widget->u.string.default_value, widget->gui_only);
+					section_table->addWidget(entry, section_row, 1);
+					label->setBuddy(entry);
+					entry->setToolTip(widget->tooltip);
+					entry->setButtonLabel(label, widget->label);
+					addSetting(entry);
+					section_row++;
+				}
+				break;
+			
+			case TYPE_INT:
+			case TYPE_UINT:
+				{
+					auto label = new QLabel();
+					section_table->addWidget(label, section_row, 0);
+					auto button = new PrefInt(section_name, widget->name, widget->u.integer.default_value, widget->gui_only);
+					button->type = widget->type;
+					button->setRange(widget->u.integer.minval, widget->u.integer.maxval);
+					button->setSingleStep(widget->u.integer.step);
+					button->setToolTip(widget->tooltip);
+					section_table->addWidget(button, section_row, 1);
+					button->setButtonLabel(label, widget->label);
+					addSetting(button);
+					section_row++;
+				}
+				break;
+			
+			case TYPE_BOOL:
+				{
+					auto button = new PrefBool(section_name, widget->name, widget->label, widget->u.boolvalue.default_value, widget->gui_only);
+					button->setToolTip(widget->tooltip);
+					section_table->addWidget(button, section_row, 1);
+					addSetting(button);
+					if (strcmp(widget->name, "show_tooltips") == 0)
+					{
+						pref_show_tooltips = button;
+						connect(pref_show_tooltips, SIGNAL(clicked()), this, SLOT(enableTooltips()));
+					}
+					section_row++;
+				}
+				break;
 
-			button->button_rdonly = new TranslatableCheckBox(N_("read-only"));
-			button->button_rdonly->setToolTip(N_("Mount drive in read-only mode, preventing writes from the emulation"));
-			hbox->addWidget(button->button_rdonly);
-			
-			button->button_dosnames = new TranslatableCheckBox(N_("DOS 8+3 format"));
-			button->button_dosnames->setToolTip(N_("Force 8.3 short filenames (FAT-style) on host directories"));
-			hbox->addWidget(button->button_dosnames);
-			
-			button->button_insensitive = new TranslatableCheckBox(N_("case insensitive"));
-			button->button_insensitive->setToolTip(N_("Ignore case sensitivity when accessing files/folders"));
-			hbox->addWidget(button->button_insensitive);
-			
-			section_table->addWidget(hbox, section_row, 1, 1, 2);
-		}
-		section_row++;
-	} else if (element_name == "string")
-	{
-		assert(section_table != nullptr);
-		auto label = new QLabel(_(display.toUtf8().constData()));
-		section_table->addWidget(label, section_row, 0);
-		auto entry = new PrefString(section_name, name, default_value, gui_only);
-		section_table->addWidget(entry, section_row, 1);
-		label->setBuddy(entry);
-		entry->setToolTip(tooltip.toUtf8().constData());
-		entry->setButtonLabel(label, display);
-		gui.addSetting(entry);
-		section_row++;
-	} else if (element_name == "int")
-	{
-		long minval = 0;
-		long maxval = INT_MAX; /* LONG_MAX might not be representable in a double */
-		long step = 1;
-
-		assert(section_table != nullptr);
-		if (this->attributes().hasAttribute("minval"))
-			minval = this->attributes().value("minval").toLong();
-		if (this->attributes().hasAttribute("maxval"))
-			maxval = this->attributes().value("maxval").toLong();
-		if (this->attributes().hasAttribute("step"))
-			step = this->attributes().value("step").toLong();
-		auto label = new QLabel(_(display.toUtf8().constData()));
-		section_table->addWidget(label, section_row, 0);
-		auto button = new PrefInt(section_name, name, default_value, gui_only);
-		button->setRange(minval, maxval);
-		button->setSingleStep(step);
-		button->setToolTip(tooltip.toUtf8().constData());
-		section_table->addWidget(button, section_row, 1);
-		button->setButtonLabel(label, display);
-		gui.addSetting(button);
-		/*
-		 * some values must be written as unsigned, or the application fails to parse them
-		 */
-		if (name.startsWith("app_window_"))
-			button->type = TYPE_UINT;
-		section_row++;
-	} else if (element_name == "bool")
-	{
-		assert(section_table != nullptr);
-		auto button = new PrefBool(section_name, name, display, bool_from_string(default_value), gui_only);
-		button->setToolTip(tooltip.toUtf8().constData());
-		section_table->addWidget(button, section_row, 1);
-		gui.addSetting(button);
-		if (name == "show_tooltips")
-			gui.pref_show_tooltips = button;
-		section_row++;
-	} else if (element_name == "choice")
-	{
-		assert(section_table != nullptr);
-		assert(choice == nullptr);
-		auto label = new QLabel(_(display.toUtf8().constData()));
-		section_table->addWidget(label, section_row, 0);
-		choice = new PrefChoice(section_name, name, default_value, gui_only);
-		choice->setToolTip(tooltip.toUtf8().constData());
-		choice->setButtonLabel(label, display);
-		section_table->addWidget(choice, section_row, 1);
-		label->setBuddy(choice);
-		gui.addSetting(choice);
-		section_row++;
-		if (name == "gui_language")
-		{
-			gui.language_choice = choice;
+			case TYPE_CHOICE:
+				{
+					const xml_widget_choice *c;
+					auto label = new QLabel();
+					section_table->addWidget(label, section_row, 0);
+					auto choice = new PrefChoice(section_name, widget->name, widget->u.choice.default_value, widget->gui_only);
+					choice->setToolTip(widget->tooltip);
+					choice->setButtonLabel(label, widget->label);
+					section_table->addWidget(choice, section_row, 1);
+					label->setBuddy(choice);
+					addSetting(choice);
+					section_row++;
+					if (strcmp(widget->name, "gui_language") == 0)
+					{
+						language_choice = choice;
 #ifdef ENABLE_NLS
-			gui.language_choice->connect(gui.language_choice, SIGNAL(currentIndexChanged(int)), &gui, SLOT(language_changed(int)));
+						language_choice->connect(language_choice, SIGNAL(currentIndexChanged(int)), this, SLOT(language_changed(int)));
 #else
-			gui.language_choice->setEnabled(false);
+						language_choice->setEnabled(false);
 #endif
+					}
+					for (c = widget->u.choice.choices; c->label != NULL; c++)
+					{
+						QIcon icon;
+						if (c->icon_name != NULL)
+							icon = QIcon(QString(":/icons/") + QString(c->icon_name));
+						choice->addItem(c->label, icon, c->value);
+					}
+				}
+				break;
+			}
 		}
-	} else if (element_name == "select")
-	{
-		int value;
 
-		assert(section_table != nullptr);
-		assert(choice != nullptr);
-		if (this->attributes().hasAttribute("value"))
-			value = this->attributes().value("value").toInt();
-		else
-			value = choice->count();
-		QIcon icon;
-		if (this->attributes().hasAttribute("icon"))
-			icon = QIcon(QString(":/icons/") + this->attributes().value("icon").toString());
-		choice->addItem(display.toUtf8().constData(), icon, value);
-	} else
-	{
-		/* FIXME: should be fatal error */
-		qWarning("unsupported element %s\n", element_name.toUtf8().constData());
-	}
-}
-
-/*** ---------------------------------------------------------------------- ***/
-
-void PreferenceParser::end_element(void)
-{
-	QString element_name = this->name().toString();
-	// fprintf(stderr, "end_element: %s\n", element_name.toUtf8().constData());
-	if (element_name == "preferences")
-	{
-		assert(section_table == nullptr);
-	} else if (element_name == "section")
-	{
-		assert(section_table != nullptr);
-		// fprintf(stderr, "%s rows: %d\n", section_name.toUtf8().constData(), section_row);
 		/*
 		 * add a stretchable box to the end of the grid,
 		 * so the widgets are placed at the top and not distributed
@@ -1407,62 +1369,6 @@ void PreferenceParser::end_element(void)
 		auto vbox = new QVBox();
 		vbox->addStretch();
 		section_table->addWidget(vbox, section_row, 0, 1, 2);
-		section_table = nullptr;
-		section_name.clear();
-	} else if (element_name == "choice")
-	{
-		assert(choice != nullptr);
-		choice->minval = 0;
-		choice->maxval = choice->count() - 1;
-		choice = nullptr;
-	}
-}
-
-/*** ---------------------------------------------------------------------- ***/
-
-void GuiWindow::parseXml(void)
-{
-	/*
-	 * XML for the parser.
-	 */
-	static char const preferences[] =
-#include "preferences.xml.h"
-	;
-
-	pref_show_tooltips = nullptr;
-
-	PreferenceParser xml(preferences, *this);
-	
-	while (!xml.atEnd())
-	{
-		switch (xml.readNext())
-		{
-		case QXmlStreamReader::NoToken:
-		case QXmlStreamReader::StartDocument:
-		case QXmlStreamReader::EndDocument:
-		case QXmlStreamReader::Comment:
-		case QXmlStreamReader::Invalid:
-		case QXmlStreamReader::DTD:
-		case QXmlStreamReader::EntityReference:
-		case QXmlStreamReader::ProcessingInstruction:
-			break;
-
-		case QXmlStreamReader::StartElement:
-			xml.start_element();
-			break;
-
-		case QXmlStreamReader::EndElement:
-			xml.end_element();
-			break;
-		
-		case QXmlStreamReader::Characters:
-			break;
-		}
-	}
-	
-	if (pref_show_tooltips)
-	{
-		connect(pref_show_tooltips, SIGNAL(clicked()), this, SLOT(enableTooltips()));
 	}
 }
 
@@ -1606,12 +1512,14 @@ void GuiWindow::ok_clicked(void)
 
 void GuiWindow::retranslate_ui(bool enableTooltips)
 {
-#if NOTYET
 	QMainWindow::setWindowTitle(_(m_orig_title));
-#endif
 	for (int i = 0; i < notebook->count(); i++)
 	{
+#ifdef FORCE_LIBINTL
 		notebook->tabBar()->setTabText(i, _(tabNames[i].toUtf8().constData()));
+#else
+		notebook->tabBar()->setTabText(i, _(tabNames[i]));
+#endif
 	}
 	for (auto w: widget_list)
 		w->retranslate_ui(enableTooltips);
@@ -1679,11 +1587,7 @@ void GuiWindow::cancel_clicked(void)
 	if (anyChanged())
 	{
 		QMessageBox dialog(QMessageBox::Question,
-#if NOTYET
 			_(m_orig_title),
-#else
-			QString(),
-#endif
 			_("You have unsaved changes. Do you want to discard them and quit?"),
 			QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
 		int response = dialog.exec();
@@ -1808,3 +1712,5 @@ int main(int argc, char **argv)
 }
 
 #include "mxqt-settings.moc"
+
+#endif /* NLS_TRANSLATE_TR */

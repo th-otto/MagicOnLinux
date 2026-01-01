@@ -38,5 +38,5 @@ struct _nls_plural const libnls_plurals[] = {
 	P(PLURAL_RULE_28,     6, "nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5)", "n0=0n1=1n2=2n100%3)n100%10(&3n100%11)4 5?????"),
 	P(PLURAL_RULE_29,     6, "nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n==3 ? 3 : n==6 ? 4 : 5)", "n0=0n1=1n2=2n3=3n6=4 5?????"),
 #undef P
-	{ -1, NULL, 0, NULL, NULL }
+	{ PLURAL_UNKNOWN, NULL, 0, NULL, NULL }
 };

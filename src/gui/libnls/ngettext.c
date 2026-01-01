@@ -6,6 +6,7 @@
 #undef dgettext
 #undef ngettext
 #undef dngettext
+#include <assert.h>
 #include "libnls.h"
 #include "libnlsI.h"
 
@@ -61,19 +62,21 @@ static int n_plurals(int plural_form)
 
 /* ------------------------------------------------------------------------- */
 
-const char *_libnls_internal_dngettext(const libnls_domain *domain, libnls_msgid_type msgid1, libnls_msgid_type msgid2, unsigned long n)
+const char *_libnls_internal_dngettext(const libnls_domain *domain, libnls_msgid_type msgid1, unsigned long n)
 {
 	nls_key_offset offset;
+	const char *key;
 	
+	assert(msgid1 <= domain->num_keys);
 	/* check for empty string - often used - must return original address */
-	if (msgid1 == 0 || msgid2 == 0)
+	if (msgid1 == 0)
 		return domain->keys;
 	if (domain->current_translation.translations != NULL && (offset = domain->current_translation.offsets[msgid1 - 1]) != 0)
 	{
-		const char *key = domain->current_translation.translations + offset;
 		int nplurals = 0;
 		int id = 0;
 
+		key = domain->current_translation.translations + offset;
 		switch (domain->current_translation.plural_form)
 		{
 		case PLURAL_NONE:
@@ -164,22 +167,26 @@ const char *_libnls_internal_dngettext(const libnls_domain *domain, libnls_msgid
 		return key;
 	}
 	/* no translation, return original string, using germanic plural */
+	key = domain->keys + domain->languages[0].offsets[msgid1 - 1];
 	if (n != 1)
-		msgid1 = msgid2;
-	return domain->keys + domain->languages[0].offsets[msgid1 - 1];
+	{
+		while (*key++ != '\0')
+			;
+	}
+	return key;
 }
 
 /* ------------------------------------------------------------------------- */
 
 /* Similar to 'gettext' but select the plural form corresponding to the
    number N.  */
-const char *libnls_ngettext(libnls_msgid_type msgid1, libnls_msgid_type msgid2, unsigned long int n)
+const char *libnls_ngettext(libnls_msgid_type msgid1, unsigned long int n)
 {
 	if (_libnls_current_domain == NULL)
 #if 0
 		return (dcngettext)(NULL, msgid1, msgid2, n, LC_MESSAGES);
 #else
-		return NULL;
+		return NLS_NOKEY_ERROR;
 #endif
-	return _libnls_internal_dngettext(_libnls_current_domain, msgid1, msgid2, n);
+	return _libnls_internal_dngettext(_libnls_current_domain, msgid1, n);
 }

@@ -2,6 +2,7 @@
 #ifdef FORCE_LIBINTL
 #include <libintl.h>
 #define gettext_clocale(msgid) msgid
+#define U_(msgid) msgid
 #else
 #include "libnls/libnls.h"
 #define DECLARE_DOMAIN(package) extern libnls_domain __libnls_cat(package, _domain)
@@ -17,12 +18,16 @@
 #define _(String) gettext(String)
 #define P_(String1, String2, n) ngettext(String1, String2, n)
 #endif
-#define N_(String) ((char *)((unsigned long)(String)))
-#define NC_(Context, String) ((char *)((unsigned long)(String)))
+#define N_(String) ((char *)((size_t)(String)))
+#ifndef FORCE_LIBINTL
+#define U_(String) ((libnls_msgid_type)(size_t)(String))
+#endif
+#define NC_(Context, String) ((char *)((size_t)(String)))
 #define C_(Context, String) gettext(NC_(Context, String))
 #else
 #define _(String) String
 #define N_(String) String
+#define U_(String) String
 #define NC_(Context, String) String
 #define C_(Context, String) String
 #define P_(String1, String2, n) ((n) != 1 ? String2 : String1)

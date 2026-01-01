@@ -1,3 +1,12 @@
+#ifdef FORCE_LIBINTL
+#ifdef NLS_TRANSLATE_TR
+#undef NLS_TRANSLATE_TR
+#include "mxgtk-settings.c"
+#define NLS_TRANSLATE_TR
+#endif
+#endif
+
+#if !defined(NLS_TRANSLATE_TR) || !defined(FORCE_LIBINTL)
 #define GDK_DISABLE_DEPRECATION_WARNINGS
 #define GTK_DISABLE_DEPRECATION_WARNINGS
 #define GLIB_DISABLE_DEPRECATION_WARNINGS
@@ -30,16 +39,14 @@
 static char const program_name[] = "mxgtk-settings";
 static char const program_version[] = "1.0";
 
-enum {
-	TYPE_NONE,
-	TYPE_PATH,
-	TYPE_FOLDER,
-	TYPE_STRING,
-	TYPE_INT,
-	TYPE_UINT,
-	TYPE_BOOL,
-	TYPE_CHOICE
-};
+/*
+ * C-data generated from preferences.xml
+ */
+#if defined(ENABLE_NLS) && !defined(FORCE_LIBINTL)
+#include "preferences.xml.tr.c"
+#else
+#include "preferences.xml.c"
+#endif
 
 enum {
 	CHOICE_COL_TEXT,
@@ -64,10 +71,6 @@ struct pref_val {
 			int default_flags;
 			char *orig_value;
 			int orig_flags;
-#define NO_FLAGS -1
-#define DRV_FLAG_RDONLY         1   /* read-only */
-#define DRV_FLAG_8p3            2   /* filenames in 8+3 format, uppercase */
-#define DRV_FLAG_CASE_INSENS    4   /* case insensitive, e.g. (V)FAT or HFS(+) */
 		} p;
 		struct {
 			long v;
@@ -96,10 +99,6 @@ typedef struct {
 	GtkWidget *window;
 	GtkWidget *notebook;
 	
-	char *section_name;
-	GtkWidget *section_table;
-	int section_row;
-	GtkWidget *combo_box;
 	GtkWidget *pref_show_tooltips;
 	GtkWidget *ok_button;
 	GtkWidget *cancel_button;
@@ -264,6 +263,31 @@ static GtkWidget *gtk_button_new_from_stock(const char *name)
 	return button;
 }
 
+/*** ---------------------------------------------------------------------- ***/
+
+static int dialog_response;
+
+static void cb_dialog_response(GtkDialog *dialog, int response_id, int *user_data)
+{
+	UNUSED(dialog);
+	*user_data = response_id;
+}
+
+static int gtk_dialog_run(GtkDialog *dialog)
+{
+	g_signal_connect(dialog, "response", G_CALLBACK(cb_dialog_response), &dialog_response);
+	
+	dialog_response = 0;
+	while (dialog_response == 0)
+		g_main_context_iteration(NULL, TRUE);
+	return dialog_response;
+}
+
+static void gtk_widget_destroy(GtkWidget *w)
+{
+	gtk_widget_unparent(w);
+}
+
 #define gtk_check_button_get_active(w) gtk_check_button_get_active(GTK_CHECK_BUTTON(w))
 #define gtk_check_button_set_active(w, b) gtk_check_button_set_active(GTK_CHECK_BUTTON(w), b)
 
@@ -314,7 +338,11 @@ static void widget_set_tooltip(GtkWidget *widget, const char *tooltip)
 {
 	if (tooltip)
 	{
+#ifdef FORCE_LIBINTL
 		g_object_set_data(G_OBJECT(widget), "pref-tooltip", g_strdup(tooltip));
+#else
+		g_object_set_data(G_OBJECT(widget), "pref-tooltip", N_(tooltip));
+#endif
 		gtk_widget_set_tooltip_text(widget, _(tooltip));
 	}
 }
@@ -333,7 +361,11 @@ static void widget_set_translation(GtkWidget *widget, const char *orig_text)
 {
 	if (orig_text)
 	{
+#ifdef FORCE_LIBINTL
 		g_object_set_data(G_OBJECT(widget), "pref-translation", g_strdup(orig_text));
+#else
+		g_object_set_data(G_OBJECT(widget), "pref-translation", N_(orig_text));
+#endif
 	}
 }
 
@@ -381,48 +413,39 @@ static char *path_shrink(const char *value)
 
 /*** ---------------------------------------------------------------------- ***/
 
-static void set_value(GtkWidget *w, int type, const char *value, int flags, gboolean gui_only)
+static void set_value(GtkWidget *w, const xml_widget *widget)
 {
 	struct pref_val val;
 	
 	memset(&val, 0, sizeof(val));
-	val.type = type;
-	val.gui_only = gui_only;
-	switch (type)
+	val.type = widget->type;
+	val.gui_only = widget->gui_only;
+	switch (widget->type)
 	{
 	case TYPE_NONE:
 		return;
 	case TYPE_STRING:
-		if (value)
-		{
-			val.u.s.s = g_strdup(value);
-			val.u.s.default_value = g_strdup(value);
-			val.u.s.orig_value = g_strdup(value);
-		}
+		val.u.s.s = g_strdup(widget->u.string.default_value);
+		val.u.s.default_value = g_strdup(widget->u.string.default_value);
+		val.u.s.orig_value = g_strdup(widget->u.string.default_value);
 		break;
 	case TYPE_BOOL:
-		val.u.b.b = bool_from_string(value);
+		val.u.b.b = widget->u.boolvalue.default_value;
 		val.u.b.default_value = val.u.b.b;
 		val.u.b.orig_value = val.u.b.b;
 		break;
 	case TYPE_PATH:
-		if (value)
-		{
-			/* FIXME: filechooser does not select anything if file does not exist */
-			val.u.p.p = path_expand(value);
-		}
-		val.u.p.flags = flags;
+		/* FIXME: filechooser does not select anything if file does not exist */
+		val.u.p.p = path_expand(widget->u.path.default_value);
+		val.u.p.flags = widget->u.path.flags;
 		val.u.p.default_value = g_strdup(val.u.p.p);
 		val.u.p.default_flags = val.u.p.flags;
 		val.u.p.orig_value = g_strdup(val.u.p.p);
 		val.u.p.orig_flags = val.u.p.flags;
 		break;
 	case TYPE_FOLDER:
-		if (value)
-		{
-			val.u.p.p = path_expand(value);
-		}
-		val.u.p.flags = flags;
+		val.u.p.p = path_expand(widget->u.path.default_value);
+		val.u.p.flags = widget->u.path.flags;
 		val.u.p.default_value = g_strdup(val.u.p.p);
 		val.u.p.default_flags = val.u.p.flags;
 		val.u.p.orig_value = g_strdup(val.u.p.p);
@@ -430,22 +453,16 @@ static void set_value(GtkWidget *w, int type, const char *value, int flags, gboo
 		break;
 	case TYPE_INT:
 	case TYPE_UINT:
-		if (value)
-		{
-			val.u.i.v = strtol(value, NULL, 0);
-			val.u.i.default_value = val.u.i.v;
-			val.u.i.orig_value = val.u.i.v;
-		}
+		val.u.i.v = widget->u.integer.default_value;
+		val.u.i.default_value = val.u.i.v;
+		val.u.i.orig_value = val.u.i.v;
 		val.u.i.minval = gtk_adjustment_get_lower(gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w)));
 		val.u.i.maxval = gtk_adjustment_get_upper(gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w)));
 		break;
 	case TYPE_CHOICE:
-		if (value)
-		{
-			val.u.c.c = strtol(value, NULL, 0);
-			val.u.c.default_value = val.u.c.c;
-			val.u.c.orig_value = val.u.c.c;
-		}
+		val.u.c.c = widget->u.choice.default_value;
+		val.u.c.default_value = val.u.c.c;
+		val.u.c.orig_value = val.u.c.c;
 		break;
 	default:
 		assert(0);
@@ -526,7 +543,11 @@ static void retranslate_ui(GuiWindow *gui)
 					const char *str;
 					
 					gtk_tree_model_get_value(GTK_TREE_MODEL(store), &iter, CHOICE_COL_ORIG_TEXT, &value);
+#ifdef FORCE_LIBINTL
 					str = g_value_get_string(&value);
+#else
+					str = N_(g_value_get_int(&value));
+#endif
 					gtk_list_store_set(GTK_LIST_STORE(store), &iter, CHOICE_COL_TEXT, _(str), -1);
 					g_value_unset(&value);
 				}
@@ -592,6 +613,7 @@ static void cb_language_changed(GtkComboBox *widget, gpointer data)
 
 /*
  * XML Parser
+ * (uses now initialized data generated from preferences.xml)
  */
 
 static void cb_file_changed(GtkWidget *widget, gpointer data)
@@ -617,93 +639,48 @@ static void cb_file_changed(GtkWidget *widget, gpointer data)
 
 /*** ---------------------------------------------------------------------- ***/
 
-static void table_attach_span(GuiWindow *gui, GtkWidget *w, int row, int column, int height, int width)
+static void table_attach_span(GtkWidget *table, GtkWidget *w, int row, int column, int height, int width)
 {
 #if GTK_CHECK_VERSION(4, 0, 0)
-	gtk_grid_attach(GTK_GRID(gui->section_table), w, column, column + width, row, row + height);
+	gtk_grid_attach(GTK_GRID(table), w, column, column + width, row, row + height);
 #else
-	gtk_table_attach(GTK_TABLE(gui->section_table), w, column, column + width, row, row + height, GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
+	gtk_table_attach(GTK_TABLE(table), w, column, column + width, row, row + height, GTK_EXPAND | GTK_FILL, GTK_EXPAND | GTK_FILL, 0, 0);
 #endif
 }
 
-static void table_attach(GuiWindow *gui, GtkWidget *w, int row, int column)
+static void table_attach(GtkWidget *table, GtkWidget *w, int row, int column)
 {
-	table_attach_span(gui, w, row, column, 1, 1);
+	table_attach_span(table, w, row, column, 1, 1);
 }
 
-/*
- * Called for opening tags like <foo bar="baz">
- */
-static void parser_start_element(GMarkupParseContext *context, const char *element_name, const char **attribute_names, const char **attribute_values, gpointer user_data, GError **error)
+/*** ---------------------------------------------------------------------- ***/
+
+static void parseXml(GuiWindow *gui)
 {
-	GuiWindow *gui = (GuiWindow *)user_data;
-	gsize i;
-	const char *name = 0;
-	const char *icon_name = 0;
-	const char *display = 0;
-	const char *default_value = 0;
-	const char *tooltip = 0;
-	GtkWidget *settings_widget = 0;
-	gboolean scrolled = FALSE;
-	gboolean gui_only = FALSE;
-	int type = TYPE_NONE;
-	int flags = NO_FLAGS;
+	int tab_index;
+	const xml_section *section;
 
-	UNUSED(context);
-	UNUSED(error);
-
-	for (i = 0; attribute_names[i]; i++)
+	tab_index = 0;
+	for (section = xml_sections; section < &xml_sections[sizeof(xml_sections) / sizeof(xml_sections[0])]; section++)
 	{
-		if (strcmp(attribute_names[i], "name") == 0)
-			name = attribute_values[i];
-		else if (strcmp(attribute_names[i], "_label") == 0)
-			display = attribute_values[i];
-		else if (strcmp(attribute_names[i], "default") == 0)
-			default_value = attribute_values[i];
-		else if (strcmp(attribute_names[i], "_tooltip") == 0)
-			tooltip = attribute_values[i];
-		else if (strcmp(attribute_names[i], "scrolled") == 0)
-			scrolled = TRUE;
-		else if (strcmp(attribute_names[i], "icon") == 0)
-			icon_name = attribute_values[i];
-		else if (strcmp(attribute_names[i], "gui") == 0)
-			gui_only = TRUE;
-	}
-	
-	if (display == NULL)
-	{
-		if (name != NULL)
-		{
-			char *str;
-
-			str = g_strdup(name);
-			display = str; /* FIXME: leaked */
-		}
-	}
-
-	if (strcmp(element_name, "preferences") == 0)
-	{
-		; /* ignore */
-	} else if (strcmp(element_name, "section") == 0)
-	{
+		const xml_widget *widget;
 		GtkWidget *tab_widget;
+		GtkWidget *section_table;
 		GtkWidget *label;
+		int section_row;
 
-		assert(gui->section_table == NULL);
-		assert(name != NULL);
-		g_free(gui->section_name);
-		gui->section_name = g_strdup(name);
-		gui->section_names = g_slist_append(gui->section_names, g_strdup(name));
+		gui->section_names = g_slist_append(gui->section_names, g_strdup(section->name));
 #if GTK_CHECK_VERSION(4, 0, 0)
-		gui->section_table = gtk_grid_new();
+		section_table = gtk_grid_new();
 #else
-		gui->section_table = gtk_table_new(2, 2, FALSE);
-		gtk_table_set_row_spacings(GTK_TABLE(gui->section_table), 4);
-		gtk_table_set_col_spacings(GTK_TABLE(gui->section_table), 4);
+		section_table = gtk_table_new(2, 2, FALSE);
+		gtk_table_set_row_spacings(GTK_TABLE(section_table), 4);
+		gtk_table_set_col_spacings(GTK_TABLE(section_table), 4);
 #endif
-		gtk_widget_show(gui->section_table);
-		gui->section_row = 0;
-		if (scrolled)
+		assert(section_table);
+		gtk_widget_show(section_table);
+
+		if (section->scrolled)
 		{
 			/*
 			 * put the path list in a scrolled window, it gets too large
@@ -711,7 +688,7 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 #if GTK_CHECK_VERSION(4, 0, 0)
 			GtkWidget *scroller = gtk_scrolled_window_new();
 
-			gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), gui->section_table);
+			gtk_scrolled_window_set_child(GTK_SCROLLED_WINDOW(scroller), section_table);
 #else
 			GtkWidget *scroller = scroller = gtk_scrolled_window_new(NULL, NULL);
 
@@ -720,7 +697,7 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 			gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroller), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 			gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(scroller), GTK_SHADOW_ETCHED_IN);
 			gtk_scrolled_window_set_placement(GTK_SCROLLED_WINDOW(scroller), GTK_CORNER_TOP_LEFT);
-			gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scroller), gui->section_table);
+			gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scroller), section_table);
 #endif
 			gtk_widget_show(scroller);
 			tab_widget = scroller;
@@ -730,15 +707,19 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 
 			vbox = gtk_vbox_new(FALSE, 0);
 			gtk_widget_show(vbox);
-			gtk_box_pack_start(GTK_BOX(vbox), gui->section_table, FALSE, FALSE, 0);
+			gtk_box_pack_start(GTK_BOX(vbox), section_table, FALSE, FALSE, 0);
 			tab_widget = vbox;
 		}
-		if (icon_name)
+		if (section->icon_name)
 		{
 #if 1
-			GtkWidget *image = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_BUTTON);
+#if GTK_CHECK_VERSION(4, 0, 0)
+			GtkWidget *image = gtk_image_new_from_icon_name(section->icon_name);
+#else
+			GtkWidget *image = gtk_image_new_from_icon_name(section->icon_name, GTK_ICON_SIZE_BUTTON);
+#endif
 			GtkWidget *hbox = gtk_hbox_new(0, 5);
-			label = gtk_label_new(_(display));
+			label = gtk_label_new(_(section->label));
 			if (image)
 			{
 				gtk_box_pack_start(GTK_BOX(hbox), image, FALSE, TRUE, 0);
@@ -748,357 +729,232 @@ static void parser_start_element(GMarkupParseContext *context, const char *eleme
 			gtk_widget_show(hbox);
 			gtk_notebook_append_page(GTK_NOTEBOOK(gui->notebook), tab_widget, hbox);
 #else
-			label = gtk_label_new(_(display));
+			label = gtk_label_new(_(section->label));
 			gtk_notebook_append_page(GTK_NOTEBOOK(gui->notebook), tab_widget, label);
 #endif
 		} else
 		{
-			label = gtk_label_new(_(display));
+			label = gtk_label_new(_(section->label));
 			gtk_notebook_append_page(GTK_NOTEBOOK(gui->notebook), tab_widget, label);
 		}
-		widget_set_translation(label, display);
+		widget_set_translation(label, section->label);
 		gui->translation_list = g_slist_append(gui->translation_list, label);
 		gtk_widget_show(label);
-	} else if (strcmp(element_name, "folder") == 0 ||
-		strcmp(element_name, "path") == 0)
-	{
-		const char *title;
-		GtkWidget *label;
-		GtkWidget *button;
 
-		assert(gui->section_table != NULL);
-		label = gtk_label_new(_(display));
-		gtk_widget_show(label);
-		widget_set_translation(label, display);
-		gui->translation_list = g_slist_append(gui->translation_list, label);
-		type = strcmp(element_name, "folder") == 0 ? TYPE_FOLDER : TYPE_PATH;
-		flags = NO_FLAGS;
-		for (i = 0; attribute_names[i]; i++)
+		tab_index++;
+		section_row = 0;
+		for (widget = section->widgets; widget->type != TYPE_NONE; widget++)
 		{
-			if (strcmp(attribute_names[i], "flags") == 0)
-				flags = strtol(attribute_values[i], NULL, 0);
-		}
-		title = type == TYPE_FOLDER ? N_("Select a Folder") : N_("Select a File");
-#if GTK_CHECK_VERSION(4, 0, 0)
-		table_attach(gui, label, gui->section_row, 0);
-		button = gtk_button_new_with_label(_(title));
-		table_attach(gui, button, gui->section_row, 1);
-		(void)cb_file_changed;
-#else
-		table_attach(gui, label, gui->section_row, 0);
-		if (type == TYPE_FOLDER)
-			button = gtk_file_chooser_button_new(_(title), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
-		else
-			button = gtk_file_chooser_button_new(_(title), GTK_FILE_CHOOSER_ACTION_OPEN);
-		gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(button), TRUE);
-		g_signal_connect(G_OBJECT(button), "file-set", G_CALLBACK(cb_file_changed), gui);
-		table_attach(gui, button, gui->section_row, 1);
-#endif
-		widget_set_translation(button, title);
-		widget_set_tooltip(button, tooltip);
-		gui->translation_list = g_slist_append(gui->translation_list, button);
-		gtk_widget_show(button);
-		settings_widget = button;
-		if (strcmp(name, "atari_drv_c") == 0 ||
-			strcmp(name, "atari_drv_h") == 0 ||
-			strcmp(name, "atari_drv_m") == 0 ||
-			strcmp(name, "atari_drv_u") == 0)
-			gtk_widget_set_sensitive(button, FALSE);
-		if (flags != NO_FLAGS)
-		{
-			char *button_name;
-			const char *button_text;
-			GtkWidget *vbox;
+			GtkWidget *settings_widget = 0;
+			GtkWidget *button;
 
-			gui->section_row++;
-			vbox = gtk_hbox_new(FALSE, 0);
-			gtk_widget_show(vbox);
-			table_attach_span(gui, vbox, gui->section_row, 1, 1, 2);
-			
-			button_name = g_strconcat(name, "_rdonly", NULL);
-			button_text = N_("read-only");
-			button = gtk_check_button_new_with_label(_(button_text));
-			widget_set_translation(button, button_text);
-			tooltip = N_("Mount drive in read-only mode, preventing writes from the emulation");
-			widget_set_tooltip(button, tooltip);
-			gui->translation_list = g_slist_append(gui->translation_list, button);
-			gtk_widget_show(button);
-			gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
-			gtk_widget_set_name(button, button_name);
-			g_object_set_data(G_OBJECT(settings_widget), button_name, button);
-			
-			button_name = g_strconcat(name, "_dosnames", NULL);
-			button_text = N_("DOS 8+3 format");
-			button = gtk_check_button_new_with_label(_(button_text));
-			widget_set_translation(button, button_text);
-			tooltip = N_("Force 8.3 short filenames (FAT-style) on host directories");
-			widget_set_tooltip(button, tooltip);
-			gui->translation_list = g_slist_append(gui->translation_list, button);
-			gtk_widget_show(button);
-			gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
-			gtk_widget_set_name(button, button_name);
-			g_object_set_data(G_OBJECT(settings_widget), button_name, button);
-			
-			button_name = g_strconcat(name, "_insensitive", NULL);
-			button_text = N_("case insensitive");
-			button = gtk_check_button_new_with_label(_(button_text));
-			widget_set_translation(button, button_text);
-			tooltip = N_("Ignore case sensitivity when accessing files/folders");
-			widget_set_tooltip(button, tooltip);
-			gui->translation_list = g_slist_append(gui->translation_list, button);
-			gtk_widget_show(button);
-			gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
-			gtk_widget_set_name(button, button_name);
-			g_object_set_data(G_OBJECT(settings_widget), button_name, button);
-		}
-		gui->section_row++;
-	} else if (strcmp(element_name, "string") == 0)
-	{
-		GtkWidget *label;
-		GtkWidget *entry;
-
-		assert(gui->section_table != NULL);
-		label = gtk_label_new(_(display));
-		widget_set_translation(label, display);
-		gui->translation_list = g_slist_append(gui->translation_list, label);
-		gtk_widget_show(label);
-		table_attach(gui, label, gui->section_row, 0);
-		entry = gtk_entry_new();
-		widget_set_tooltip(entry, tooltip);
-		gui->translation_list = g_slist_append(gui->translation_list, entry);
-		gtk_widget_show(entry);
-		table_attach(gui, entry, gui->section_row, 1);
-		settings_widget = entry;
-		type = TYPE_STRING;
-		gui->section_row++;
-	} else if (strcmp(element_name, "int") == 0)
-	{
-		long minval = 0;
-		long maxval = INT_MAX; /* LONG_MAX might not be representable in a double */
-		long step = 1;
-		GtkAdjustment *adjustment;
-		GtkWidget *label;
-		GtkWidget *button;
-		
-		assert(gui->section_table != NULL);
-		label = gtk_label_new(_(display));
-		widget_set_translation(label, display);
-		gui->translation_list = g_slist_append(gui->translation_list, label);
-		gtk_widget_show(label);
-		for (i = 0; attribute_names[i]; i++)
-		{
-			if (strcmp(attribute_names[i], "minval") == 0)
-				minval = strtol(attribute_values[i], NULL, 0);
-			if (strcmp(attribute_names[i], "maxval") == 0)
-				maxval = strtol(attribute_values[i], NULL, 0);
-			if (strcmp(attribute_names[i], "step") == 0)
-				step = strtol(attribute_values[i], NULL, 0);
-		}
-		adjustment = (GtkAdjustment *)gtk_adjustment_new(minval, minval, maxval, step, step * 16, 0);
-		table_attach(gui, label, gui->section_row, 0);
-		button = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 0, 0);
-		widget_set_tooltip(button, tooltip);
-		gui->translation_list = g_slist_append(gui->translation_list, button);
-		gtk_widget_show(button);
-		gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(button), TRUE);
-		table_attach(gui, button, gui->section_row, 1);
-		settings_widget = button;
-		type = TYPE_INT;
-		/*
-		 * some values must be written as unsigned, or the application fails to parse them
-		 */
-		if (strncmp(name, "app_window_", 11) == 0)
-			type = TYPE_UINT;
-		gui->section_row++;
-	} else if (strcmp(element_name, "bool") == 0)
-	{
-		GtkWidget *button;
-
-		assert(gui->section_table != NULL);
-		button = gtk_check_button_new_with_label(_(display));
-		widget_set_translation(button, display);
-		widget_set_tooltip(button, tooltip);
-		gui->translation_list = g_slist_append(gui->translation_list, button);
-		gtk_widget_show(button);
-		table_attach(gui, button, gui->section_row, 1);
-		settings_widget = button;
-		type = TYPE_BOOL;
-		if (name != NULL && strcmp(name, "show_tooltips") == 0)
-			gui->pref_show_tooltips = button;
-		gui->section_row++;
-	} else if (strcmp(element_name, "choice") == 0)
-	{
-		GtkWidget *label;
-		GtkListStore *store;
-		GtkCellRenderer *cell;
-
-		assert(gui->section_table != NULL);
-		assert(gui->combo_box == NULL);
-
-		label = gtk_label_new(_(display));
-		widget_set_translation(label, display);
-		gui->translation_list = g_slist_append(gui->translation_list, label);
-		gtk_widget_show(label);
-		table_attach(gui, label, gui->section_row, 0);
-		store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT);
-		assert(store);
-		cell = gtk_cell_renderer_text_new();
-		assert(cell);
-		gui->combo_box = gtk_combo_box_new_with_model(GTK_TREE_MODEL(store));
-		assert(gui->combo_box);
-		gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(gui->combo_box), cell, TRUE);
-		gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(gui->combo_box), cell, "text", CHOICE_COL_TEXT, NULL);
-		widget_set_tooltip(gui->combo_box, tooltip);
-		gui->translation_list = g_slist_append(gui->translation_list, gui->combo_box);
-		gtk_widget_show(gui->combo_box);
-		table_attach(gui, gui->combo_box, gui->section_row, 1);
-		settings_widget = gui->combo_box;
-		type = TYPE_CHOICE;
-		gui->section_row++;
-		if (strcmp(name, "gui_language") == 0)
-		{
-#ifdef ENABLE_NLS
-			g_signal_connect(G_OBJECT(gui->combo_box), "changed", G_CALLBACK(cb_language_changed), gui);
-#else
-			gtk_widget_set_sensitive(gui->combo_box, FALSE);
-#endif
-		}
-	} else if (strcmp(element_name, "select") == 0)
-	{
-		GtkListStore *store;
-		GtkTreeIter iter;
-		int value;
-
-		assert(gui->section_table != NULL);
-		assert(gui->combo_box != NULL);
-		store = GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(gui->combo_box)));
-		assert(GTK_IS_LIST_STORE(store));
-		value = gtk_tree_model_iter_n_children(GTK_TREE_MODEL(store), NULL);
-		for (i = 0; attribute_names[i]; i++)
-		{
-			if (strcmp(attribute_names[i], "value") == 0)
+			switch (widget->type)
 			{
-				value = strtol(attribute_values[i], NULL, 0);
+			case TYPE_PATH:
+			case TYPE_FOLDER:
+				{
+					const char *title;
+
+					label = gtk_label_new(_(widget->label));
+					gtk_widget_show(label);
+					widget_set_translation(label, widget->label);
+					gui->translation_list = g_slist_append(gui->translation_list, label);
+					title = widget->type == TYPE_FOLDER ? N_("Select a Folder") : N_("Select a File");
+#if GTK_CHECK_VERSION(4, 0, 0)
+					table_attach(section_table, label, section_row, 0);
+					button = gtk_button_new_with_label(_(title));
+					table_attach(section_table, button, section_row, 1);
+					(void)cb_file_changed;
+#else
+					table_attach(section_table, label, section_row, 0);
+					if (widget->type == TYPE_FOLDER)
+						button = gtk_file_chooser_button_new(_(title), GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER);
+					else
+						button = gtk_file_chooser_button_new(_(title), GTK_FILE_CHOOSER_ACTION_OPEN);
+					gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(button), TRUE);
+					g_signal_connect(G_OBJECT(button), "file-set", G_CALLBACK(cb_file_changed), gui);
+					table_attach(section_table, button, section_row, 1);
+#endif
+					widget_set_translation(button, title);
+					widget_set_tooltip(button, widget->tooltip);
+					gui->translation_list = g_slist_append(gui->translation_list, button);
+					gtk_widget_show(button);
+					settings_widget = button;
+					if (strcmp(widget->name, "atari_drv_c") == 0 ||
+						strcmp(widget->name, "atari_drv_h") == 0 ||
+						strcmp(widget->name, "atari_drv_m") == 0 ||
+						strcmp(widget->name, "atari_drv_u") == 0)
+						gtk_widget_set_sensitive(button, FALSE);
+					if (widget->u.path.flags != NO_FLAGS)
+					{
+						char *button_name;
+						const char *button_text;
+						GtkWidget *vbox;
+						const char *tooltip;
+			
+						section_row++;
+						vbox = gtk_hbox_new(FALSE, 0);
+						gtk_widget_show(vbox);
+						table_attach_span(section_table, vbox, section_row, 1, 1, 2);
+						
+						button_name = g_strconcat(widget->name, "_rdonly", NULL);
+						button_text = N_("read-only");
+						button = gtk_check_button_new_with_label(_(button_text));
+						widget_set_translation(button, button_text);
+						tooltip = N_("Mount drive in read-only mode, preventing writes from the emulation");
+						widget_set_tooltip(button, tooltip);
+						gui->translation_list = g_slist_append(gui->translation_list, button);
+						gtk_widget_show(button);
+						gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
+						gtk_widget_set_name(button, button_name);
+						g_object_set_data(G_OBJECT(settings_widget), button_name, button);
+						
+						button_name = g_strconcat(widget->name, "_dosnames", NULL);
+						button_text = N_("DOS 8+3 format");
+						button = gtk_check_button_new_with_label(_(button_text));
+						widget_set_translation(button, button_text);
+						tooltip = N_("Force 8.3 short filenames (FAT-style) on host directories");
+						widget_set_tooltip(button, tooltip);
+						gui->translation_list = g_slist_append(gui->translation_list, button);
+						gtk_widget_show(button);
+						gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
+						gtk_widget_set_name(button, button_name);
+						g_object_set_data(G_OBJECT(settings_widget), button_name, button);
+						
+						button_name = g_strconcat(widget->name, "_insensitive", NULL);
+						button_text = N_("case insensitive");
+						button = gtk_check_button_new_with_label(_(button_text));
+						widget_set_translation(button, button_text);
+						tooltip = N_("Ignore case sensitivity when accessing files/folders");
+						widget_set_tooltip(button, tooltip);
+						gui->translation_list = g_slist_append(gui->translation_list, button);
+						gtk_widget_show(button);
+						gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
+						gtk_widget_set_name(button, button_name);
+						g_object_set_data(G_OBJECT(settings_widget), button_name, button);
+					}
+					section_row++;
+				}
+				break;
+
+			case TYPE_STRING:
+				{
+					GtkWidget *entry;
+			
+					label = gtk_label_new(_(widget->label));
+					widget_set_translation(label, widget->label);
+					gui->translation_list = g_slist_append(gui->translation_list, label);
+					gtk_widget_show(label);
+					table_attach(section_table, label, section_row, 0);
+					entry = gtk_entry_new();
+					widget_set_tooltip(entry, widget->tooltip);
+					gui->translation_list = g_slist_append(gui->translation_list, entry);
+					gtk_widget_show(entry);
+					table_attach(section_table, entry, section_row, 1);
+					settings_widget = entry;
+					section_row++;
+				}
+				break;
+			
+			case TYPE_BOOL:
+				{
+					GtkWidget *button;
+			
+					button = gtk_check_button_new_with_label(_(widget->label));
+					widget_set_translation(button, widget->label);
+					widget_set_tooltip(button, widget->tooltip);
+					gui->translation_list = g_slist_append(gui->translation_list, button);
+					gtk_widget_show(button);
+					table_attach(section_table, button, section_row, 1);
+					settings_widget = button;
+					if (widget->name != NULL && strcmp(widget->name, "show_tooltips") == 0)
+						gui->pref_show_tooltips = button;
+					section_row++;
+				}
+				break;
+
+			case TYPE_INT:
+			case TYPE_UINT:
+				{
+					GtkAdjustment *adjustment;
+					GtkWidget *button;
+					
+					label = gtk_label_new(_(widget->label));
+					widget_set_translation(label, widget->label);
+					gui->translation_list = g_slist_append(gui->translation_list, label);
+					gtk_widget_show(label);
+					adjustment = (GtkAdjustment *)gtk_adjustment_new(widget->u.integer.minval, widget->u.integer.minval, widget->u.integer.maxval, widget->u.integer.step, widget->u.integer.step * 16, 0);
+					table_attach(section_table, label, section_row, 0);
+					button = gtk_spin_button_new(GTK_ADJUSTMENT(adjustment), 0, 0);
+					widget_set_tooltip(button, widget->tooltip);
+					gui->translation_list = g_slist_append(gui->translation_list, button);
+					gtk_widget_show(button);
+					gtk_spin_button_set_numeric(GTK_SPIN_BUTTON(button), TRUE);
+					table_attach(section_table, button, section_row, 1);
+					settings_widget = button;
+					section_row++;
+				}
+				break;
+			
+			case TYPE_CHOICE:
+				{
+					GtkListStore *store;
+					GtkCellRenderer *cell;
+					GtkWidget *combo_box;
+					const xml_widget_choice *c;
+			
+					label = gtk_label_new(_(widget->label));
+					widget_set_translation(label, widget->label);
+					gui->translation_list = g_slist_append(gui->translation_list, label);
+					gtk_widget_show(label);
+					table_attach(section_table, label, section_row, 0);
+#ifdef FORCE_LIBINTL
+					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT);
+#else
+					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT);
+#endif
+					assert(store);
+					cell = gtk_cell_renderer_text_new();
+					assert(cell);
+					combo_box = gtk_combo_box_new_with_model(GTK_TREE_MODEL(store));
+					assert(combo_box);
+					gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo_box), cell, TRUE);
+					gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo_box), cell, "text", CHOICE_COL_TEXT, NULL);
+					widget_set_tooltip(combo_box, widget->tooltip);
+					gui->translation_list = g_slist_append(gui->translation_list, combo_box);
+					gtk_widget_show(combo_box);
+					table_attach(section_table, combo_box, section_row, 1);
+					settings_widget = combo_box;
+					section_row++;
+					if (strcmp(widget->name, "gui_language") == 0)
+					{
+#ifdef ENABLE_NLS
+						g_signal_connect(G_OBJECT(combo_box), "changed", G_CALLBACK(cb_language_changed), gui);
+#else
+						gtk_widget_set_sensitive(combo_box, FALSE);
+#endif
+					}
+					for (c = widget->u.choice.choices; c->label != NULL; c++)
+					{
+						GtkTreeIter iter;
+
+						gtk_list_store_append(store, &iter);
+						gtk_list_store_set(store, &iter, CHOICE_COL_TEXT, _(c->label), CHOICE_COL_ORIG_TEXT, U_(c->label), CHOICE_COL_VALUE, c->value, -1);
+					}
+				}
 				break;
 			}
+
+			if (settings_widget)
+			{
+				widget_set_section(settings_widget, section->name);
+				gtk_widget_set_name(settings_widget, widget->name);
+				set_value(settings_widget, widget);
+				gui->widget_list = g_slist_append(gui->widget_list, settings_widget);
+			}
 		}
-		gtk_list_store_append(store, &iter);
-		gtk_list_store_set(store, &iter, CHOICE_COL_TEXT, _(display), CHOICE_COL_ORIG_TEXT, display, CHOICE_COL_VALUE, value, -1);
-	} else
-	{
-		/* FIXME: should be fatal error */
-		g_printerr("unsupported element %s\n", element_name);
-	}
-	
-	if (settings_widget)
-	{
-		if (name == NULL)
-		{
-			g_printerr("%s missing name\n", element_name);
-		}
-		widget_set_section(settings_widget, gui->section_name);
-		gtk_widget_set_name(settings_widget, g_strdup(name));
-		set_value(settings_widget, type, default_value, flags, gui_only);
-		gui->widget_list = g_slist_append(gui->widget_list, settings_widget);
 	}
 }
-
-/*** ---------------------------------------------------------------------- ***/
-
-/*
- * Called for closing tags like </foo>
- */
-static void parser_end_element(GMarkupParseContext *context, const char *element_name, gpointer user_data, GError **error)
-{
-	GuiWindow *gui = (GuiWindow *)user_data;
-
-	UNUSED(context);
-	UNUSED(error);
-	if (strcmp(element_name, "preferences") == 0)
-	{
-		assert(gui->section_table == NULL);
-	} else if (strcmp(element_name, "section") == 0)
-	{
-		assert(gui->section_table != NULL);
-		gui->section_table = NULL;
-		g_free(gui->section_name);
-		gui->section_name = NULL;
-	} else if (strcmp(element_name, "choice") == 0)
-	{
-		struct pref_val *val;
-
-		assert(gui->combo_box != NULL);
-		val = widget_get_pref_value(gui->combo_box);
-		assert(val);
-		val->u.c.minval = 0;
-		val->u.c.maxval = gtk_tree_model_iter_n_children(gtk_combo_box_get_model(GTK_COMBO_BOX(gui->combo_box)), NULL) - 1;
-		gui->combo_box = NULL;
-	}
-}
-
-/*** ---------------------------------------------------------------------- ***/
-
-/*
- * Called for character data. Text is nul-terminated
- */
-static void parser_characters(GMarkupParseContext *context, const char *text, gsize text_len, gpointer user_data, GError **error)
-{
-	UNUSED(context);
-	UNUSED(user_data);
-	UNUSED(error);
-	UNUSED(text);
-	UNUSED(text_len);
-}
-
-/*** ---------------------------------------------------------------------- ***/
-
-/*
- * Called for strings that should be re-saved verbatim in this same
- * position, but are not otherwise interpretable. At the moment this
- * includes comments and processing instructions. Text is
- * nul-terminated.
- */
-static void parser_passthrough(GMarkupParseContext *context, const char *passthrough_text, gsize text_len, gpointer user_data, GError **error)
-{
-	UNUSED(context);
-	UNUSED(user_data);
-	UNUSED(error);
-	UNUSED(passthrough_text);
-	UNUSED(text_len);
-}
-
-/*** ---------------------------------------------------------------------- ***/
-
-/*
- * Called when any parsing method encounters an error. The GError should not be
- * freed.
- */
-static void parser_error(GMarkupParseContext *context, GError *error, gpointer user_data)
-{
-	UNUSED(context);
-	UNUSED(user_data);
-	g_printerr("ERROR: %s\n", error->message);
-}
-
-/*** ---------------------------------------------------------------------- ***/
-
-/*
- * Parser
- */
-static const GMarkupParser xml_parser = {
-	parser_start_element,
-	parser_end_element,
-	parser_characters,
-	parser_passthrough,
-	parser_error
-};
-
-/*
- * XML for the parser.
- */
-static char const preferences[] =
-#include "preferences.xml.h"
-;
 
 /******************************************************************************/
 /*** ---------------------------------------------------------------------- ***/
@@ -1911,19 +1767,25 @@ static void mxgtk_quit(GuiWindow *gui)
 
 static void send_delete_event(GtkWidget *widget)
 {
+#if GTK_CHECK_VERSION(4, 0, 0)
+	GdkEvent *gdk_delete_event_new(GdkSurface *surface);
+	(void)widget;
+#else
 	GdkEvent *event = gdk_event_new(GDK_DELETE);
-
 	event->any.window = g_object_ref(gtk_widget_get_window(widget));
 	event->any.send_event = FALSE;
 
 	g_object_ref(widget);
 
 	if (!gtk_widget_event(widget, event))
+	{
 		gtk_widget_destroy(widget);
+	}
 
 	g_object_unref(widget);
 
 	gdk_event_free(event);
+#endif
 }
 
 #if GTK_CHECK_VERSION(4, 0, 0)
@@ -1956,7 +1818,7 @@ static gboolean cb_key_press(GtkWidget *widget, GdkEventKey *event, gpointer dat
 
 /*** ---------------------------------------------------------------------- ***/
 
-static gboolean cb_deleted(GtkWidget *widget, GdkEventAny *event, gpointer data)
+static gboolean cb_deleted(GtkWidget *widget, void *event, gpointer data)
 {
 	GuiWindow *gui = (GuiWindow *)data;
 	
@@ -1968,15 +1830,25 @@ static gboolean cb_deleted(GtkWidget *widget, GdkEventAny *event, gpointer data)
 		int response;
 		GtkWidget *dialog = gtk_dialog_new_with_buttons(gtk_window_get_title(GTK_WINDOW(gui->window)), GTK_WINDOW(gui->window),
 			GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+#if GTK_CHECK_VERSION(4, 0, 0)
+			_("_Save"), GTK_RESPONSE_ACCEPT,
+			_("_Delete"), GTK_RESPONSE_REJECT,
+			_("_Cancel"), GTK_RESPONSE_CLOSE,
+#else
 			GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
 			GTK_STOCK_DELETE, GTK_RESPONSE_REJECT,
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CLOSE,
+#endif
 			NULL);
 		GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 		GtkWidget *label = gtk_label_new(_("You have unsaved changes. Do you want to save them and quit?"));
 
 		gtk_widget_show(label);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_window_set_child(GTK_WINDOW(content), label);
+#else
 		gtk_container_add(GTK_CONTAINER(content), label);
+#endif
 		response = gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		switch (response)
@@ -2026,15 +1898,25 @@ static void cb_cancel(GtkWidget *widget, gpointer data)
 		int response;
 		GtkWidget *dialog = gtk_dialog_new_with_buttons(gtk_window_get_title(GTK_WINDOW(gui->window)), GTK_WINDOW(gui->window),
 			GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+#if GTK_CHECK_VERSION(4, 0, 0)
+			_("_Save"), GTK_RESPONSE_ACCEPT,
+			_("_Delete"), GTK_RESPONSE_REJECT,
+			_("_Cancel"), GTK_RESPONSE_CLOSE,
+#else
 			GTK_STOCK_SAVE, GTK_RESPONSE_ACCEPT,
 			GTK_STOCK_DELETE, GTK_RESPONSE_REJECT,
 			GTK_STOCK_CANCEL, GTK_RESPONSE_CLOSE,
+#endif
 			NULL);
 		GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
 		GtkWidget *label = gtk_label_new(_("You have unsaved changes. Do you want to discard them and quit?"));
 
 		gtk_widget_show(label);
+#if GTK_CHECK_VERSION(4, 0, 0)
+		gtk_window_set_child(GTK_WINDOW(content), label);
+#else
 		gtk_container_add(GTK_CONTAINER(content), label);
+#endif
 		response = gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy(dialog);
 		switch (response)
@@ -2250,8 +2132,6 @@ static void show_version(void)
 int main(int argc, char **argv)
 {
 	int i;
-	gboolean ok;
-	GMarkupParseContext *context;
 	GuiWindow gui;
 	
 	for (i = 1; i < argc; i++)
@@ -2297,8 +2177,7 @@ int main(int argc, char **argv)
 #if GTK_CHECK_VERSION(4, 0, 0)
 	gtk_init();
 #else
-	ok = gtk_init_check(&argc, &argv);
-	if (!ok)
+	if (!gtk_init_check(&argc, &argv))
 	{
 		g_printerr("%s: unable to initialize GTK\n", program_name);
 		return EXIT_FAILURE;
@@ -2309,17 +2188,7 @@ int main(int argc, char **argv)
 	gui.exit_code = EXIT_WINDOW_CLOSED;
 	window_create(&gui);
 
-	context = g_markup_parse_context_new(&xml_parser, G_MARKUP_DEFAULT_FLAGS, &gui, NULL);
-
-	ok = g_markup_parse_context_parse(context, preferences, sizeof(preferences) - 1, NULL);
-
-	g_markup_parse_context_free(context);
-
-	if (!ok)
-	{
-		g_printerr("Parsing ERROR\n");
-		return EXIT_FAILURE;
-	}
+	parseXml(&gui);
 
 	if (config_file_arg != NULL)
 	{
@@ -2349,3 +2218,5 @@ int main(int argc, char **argv)
 
 	return gui.exit_code;
 }
+
+#endif /* NLS_TRANSLATE_TR */

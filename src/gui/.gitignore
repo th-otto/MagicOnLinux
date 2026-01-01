@@ -2,6 +2,7 @@ gxmessage
 mxgtk-settings
 mxqt-settings
 preferences.xml.h
+preferences.xml.c
 *.moc
 qrc.cc
 nlstool

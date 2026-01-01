@@ -1633,7 +1633,7 @@ static void pca_translate_other(void *self, int c)
 	fputc(c, p->f);
 }
 
-static parse_c_action const pca_translate = { pca_translate_gstring, pca_translate_string, pca_translate_other };
+static parse_c_action const pca_c_translate = { pca_translate_gstring, pca_translate_string, pca_translate_other };
 
 /* ------------------------------------------------------------------------- */
 
@@ -1776,6 +1776,216 @@ static _BOOL parse_c_file(const char *fname, const parse_c_action *pca, void *se
 			} else if (is_letter(c) || is_digit(c))
 			{
 				state = 4;
+			} else if (c == '\'')
+			{
+				if (state == 5)
+					state = 0;
+				else
+					state = 5;
+			} else
+			{
+				if (state < 5)
+				{
+					state = 0;
+					gettext_type = 0;
+				}
+			}
+			pca->other(self, c);
+		}
+	}
+	ifclose(f);
+	return TRUE;
+}
+
+/* ------------------------------------------------------------------------- */
+
+static void pca_translate_xml_gstring(void *self, str *s, const char *fname, int lineno)
+{
+	pcati *p = (pcati *) self;
+	poe *e;
+
+	UNUSED(fname);
+	UNUSED(lineno);
+
+	if (p->multilang)
+	{
+		char *t;
+
+		s_close(s);
+		t = escaped_string(s_text(s), s_length(s));
+		e = o_find(p->o, s_text(s), s_length(s));
+		if (e)
+		{
+			/* use message index, even if there is no translation */
+			assert(e->msgnum > 0);
+			fprintf(p->f, "\t{ %s, %d },\n", t, e->msgnum);
+		} else
+		{
+			/* something went wrong. messages.pot not up-to-date? */
+			fatal(_("msgid '%s' not found in %s\n(run 'xgettext' to generate it)"), t, p->messages_file);
+		}
+		g_free(t);
+	} else
+	{
+		str *trans;
+
+		e = o_find(p->o, s_text(s), s_length(s));
+		if (e && e->msgstr && s_length(e->msgstr) != 0) /* if the translation isn't empty, use it instead */
+		{
+			trans = e->msgstr;
+		} else
+		{
+			trans = s;
+		}
+		print_escaped_str(p->f, trans, FALSE);
+	}
+	s_free(s);
+}
+
+/* ------------------------------------------------------------------------- */
+
+static void pca_translate_xml_string(void *self, str *s)
+{
+	pcati *p = (pcati *) self;
+
+	s_close(s);
+	if (!p->multilang)
+		print_escaped_str(p->f, s, FALSE);
+	s_free(s);
+}
+
+/* ------------------------------------------------------------------------- */
+
+static void pca_xml_other(void *self, int c)
+{
+	pcati *p = (pcati *) self;
+
+	if (!p->multilang)
+		fputc(c, p->f);
+}
+
+static parse_c_action const pca_xml_translate = { pca_translate_xml_gstring, pca_translate_xml_string, pca_xml_other };
+
+/* ------------------------------------------------------------------------- */
+
+static _BOOL parse_xml_file(const char *fname, const parse_c_action *pca, void *self)
+{
+	int c;
+	int state;
+	int gettext_type;
+	str *s;
+	int lineno;
+	IFILE *f;
+
+	f = ifopen(fname);
+	if (f == NULL)
+	{
+		error(_("could not open %s: %s"), fname, strerror(errno));
+		return FALSE;
+	}
+
+	state = 0;
+	gettext_type = 0;
+	for (;;)
+	{
+		c = inextc(f);
+		if (c == EOF)
+			break;
+
+		if (c == '<')
+		{
+			c = inextc(f);
+			if (c == '!')
+			{
+				/* not quite right, but should do for the moment */
+				if (pass_comments)
+				{
+					pca->other(self, '<');
+					pca->other(self, c);
+				}
+				for (;;)
+				{
+					c = inextc(f);
+					if (c == EOF)
+						break;
+					if (pass_comments)
+						pca->other(self, c);
+					if (c == '-')
+					{
+						while (c == '-')
+						{
+							c = inextc(f);
+							if (c == EOF)
+								break;
+							if (pass_comments)
+								pca->other(self, c);
+							if (c == '>')
+								break;
+						}
+						if (c == '>')
+							break;
+					}
+				}
+			} else
+			{
+				pca->other(self, '<');
+				pca->other(self, c);
+			}
+		} else if (c == '\"')
+		{
+			if (state == 3)
+			{
+				/* this is a new gettext string */
+				s = s_new();
+				lineno = f->lineno;
+				/* accumulate all consecutive strings (separated by spaces) */
+				iback(f);
+				get_c_string(f, s, TRUE);
+				/* handle the string */
+				pca->gstring(self, s, fname, lineno);
+				state = 0;
+				gettext_type = 0;
+			} else if (state == 5)
+			{
+				pca->other(self, c);
+			} else
+			{
+				iback(f);
+				s = s_new();
+				get_c_string(f, s, FALSE);
+				pca->string(self, s);
+			}
+		} else
+		{
+			if (c == '=')
+			{
+				if (state == 2)
+				{
+					state = 3;
+				} else
+				{
+					state = 0;
+					gettext_type = 0;
+				}
+			} else if (c == '_')
+			{
+				if (state < 2)
+				{
+					if (gettext_type == 0)
+						gettext_type = '_';
+					state = 2;
+				} else
+				{
+					state = 4;
+				}
+			} else if (is_white(c))
+			{
+				state = 0;
+				gettext_type = 0;
+			} else if (is_letter(c) || is_digit(c))
+			{
+				if (state != 2)
+					state = 4;
 			} else if (c == '\'')
 			{
 				if (state == 5)
@@ -2746,7 +2956,7 @@ void po_dump_keys(po_domain *domain, FILE *out)
 		k++;
 	}
 	assert(k == domain->num_keys + 1);
-	fprintf(out, "\t/* %5u %5u */\n", (unsigned int)k - 1, (unsigned int)len);
+	fprintf(out, "\t/* %5u %5u */\n", (unsigned int)k, (unsigned int)len);
 	fprintf(out, "};\n\n");
 
 	/* dump the offsets table for "en" */
@@ -2810,7 +3020,7 @@ void po_dump_translation(po_domain *domain, FILE *out)
 		i += msglen;
 		k++;
 	}
-	fprintf(out, "\t/* %5u %5u */\n", (unsigned int)k, (unsigned int)len);
+	fprintf(out, "\t/*       %5u */\n", (unsigned int)len);
 	fprintf(out, "};\n\n");
 	assert(k == domain->num_translations + 1);
 
@@ -2930,7 +3140,7 @@ void po_dump_languages(const char *domain_name, po_domain **languages, FILE *out
 			domain->lang_id);
 	}
 	fprintf(out, "\t{ 0, \"\", 0, NULL, NULL }\n};\n\n");
-	fprintf(out, "libnls_domain %s_domain = { \"%s\", nls_key_strings, nls_languages, { 0, \"\", 0, 0, 0 } };\n", domain_name, domain_name);
+	fprintf(out, "libnls_domain %s_domain = { \"%s\", nls_key_strings, %lu, nls_languages, { 0, \"\", 0, 0, 0 } };\n", domain_name, domain_name, languages[0]->num_keys);
 }
 
 /*****************************************************************************/
@@ -2995,6 +3205,7 @@ int po_translate(const char *po_dir, const char *default_domain, const char *lan
 	for (filenum = 0; ret && filenum < count; filenum++)
 	{
 		const char *from = filenames[filenum];
+		gboolean xml = FALSE;
 
 		/* build destination filename */
 		size_t len = strlen(from);
@@ -3008,6 +3219,12 @@ int po_translate(const char *po_dir, const char *default_domain, const char *lan
 			to = g_new(typeof(*to), len + 3);
 			strcpy(to, from);
 			strcpy(to + len - 3, ".tr.cc");
+		} else if (len >= 4 && from[len - 4] == '.' && from[len - 3] == 'x' && from[len - 2] == 'm' && from[len - 1] == 'l')
+		{
+			to = g_new(typeof(*to), len + 6);
+			strcpy(to, from);
+			strcpy(to + len, ".tr.c");
+			xml = TRUE;
 		} else
 		{
 			warn(_("I only translate .c files"));
@@ -3024,8 +3241,12 @@ int po_translate(const char *po_dir, const char *default_domain, const char *lan
 			{
 				p.f = g;
 
+				setvbuf(g, NULL, _IONBF, 0);
 				echo_nl_file = g;
-				ret = parse_c_file(from, &pca_translate, &p);
+				if (xml)
+					ret = parse_xml_file(from, &pca_xml_translate, &p);
+				else
+					ret = parse_c_file(from, &pca_c_translate, &p);
 				echo_nl_file = NULL;
 
 				fclose(g);

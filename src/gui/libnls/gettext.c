@@ -5,6 +5,7 @@
 #undef dgettext
 #undef ngettext
 #undef dngettext
+#include <assert.h>
 #include "libnls.h"
 #include "libnlsI.h"
 
@@ -16,6 +17,7 @@ const char *_libnls_internal_dgettext(const libnls_domain *domain, libnls_msgid_
 {
 	nls_key_offset offset;
 
+	assert(msgid <= domain->num_keys);
 	/* check for empty string - often used - must return original address */
 	if (msgid == 0)
 		return domain->keys;

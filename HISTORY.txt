@@ -1,0 +1,21 @@
+2025-12-25
+
+Colour mode encoding of command line parameter "-g" changed, for consistency.
+Install and uninstall scripts added.
+
+2026-01-01
+
+Xbios Gettime() corrected. Month was 0..11 instead of 1..12.
+Handling of command line parameter "atari-screen-mode" corrected.
+XFS function FTRUNCATE repaired.
+XFS function Fdatime() repaired.
+
+New emulator callbacks for Bios Bconin/Bconout/Bconstat/Bcostat, for PRN, AUX, MIDI and IKBD.
+Joystick interrogation (IKBD $16) implemented, for GFABASIC.
+Xbios Ikbdws() is routed to the emulator, to detect program incompatibilities.
+Kernel API number increased to 3.
+
+2026-01-02
+
+MAGXDESK.RSC: some information fields extended to avoid overflow
+Some bugfixes.

@@ -36,6 +36,13 @@
 
 #define KEYBOARDBUFLEN  32
 
+// SDL user events, messages from emulator thread to GUI thread
+const int USEREVENT_RUN_EMULATOR_WINDOW_UPDATE = 1;
+const int USEREVENT_OPEN_EMULATOR_WINDOW = 2;
+const int USEREVENT_RUN_EMULATOR = 3;
+const int USEREVENT_POLL_MOUNT = 4;
+const int USEREVENT_POLL_JOYSTICK_STATE = 5;
+
 class CMagiC
 {
    public:
@@ -44,31 +51,32 @@ class CMagiC
 
     // initialisation
     int init(CXCmd *pXCmd);
-    int CreateThread(void);         // create emulator thread
-    void StartExec(void);           // ... let it run
-    void StopExec(void);            // ... pause it
-    void TerminateThread(void);     // terminate it
+    int createThread(void);         // create emulator thread
+    void startExec(void);           // ... let it run
+    void stopExec(void);            // ... pause it
+    void terminateThread(void);     // terminate it
 
-    int SendSdlKeyboard(int sdlScanCode, bool KeyUp);
+    int sendSdlKeyboard(int sdlScanCode, bool KeyUp);
     void sendKbshift(uint8_t atari_kbshift);
+    unsigned getKbshift();
     #if 0
     int SendKeyboardShift(uint32_t modifiers);
     #endif
-    int SendMousePosition(int x, int y);
-    int SendMouseMovement(double xrel, double yrel);
-    int SendMouseButton(unsigned int NumOfButton, bool bIsDown);
-    int SendHz200(void);
-    int SendVBL(void);
-    void SendBusError(uint32_t addr, const char *AccessMode);
+    int sendMousePosition(int x, int y);
+    int sendMouseMovement(double xrel, double yrel);
+    int sendMouseButton(unsigned int NumOfButton, bool bIsDown);
+    int sendJoystickState(uint8_t header, uint8_t state0, uint8_t state1);
+    int sendHz200(void);
+    int sendVBL(void);
+    void sendBusError(uint32_t addr, const char *AccessMode);
     //void SendAtariFile(const char *pBuf); // remnant from MagicMac(X) and AtariX
     bool sendDragAndDropFile(const char *allocated_path);
-    void SendShutdown(void);
+    void sendShutdown(void);
     //void ChangeXFSDrive(short drvNr);
     static void GetActAtariPrg(const char **pName, uint32_t *pact_pd);
     bool m_bEmulatorIsRunning;
     bool m_bEmulatorHasEnded;
     bool m_bShutdown;
-    void DumpAtariMem(const char *filename);
 
    private:
     struct Atari68kData
@@ -77,20 +85,24 @@ class CMagiC
         MgMxCookieData m_CookieData;
     } __attribute__((packed));
 
-    void Init_CookieData(MgMxCookieData *pCookieData);
+    void initCookieData(MgMxCookieData *pCookieData);
+    void initHostCallbacks(struct MacXSysHdr *pMacXSysHdr);
     static int relocate(FILE *f, uint32_t file_size, uint8_t *tbase, const ExeHeader *exehead);
     int LoadReloc(const char *path, uint32_t stackSize, int32_t  reladdr, BasePage **basePage);
     int GetKbBufferFree(void);
     void PutKeyToBuffer(uint8_t key);
     static void *_EmuThread(void *param);
     int EmuThread(void);
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    static int IRQCallback(int IRQLine, void *thisPtr);
-#else
     static int IRQCallback(int IRQLine);
-#endif
-    uint32_t AtariInit(uint32_t params, uint8_t *addrOffset68k);
-    uint32_t AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t UndefinedFunction(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariInit(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBconin(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBconout(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBconstat(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBcostat(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariIkbdws(uint32_t params, uint8_t *addrOffset68k);
+
     uint32_t AtariVdiInit(uint32_t params, uint8_t *addrOffset68k);
     uint32_t AtariExec68k(uint32_t params, uint8_t *addrOffset68k);
     uint32_t OpenSerialBIOS(void);
@@ -98,13 +110,13 @@ class CMagiC
     static uint32_t AtariDOSFn(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariGettime(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSettime(uint32_t params, uint8_t *addrOffset68k);
-    static void *_Remote_AtariSysHalt( void *param );
     static uint32_t AtariSysHalt(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetscreen(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetpalette(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSetcolor(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariDosound(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSysErr(uint32_t params, uint8_t *addrOffset68k);
     static void *_Remote_AtariSysErr( void *param );
     static uint32_t AtariColdBoot(uint32_t params, uint8_t *addrOffset68k);
@@ -135,6 +147,7 @@ class CMagiC
     pthread_mutex_t m_ConditionMutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t m_Cond  = PTHREAD_COND_INITIALIZER;
     void OS_SetEvent(uint32_t *event, uint32_t flags);
+    uint32_t OS_AskEvent(const uint32_t *event, uint32_t flags);
     void OS_WaitForEvent(uint32_t *event, uint32_t *flags);
 
     CHostXFS m_HostXFS;              // XFS
@@ -158,10 +171,12 @@ class CMagiC
     bool m_bInterrupt200HzPending;
     bool m_bInterruptVBLPending;
     bool m_bInterruptMouseKeyboardPending;
-    Point m_InterruptMouseWhere;        // for absolute mouse mode
+    int m_InterruptMouseWhereX;         // for absolute mouse mode
+    int m_InterruptMouseWhereY;         // for absolute mouse mode
     double m_InterruptMouseMoveRelX;    // for relative mouse mode
     double m_InterruptMouseMoveRelY;
     bool m_bInterruptMouseButton[2];
+    bool m_bInterruptJoystickButtons;
     bool m_bInterruptPending;
     bool m_bWaitEmulatorForIRQCallback;
 

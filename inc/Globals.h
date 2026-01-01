@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 1990-225 Andreas Kromke, andreas.kromke@gmail.com
+ * Copyright (C) 1990-2025 Andreas Kromke, andreas.kromke@gmail.com
  *
  * This program is free software; you can redistribute it or
  * modify it under the terms of the GNU General Public License
@@ -50,22 +50,15 @@
 #endif
 
 
-#if defined(USE_ASGARD_PPC_68K_EMU)
-// Asgard 68k emulator (PPC Assembler)
-#include "Asgard68000.h"
-#define COUNT_CYCLES 0
-#else
 extern "C" {
 // Musashi 68k emulator ('C')
 #include "m68k.h"
 } // end extern "C"
-#endif
 
 
 // compile time switches
 
 #ifdef _DEBUG
-
 //#define _DEBUG_NO_ATARI_KB_INTERRUPTS
 //#define _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
 //#define _DEBUG_NO_ATARI_HZ200_INTERRUPTS
@@ -75,36 +68,19 @@ extern "C" {
 // endian conversion helpers
 
 #define getAtariBE16(addr) \
-    be16toh(*((uint16_t *) (addr)));
+    be16toh(*((uint16_t *) (addr)))
 #define getAtariBE32(addr) \
-    be32toh(*((uint32_t *) (addr)));
+    be32toh(*((uint32_t *) (addr)))
 #define setAtariBE16(addr, val) \
-    *((uint16_t *) (addr)) = htobe16(val);
+    *((uint16_t *) (addr)) = htobe16(val)
 #define setAtariBE32(addr, val) \
-    *((uint32_t *) (addr)) = htobe32(val);
+    *((uint32_t *) (addr)) = htobe32(val)
 #define setAtari32(addr, val) \
-    *((uint32_t *) (addr)) = val;
-
-
-typedef struct
-{
-	uint16_t bottom;
-	uint16_t left;
-	uint16_t right;
-	uint16_t top;
-} Rect;
-
-typedef struct
-{
-	int16_t x;
-	int16_t y;
-} Point;
-
+    *((uint32_t *) (addr)) = val
 
 //
 // global variables and functions
 //
-
 
 // -> MagiC.cpp
 void sendBusError(uint32_t addr, const char *AccessMode);

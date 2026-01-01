@@ -2,7 +2,7 @@ CC = gcc
 CXX = g++
 WARN = -Wall -W -Werror
 OPT = -O2
-DEFS =
+DEFS = -I/opt/local/include
 CFLAGS = $(OPT) $(WARN) $(DEFS) -Wdeclaration-after-statement -Wstrict-prototypes -Wmissing-prototypes
 CXXFLAGS = $(OPT) $(WARN) $(DEFS) -Wno-attributes
 LDFLAGS = -s
@@ -15,7 +15,9 @@ srcdir = .
 ENABLE_NLS = yes
 PO_DIR = ../../po
 GETTEXT_PACKAGE = MagicOnLinux
-POTFILES = $(notdir $(shell grep -v "^#" $(PO_DIR)/POTFILES))
+# some versions of make will truncate the line after #, some don't
+hash = \#
+POTFILES = $(notdir $(shell grep -v '^$(hash)' $(PO_DIR)/POTFILES))
 
 PROGRAMS = nlstool
 
@@ -219,6 +221,3 @@ libnls/expreval-silent.o: libnls/expreval-silent.c libnls/expreval.c
 
 clean::
 	$(RM) *.o libnls/*.o libnls/*.a $(PROGRAMS) nlstool-nonls preferences.xml.h preferences.xml.c *.moc qrc.cc libnls/plural.c langs.c *.tr.*
-
-echo::
-	echo $(FLAG_ICONS)

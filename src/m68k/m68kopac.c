@@ -1,7 +1,5 @@
 #include "config.h"
 
-#if defined(USE_MUSASHI_68K_EMU)
-
 #include "m68kcpu.h"
 
 /* ======================================================================== */
@@ -9389,8 +9387,8 @@ void m68k_op_cas2_16(void)
 				return;
 			}
 		}
-		*compare1 = BIT_1F(word2) ? (uint)MAKE_INT_16(dest1) : MASK_OUT_BELOW_16(*compare1) | dest1;
-		*compare2 = BIT_F(word2) ? (uint)MAKE_INT_16(dest2) : MASK_OUT_BELOW_16(*compare2) | dest2;
+		*compare1 = BIT_1F(word2) ? MAKE_UINT_16(dest1) : MASK_OUT_BELOW_16(*compare1) | dest1;
+		*compare2 = BIT_F(word2) ? MAKE_UINT_16(dest2) : MASK_OUT_BELOW_16(*compare2) | dest2;
 		return;
 	}
 	m68ki_exception_illegal();
@@ -12251,5 +12249,3 @@ void m68k_op_cptrapcc_32(void)
 /* ======================================================================== */
 /* ============================== END OF FILE ============================= */
 /* ======================================================================== */
-
-#endif

@@ -28,7 +28,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <assert.h>
-#include "Globals.h"
 #include "Debug.h"
 #include "conversion.h"
 #include "gui.h"
@@ -109,6 +108,45 @@ void CVolumeImages::exit(void)
     {
         assert(drv_images[i] == nullptr);
     }
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Check file extension for volume or disk image
+ *
+ * @param[in]  path         disk image path
+ *
+ * @return true, if file extension matches
+ *
+ ************************************************************************************************/
+bool CVolumeImages::isImageName(const char *path)
+{
+    static const char *extensions = DISKIMAGE_FILENAME_EXT;
+    const char *ext = strrchr(path, '.');
+    if (ext == nullptr)
+    {
+        return false;
+    }
+    unsigned extlen = strlen(++ext);
+
+    const char *cmp = extensions;
+    while(*cmp)
+    {
+        const char *s = strchr(cmp, ',');
+        unsigned len = (s == nullptr) ? strlen(cmp) : (s - cmp);
+        if ((extlen == len) && !strncasecmp(ext, cmp, len))
+        {
+            return true;
+        }
+        cmp += len;
+        if (*cmp == ',')
+        {
+            cmp++;
+        }
+    }
+
+    return false;   // unknown file name extension
 }
 
 
@@ -264,6 +302,7 @@ int CVolumeImages::getMbr(const uint8_t *sector, partition *partitions, unsigned
 
         DebugInfo2("() -- Partition #%u type %u (%s) LBA %u .. %u, size %u sectors",
                          i, part->part_type, description, lba_first[i], lba_first[i] + lba_num[i], lba_num[i]);
+        (void) description;
 
         if ((type > 0) && (numparts < maxparts))
         {
@@ -273,7 +312,6 @@ int CVolumeImages::getMbr(const uint8_t *sector, partition *partitions, unsigned
             partitions++;
             numparts++;
         }
-        (void)description;
     }
 
     return numparts;
@@ -804,7 +842,7 @@ uint32_t CVolumeImages::AtariBlockDevice(uint32_t params, uint8_t *addrOffset68k
     {
         case 1:
             // void hdv_init(void)
-            DebugWarning("() - hdv_init() ignored");
+            DebugWarning2("() - hdv_init() ignored");
             return E_OK;
 
         case 2:

@@ -6,8 +6,10 @@ if(APPLE)
     # On macOS, use pkg-config to find SDL2
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SDL2 REQUIRED sdl2)
+    pkg_check_modules(SDL2_mixer REQUIRED sdl2_mixer)
 else()
     find_package(SDL2 REQUIRED)
+    find_package(SDL2_mixer REQUIRED)
 endif()
 
 add_compile_options(-Wall -Wextra -Wpedantic -Wno-multichar)
@@ -23,7 +25,7 @@ target_include_directories(magic-on-linux PUBLIC inc src/m68k ${SDL2_INCLUDE_DIR
 if(APPLE)
     target_link_directories(magic-on-linux PUBLIC ${SDL2_LIBRARY_DIRS})
 endif()
-target_link_libraries(magic-on-linux PUBLIC ${SDL2_LIBRARIES})
+target_link_libraries(magic-on-linux PUBLIC ${SDL2_LIBRARIES} SDL2_mixer)
 
 target_compile_options(magic-on-linux PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>)
 

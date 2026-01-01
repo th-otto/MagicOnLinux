@@ -47,9 +47,22 @@ class CRegisterModel
         last_addr(my_last_addr)
     {
     }
+
+    /*
+    * default method implementations
+    */
+
 	virtual ~CRegisterModel()
     {
     }
+
+    virtual const char *regname(uint32_t addr, unsigned len)
+    {
+        (void) addr;
+        (void) len;
+        return "";
+    }
+
     virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
     {
         // default: ignore write, no bus error
@@ -58,6 +71,7 @@ class CRegisterModel
         (void) datum;
         *p_success = true;
     }
+
     virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
     {
         // default: read zeros, no bus error

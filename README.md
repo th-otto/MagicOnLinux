@@ -12,11 +12,45 @@ This is kind of successor of:
 * *MagicMac X* for MacOS X on PPC (32-bit application) and
 * *AtariX* for macOS up to 10.13 "High Sierra" (32-bit application).
 
-Basically MagicOnLinux is AtariX with removed GUI and replaced host file system on the emulator side. In particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture, any callback from emulated to emulator had to be replaced with a new, different concept. There are various compromises, because the MagiC kernel file partially remained unchanged, and this one unfortunately contains a significant part of the old MacXFS, that is not suitable for Posix calls. A clean solution will be to replace, or mainly remove, the 68k part of the XFS and run the host XFS completely in the host environment.
+Basically MagicOnLinux is an extended and improved AtariX with removed GUI and replaced host file system; in particular the Carbon based MacXFS was replaced with a Linux/Posix based host XFS. Additionally, due to the 64-bit host architecture, any callback from emulated to emulator had to be replaced with a new, different concept.
 
-# How To Build (Linux, tested with Ubuntu 24.04)
+Additionally to AtariX and its predecessors, MagicOnLinux has limited hardware emulation, mainly for video registers, for higher compatibility, basic sound for key click and bell, and network support.
 
-- sudo apt install libsdl2-dev gxmessage
+# How to Build and Install on Linux (new method, partially tested)
+
+(Use method below, if it does not work!)
+
+- git clone https://gitlab.com/AndreasK/magiclinux
+- cd magiclinux
+
+Optionally edit "install-all.sh".
+Optionaly edit install-rootfs.sh to change rootfs path or initial Atari language.
+Optionally adapt some default values in "CMakeLists.txt", e.g. set CMAKE_BUILD_TYPE to "Debug"
+
+Then:
+
+- ./install-all.sh
+
+This should build the emulator program, install it and also register the respective file types and icons.
+Finally the Atari root filesystem (C:) is created, populated and configured for your default language.
+
+Alternative root filesystems can be found here: https://tho-otto.de/snapshots/magicmac/.
+Make sure that the MAGICLIN.OS files match!
+
+# How to Build and Install on macOS
+
+- git clone https://gitlab.com/AndreasK/magiclinux
+- cd magiclinux
+
+Optionaly edit install-rootfs.sh to change rootfs path or initial Atari language.
+
+- Follow the instructions in MACOS.txt.
+- ./install_rootfs.sh
+
+
+# Old Method: How To Build (Linux, tested with Ubuntu 24.04)
+
+- sudo apt install libsdl2-dev libsdl2-mixer-dev gxmessage
 - cd ~/Documents
 - git clone https://gitlab.com/AndreasK/magiclinux
 - git clone https://gitlab.com/AndreasK/AtariX
@@ -36,10 +70,13 @@ Basically MagicOnLinux is AtariX with removed GUI and replaced host file system 
 - rsync -a AtariX/src/AtariX-MT/AtariX/de.lproj/rootfs/ Atari-rootfs/LANG/DE/
 - rsync -a AtariX/src/AtariX-MT/AtariX/fr.lproj/rootfs/ Atari-rootfs/LANG/FR/
 - cp -p magiclinux/kernel/VDI/DRIVERS/MAC/SRC/MFM4IP.SYS Atari-rootfs/GEMSYS/
-- cp -p magiclinux/kernel/HOSTBIOS/EN/MAGICLIN.OS Atari-rootfs/LANG/EN/
-- cp -p magiclinux/kernel/HOSTBIOS/DE/MAGICLIN.OS Atari-rootfs/LANG/DE/
-- cp -p magiclinux/kernel/HOSTBIOS/FR/MAGICLIN.OS Atari-rootfs/LANG/FR/
+- cp -p magiclinux/kernel/BUILD/EN/MAGICLIN.OS Atari-rootfs/LANG/EN/
+- cp -p magiclinux/kernel/BUILD/DE/MAGICLIN.OS Atari-rootfs/LANG/DE/
+- cp -p magiclinux/kernel/BUILD/FR/MAGICLIN.OS Atari-rootfs/LANG/FR/
 - cp -p magiclinux/kernel/LOCALISE.SH Atari-rootfs/LANG/
+- cp -p magiclinux/rootfs/LANG/DE/GEMSYS/GEMDESK/MAGXDESK.RSC Atari-rootfs/LANG/DE/GEMSYS/GEMDESK/
+- cp -p magiclinux/rootfs/LANG/EN/GEMSYS/GEMDESK/MAGXDESK.RSC Atari-rootfs/LANG/EN/GEMSYS/GEMDESK/
+- cp -p magiclinux/rootfs/LANG/FR/GEMSYS/GEMDESK/MAGXDESK.RSC Atari-rootfs/LANG/FR/GEMSYS/GEMDESK/
 - touch Atari-rootfs/MAGICLIN.OS
 - Atari-rootfs/LANG/LOCALISE.SH EN
 - mv Atari-rootfs MAGIC_C
@@ -56,13 +93,11 @@ You might replace CMAKE_BUILD_TYPE with "Debug" (to get debug log output) or omi
 
 Alternatively you can put your Atari root file system (drive C:) and kernel (MAGICLIN.OS) anywhere and configure the emulator accordingly.
 
-# How To Install
-
-You can install the program with "sudo make install". This copies the executable file, a ".desktop" file and an icon file to usually "/usr/local/", if not otherwise specified (see above). Otherwise, MagicOnLinux will always show your system theme's default icon for uninstalled applications.
-
 # How To Run
 
-Run the application with "magiclinux/build/magic-on-linux".
+If properly installed, start the program magic-on-linux from command line, from your application manager or via an Atari program or ".st" floppy disk image, with double click or "open with...". Otherwise you can find the executable under build/magic-on-linux.
+
+Try to e.g. add command line parameter "--atari-screen-mode=st-high" for misbehaving programs.
 
 Use parameter "-h" or "--help" for an explanation of the parameters.
 
@@ -74,8 +109,21 @@ Atari RAM size is given in bytes and excludes video memory, which is managed sep
 
 Source files for the Atari code (MagiC kernel and applications) are also available in their respective repository, see below.
 
+# Uninstall Application
+
+For Linux, run:
+
+- sudo ./uninstall.sh
+
+to unregister the application, its icons and MIME types.
+To also remove the configuration file, root filesystem and the application itself:
+
+- rm ~/.config/magiclinux.conf
+- rm -rf ~/Documents/MAGIC_C
+- rm -rf build/*
+
 # Screenshots
-<img alt="No" src="assets/Atari-Desktop - BW.png" width="1024">
+<img alt="No" src="assets/Atari-Desktop - 256 colours.png" width="1024">
 <img alt="Yes" src="assets/Settings.png" width="640">
 
 
@@ -84,11 +132,13 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 * Emulates MC68020 processor
 * Arbitrary screen sizes and colour depths
 * Zoom, helpful for original 640x400 or 640x200 resolution
+* Basic, limited hardware emulation for video registers
+* Basic sound, key click and bell only.
 * Full access to host file system, up to root
 * Mounts Atari volume or floppy disk images and primary partions of MBR partitioned disk images.
+* Mount file systems, folder or image, via Drag&Drop, readable or read-only.
 * Copy/paste clipboard text between host and emulated system.
 * Command line option to convert Atari text files to UTF-8 and vice-versa, including line endings between CR/LF and LF.
-* Mount file systems, folder or image, via Drag&Drop, readable or read-only.
 * Some command line switches are provided to override config file settings.
 
 # Remarks
@@ -101,8 +151,8 @@ Source files for the Atari code (MagiC kernel and applications) are also availab
 
 # Bugs and Agenda
 
-* Musashi emulator sources should be synchronised with latest version (see below).
-* Atari root file system (like MAGIC_C) folder should be automatically created.
+* 68882 FPU emulation should be added, i.e. the line-F-opcodes should work.
+* Musashi emulator sources might be synchronised with latest version (see below).
 
 # Example Command to Create a Volume Image:
 
@@ -144,3 +194,12 @@ License: http://www.gzip.org/zlib/zlib_license.html
 
 **Atari VDI Drivers**
 Copyright: Wilfried und Sven Behne, License: mit freundlicher Genehmigung
+
+**Klick**
+https://freesound.org/people/BryanSaraiva/sounds/820351/
+
+**Ding**
+https://freesound.org/people/datasoundsample/sounds/638638/
+
+**Atari MIME program icon**
+https://www.pngegg.com/en/png-mlumk

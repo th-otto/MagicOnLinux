@@ -30,6 +30,8 @@
 #include "Debug.h"
 #include "Atari.h"
 #include "preferences.h"
+#include "emulation_globals.h"
+#include "Globals.h"
 #include "MagiCPrint.h"
 
 
@@ -63,7 +65,7 @@ void CMagiCPrint::exit()
 {
     if (bTempFileCreated)
     {
-        char command[PATH_MAX + 100];
+        char *command;
         int ierr;
 
         // Make sure to enclose path in quotation marks, in case the path contains spaces.
@@ -72,12 +74,9 @@ void CMagiCPrint::exit()
         // when cd command failed.
         // Redirect stdout and stderr to PrintCommand_rm.txt, for debugging purposes.
 
-        sprintf(command, "cd \"%s\" && rm PrintQueue/MagiCPrintFile????????",
+        asprintf(&command, "cd \"%s\" && rm PrintQueue/MagiCPrintFile???????? >&\"%sPrintQueue/PrintCommand_rm.txt\"",
+                            Preferences::AtariTempFilesUnixPath,
                             Preferences::AtariTempFilesUnixPath);
-
-        strcat(command, " >&\"");
-        strcat(command, Preferences::AtariTempFilesUnixPath);
-        strcat(command, "PrintQueue/PrintCommand_rm.txt\"");
 
         DebugInfo2("() -- run %s", command);
         ierr = system(command);
@@ -85,7 +84,23 @@ void CMagiCPrint::exit()
         {
             DebugError2("() -- error code %d when removing files", ierr);
         }
+        free(command);
     }
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get printer input state (called from emulator thread)
+ *
+ * @return status
+ * @retval -1  ready
+ * @retval 0   not ready
+ *
+ ************************************************************************************************/
+uint32_t CMagiCPrint::getInputStatus(void)
+{
+    return 0;        // never ready
 }
 
 
@@ -98,7 +113,7 @@ void CMagiCPrint::exit()
  * @retval 0   not ready
  *
  ************************************************************************************************/
-uint32_t CMagiCPrint::GetOutputStatus(void)
+uint32_t CMagiCPrint::getOutputStatus(void)
 {
     return 0xffffffff;        // always ready
 }
@@ -116,7 +131,7 @@ uint32_t CMagiCPrint::GetOutputStatus(void)
  * @note Reading from printer is not supported
  *
  ************************************************************************************************/
-uint32_t CMagiCPrint::Read(uint8_t *pBuf, uint32_t cnt)
+uint32_t CMagiCPrint::read(uint8_t *pBuf, uint32_t cnt)
 {
     (void) pBuf;
     (void) cnt;
@@ -134,11 +149,14 @@ uint32_t CMagiCPrint::Read(uint8_t *pBuf, uint32_t cnt)
  * @return number of bytes written or negative error code
  *
  ************************************************************************************************/
-uint32_t CMagiCPrint::Write(const uint8_t *pBuf, uint32_t cnt)
+uint32_t CMagiCPrint::write(const uint8_t *pBuf, uint32_t cnt)
 {
     char PrintFileName[PATH_MAX + 100];
     long OutCnt;
 
+
+    // Remember time of last (200Hz) printer access
+    s_LastPrinterAccess = getAtariBE32(mem68k + _hz_200);
 
     if (m_printFile == nullptr)
     {
@@ -173,9 +191,9 @@ uint32_t CMagiCPrint::Write(const uint8_t *pBuf, uint32_t cnt)
  * @return zero or negative error code
  *
  ************************************************************************************************/
-uint32_t CMagiCPrint::ClosePrinterFile(void)
+uint32_t CMagiCPrint::closePrinterFile(void)
 {
-    char command[PATH_MAX * 3];
+    char *command;
     int ierr;
 
 
@@ -187,7 +205,7 @@ uint32_t CMagiCPrint::ClosePrinterFile(void)
 
     // Generate filename of previous print file, enclosed in quotation marks.
     // This is necessary if there are spaces in the path.
-    sprintf(command, "%s \"%s/PrintQueue/MagiCPrintFile%08d\" >&\"%s/PrintQueue/PrintCommand_stdout.txt\"",
+    asprintf(&command, "%s \"%s/PrintQueue/MagiCPrintFile%08d\" >&\"%s/PrintQueue/PrintCommand_stdout.txt\"",
                         Preferences::szPrintingCommand,
                         Preferences::AtariTempFilesUnixPath,
                         m_PrintFileCounter - 1,
@@ -200,6 +218,7 @@ uint32_t CMagiCPrint::ClosePrinterFile(void)
     {
         DebugError2("() -- error %d during printing", ierr);
     }
+    free(command);
 
     return ierr;
 }
@@ -216,7 +235,7 @@ uint32_t CMagiCPrint::AtariPrtOs(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
     (void) addrOffset68k;
-    return CMagiCPrint::GetOutputStatus();
+    return CMagiCPrint::getOutputStatus();
 }
 
 
@@ -234,7 +253,7 @@ uint32_t CMagiCPrint::AtariPrtIn(uint32_t params, uint8_t *addrOffset68k)
 
     (void) params;
     (void) addrOffset68k;
-    n = CMagiCPrint::Read(&c, 1);
+    n = CMagiCPrint::read(&c, 1);
     if (!n)
         return 0;
     else
@@ -255,7 +274,7 @@ uint32_t CMagiCPrint::AtariPrtOut(uint32_t params, uint8_t *addrOffset68k)
     uint32_t ret;
 
     DebugInfo2("()");
-    ret = CMagiCPrint::Write(addrOffset68k + params + 1, 1);
+    ret = CMagiCPrint::write(addrOffset68k + params + 1, 1);
     // Zeitpunkt (200Hz) des letzten Druckerzugriffs merken
     s_LastPrinterAccess = be32toh(*((uint32_t *) (addrOffset68k + _hz_200)));
     if (ret == 1)
@@ -279,13 +298,10 @@ uint32_t CMagiCPrint::AtariPrtOutS(uint32_t params, uint8_t *addrOffset68k)
         uint32_t buf;
         uint32_t cnt;
     };
-     PrtOutParm *thePrtOutParm = (PrtOutParm *) (addrOffset68k + params);
-     uint32_t ret;
+    PrtOutParm *thePrtOutParm = (PrtOutParm *) (addrOffset68k + params);
+    uint32_t ret;
 
 
-//    CDebug::DebugInfo("CMagiC::AtariPrtOutS()");
-    ret = CMagiCPrint::Write(addrOffset68k + be32toh(thePrtOutParm->buf), be32toh(thePrtOutParm->cnt));
-    // Zeitpunkt (200Hz) des letzten Druckerzugriffs merken
-    s_LastPrinterAccess = be32toh(*((uint32_t *) (addrOffset68k + _hz_200)));
+    ret = CMagiCPrint::write(addrOffset68k + be32toh(thePrtOutParm->buf), be32toh(thePrtOutParm->cnt));
     return ret;
 }

@@ -1,8 +1,9 @@
  Complete Build Instructions for macOS
- (kindly provided by https://github.com/idevelopers)
+ (initial version kindly provided by https://github.com/idevelopers)
  ===================================================
 
   Prerequisites
+  -------------
 
   1. Xcode Command Line Tools
   xcode-select --install
@@ -10,16 +11,18 @@
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
   Install Dependencies
+  --------------------
 
   Install the required packages via Homebrew:
 
-  brew install sdl2 pkg-config cmake
+  brew install sdl2 sdl2_mixer pkg-config cmake
 
   Verify installations:
   pkg-config --modversion sdl2  # Should show: 2.32.10 or similar
   cmake --version                # Should show: 4.2.0 or similar
 
   Build the Project
+  -----------------
 
   1. Clone the Repository (if you haven't already):
   git clone https://gitlab.com/AndreasK/magiclinux
@@ -54,6 +57,7 @@
     - Choose Product > Build (⌘B)
 
   Run the Application
+  -------------------
 
   The compiled executable will be located at:
   - Release build: build/Release/magic-on-linux
@@ -67,14 +71,16 @@
   /Users/yourusername/path/to/magiclinux/build/Release/magic-on-linux
 
   Clean Build
+  -----------
 
-  To start fresh:
+  To start a fresh build:
   cd build
   rm -rf *
   cmake -G Xcode ..
   xcodebuild -project MagicOnLinux.xcodeproj -target magic-on-linux -configuration Release build
 
   Build Options
+  -------------
 
   Available CMake Configurations:
   - Release - Optimized build (recommended)
@@ -96,6 +102,7 @@
         --tconv-h2a=host_txtfile   convert text file from host to Atari format
 
   Troubleshooting
+  ---------------
 
   Issue: SDL2 not found
   # Verify SDL2 installation
@@ -125,7 +132,8 @@
   - RAM: 4GB minimum, 8GB recommended
   - Disk Space: 500MB for build artifacts
 
-  Architecture Notes
+  Architectural Notes
+  -------------------
 
   This build has been tested on:
   - macOS Sequoia (26.1)

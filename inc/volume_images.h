@@ -48,6 +48,7 @@ class CVolumeImages
     static void setNewDrv(uint16_t drv, const char *allocated_path, bool longnames, bool readonly, uint64_t size);
     static uint32_t getDrvBits() { return m_drvbits; }
     static void remove_failed_volumes();
+    static bool isImageName(const char *path);
 
    private:
     struct partition

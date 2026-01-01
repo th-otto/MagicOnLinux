@@ -4,6 +4,8 @@
 #include "Debug.h"
 #include "conversion.h"
 #include "preferences.h"
+#include "volume_images.h"
+#include "audio.h"
 #include "MagiCScreen.h"
 #include "MagiCPrint.h"
 #include "MagiCSerial.h"
@@ -18,23 +20,6 @@
 #endif
 
 
-const char *argnames[] =
-{
-    nullptr,
-    "config-file",
-    nullptr,
-    nullptr,
-    "[wxh][x][b][ip]",
-    "w[xh]",
-    "abs|rel",
-    "size",
-    "EN|DE|FR",
-    "path",
-    "program",
-    "atari_txtfile",
-    "host_txtfile"
-};
-
 #ifdef __APPLE__
 #define DEFAULT_EDITOR "open -e"
 #define DEFAULT_CONFIG "~/Library/Preferences/magiclinux.conf"
@@ -43,26 +28,56 @@ const char *argnames[] =
 #define DEFAULT_CONFIG "~/.config/magiclinux.conf"
 #endif
 
-const char *descriptions[] =
-{
-    "                     display help text and exit",
-    "       open configuration file in editor and exit",
-    "              configuration file (default: " DEFAULT_CONFIG ")",
-    "             write configuration file with default values and exit",
-    " e.g. 640x400x2ip or 800x600 or 8, overrides config file",
-    "            e.g. 2x2 or 2 or 2x4, overrides config file",
-    "       mouse mode: absolute or relative",
-    "             Atari RAM size, e.g. 512k or 4M or 3m",
-    "            language for Atari localisation, either EN or DE or FR",
-    "              location of C: drive (root fs)",
-    "           choose editor program for -e option, to override '" DEFAULT_EDITOR "'",
-    "  convert text file from Atari to host format",
-    "   convert text file from host to Atari format"
-};
 
+
+/** **********************************************************************************************
+ *
+ * @brief Print help text
+ *
+ * @param[in]  options      option table
+ *
+ ************************************************************************************************/
 static void print_opt(const struct option *options)
 {
-    puts("Usage:");
+    const char *argnames[] =
+    {
+        nullptr,
+        "config-file",
+        nullptr,
+        nullptr,
+        "mode",
+        "wxh|wxhxm|m",
+        "w[xh]",
+        "abs|rel",
+        "size",
+        "EN|DE|FR",
+        "path",
+        "kernel-file",
+        "program",
+        "atari_txtfile",
+        "host_txtfile"
+    };
+
+    const char *descriptions[] =
+    {
+        "                     display help text and exit",
+        "       open configuration file in editor and exit",
+        "              configuration file (default: " DEFAULT_CONFIG ")",
+        "             write configuration file with default values and exit",
+        "   Atari compatibility mode st-low/mid/high, overrides --geometry",
+        "     size wxh and colour mode m (mono/4/16/16ip/256/hc/tc)",
+        "            e.g. 2x2 or 2 or 2x4, overrides config file",
+        "       mouse mode: absolute or relative",
+        "             Atari RAM size, e.g. 512k or 4M or 3m",
+        "            language for Atari localisation, either EN or DE or FR",
+        "              location of C: drive (root fs)",
+        "       location of kernel file (MAGICLIN.OS)",
+        "           choose editor program for -e option, to override '" DEFAULT_EDITOR "'",
+        "  convert text file from Atari to host format",
+        "   convert text file from host to Atari format"
+    };
+
+    puts("Usage: magic-on-linux {options} [atari-programs ..]");
     int index = 0;
     while(options->name != nullptr)
     {
@@ -91,114 +106,114 @@ static void print_opt(const struct option *options)
 }
 
 
-// return 0 if OK
-static int eval_geometry(const char *geometry, int *mode, int *width, int *height)
+/** **********************************************************************************************
+ *
+ * @brief Evaluate Atari screen geometry command line parameter wxhxg or wxh or g
+ *
+ * @param[in]  str          parameter given as string
+ * @param[out] mode         colour mode or unchanged
+ * @param[out] width        horizontal size in pixels
+ * @param[out] height       vertical size in pixels
+ *
+ * @return zero or error code
+ *
+ * @note The geometry string can be complete or partial.
+ *
+ ************************************************************************************************/
+static int eval_geometry(const char *str, int *mode, int *width, int *height)
 {
-    unsigned w, h, b;
-    char c1, c2;
-    bool ip;
-    bool wh = true;
-
-    int n = sscanf(geometry, "%ux%ux%u%c%c", &w, &h, &b, &c1, &c2);
-
-    if ((n == 5) && (tolower(c1) == 'i') && (tolower(c2) == 'p'))
+    const char *s = strchr(str, 'x');
+    if (s == nullptr)
     {
-        ip = true;
-    }
-    else
-    if (n == 3)
-    {
-        ip = false;
-    }
-    else
-    if (n == 2)
-    {
-        ip = false;
-        b = 24;
-    }
-    else
-    if ((n == 1) && ((n = sscanf(geometry, "%u%c%c", &b, &c1, &c2)) >= 1))
-    {
-        ip = ((n == 3) && (tolower(c1) == 'i') && (tolower(c2) == 'p'));
-        w = -1;
-        h = -1;
-        wh = false;
-    }
-    else
-    {
-        printf("malformed geometry argument\n");
-        return 3;
+        s = strchr(str, 'X');
     }
 
-    if (wh)
+    //
+    // ONE value: only mode is given
+    //
+
+    if (s == nullptr)
     {
-        if ((w < ATARI_SCREEN_WIDTH_MIN)  || (w > ATARI_SCREEN_WIDTH_MAX) ||
-            (h < ATARI_SCREEN_HEIGHT_MIN) || (h > ATARI_SCREEN_HEIGHT_MAX))
+        int m = Preferences::getVideoModeFromString(str);
+        if (m < 0)
         {
-            printf("Invalid Atari screen size\n");
-            return 4;
+            printf("Invalid colour mode\n");
+            return 1;
         }
+        *mode = m;
+        return 0;
     }
 
-    if (b == 24)
+    //
+    // more than one value, so first field is width
+    //
+
+    int w = atoi(str);
+    if ((w < ATARI_SCREEN_WIDTH_MIN)  || (w > ATARI_SCREEN_WIDTH_MAX))
     {
-        b = 32;
-    }
-    if ((b == 32) && !ip)
-    {
-        *mode = atariScreenMode16M;       // 32-bit true colour
-    }
-    else
-    if ((b == 16) && !ip)
-    {
-        *mode = atariScreenModeHC;       // 16-bit high colour
-    }
-    else
-    if ((b == 8) && !ip)
-    {
-        *mode = atariScreenMode256;       // 8-bit with 256 colour palette
-    }
-    else
-    if ((b == 4) && !ip)
-    {
-        *mode = atariScreenMode16;       // 4-bit
-    }
-    else
-    if ((b == 4) && ip)
-    {
-        *mode = atariScreenMode16ip;       // 4-bit interleaved plane
-    }
-    else
-    if ((b == 2) && ip)
-    {
-        *mode = atariScreenMode4ip;       // 2-bit interleaved plane
-    }
-    else
-    if ((b == 1) && !ip)
-    {
-        *mode = atariScreenMode2;       // monochrome
+        printf("Invalid Atari screen width\n");
+        return 4;
     }
 
-    if (*mode < 0)
+    //
+    // advance to next delimiter
+    //
+
+    str = s + 1;    // skip delimiter 'x'
+    s = strchr(str, 'x');
+    if (s == nullptr)
     {
-        printf("unsupported colour mode\n");
-        return 3;
+        s = strchr(str, 'X');
     }
 
-    *width = w;      // use instead of those in config file
+    //
+    // second field must be height
+    //
+
+    int h = atoi(str);
+    if ((w < ATARI_SCREEN_HEIGHT_MIN)  || (w > ATARI_SCREEN_HEIGHT_MAX))
+    {
+        printf("Invalid Atari screen height\n");
+        return 4;
+    }
+
+    //
+    // if there are three fields, the last one must be colour mode
+    //
+
+    if (s != nullptr)
+    {
+        int m = Preferences::getVideoModeFromString(s + 1);
+        if (m < 0)
+        {
+            printf("Invalid colour mode\n");
+            return 1;
+        }
+        *mode = m;
+    }
+
+    *width = w;
     *height = h;
-
-    return 0;
+    return 0;   // no error
 }
 
 
-
-// return 0 if OK
-static int eval_stretch(const char *stretch, int *stretch_x, int *stretch_y)
+/** **********************************************************************************************
+ *
+ * @brief Evaluate Atari screen stretch factor command line parameter
+ *
+ * @param[in]  str          factors given as string
+ * @param[out] stretch_x    horizontal factor
+ * @param[out] stretch_y    vertical factor
+ *
+ * @return zero or error code
+ *
+ ************************************************************************************************/
+static int eval_stretch(const char *str, int *stretch_x, int *stretch_y)
 {
     unsigned x, y;
 
-    int n = sscanf(stretch, "%ux%ux", &x, &y);
+    int n = sscanf(str, "%ux%ux", &x, &y);
     if (n == 2)
     {
         // OK
@@ -228,7 +243,16 @@ static int eval_stretch(const char *stretch, int *stretch_x, int *stretch_y)
 }
 
 
-// return 0 if OK
+/** **********************************************************************************************
+ *
+ * @brief Evaluate Atari mouse mode command line parameter
+ *
+ * @param[in]  str                  size given as string
+ * @param[out] p_relative_mouse     1 or 0 or unchanged
+ *
+ * @return zero or error code
+ *
+ ************************************************************************************************/
 static int eval_mouse_mode(const char *str, int *p_relative_mouse)
 {
     if (!strcasecmp(str, "abs"))
@@ -248,7 +272,16 @@ static int eval_mouse_mode(const char *str, int *p_relative_mouse)
 }
 
 
-// return 0 if OK
+/** **********************************************************************************************
+ *
+ * @brief Evaluate Atari memory size command line parameter
+ *
+ * @param[in]  str              size given as string
+ * @param[out] atari_memsize    size in bytes
+ *
+ * @return zero or error code
+ *
+ ************************************************************************************************/
 static int eval_memsize(const char *str, int *atari_memsize)
 {
     unsigned m;
@@ -295,6 +328,18 @@ static int eval_memsize(const char *str, int *atari_memsize)
 }
 
 
+/** **********************************************************************************************
+ *
+ * @brief Localise the root file system (C:)
+ *
+ * @param[in]  arg_lang     language code, e.g. "en", "de", "fr", case-insensitive
+ *                          null pointer for default language
+ *
+ * @return zero or error code
+ *
+ * @note Basically calls the LOCALISE.SH shell script
+ *
+ ************************************************************************************************/
 static int localise(const char *arg_lang)
 {
     // We must get the preferences first to know the location of the Atari root file system.
@@ -324,16 +369,97 @@ static int localise(const char *arg_lang)
 }
 
 
-int main(int argc, char *argv[])
+/** **********************************************************************************************
+ *
+ * @brief Convert text file from Atari format to host format
+ *
+ * @param[in]  file_a2h     path of text file
+ *
+ * @note Converts non-ASCII characters an line endings
+ *
+ ************************************************************************************************/
+static void conv_text_atari2host(const char *file_a2h)
+{
+    char outfilename[PATH_MAX];
+    sprintf(outfilename, "%s-HOST.txt", file_a2h);
+    char *buffer = nullptr;
+    CConversion::init();
+    CConversion::convTextFileAtari2Host(file_a2h, &buffer);
+    if (buffer != nullptr)
+    {
+        unsigned len = strlen(buffer);
+        FILE *f = fopen(outfilename, "wt");
+        if (f != nullptr)
+        {
+            (void) fwrite(buffer, 1, len, f);
+            fclose(f);
+            printf("\"%s\" written\n", outfilename);
+        }
+    }
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Convert text file from host format to Atari format
+ *
+ * @param[in]  file_a2h     path of text file
+ *
+ * @note Converts non-ASCII characters an line endings
+ *
+ ************************************************************************************************/
+static void conv_text_host2atari(const char *file_h2a)
+{
+    char outfilename[PATH_MAX];
+    sprintf(outfilename, "%s-ATARI.txt", file_h2a);
+    uint8_t *buffer = nullptr;
+    CConversion::init();
+    CConversion::convTextFileHost2Atari(file_h2a, &buffer);
+    if (buffer != nullptr)
+    {
+        unsigned len = strlen((const char *) buffer);
+        FILE *f = fopen(outfilename, "wt");
+        if (f != nullptr)
+        {
+            (void) fwrite(buffer, 1, len, f);
+            fclose(f);
+            printf("\"%s\" written\n", outfilename);
+            #if 0
+            // This is dangerous and might lead to data loss!
+            // Better rename old file to .ATARI and then rename
+            // new file to old file.
+            char cmd[PATH_MAX + 16];
+            sprintf(cmd, "mv \"%s\" \"%s\"", outfilename, file_h2a);
+            system(cmd);
+            #endif
+        }
+    }
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Main function
+ *
+ * @param[in]  argc     number of arguments
+ * @param[in]  argv     arguments
+ *
+ * @return zero or error code
+ *
+ ************************************************************************************************/
+int main(int argc, char * const argv[])
 {
     int c;
+    const char *arg_atari_screen_mode = nullptr;
     const char *arg_geometry = nullptr;
     const char *arg_stretch = nullptr;
     const char *arg_mouse_mode = nullptr;
     const char *arg_memsize = nullptr;
     const char *arg_lang = nullptr;
     const char *arg_rootfs = nullptr;
-    int mode = -1;
+    const char *arg_kernel = nullptr;
+    int colour_mode = -1;
+    bool double_vert = false;       // for ST medium resolution: double vertical size
     int width = -1;
     int height = -1;
     int stretch_x = -1;
@@ -347,6 +473,10 @@ int main(int argc, char *argv[])
     bool bWriteConf = false;
     int relativeMouse = -1;     // -1: default
 
+    /*
+    * loop over all arguments
+    */
+
     for (;;)
     {
         // optind, initialised to 1, is an external variable from getopt()
@@ -354,22 +484,24 @@ int main(int argc, char *argv[])
         int long_option_index = 0;
         static const struct option long_options[] =
         {
-            {"help",         no_argument,       nullptr, 'h' },
-            {"config",       required_argument, nullptr, 'c' },
-            {"config-edit",  no_argument,       nullptr, 'e' },
-            {"config-write", no_argument,       nullptr, 'w' },
-            {"geometry",     required_argument, nullptr, 'g' },
-            {"stretch",      required_argument, nullptr, 's' },
-            {"mouse-mode",   required_argument, nullptr,  0 },      // long_option_index 6
-            {"memsize",      required_argument, nullptr, 'm' },
-            {"lang",         required_argument, nullptr, 'l' },
-            {"rootfs",       required_argument, nullptr, 'r' },
-            {"editor",       required_argument, nullptr,  0 },      // long_option_index 10
-            {"tconv-a2h",    required_argument, nullptr,  0 },      // long_option_index 11
-            {"tconv-h2a",    required_argument, nullptr,  0 },      // long_option_index 12
-            {nullptr,        0,                 nullptr,  0 }
+            {"help",              no_argument,       nullptr, 'h' },
+            {"config",            required_argument, nullptr, 'c' },
+            {"config-edit",       no_argument,       nullptr, 'e' },
+            {"config-write",      no_argument,       nullptr, 'w' },
+            {"atari-screen-mode", required_argument, nullptr, 'a' },
+            {"geometry",          required_argument, nullptr, 'g' },
+            {"stretch",           required_argument, nullptr, 's' },
+            {"mouse-mode",        required_argument, nullptr,  0 },      // long_option_index 7
+            {"memsize",           required_argument, nullptr, 'm' },
+            {"lang",              required_argument, nullptr, 'l' },
+            {"rootfs",            required_argument, nullptr, 'r' },
+            {"kernel",            required_argument, nullptr, 'k' },
+            {"editor",            required_argument, nullptr,  0 },      // long_option_index 12
+            {"tconv-a2h",         required_argument, nullptr,  0 },      // long_option_index 13
+            {"tconv-h2a",         required_argument, nullptr,  0 },      // long_option_index 14
+            {nullptr,             0,                 nullptr,  0 }
         };
-        c = getopt_long(argc, argv, "hc:ewg:s:m:l:r:",
+        c = getopt_long(argc, argv, "hc:ewa:g:s:m:l:r:k:",
                         long_options, &long_option_index);
         //printf("getopt_long() -> %d (c = '%c'), long_option_index = %d\n", c, c, long_option_index);
 
@@ -389,22 +521,22 @@ int main(int argc, char *argv[])
                     printf(" with arg %s", optarg);
                 printf("\n");
                 #endif
-                if (long_option_index == 6)
+                if (long_option_index == 7)
                 {
                     arg_mouse_mode = optarg;
                 }
                 else
-                if (long_option_index == 10)
+                if (long_option_index == 12)
                 {
                     editor_command = optarg;
                 }
                 else
-                if (long_option_index == 11)
+                if (long_option_index == 13)
                 {
                     file_a2h = optarg;
                 }
                 else
-                if (long_option_index == 12)
+                if (long_option_index == 14)
                 {
                     file_h2a = optarg;
                 }
@@ -421,6 +553,10 @@ int main(int argc, char *argv[])
 
             case 'c':
                 config = optarg;
+                break;
+
+            case 'a':
+                arg_atari_screen_mode = optarg;
                 break;
 
             case 'g':
@@ -443,6 +579,10 @@ int main(int argc, char *argv[])
                 arg_rootfs = optarg;
                 break;
 
+            case 'k':
+                arg_kernel = optarg;
+                break;
+
             case 'w':
                 bWriteConf = true;
                 break;
@@ -458,91 +598,108 @@ int main(int argc, char *argv[])
     }
     // exit(0);
 
+    /*
+    * Convert Atari text file to host format and exit
+    */
+
     if (file_a2h != nullptr)
     {
-        const char *outname = "/tmp/host.txt";
-        char *buffer = nullptr;
-        CConversion::init();
-        CConversion::convTextFileAtari2Host(file_a2h, &buffer);
-        if (buffer != nullptr)
-        {
-            unsigned len = strlen(buffer);
-            FILE *f = fopen(outname, "wt");
-            if (f != nullptr)
-            {
-                (void) fwrite(buffer, 1, len, f);
-                fclose(f);
-                printf("\"%s\" written\n", outname);
-            }
-        }
+        conv_text_atari2host(file_a2h);
         return 0;
     }
 
-    //file_h2a = "nothing";
+    /*
+    * Convert host text file to Atari format and exit
+    */
+
     if (file_h2a != nullptr)
     {
-        const char *outname = "/tmp/atari.txt";
-        uint8_t *buffer = nullptr;
-        CConversion::init();
-        CConversion::convTextFileHost2Atari(file_h2a, &buffer);
-        if (buffer != nullptr)
-        {
-            unsigned len = strlen((const char *) buffer);
-            FILE *f = fopen(outname, "wt");
-            if (f != nullptr)
-            {
-                (void) fwrite(buffer, 1, len, f);
-                fclose(f);
-                printf("\"%s\" written\n", outname);
-            }
+        conv_text_host2atari(file_h2a);
         return 0;
-        }
     }
+
+    /*
+    * Atari RAM size
+    */
 
     if ((arg_memsize != nullptr) && eval_memsize(arg_memsize, &atari_memsize))
     {
         return 5;
     }
 
+    /*
+    * Atari screen size, colour mode and stretch factor
+    */
+
+    if (arg_atari_screen_mode != nullptr)
+    {
+        if (arg_geometry != nullptr)
+        {
+            printf("WARN: Atari screen mode overrides geometry parameter \"%s\"!\n", arg_geometry);
+        }
+
+        if (!strcasecmp(arg_atari_screen_mode, "st-low"))
+        {
+            arg_geometry = "320x200x16ip";
+        }
+        else
+        if (!strcasecmp(arg_atari_screen_mode, "st-mid"))
+        {
+            arg_geometry = "640x200x4ip";
+            double_vert = true;     // stretch 2:1 for ST-MID, if not explicitly specified
+        }
+        else
+        if (!strcasecmp(arg_atari_screen_mode, "st-high"))
+        {
+            arg_geometry = "640x400xmono";
+        }
+        else
+        {
+            printf("Invalid Atari screen mode \"%s\"\n", arg_atari_screen_mode);
+            return 1;
+        }
+    }
+
     //arg_geometry = "2ip";   // test code
-    if ((arg_geometry != nullptr) && eval_geometry(arg_geometry, &mode, &width, &height))
+    if ((arg_geometry != nullptr) && eval_geometry(arg_geometry, &colour_mode, &width, &height))
     {
         return 3;
     }
 
-    //stretch = "2x4";
     if ((arg_stretch != nullptr) && eval_stretch(arg_stretch, &stretch_x, &stretch_y))
     {
         return 4;
     }
+
+    /*
+    * Atari mouse mode
+    */
 
     if ((arg_mouse_mode != nullptr) && eval_mouse_mode(arg_mouse_mode, &relativeMouse))
     {
         return 5;
     }
 
-    if (optind < argc)
-    {
-        printf("additional options ignored: ");
-        while (optind < argc)
-        {
-            printf("%s ", argv[optind++]);
-        }
-        printf("\n");
-    }
+    /*
+    * Write default parameters and exit
+    */
 
     if (bWriteConf)
     {
-        if ((mode != -1) || (width != -1) || (height = -1) ||
+        if ((colour_mode != -1) || (width != -1) || (height = -1) ||
             (stretch_x != -1) || (stretch_y != -1) ||
             (atari_memsize != -1) || (arg_rootfs != nullptr))
         {
             printf("Just writing default values, additional options ignored!\n");
         }
         // just write defaults and ignore all other settings
-        Preferences::init(config, -1, -1, -1, -1, -1, -1, -1, nullptr, true);
+        Preferences::init(config, -1, -1, -1, -1, -1, false, -1, -1, nullptr, nullptr, true);
         return 0;
     }
+
+    /*
+    * Run editor with configuration file and exit
+    */
 
     if (bRunEditor)
     {
@@ -565,13 +722,22 @@ int main(int argc, char *argv[])
 */
 
     #if 0
+    // test code for alert dialogues
     extern int GuiMyAlert(const char *msg_text, const char *info_txt, int nButtons);
     GuiMyAlert("Greetings!", "This is MagicOnLinux", 3);
     return 0;
     #endif
 
+    /*
+    * Check all preferences and localise root file system, if requested and necessary
+    */
+
     DebugInit(NULL /* stderr */);
-    if (Preferences::init(config, mode, width, height, stretch_x, stretch_y, relativeMouse, atari_memsize, arg_rootfs, false))
+    //DebugInit("/tmp/magic-on-linux.log");
+    if (Preferences::init(config,
+                         colour_mode, width, height, stretch_x, stretch_y, double_vert,
+                         relativeMouse, atari_memsize,
+                         arg_rootfs, arg_kernel, false))
     {
         fputs("There were syntax errors in configuration file\n", stderr);
     }
@@ -584,10 +750,52 @@ int main(int argc, char *argv[])
         return 4;
     }
 
+    /*
+    * Additional parameters are treated as Atari files to open.
+    */
+
+    if (optind < argc)
+    {
+        unsigned startno = 0;
+        while (optind < argc)
+        {
+            const char *arg = argv[optind];
+            if (CVolumeImages::isImageName(arg))
+            {
+                // floppy disk image
+                if (Preferences::mountDriveParameter == nullptr)
+                {
+                    Preferences::mountDriveParameter = CConversion::copyString(arg);
+                }
+                else
+                {
+                    printf("ERROR: additional floppy disk image ignored: %s\n", arg);
+                }
+            }
+            else
+            if (startno < MAX_START_APPS)
+            {
+                printf("autostart %s\n", arg);
+                Preferences::AtariStartApplications[startno++] = CConversion::copyString(arg);
+            }
+            else
+            {
+                printf("Ignore %s\n", arg);
+            }
+            optind++;
+        }
+    }
+
+    /*
+    * Actual program start: "Here goes it finally loose"
+    */
+
     CConversion::init();
     CMagiCPrint::init();
     CMagiCSerial::init();
     m68k_init();
+    //CAudio::init("assets/820351_17769113-lq.mp3", "assets/638638_433684-lq.mp3");
+    CAudio::init(nullptr, nullptr);
     CMagiCScreen::init();
     if (EmulationRunner::init())
     {
@@ -600,8 +808,10 @@ int main(int argc, char *argv[])
     EmulationRunner::StartEmulatorThread();
     EmulationRunner::EventLoop();
     CMagiCScreen::exit();
+    CAudio::exit();
     CMagiCPrint::exit();
     CMagiCSerial::exit();
+    Preferences::exit();
 
     return 0;
 }

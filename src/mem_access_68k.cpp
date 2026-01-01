@@ -54,26 +54,6 @@ extern m68k_data_type m68k_read_memory_32(m68k_addr_type address);
 extern void m68k_write_memory_8(m68k_addr_type address, m68k_data_type value);
 extern void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value);
 extern void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value);
-#ifdef MAGICMACX_DEBUG68K
-uint32_t DebugCurrentPC;            // für Test der Bildschirmausgabe
-static uint32_t WriteCounters[100];
-extern void TellDebugCurrentPC(uint32_t pc);
-void TellDebugCurrentPC(uint32_t pc)
-{
-    DebugCurrentPC = pc;
-}
-#endif
-
-#if defined(MAGICMACX_DEBUG_SCREEN_ACCESS) || defined(PATCH_VDI_PPC)
-static uint32_t p68k_OffscreenDriver = 0;
-static uint32_t p68k_ScreenDriver = 0;
-//#define ADDR_VDIDRVR_32BIT          0x1819c    // True Colour VDI driver is located here
-//#define p68k_OffscreenDriver        0x19cc0    // True Colour offscreen VDI driver is located here
-#endif
-
-#ifdef PATCH_VDI_PPC
-#include "VDI_PPC.c.h"
-#endif
 
 
 /** **********************************************************************************************

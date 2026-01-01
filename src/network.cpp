@@ -486,18 +486,18 @@ void *CNetwork::receiveFunc(void *arg)
         // Ethernet runs at interrupt level 3 by default but can be reconfigured
         switch (Preferences::eth[handler->ethX].intlevel)
         {
-        case 0:
-            break;
-        case 3:
-            /* TriggerInt3(); */
-            break;
-        case 4:
-        default:
-            sendVBL();
-            break;
-        case 5:
-            /* TriggerInt5(); */
-            break;
+            case 0:
+                break;
+            case 3:
+                /* TriggerInt3(); */
+                break;
+            case 4:
+            default:
+                sendVBL();
+                break;
+            case 5:
+                /* TriggerInt5(); */
+                break;
         }
         // Wait for interrupt acknowledge (m68k network driver read interrupt to finish)
         DebugInfo2("ETH%d: waiting for int acknowledge with pending irq mask %02x", handler->ethX, pending_interrupts);
@@ -610,7 +610,9 @@ void CNetwork::dump_ether_packet(const uint8_t *buf, int len)
         fprintf(stderr, "dst %d.%d.%d.%d  ", buf[16], buf[17], buf[18], buf[19]);
         len -= 20;
         buf += 20;
-    } else if (len >= 28 && (type == 0x0806 || type == 0x8035)) /* ARP/RARP */
+    }
+    else
+    if ((len >= 28) && (type == 0x0806 || type == 0x8035)) /* ARP/RARP */
     {
         if (type == 0x0806)
             fprintf(stderr, "arp: ");

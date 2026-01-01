@@ -40,6 +40,8 @@
 #define ATARI_RAM_SIZE_MIN          (800*1024)          // 800 KiB ..
 #define ATARI_RAM_SIZE_MAX          (2U*1024*1024*1024)  // .. 2 GiB
 
+#define MAX_START_APPS 4        // number of Atari applications that can be started from host
+
 
 // Atari screen colour mode
 typedef enum
@@ -84,13 +86,16 @@ class Preferences
     static int init(const char *config_file,
                     int mode_override,
                     int width_override, int height_override,
-                    int stretch_x_override, int stretch_y_override,
+                    int stretch_x_override, int stretch_y_override, bool double_vert,
                     int relative_mouse_override,
                     int memsize_override,
                     const char *rootfs_override,
+                    const char *kernel_override,
                     bool rewrite_conf);
+    static void exit();
     static const char *videoModeToString(enAtariScreenColourMode mode);
     static const char *videoModeToShortString(enAtariScreenColourMode mode);
+    static enAtariScreenColourMode getVideoModeFromString(const char *mode_str);
 
     static unsigned AtariMemSize;
     static char AtariLanguage[16];                  // empty for default, or EN/DE/FR
@@ -119,6 +124,8 @@ class Preferences
     static unsigned ScreenRefreshFrequency;
     //static bool m_bPPC_VDI_Patch;                 // used for native VDI output on PPC
     static struct ethernet_options eth[MAX_ETH];
+    static const char *AtariStartApplications[MAX_START_APPS];
+    static const char *mountDriveParameter;
 
     static const char *drvPath[NDRIVES];
     static unsigned drvFlags[NDRIVES];              // see above (read-only, ...)

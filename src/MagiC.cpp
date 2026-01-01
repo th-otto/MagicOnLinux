@@ -43,8 +43,15 @@
 #include "conversion.h"
 #include "gui.h"
 #include "nf_objs.h"
+#include "audio.h"
 
-//#define _DEBUG_KB_CRITICAL_REGION 1
+#if !defined(_DEBUG_MAGIC)
+ #undef DebugInfo
+ #define DebugInfo(...)
+ #undef DebugInfo2
+ #define DebugInfo2(...)
+#endif
+
 
 static CMagiC *pTheMagiC = nullptr;
 
@@ -83,17 +90,35 @@ void print_app(uint32_t addr68k)
     printf(" ap_stkchk = 0x%08x\n", be32toh(app->ap_stkchk));
 }
 
+// post mortem dump. Move to Atari rootfs and analyse with "memexamn c".
+void dumpAtariMem()
+{
+    if (mem68k != nullptr)
+    {
+        FILE *f = fopen("_SYS_.$$$", "wb");
+        if (f != nullptr)
+        {
+            uint32_t header[2];
+            header[0] = htobe32(0x2912);        // mem_root
+            header[1] = htobe32(0x2d72);        // ur_pd;
+            fwrite(header, 1, sizeof(header), f);
+            fwrite(mem68k + 8, 1, mem68kSize - 8, f);
+            fclose(f);
+        }
+    }
+}
+
 }
 #endif
 
 
 void sendBusError(uint32_t addr, const char *AccessMode)
 {
-    pTheMagiC->SendBusError(addr, AccessMode);
+    pTheMagiC->sendBusError(addr, AccessMode);
 }
 void sendVBL(void)
 {
-    pTheMagiC->SendVBL();
+    pTheMagiC->sendVBL();
 }
 void getActAtariPrg(const char **pName, uint32_t *pact_pd)
 {
@@ -178,7 +203,7 @@ CMagiC::CMagiC()
     m_CurrModifierKeys = 0;
     mem68k = nullptr;
     mem68kSize = 0;
-    m_BasePage = NULL;
+    m_BasePage = nullptr;
     memset(&m_EmuTaskID, 0, sizeof(m_EmuTaskID));
 
     m_EventId = 0;
@@ -196,7 +221,7 @@ CMagiC::CMagiC()
     m_bInterruptVBLPending = false;
     m_bInterruptMouseKeyboardPending = false;
     m_bInterruptMouseButton[0] = m_bInterruptMouseButton[1] = false;
-    m_InterruptMouseWhere.y = m_InterruptMouseWhere.x = 0;
+    m_InterruptMouseWhereY = m_InterruptMouseWhereX = 0;
     m_InterruptMouseMoveRelX = m_InterruptMouseMoveRelY = 0.0;
     m_bInterruptPending = false;
     m_LineAVars = nullptr;
@@ -259,6 +284,22 @@ void CMagiC::OS_SetEvent(uint32_t *event, uint32_t flags)
         pthread_cond_signal(&m_Cond);
     }
     pthread_mutex_unlock(&m_ConditionMutex);
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief 68k emulator asks for a message, but does not clear it
+ *
+ * @param[in,out]  event        bit vector to ask for
+ * @param[out]     flags        bit vector with '1' and '0' flags
+ *
+ * @return masked bit vector with arrived '1' bits
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::OS_AskEvent(const uint32_t *event, uint32_t flags)
+{
+    return *event & flags;
 }
 
 
@@ -543,7 +584,7 @@ int CMagiC::LoadReloc
 
         for (i = 0; i < sizeof(BasePage); i++)
         {
-            DebugInfo("CMagiC::LoadReloc() - BasePage[%d] = 0x%02x", i, p[i]);
+            DebugInfo2("() - BasePage[%d] = 0x%02x", i, p[i]);
         }
     }
     #endif
@@ -588,7 +629,7 @@ int CMagiC::LoadReloc
 * (INTERN) Initialisierung von Atari68kData.m_VDISetupData
 *
 **********************************************************************/
-void CMagiC::Init_CookieData(MgMxCookieData *pCookieData)
+void CMagiC::initCookieData(MgMxCookieData *pCookieData)
 {
     pCookieData->mgmx_magic     = htobe32('MgMx');
     pCookieData->mgmx_version   = htobe32(PROGRAM_VERSION_MAJOR);
@@ -632,7 +673,7 @@ static void PixmapToBigEndian(MXVDI_PIXMAP *thePixMap)
 /*
     if (thePixMap->pixelFormat == k32BGRAPixelFormat)
     {
-        DebugInfo("PixmapToBigEndian() -- k32BGRAPixelFormat => k32ARGBPixelFormat");
+        DebugInfo2("() -- k32BGRAPixelFormat => k32ARGBPixelFormat");
         thePixMap->pixelFormat = htobe32(k32ARGBPixelFormat);
     }
 */
@@ -725,42 +766,144 @@ uint32_t CMagiC::thunk_XCmdCommand(uint32_t params, unsigned char *AdrOffset68k)
 	return pTheMagiC->m_pXCmd->Command(params, AdrOffset68k);
 }
 
-/**********************************************************************
-*
-* Initialisierung
-* => 0 = OK, sonst = Fehler
-*
-* Virtueller 68k-Adreßraum:
-*
-*    Systemvariablen/(X)BIOS-Variablen
-*    frei
-*    Atari68kData                        <- _memtop
-*    Kernel-Basepage (256 Bytes)
-*    MacXSysHdr
-*    Rest des Kernels
-*    Ende des Atari-RAM
-*    Beginn des virtuellen VRAM            <- _v_bas_ad
-*    Ende des virtuellen VRAM
-*                                        <- _phystop
-*
-* Die Größe des virtuellen VRAM berechnet sich aus der Anzahl der
-* Bildschirmzeilen des Atari und der physikalischen (!) Bildschirm-
-* Zeilenlänge des Mac, d.h. ist abhängig von der physikalischen
-* Auflösung des Mac-Bildschirms.
-*
-**********************************************************************/
+uint32_t CMagiC::UndefinedFunction(uint32_t params, unsigned char *AdrOffset68k)
+{
+	uint32_t m68k_pc = m68k_get_reg(NULL, M68K_REG_PC);
+	(void)params;
+	(void)AdrOffset68k;
+	char *msg;
+	asprintf(&msg, "Unset emulator function called at PC = $%08x\n\n%s", m68k_pc, "Review configuration file!");
+    showAlert("The emulator was halted", msg);
+    free(msg);
+    pTheMagiC->stopExec();
+    return 0;
+}
 
+/** **********************************************************************************************
+ *
+ * @brief Initialise Atari-to-host callbacks
+ *
+ * @param[in] pMacXSysHdr   Atari/host inter-communication data
+ * @param[in] pXCmd         currently unused
+ *
+ ************************************************************************************************/
+void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr)
+{
+	jump_table_len = 0;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+	/*
+	 * reserve function #0 to detect cases where the kernel
+	 * tries to call functions that we did not install
+	 */
+	jump_table[jump_table_len++].c = UndefinedFunction;
+	
+    if (be32toh(pMacXSysHdr->MacSysX_verAtari) >= 1)
+    {
+	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_init, AtariInit);
+    	setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_biosinit, AtariBIOSInit);
+	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_Dosound, AtariDosound);
+    } else
+    {
+	    setCMagiCHostCallback(&pMacXSysHdr->MacLinux_init.v0.MacSysX_init, thunk_AtariInit);
+	    setCMagiCHostCallback(&pMacXSysHdr->MacLinux_init.v0.MacSysX_biosinit, thunk_AtariBIOSInit);
+	}
+    if (be32toh(pMacXSysHdr->MacSysX_verAtari) >= 3)
+    {
+	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_Ikbdws, AtariIkbdws);
+	}
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_VdiInit, thunk_AtariVdiInit);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_Exec68k, thunk_AtariExec68k);
+    setCXCmdHostCallback(&pMacXSysHdr->MacSysX_Xcmd, thunk_XCmdCommand);
+    setHostCallback(&pMacXSysHdr->MacSysX_gettime,    AtariGettime);
+    setHostCallback(&pMacXSysHdr->MacSysX_settime,    AtariSettime);
+    setHostCallback(&pMacXSysHdr->MacSysX_Setscreen,  AtariSetscreen);
+    setHostCallback(&pMacXSysHdr->MacSysX_Setpalette, AtariSetpalette);
+    setHostCallback(&pMacXSysHdr->MacSysX_Setcolor,   AtariSetcolor);
+    setHostCallback(&pMacXSysHdr->MacSysX_VsetRGB,    AtariVsetRGB);
+    setHostCallback(&pMacXSysHdr->MacSysX_VgetRGB,    AtariVgetRGB);
+    setHostCallback(&pMacXSysHdr->MacSysX_syshalt,    AtariSysHalt);
+    setHostCallback(&pMacXSysHdr->MacSysX_syserr,     AtariSysErr);
+    setHostCallback(&pMacXSysHdr->MacSysX_coldboot,   AtariColdBoot);
+    setHostCallback(&pMacXSysHdr->MacSysX_exit,       AtariExit);
+    setHostCallback(&pMacXSysHdr->MacSysX_debugout,   AtariDebugOut);
+    setHostCallback(&pMacXSysHdr->MacSysX_error,      AtariError);
+    if (be32toh(pMacXSysHdr->MacSysX_verAtari) >= 2)
+    {
+	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_in, AtariBconin);
+	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_out, AtariBconout);
+	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_istat, AtariBconstat);
+	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_ostat, AtariBcostat);
+    } else
+    {
+	    setHostCallback(&pMacXSysHdr->MacSysX_resb8,      &CMagiCPrint::AtariPrtOs);
+	    setHostCallback(&pMacXSysHdr->MacSysX_resbc,      &CMagiCPrint::AtariPrtIn);
+	    setHostCallback(&pMacXSysHdr->MacSysX_resc0,      &CMagiCPrint::AtariPrtOut);
+	    setHostCallback(&pMacXSysHdr->MacSysX_rescc,      &CMagiCSerial::AtariSerIs);
+	    setHostCallback(&pMacXSysHdr->MacSysX_resd0,      &CMagiCSerial::AtariSerOs);
+	    setHostCallback(&pMacXSysHdr->MacSysX_resd4,      &CMagiCSerial::AtariSerIn);
+	    setHostCallback(&pMacXSysHdr->MacSysX_resd8,      &CMagiCSerial::AtariSerOut);
+	}
+    setHostCallback(&pMacXSysHdr->MacSysX_prtouts,    &CMagiCPrint::AtariPrtOutS);
+    setHostCallback(&pMacXSysHdr->MacSysX_serconf,    &CMagiCSerial::AtariSerConf);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerOpen,    &CMagiCSerial::AtariSerOpen);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerClose,   &CMagiCSerial::AtariSerClose);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerRead,    &CMagiCSerial::AtariSerRead);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerWrite,   &CMagiCSerial::AtariSerWrite);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerStat,    &CMagiCSerial::AtariSerStat);
+    setHostCallback(&pMacXSysHdr->MacSysX_SerIoctl,   &CMagiCSerial::AtariSerIoctl);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_GetKeybOrMouse, thunk_AtariGetKeyboardOrMouseData);
+    setHostCallback(&pMacXSysHdr->MacSysX_dos_macfn, AtariDOSFn);
+    setCHostXFSHostCallback(&pMacXSysHdr->MacSysX_xfs, thunk_XFSFunctions);
+    setCHostXFSHostCallback(&pMacXSysHdr->MacSysX_xfs_dev, thunk_XFSDevFunctions);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_drv2devcode, thunk_Drv2DevCode);
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_rawdrvr, thunk_RawDrvr);
+#if defined(MAGICLIN)
+    setHostCallback(&pMacXSysHdr->MacSysX_Daemon, MmxDaemon);
+    setHostCallback(&pMacXSysHdr->MacSysX_BlockDevice, CVolumeImages::AtariBlockDevice);
+    setHostCallback(&pMacXSysHdr->MacSysX_Network, CNetwork::AtariNetwork);
+#else
+    setCMagiCHostCallback(&pMacXSysHdr->MacSysX_Daemon, thunk_MmxDaemon);
+#endif
+    setHostCallback(&pMacXSysHdr->MacSysX_Yield, AtariYield);
+#pragma GCC diagnostic pop
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Create and initialise the virtual MagiC machine
+ *
+ * @param[in] pXCmd         currently unused
+ *
+ * @return non-zero in case of failure
+ * @retval -1   kernel file not found
+ * @retval -2   corrupt/invalid kernel file
+ * @retval -3   kernel file API mismatch
+ * @retval -4   unsufficient host memory
+ *
+ * @note Called once by the emulator thread
+ *
+ * @note The virtual machine address range starts with interrupt vectors, system variables,
+ *       followed by program and data memory managed by GEMDOS. Following is the kernel
+ *       basepage (256 bytes) and the kernel itself which can be configured to be write protected.
+ *       Finally, and additionally to the e.g. 8 Megabytes ST-RAM, the virtual screen memory is
+ *       located. Its size is calculated from dimension and bit depth of the emulated system,
+ *       plus some padding to avoid bus errors (The ST has 32768 bytes reserved for video,
+ *       from which 32000 are really used).
+ *
+ ************************************************************************************************/
 int CMagiC::init(CXCmd *pXCmd)
 {
     int err;
     Atari68kData *pAtari68kData;
-    struct MacXSysHdr *pMacXSysHdr;
-    struct SYSHDR *pSysHdr;
-    uint32_t AtariMemtop;        // Ende Atari-Benutzerspeicher
-    uint32_t chksum;
+    uint32_t AtariMemtop;       // end of GEMDOS memory, start of kernel basepage
+    static_assert(sizeof(struct MacXSysHdr) == 0x228, "");
 
 
-    // Konfiguration
+    /*
+    * Some debug output of the compiled-in configuration of the emulator
+    */
 
     DebugInfo2("() - MultiThread version for Linux");
 #ifdef _DEBUG_WRITEPROTECT_ATARI_OS
@@ -778,12 +921,17 @@ int CMagiC::init(CXCmd *pXCmd)
 #else
     DebugInfo2("() - Writing to 68k interrupt vectors is not logged (makes the emulator a bit faster)");
 #endif
+    //DebugInfo2("() - Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
 
-    DebugInfo2("() - Autostart %s", (Preferences::bAutoStartMagiC) ? "ON" : "OFF");
-
-    // Tastaturtabelle lesen
+    /*
+    * Shall read the keyboard table, but currently unused
+    */
 
     (void) CMagiCKeyboard::init();
+
+    /*
+    * Allocate memory for virtual machine
+    */
 
     mem68kSize = Preferences::AtariMemSize;
     #if 0
@@ -793,46 +941,66 @@ int CMagiC::init(CXCmd *pXCmd)
     #else
     memVideo68kSize = CMagiCScreen::pixels_size;
     #endif
-    // get Atari memory
-    // TODO: In fact we do not have to add m_Video68ksize here, because video memory
-    //       is allocated separately as SDL surface in EmulatorRunner.
-    mem68k = (unsigned char *) malloc(mem68kSize + memVideo68kSize);
+    // Get Atari memory, note that the <memVideo68kSize> virtual screen RAM is allocated later
+    // and actually is an SDL surface.
+    mem68k = (unsigned char *) malloc(mem68kSize);
     if (mem68k == nullptr)
     {
-        showAlert("The emulator cannot reserve enough memory", "Reduce Atari memory size in configuration file");
-        return 1;
+        return -4;  // out-of-memory
     }
 
-    // Atari-Kernel lesen
+    /*
+    * Load MagiC kernel file to virtual machine memory
+    */
+
     err = LoadReloc(Preferences::AtariKernelPath, 0, -1, &m_BasePage);
-    switch(err)
-    {
-        case -1:
-            (void) showAlert("The emulator cannot find the kernel file MAGICLIN.OS", "Repair configuration file!");
-            break;
-        case -2:
-            (void) showAlert("The kernel file MAGICLIN.OS has been corrupted", "Repair configuration file!");
-            break;
-    }
-
     if (err)
     {
-        return err;
+        return err;     // -1 or -2
     }
     DebugInfo2("() - MagiC kernel loaded and relocated successfully");
 
-    // 68k Speicherbegrenzungen ausrechnen
+    /*
+    * Check kernel header for validity and version.
+    * The header is located directly behind the kernel basepage, i.e.
+    * at the beginning of its TEXT segment.
+    */
+
+    struct MacXSysHdr *pMacXSysHdr = (MacXSysHdr *) (m_BasePage + 1);
+    if (be32toh(pMacXSysHdr->MacSysX_magic) != 'MagC')
+    {
+        DebugError2("() - magic value mismatch");
+        return -2;
+    }
+    if (be32toh(pMacXSysHdr->MacSysX_len) != sizeof(*pMacXSysHdr))
+    {
+        DebugError2("() -- Length of struct does not match (header: %u bytes, should be: %u bytes)",
+                         be32toh(pMacXSysHdr->MacSysX_len), sizeof(*pMacXSysHdr));
+        return -3;
+    }
+    if (be32toh(pMacXSysHdr->MacSysX_verAtari) > MAGIC_KERNEL_API_VERSION)
+    {
+        DebugError2("() - Kernel API version mismatch, is %u instead of expected %u.", be32toh(pMacXSysHdr->MacSysX_verAtari), MAGIC_KERNEL_API_VERSION);
+        return -3;
+    }
+    if (be32toh(pMacXSysHdr->MacSysX_verAtari) < MAGIC_KERNEL_API_VERSION)
+    {
+        fprintf(stderr, "Kernel API version mismatch, is %u instead of expected %u.\nPlease upgrade\n", be32toh(pMacXSysHdr->MacSysX_verAtari), MAGIC_KERNEL_API_VERSION);
+    }
+
+    /*
+    * Calculate 68k address ranges
+    */
+
     addr68kVideo = mem68kSize;
     DebugInfo2("() - Atari video mode is %s", Preferences::videoModeToString(Preferences::atariScreenColourMode));
     DebugInfo2("() - 68k video memory starts at 68k address 0x%08x and uses %u (0x%08x) bytes.", addr68kVideo, memVideo68kSize, memVideo68kSize);
     addr68kVideoEnd = addr68kVideo + memVideo68kSize;
     DebugInfo2("() - 68k video memory and general memory end is 0x%08x", addr68kVideoEnd);
-    // real (host) address of video memory
-    //m_pFgBuffer = m_RAM68k + Preferences::AtariMemSize;    // unused
 
-    //
-    // Initialise Atari system variables
-    //
+    /*
+    * Initialise Atari system variables
+    */
 
     setAtariBE32(mem68k + phystop,  addr68kVideoEnd);
     setAtariBE32(mem68k + _v_bas_ad, mem68kSize);
@@ -841,11 +1009,11 @@ int CMagiC::init(CXCmd *pXCmd)
     switch(Preferences::atariScreenColourMode)
     {
         case atariScreenMode16ip:
-            mem68k[sshiftmd] = 0;   // ST low resolution (320*200*4 ip)
+            mem68k[sshiftmd] = 0;   // ST low resolution (320*200*4 interleaved planes)
             break;
 
         case atariScreenMode4ip:
-            mem68k[sshiftmd] = 1;   // ST medium resolution (640*200*2 ip)
+            mem68k[sshiftmd] = 1;   // ST medium resolution (640*200*2 interleaved planes)
             break;
 
         case atariScreenMode2:
@@ -860,7 +1028,7 @@ int CMagiC::init(CXCmd *pXCmd)
     setAtariBE16(mem68k +_cmdload, 0);            // boot AES
     setAtariBE16(mem68k +_nflops, 0);             // no floppy disk drives, yet
 
-    // Atari-68k-Daten setzen
+    // some Atari addresses
 
     pAtari68kData = (Atari68kData *) (mem68k + AtariMemtop);        // Pixmap inside Atari memory
     pAtari68kData->m_PixMap = CMagiCScreen::m_PixMap;             // copy host Pixmap to Atari memory
@@ -874,129 +1042,53 @@ int CMagiC::init(CXCmd *pXCmd)
     DebugInfo2("() - basepage address of system = 0x%08lx (68k)", AtariMemtop + sizeof(Atari68kData));
     DebugInfo2("() - address of Atari68kData = 0x%08lx (68k)", AtariMemtop);
 
-    // neue Daten
+    initCookieData(&pAtari68kData->m_CookieData);
 
-    Init_CookieData(&pAtari68kData->m_CookieData);
+    // Fill up members of the host/Atari shared structure, mainly calls from
+    // virtual machine to host.
 
-    // Alle Einträge der Übergabestruktur füllen
-
-    pMacXSysHdr = (MacXSysHdr *) (m_BasePage + 1);        // Zeiger hinter Basepage
-
-    if (be32toh(pMacXSysHdr->MacSys_magic) != 'MagC')
-    {
-        DebugError2("() - magic value mismatch");
-        goto err_inv_os;
-    }
-
-#ifndef NDEBUG
-    DebugInfo2("() - sizeof(CMagiC_CPPCCallback) = %u", (unsigned) sizeof(CMagiC_CPPCCallback));
-    typedef UINT32 (CMagiC::*CMagiC_PPCCallback)(UINT32 params, uint8_t *AdrOffset68k);
-    DebugInfo2("() - sizeof(CMagiC_PPCCallback) = %u", (unsigned) sizeof(CMagiC_PPCCallback));
-#endif
-
-    assert(sizeof(CMagiC_CPPCCallback) == 16);
-
-    if (be32toh(pMacXSysHdr->MacSys_len) != sizeof(*pMacXSysHdr))
-    {
-        DebugError2("() -- Length of struct does not match (header: %u bytes, should be: %u bytes)",
-                         be32toh(pMacXSysHdr->MacSys_len), sizeof(*pMacXSysHdr));
-        err_inv_os:
-        showAlert("The kernel file MAGICLIN.OS is invalid or outdated", "Review your configuration");
-        return(1);
-    }
+    pMacXSysHdr->MacSysX_pixmap = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_PixMap) - (uint64_t) mem68k));
+    pMacXSysHdr->MacSysX_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) mem68k));
+    pMacXSysHdr->MacSysX_verMac = htobe32(10);       // must be 10, checked by kernel in HOSTBIOS.S, mismatch -> 68k illegal instruction
+    pMacXSysHdr->MacSysX_cpu = htobe16(20);          // 68020
+    pMacXSysHdr->MacSysX_fpu = htobe16(0);           // no FPU -- yet -- unfortunately
+    pMacXSysHdr->MacSysX_PPCAddr = 0;                // on 32-bit host: mem68k
+    pMacXSysHdr->MacSysX_VideoAddr = 0x80000000;     // on 32-bit host: CMagiCScreen::m_PixMap.baseAddr
 
 	/*
 	 * set callbacks for kernel
 	 */
 	m_pXCmd = pXCmd;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-    pMacXSysHdr->MacSys_verMac = htobe32(10);
-    pMacXSysHdr->MacSys_cpu = htobe16(20);        // 68020
-    pMacXSysHdr->MacSys_fpu = htobe16(0);        // keine FPU
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_init, thunk_AtariInit);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_biosinit, thunk_AtariBIOSInit);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_VdiInit, thunk_AtariVdiInit);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_Exec68k, thunk_AtariExec68k);
-    pMacXSysHdr->MacSys_pixmap = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_PixMap) - (uint64_t) mem68k));
-    pMacXSysHdr->MacSys_pMMXCookie = htobe32((uint32_t) (((uint64_t) &pAtari68kData->m_CookieData) - (uint64_t) mem68k));
-    setCXCmdHostCallback(&pMacXSysHdr->MacSys_Xcmd, thunk_XCmdCommand);
-    pMacXSysHdr->MacSys_PPCAddr = 0;                // on 32-bit host: mem68k
-    pMacXSysHdr->MacSys_VideoAddr = 0x80000000;        // on 32-bit host: CMagiCScreen::m_PixMap.baseAddr
-    setHostCallback(&pMacXSysHdr->MacSys_gettime,    AtariGettime);
-    setHostCallback(&pMacXSysHdr->MacSys_settime,    AtariSettime);
-    setHostCallback(&pMacXSysHdr->MacSys_Setscreen,  AtariSetscreen);
-    setHostCallback(&pMacXSysHdr->MacSys_Setpalette, AtariSetpalette);
-    setHostCallback(&pMacXSysHdr->MacSys_Setcolor,   AtariSetcolor);
-    setHostCallback(&pMacXSysHdr->MacSys_VsetRGB,    AtariVsetRGB);
-    setHostCallback(&pMacXSysHdr->MacSys_VgetRGB,    AtariVgetRGB);
-    setHostCallback(&pMacXSysHdr->MacSys_syshalt,    AtariSysHalt);
-    setHostCallback(&pMacXSysHdr->MacSys_syserr,     AtariSysErr);
-    setHostCallback(&pMacXSysHdr->MacSys_coldboot,   AtariColdBoot);
-    setHostCallback(&pMacXSysHdr->MacSys_exit,       AtariExit);
-    setHostCallback(&pMacXSysHdr->MacSys_debugout,   AtariDebugOut);
-    setHostCallback(&pMacXSysHdr->MacSys_error,      AtariError);
-    setHostCallback(&pMacXSysHdr->MacSys_prtos,      &CMagiCPrint::AtariPrtOs);
-    setHostCallback(&pMacXSysHdr->MacSys_prtin,      &CMagiCPrint::AtariPrtIn);
-    setHostCallback(&pMacXSysHdr->MacSys_prtout,     &CMagiCPrint::AtariPrtOut);
-    setHostCallback(&pMacXSysHdr->MacSys_prtouts,    &CMagiCPrint::AtariPrtOutS);
-    setHostCallback(&pMacXSysHdr->MacSys_serconf,    &CMagiCSerial::AtariSerConf);
-    setHostCallback(&pMacXSysHdr->MacSys_seris,      &CMagiCSerial::AtariSerIs);
-    setHostCallback(&pMacXSysHdr->MacSys_seros,      &CMagiCSerial::AtariSerOs);
-    setHostCallback(&pMacXSysHdr->MacSys_serin,      &CMagiCSerial::AtariSerIn);
-    setHostCallback(&pMacXSysHdr->MacSys_serout,     &CMagiCSerial::AtariSerOut);
-    setHostCallback(&pMacXSysHdr->MacSys_SerOpen,    &CMagiCSerial::AtariSerOpen);
-    setHostCallback(&pMacXSysHdr->MacSys_SerClose,   &CMagiCSerial::AtariSerClose);
-    setHostCallback(&pMacXSysHdr->MacSys_SerRead,    &CMagiCSerial::AtariSerRead);
-    setHostCallback(&pMacXSysHdr->MacSys_SerWrite,   &CMagiCSerial::AtariSerWrite);
-    setHostCallback(&pMacXSysHdr->MacSys_SerStat,    &CMagiCSerial::AtariSerStat);
-    setHostCallback(&pMacXSysHdr->MacSys_SerIoctl,   &CMagiCSerial::AtariSerIoctl);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_GetKeybOrMouse, thunk_AtariGetKeyboardOrMouseData);
-    setHostCallback(&pMacXSysHdr->MacSys_dos_macfn, AtariDOSFn);
-    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs, thunk_XFSFunctions);
-    setCHostXFSHostCallback(&pMacXSysHdr->MacSys_xfs_dev, thunk_XFSDevFunctions);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_drv2devcode, thunk_Drv2DevCode);
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_rawdrvr, thunk_RawDrvr);
-#if defined(MAGICLIN)
-    setHostCallback(&pMacXSysHdr->MacSys_Daemon, MmxDaemon);
-    setHostCallback(&pMacXSysHdr->MacSys_BlockDevice, CVolumeImages::AtariBlockDevice);
-    setHostCallback(&pMacXSysHdr->MacSys_Network, CNetwork::AtariNetwork);
-#else
-    setCMagiCHostCallback(&pMacXSysHdr->MacSys_Daemon, thunk_MmxDaemon);
-#endif
-    setHostCallback(&pMacXSysHdr->MacSys_Yield, AtariYield);
-#pragma GCC diagnostic pop
+    initHostCallbacks(pMacXSysHdr);
 
-    // ssp nach Reset
-    setAtariBE32(mem68k + 0, 512*1024);        // Stack auf 512k
-    // pc nach Reset
-    setAtari32(mem68k + 4, /*big endian*/ pMacXSysHdr->MacSys_syshdr);
+    // 68k ssp and PC after reset
+    setAtariBE32(mem68k + 0, 512*1024);        // 68k stack to 512k
+    setAtari32(mem68k + 4, /*big endian*/ pMacXSysHdr->MacSysX_syshdr);
 
-    // TOS-SYSHDR bestimmen
+    // Get TOS SYSHDR (official, i.e. not MagiC specific)
 
-    pSysHdr = (SYSHDR *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
+    struct SYSHDR *pSysHdr = (SYSHDR *) (mem68k + be32toh(pMacXSysHdr->MacSysX_syshdr));
 
-    // Adresse für kbshift, kbrepeat und act_pd berechnen
+    // Get addresses for kbshift, kbrepeat and act_pd, later used by emulator
 
     m_AtariKbData = mem68k + be32toh(pSysHdr->kbshift);
     m_pAtariActPd = (uint32_t *) (mem68k + be32toh(pSysHdr->_run));
     m_HostXFS.setActPdAddr(m_pAtariActPd);
+    m_pAtariActAppl = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSysX_act_appl));
 
-    // Andere Atari-Strukturen
+    /*
+    * Calculate address ranges and checksum of kernel ROM, used for overwrite
+    * detection and, if configured, protection.
+    */
 
-    m_pAtariActAppl = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSys_act_appl));
-
-    // Prüfsumme für das System berechnen
-
-    chksum = 0;
-    uint32_t *fromptr = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSys_syshdr));
+    uint32_t chksum = 0;
+    uint32_t *fromptr = (uint32_t *) (mem68k + be32toh(pMacXSysHdr->MacSysX_syshdr));
     uint32_t *toptr = (uint32_t *) (mem68k + be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen));
 
-//    AdrOsRomStart = be32toh(pMacXSysHdr->MacSys_syshdr);            // Beginn schreibgeschützter Bereich
-    addrOsRomStart = be32toh((uint32_t) m_BasePage->p_tbase);        // Beginn schreibgeschützter Bereich
-    addrOsRomEnd = be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen);    // Ende schreibgeschützter Bereich
+    // start and end of write-protected 68k address range (system ROM)
+    addrOsRomStart = be32toh((uint32_t) m_BasePage->p_tbase);
+    addrOsRomEnd = be32toh((uint32_t) m_BasePage->p_tbase) + be32toh(m_BasePage->p_tlen) + be32toh(m_BasePage->p_dlen);
     DebugInfo2("() - OS ROM range from 0x%08x..0x%08x (68k)", addrOsRomStart, addrOsRomEnd);
-
     do
     {
         chksum += htobe32(*fromptr++);
@@ -1005,7 +1097,7 @@ int CMagiC::init(CXCmd *pXCmd)
 
     setAtariBE32(mem68k + os_chksum, chksum);
 
-    // dump Atari
+    // dump Atari, for debug purposes
     // DumpAtariMem("AtariMemAfterInit.data");
 
     //
@@ -1037,23 +1129,12 @@ int CMagiC::init(CXCmd *pXCmd)
     // initialise 68k emulator (Musashi)
     //
 
-#if defined(USE_ASGARD_PPC_68K_EMU)
-
-    OpcodeROM = mem68k;    // ROM == RAM
-    Asgard68000SetIRQCallback(IRQCallback, this);
-    Asgard68000SetHiMem(m_RAM68ksize);
-    m_bSpecialExec = false;
-//    Asgard68000Reset();
-//    CPU mit vbr, sr und cacr
-    Asgard68000Reset();
-
-#else
     // The 68020 is the most powerful CPU that is supported by Musashi
     m68k_set_cpu_type(M68K_CPU_TYPE_68020);
     m68k_init();
     NFCreate();
 
-    // Emulator starten
+    // start 68k emulator
 
     addrOpcodeROM = mem68k;    // ROM == RAM
     m68k_set_int_ack_callback(IRQCallback);
@@ -1063,8 +1144,6 @@ int CMagiC::init(CXCmd *pXCmd)
 
     // Reset Musashi 68k emulator
     m68k_pulse_reset();
-
-#endif
 
     CRegisterModel::init();
     /*
@@ -1181,7 +1260,7 @@ void CMagiC::ChangeXFSDrive(short drvNr)
 *
 **********************************************************************/
 
-int CMagiC::CreateThread( void )
+int CMagiC::createThread( void )
 {
     if (m_BasePage == nullptr)
     {
@@ -1206,36 +1285,16 @@ int CMagiC::CreateThread( void )
 
     // create emulation thread
     int err = pthread_create(
-        &m_EmuTaskID,    // out: thread descriptor
-        nullptr,        // no special attributes, use default
-        _EmuThread,        // start routine
-        this                // Parameter
-        );
+            &m_EmuTaskID,    // out: thread descriptor
+            nullptr,        // no special attributes, use default
+            _EmuThread,        // start routine
+            this                // Parameter
+            );
     if (err)
     {
-        DebugError("CMagiC::CreateThread() - Fehler beim Erstellen des Threads");
-        return err;
+        DebugError2("() : pthread_create() -> %s", strerror(err));
+        return -1;
     }
-
-    DebugInfo("CMagiC::CreateThread() - erfolgreich");
-
-    /*
-    //TODO: is there a task weight?
-    //errl = MPSetTaskWeight(m_EmuTaskID, 300);    // 100 ist default, 200 ist die blue task
-
-    // Workaround für Fehler in OS X 10.0.0
-    if (errl > 0)
-    {
-        DebugWarning("CMagiC::CreateThread() - Betriebssystem-Fehler beim Priorisieren des Threads");
-        errl = 0;
-    }
-
-    if (errl)
-    {
-        DebugError("CMagiC::CreateThread() - Fehler beim Priorisieren des Threads");
-        return errl;
-    }
-    */
 
     return 0;
 }
@@ -1248,7 +1307,7 @@ int CMagiC::CreateThread( void )
 *
 **********************************************************************/
 
-void CMagiC::StartExec( void )
+void CMagiC::startExec( void )
 {
     m_bCanRun = true;        // darf laufen
     m_AtariKbData[0] = 0;        // kbshift löschen
@@ -1266,18 +1325,10 @@ void CMagiC::StartExec( void )
 *
 **********************************************************************/
 
-void CMagiC::StopExec( void )
+void CMagiC::stopExec( void )
 {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    Asgard68000SetExitImmediately();
-#else
-    m68k_StopExecution();
-#endif
+    m68k_StopExecution();   // leave inner emulation loop
     m_bCanRun = false;        // darf nicht laufen
-#ifdef MAGICMACX_DEBUG68K
-    for    (register int i = 0; i < 100; i++)
-        CDebug::DebugInfo("### VideoRamWriteCounter(%2d) = %d", i, WriteCounters[i]);
-#endif
 }
 
 
@@ -1287,13 +1338,19 @@ void CMagiC::StopExec( void )
 *
 **********************************************************************/
 
-void CMagiC::TerminateThread(void)
+void CMagiC::terminateThread(void)
 {
-    DebugInfo("CMagiC::TerminateThread()");
+    DebugInfo2("()");
+    //dumpAtariMem();
+    #if defined(M68K_TRACE)
+        DebugWarning(" == FINAL TRACE ==");
+        m68k_trace_print();
+        //dumpAtariMem();
+    #endif
     OS_SetEvent(
             &m_EventId,
             EMU_EVNT_TERM);
-    StopExec();
+    stopExec();
 }
 
 
@@ -1315,6 +1372,7 @@ int CMagiC::EmuThread( void )
     bool bNewBstate[2];
     bool bNewMpos;
     bool bNewKey;
+    bool bNewJoystick;
 
 
     m_bEmulatorIsRunning = true;
@@ -1326,32 +1384,26 @@ int CMagiC::EmuThread( void )
         {
             // wir warten darauf, daß wir laufen dürfen
 
-            DebugInfo("CMagiC::EmuThread() -- MPWaitForEvent");
+            DebugInfo2("() -- MPWaitForEvent");
             OS_WaitForEvent(
                         &m_EventId,
                         &EventFlags);
 
-            DebugInfo("CMagiC::EmuThread() -- MPWaitForEvent beendet");
+            DebugInfo2("() -- MPWaitForEvent done");
 
             // wir prüfen, ob wir zum Beenden aufgefordert wurden
 
             if (EventFlags & EMU_EVNT_TERM)
             {
-                DebugInfo("CMagiC::EmuThread() -- normaler Abbruch");
+                DebugInfo2("() -- normal break");
                 goto end_of_thread;    // normaler Abbruch, Thread-Ende
             }
         }
 
         // längere Ausführungsphase
 
-//        CDebug::DebugInfo("CMagiC::EmuThread() -- Starte 68k-Emulator");
         m_bWaitEmulatorForIRQCallback = false;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000Execute();
-#else
         m68k_execute();
-#endif
-//        CDebug::DebugInfo("CMagiC::EmuThread() --- %d 68k-Zyklen", CyclesExecuted);
 
         // Bildschirmadressen geändert
         if (m_bScreenBufferChanged)
@@ -1380,11 +1432,7 @@ int CMagiC::EmuThread( void )
         // ausstehende Busfehler bearbeiten
         if (m_bBusErrorPending)
         {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-            Asgard68000SetBusError();
-#else
             m68k_exception_bus_error();
-#endif
             m_bBusErrorPending = false;
         }
 
@@ -1394,52 +1442,62 @@ int CMagiC::EmuThread( void )
             m_bWaitEmulatorForIRQCallback = true;
             do
             {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                Asgard68000Execute();        // warte bis IRQ-Callback
-#else
                 m68k_execute();        // warte bis IRQ-Callback
-#endif
-//                CDebug::DebugInfo("CMagiC::Exec() --- Interrupt Pending => %d 68k-Zyklen", CyclesExecuted);
             }
-            while(m_bInterruptPending);
+            while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM));
         }
 
         // aufgelaufene Maus-Interrupts bearbeiten
 
         if (m_bInterruptMouseKeyboardPending)
         {
-#ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::EmuThread() --- Enter critical region m_KbCriticalRegionId");
-#endif
             OS_EnterCriticalRegion(&m_KbCriticalRegionId);
             if (GetKbBufferFree() < 3)
             {
-                DebugError("CMagiC::EmuThread() --- Tastenpuffer ist voll");
+                DebugError2("() --- Tastenpuffer ist voll");
             }
             else
             {
+                /*
+                * Mouse buttons
+                */
+
                 bNewBstate[0] = CMagiCMouse::setNewButtonState(0, m_bInterruptMouseButton[0]);
                 bNewBstate[1] = CMagiCMouse::setNewButtonState(1, m_bInterruptMouseButton[1]);
+
+                /*
+                * Mouse movement
+                */
+
                 if (Preferences::bRelativeMouse)
                 {
                     bNewMpos = CMagiCMouse::setNewMovement(m_InterruptMouseMoveRelX, m_InterruptMouseMoveRelY);
                 }
                 else
                 {
-                    bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhere);
+                    bNewMpos = CMagiCMouse::setNewPosition(m_InterruptMouseWhereX, m_InterruptMouseWhereY);
                 }
+
+                /*
+                * Keyboard
+                */
+
                 bNewKey = (m_pKbRead != m_pKbWrite);
-                if (bNewBstate[0] || bNewBstate[1] || bNewMpos || bNewKey)
+
+                /*
+                * Joystick
+                */
+
+                bNewJoystick = m_bInterruptJoystickButtons;
+                m_bInterruptJoystickButtons = false;
+
+                if (bNewBstate[0] || bNewBstate[1] || bNewMpos || bNewKey || bNewJoystick)
                 {
                     // The "no kbd/mouse data" error occurs with 0 0 1 0:
                     // DebugInfo2("() -- ikbd pending = %u %u %u %u", bNewBstate[0], bNewBstate[1], bNewMpos, bNewKey);
                     // Interrupt-Vektor 70 für Tastatur/MIDI mitliefern
                     m_bInterruptPending = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                    Asgard68000SetIRQLineAndExcVector(k68000IRQLineIRQ6, k68000IRQStateAsserted, 70);
-#else
                     m68k_set_irq(M68K_IRQ_6);    // autovector interrupt 70
-#endif
                 }
             }
             m_bInterruptMouseKeyboardPending = false;
@@ -1450,16 +1508,11 @@ int CMagiC::EmuThread( void )
                     EMU_INTPENDING_KBMOUSE);
 */
             OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::EmuThread() --- Exited critical region m_KbCriticalRegionId");
-#endif
             m_bWaitEmulatorForIRQCallback = true;
-            while(m_bInterruptPending)
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                Asgard68000Execute();        // warte bis IRQ-Callback
-#else
+            while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
+            {
                 m68k_execute();        // warte bis IRQ-Callback
-#endif
+            }
         }
 
         // aufgelaufene 200Hz-Interrupts bearbeiten
@@ -1474,19 +1527,10 @@ int CMagiC::EmuThread( void )
 */
             m_bInterruptPending = true;
             m_bWaitEmulatorForIRQCallback = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-            Asgard68000SetIRQLineAndExcVector(k68000IRQLineIRQ5, k68000IRQStateAsserted, 69);
-#else
             m68k_set_irq(M68K_IRQ_5);        // autovector interrupt 69
-#endif
-            while(m_bInterruptPending)
+            while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
             {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                Asgard68000Execute();        // warte bis IRQ-Callback
-#else
                 m68k_execute();        // warte bis IRQ-Callback
-#endif
-//                CDebug::DebugInfo("CMagiC::EmuThread() --- m_bInterrupt200HzPending => %d 68k-Zyklen", CyclesExecuted);
             }
         }
 
@@ -1502,19 +1546,10 @@ int CMagiC::EmuThread( void )
 */
             m_bInterruptPending = true;
             m_bWaitEmulatorForIRQCallback = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-            Asgard68000SetIRQLine(k68000IRQLineIRQ4, k68000IRQStateAsserted);
-#else
             m68k_set_irq(M68K_IRQ_4);
-#endif
-            while(m_bInterruptPending)
+            while(m_bInterruptPending && !OS_AskEvent(&m_EventId, EMU_EVNT_TERM))
             {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-                Asgard68000Execute();        // warte bis IRQ-Callback
-#else
                 m68k_execute();        // warte bis IRQ-Callback
-#endif
-//                CDebug::DebugInfo("CMagiC::Exec() --- m_bInterruptVBLPending => %d 68k-Zyklen", CyclesExecuted);
             }
         }
 
@@ -1522,7 +1557,7 @@ int CMagiC::EmuThread( void )
 
         if (*((uint32_t *)(mem68k +_hz_200)) - CMagiCPrint::s_LastPrinterAccess > 200 * 10)
         {
-            CMagiCPrint::ClosePrinterFile();
+            CMagiCPrint::closePrinterFile();
         }
     }    // for
 
@@ -1544,19 +1579,6 @@ int CMagiC::EmuThread( void )
 *
 **********************************************************************/
 
-#if defined(USE_ASGARD_PPC_68K_EMU)
-int CMagiC::IRQCallback(int IRQLine, void *thisPtr)
-{
-    CMagiC *cm = (CMagiC *) thisPtr;
-    // Interrupt-Leitungen zurücksetzen
-    Asgard68000SetIRQLine(IRQLine, k68000IRQStateClear);
-    // Verarbeitung bestätigen
-    cm->m_bInterruptPending = false;
-    if (cm->m_bWaitEmulatorForIRQCallback)
-        Asgard68000SetExitImmediately();
-    return 0;
-}
-#else
 int CMagiC::IRQCallback(int IRQLine)
 {
     CMagiC *cm = (CMagiC *) pTheMagiC;
@@ -1578,7 +1600,6 @@ int CMagiC::IRQCallback(int IRQLine)
     // dieser Rückgabewert sollte die Interrupt-Anforderung löschen
     return M68K_INT_ACK_AUTOVECTOR;
 }
-#endif
 
 
 /**********************************************************************
@@ -1597,6 +1618,7 @@ int CMagiC::GetKbBufferFree( void )
     return(KEYBOARDBUFLEN - nCharsInBuffer - 1);
 }
 
+
 /**********************************************************************
 *
 * Called from both SDL event loop thread and emulation thread.
@@ -1614,7 +1636,7 @@ void CMagiC::PutKeyToBuffer(uint8_t key)
     *m_pKbWrite++ = key;
     if (m_pKbWrite >= m_cKeyboardOrMouseData + KEYBOARDBUFLEN)
     {
-        m_pKbWrite = m_cKeyboardOrMouseData;
+        m_pKbWrite = m_cKeyboardOrMouseData;    // wrap
     }
 }
 
@@ -1627,13 +1649,9 @@ void CMagiC::PutKeyToBuffer(uint8_t key)
 *
 **********************************************************************/
 
-void CMagiC::SendBusError(uint32_t addr, const char *AccessMode)
+void CMagiC::sendBusError(uint32_t addr, const char *AccessMode)
 {
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    Asgard68000SetExitImmediately();
-#else
     m68k_StopExecution();
-#endif
     m_bBusErrorPending = true;
     m_BusErrorAddress = addr;
     strcpy(m_BusErrorAccessMode, AccessMode);
@@ -1649,7 +1667,7 @@ void CMagiC::SendBusError(uint32_t addr, const char *AccessMode)
 *
 **********************************************************************/
 
-void CMagiC::SendShutdown(void)
+void CMagiC::sendShutdown(void)
 {
     m_bShutdown = true;
 }
@@ -1667,7 +1685,7 @@ void CMagiC::SendShutdown(void)
  * @note Called from main event loop
  *
  ************************************************************************************************/
-int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
+int CMagiC::sendSdlKeyboard(int sdlScanCode, bool keyUp)
 {
     unsigned char val;
 
@@ -1678,30 +1696,14 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
 
     if (m_bEmulatorIsRunning)
     {
-        //    CDebug::DebugInfo("CMagiC::SendKeyboard() --- message == %08x, keyUp == %d", message, (int) keyUp);
+        //    CDebug::DebugInfo2("() --- message == %08x, keyUp == %d", message, (int) keyUp);
 
-#ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboard() --- Enter critical region m_KbCriticalRegionId");
-#endif
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
         if (GetKbBufferFree() < 1)
         {
             OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
-#endif
             DebugError2("() -- keyboard buffer full. Ignore key press");
             return 1;
-        }
-
-        // Special handling of Ctrl-Alt-SDL_SCANCODE_GRAVE
-        // TODO: Remove? MagiC task handler can be activated with Cmd-Alt-Ctrl-Esc instead
-
-        static const uint8_t kbshift_sh_ctrl_alt_mask = (KBSHIFT_SHIFT_RIGHT + KBSHIFT_SHIFT_LEFT + KBSHIFT_CTRL + KBSHIFT_ALT + KBSHIFT_ALTGR);
-        uint8_t kbshift_masked = m_AtariKbData[0] & kbshift_sh_ctrl_alt_mask;
-        if ((sdlScanCode == 0x35) &&  (kbshift_masked == KBSHIFT_CTRL + KBSHIFT_ALT))
-        {
-            sdlScanCode = 0x29;     // SDL_SCANCODE_ESCAPE
         }
 
         // Convert from SDL to Atari scancode
@@ -1710,9 +1712,6 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
         if (!val)
         {
             OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-            CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
-#endif
             DebugError2("() -- unknown key. Ignore key press");
             return 0;
         }
@@ -1727,23 +1726,36 @@ int CMagiC::SendSdlKeyboard(int sdlScanCode, bool keyUp)
         // interrupt vector 70 for keyboard/MIDI
 
         m_bInterruptMouseKeyboardPending = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-#else
         m68k_StopExecution();
-#endif
 
         OS_SetEvent(            // wake up if idle
                     &m_InterruptEventsId,
                     EMU_INTPENDING_KBMOUSE);
 
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-#ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboard() --- Exited critical region m_KbCriticalRegionId");
-#endif
     }
 
     return 0;    // OK
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get Atari kbshift system variable
+ *
+ * @return Atari kbshift value
+ *
+ ************************************************************************************************/
+unsigned CMagiC::getKbshift(void)
+{
+    if (m_bEmulatorIsRunning)
+    {
+        return m_AtariKbData[0];
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 
@@ -1811,9 +1823,6 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
         }
     */
         m_CurrModifierKeys = modifiers;
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboardShift() --- Enter critical region m_KbCriticalRegionId");
-    #endif
         OS_EnterCriticalRegion(m_KbCriticalRegionId, kDurationForever);
         for    (;;)
         {
@@ -1828,14 +1837,11 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
             if (GetKbBufferFree() < nKeys)
             {
                 OS_ExitCriticalRegion(m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-                CDebug::DebugInfo("CMagiC::SendKeyboardShift() --- Exited critical region m_KbCriticalRegionId");
-    #endif
-                DebugError("CMagiC::SendKeyboardShift() --- Tastenpuffer ist voll");
+                DebugError2("() -- keyboard buffer is full");
                 return(1);
             }
 
-    //        CDebug::DebugInfo("CMagiC::SendKeyboardShift() --- val == 0x%04x", (int) val);
+    //        CDebug::DebugInfo2("() --- val == 0x%04x", (int) val);
             PutKeyToBuffer(val);
             // Bei CapsLock wird der break code automatisch mitgeschickt
             if (bAutoBreak)
@@ -1847,11 +1853,7 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
         if (done)
         {
             m_bInterruptMouseKeyboardPending = true;
-    #if defined(USE_ASGARD_PPC_68K_EMU)
-            Asgard68000SetExitImmediately();
-    #else
             m68k_StopExecution();
-    #endif
         }
 
         OS_SetEvent(            // aufwecken, wenn in "idle task"
@@ -1859,9 +1861,6 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
                 EMU_INTPENDING_KBMOUSE);
 
         OS_ExitCriticalRegion(m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendKeyboardShift() --- Exited critical region m_KbCriticalRegionId");
-    #endif
     }
 
     return 0;    // OK
@@ -1873,18 +1872,11 @@ int CMagiC::SendKeyboardShift( uint32_t modifiers )
 *
 * Mausposition schicken (Atari-Bildschirm-relativ).
 *
-* Je nach Compiler-Schalter:
-* -    Wenn EVENT_MOUSE definiert ist, wird die Funktion von der
-*    "main event loop" aufgerufen und löst beim Emulator
-*    einen Interrupt 6 aus.
-* -    Wenn EVENT_MOUSE nicht definiert ist, wird die Funktion im
-*    200Hz-Interrupt (mit 50 Hz) aufgerufen.
-*
 * Rückgabe != 0, wenn die letzte Nachricht noch aussteht.
 *
 **********************************************************************/
 
-int CMagiC::SendMousePosition(int x, int y)
+int CMagiC::sendMousePosition(int x, int y)
 {
 #ifdef _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
     return 0;
@@ -1897,18 +1889,11 @@ int CMagiC::SendMousePosition(int x, int y)
         if (y < 0)
             y = 0;
 
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendMousePosition() --- Enter critical region m_KbCriticalRegionId");
-    #endif
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
-        m_InterruptMouseWhere.x = (short) x;
-        m_InterruptMouseWhere.y = (short) y;
+        m_InterruptMouseWhereX = x;
+        m_InterruptMouseWhereY = y;
         m_bInterruptMouseKeyboardPending = true;
-    #if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-    #else
         m68k_StopExecution();
-    #endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -1916,9 +1901,6 @@ int CMagiC::SendMousePosition(int x, int y)
                 EMU_INTPENDING_KBMOUSE);
 
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendMousePosition() --- Exited critical region m_KbCriticalRegionId");
-    #endif
     }
 
     return 0;    // OK
@@ -1932,7 +1914,7 @@ int CMagiC::SendMousePosition(int x, int y)
 * Rückgabe != 0, wenn die letzte Nachricht noch aussteht.
 *
 **********************************************************************/
-int CMagiC::SendMouseMovement(double xrel, double yrel)
+int CMagiC::sendMouseMovement(double xrel, double yrel)
 {
     if (m_bEmulatorIsRunning)
     {
@@ -1940,11 +1922,7 @@ int CMagiC::SendMouseMovement(double xrel, double yrel)
         m_InterruptMouseMoveRelX = xrel;
         m_InterruptMouseMoveRelY = yrel;
         m_bInterruptMouseKeyboardPending = true;
-    #if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-    #else
         m68k_StopExecution();
-    #endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -1969,7 +1947,7 @@ int CMagiC::SendMouseMovement(double xrel, double yrel)
 *
 **********************************************************************/
 
-int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
+int CMagiC::sendMouseButton(unsigned int NumOfButton, bool bIsDown)
 {
 #ifdef _DEBUG_NO_ATARI_MOUSE_INTERRUPTS
     return 0;
@@ -1979,13 +1957,10 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
     {
         if (NumOfButton > 1)
         {
-            DebugWarning("CMagiC::SendMouseButton() --- Mausbutton %d nicht unterstützt", NumOfButton + 1);
+            DebugWarning2("() -- mouse button %d is not supported", NumOfButton + 1);
             return 1;
         }
 
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendMouseButton() --- Enter critical region m_KbCriticalRegionId");
-    #endif
         OS_EnterCriticalRegion(&m_KbCriticalRegionId);
 #if 0
         if (!Preferences::KeyCodeForRightMouseButton)
@@ -2023,11 +1998,7 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
         }
 
         m_bInterruptMouseKeyboardPending = true;
-    #if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-    #else
         m68k_StopExecution();
-    #endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -2035,9 +2006,41 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
                 EMU_INTPENDING_KBMOUSE);
 
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
-    #ifdef _DEBUG_KB_CRITICAL_REGION
-        CDebug::DebugInfo("CMagiC::SendMouseButton() --- Exited critical region m_KbCriticalRegionId");
-    #endif
+    }
+
+    return 0;    // OK
+}
+
+
+/**********************************************************************
+*
+* Joystick-Status schicken.
+*
+* Wird von der "main event loop" aufgerufen.
+*
+**********************************************************************/
+
+int CMagiC::sendJoystickState(uint8_t header, uint8_t state0, uint8_t state1)
+{
+    if (m_bEmulatorIsRunning)
+    {
+        OS_EnterCriticalRegion(&pTheMagiC->m_KbCriticalRegionId);
+
+        pTheMagiC->PutKeyToBuffer(header);    // 0xfd
+        pTheMagiC->PutKeyToBuffer(state0);    // joystick 0: bits 0..3: directions, bit 7: fire
+        pTheMagiC->PutKeyToBuffer(state1);    // joystick 1: bits 0..3: directions, bit 7: fire
+
+        m_bInterruptJoystickButtons = true;
+        m_bInterruptMouseKeyboardPending = true;
+
+        m68k_StopExecution();
+
+        // wake up emulator, if in "idle task"
+        OS_SetEvent(
+                &m_InterruptEventsId,
+                EMU_INTPENDING_KBMOUSE);
+
+        OS_ExitCriticalRegion(&m_KbCriticalRegionId);
     }
 
     return 0;    // OK
@@ -2055,7 +2058,7 @@ int CMagiC::SendMouseButton(unsigned int NumOfButton, bool bIsDown)
 *
 **********************************************************************/
 
-int CMagiC::SendHz200(void)
+int CMagiC::sendHz200(void)
 {
 #ifdef _DEBUG_NO_ATARI_HZ200_INTERRUPTS
     return 0;
@@ -2073,7 +2076,7 @@ int CMagiC::SendHz200(void)
             //atomic_store(p_bVideoBufChanged, true);
             if (!m_AtariShutDownDelay)
             {
-                DebugInfo("CMagiC::SendHz200() -- execute delayed shutdown");
+                DebugInfo2("() -- execute delayed shutdown");
 
                 // Emulator-Thread anhalten
                 pTheMagiC->m_bCanRun = false;
@@ -2089,11 +2092,7 @@ int CMagiC::SendHz200(void)
          */
 
         m_bInterrupt200HzPending = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-#else
         m68k_StopExecution();
-#endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -2114,7 +2113,7 @@ int CMagiC::SendHz200(void)
 *
 **********************************************************************/
 
-int CMagiC::SendVBL(void)
+int CMagiC::sendVBL(void)
 {
 #ifdef _DEBUG_NO_ATARI_VBL_INTERRUPTS
     return 0;
@@ -2123,11 +2122,7 @@ int CMagiC::SendVBL(void)
     if (m_bEmulatorIsRunning)
     {
         m_bInterruptVBLPending = true;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-#else
         m68k_StopExecution();
-#endif
 
         // wake up emulator, if in "idle task"
         OS_SetEvent(
@@ -2193,35 +2188,14 @@ uint32_t CMagiC::AtariVdiInit(uint32_t params, uint8_t *addrOffset68k)
 #endif
 //    (void) params;
 //    (void) addrOffset68k;
-    Point PtAtariMousePos;
 
     m_LineAVars = addrOffset68k + params;
     // Aktuelle Mausposition: Bildschirmmitte
-    PtAtariMousePos.x = (short) ((CMagiCScreen::m_PixMap.bounds_right - CMagiCScreen::m_PixMap.bounds_left) >> 1);
-    PtAtariMousePos.y = (short) ((CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top) >> 1);
+    int AtariMousePosX = ((CMagiCScreen::m_PixMap.bounds_right - CMagiCScreen::m_PixMap.bounds_left) >> 1);
+    int AtariMousePosY = ((CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top) >> 1);
     CMagiCKeyboard::init();
-    CMagiCMouse::init(m_LineAVars, PtAtariMousePos);
+    CMagiCMouse::init(m_LineAVars, AtariMousePosX, AtariMousePosY);
 
-    // Umgehe Fehler in Behnes MagiC-VDI. Bei Bildbreiten von 2034 Pixeln und true colour werden
-    // fälschlicherweise 0 Bytes pro Bildschirmzeile berechnet. Bei größeren Bildbreiten werden
-    // andere, ebenfalls fehlerhafte Werte berechnet.
-
-#ifdef PATCH_VDI_PPC
-    uint16_t *p_linea_BYTES_LIN = (uint16_t *) (m_LineAVars - 2);
-
-    if ((Preferences::bPPC_VDI_Patch) &&
-         (CGlobals::s_PhysicalPixelSize == 32) &&
-         (CGlobals::s_pixelSize == 32) &&
-         (CGlobals::s_pixelSize2 == 32))
-    {
-        DebugInfo("CMagiC::AtariVdiInit() --- PPC");
-//        DebugInfo("CMagiC::AtariVdiInit() --- (LINEA-2) = %u", *((uint16_t *) (m_LineAVars - 2)));
-// Hier die Atari-Bildschirmbreite in Bytes eintragen, Behnes VDI kriegt hier ab 2034 Pixel Bildbreite
-// immer Null raus, das führt zu Schrott.
-//        *((uint16_t *) (m_LineAVars - 2)) = htobe16(8136);    // 2034 * 4
-        patchppc(addrOffset68k);
-    }
-#endif
     return 0;
 }
 
@@ -2255,46 +2229,19 @@ uint32_t CMagiC::AtariExec68k(uint32_t params, uint8_t *addrOffset68k)
         }
         // speziellen Modus beenden
         m_bSpecialExec = false;
-#if defined(USE_ASGARD_PPC_68K_EMU)
-        Asgard68000SetExitImmediately();
-#else
         m68k_StopExecution();
-#endif
         return 0;
     }
 
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    if (Asgard68000GetContext(NULL) > 1024)
-#else
     if (m68k_context_size() > 1024)
-#endif
     {
-        DebugError("CMagiC::AtariExec68k() --- Kontext zu groß");
+        DebugError2("() -- Context too large");
         return(0xffffffff);
     }
 
     // alten 68k-Kontext retten
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    (void) Asgard68000GetContext(Old68kContext);
-#else
     (void) m68k_get_context(Old68kContext);
-#endif
     // PC und sp setzen
-#if defined(USE_ASGARD_PPC_68K_EMU)
-    Asgard68000Reset();
-    Asgard68000SetReg(k68000RegisterIndexPC, pNew68Context->regPC);
-    Asgard68000SetReg(k68000RegisterIndexSP, pNew68Context->regSP);
-    Asgard68000SetReg(k68000RegisterIndexA0, pNew68Context->arg);
-    Asgard68000SetReg(k68000RegisterIndexSR, 0x2700);
-
-    // 68k im PPC im 68k ausführen
-    m_bSpecialExec = true;
-    while(m_bSpecialExec)
-        Asgard68000Execute();
-    // alles zurück
-    ret = Asgard68000GetReg(k68000RegisterIndexD0);
-    (void) Asgard68000SetContext(Old68kContext);
-#else
     m68k_pulse_reset();
     NFReset();
     m68k_set_reg(M68K_REG_PC, be32toh(pNew68Context->regPC));
@@ -2309,7 +2256,7 @@ uint32_t CMagiC::AtariExec68k(uint32_t params, uint8_t *addrOffset68k)
     // alles zurück
     ret = m68k_get_reg(NULL, M68K_REG_D0);
     (void) m68k_set_context(Old68kContext);
-#endif
+
     return ret;
 }
 
@@ -2332,7 +2279,7 @@ uint32_t CMagiC::AtariDOSFn(uint32_t params, uint8_t *addrOffset68k)
     (void) addrOffset68k;
 #if defined(_DEBUG)
     AtariDOSFnParm *theAtariDOSFnParm = (AtariDOSFnParm *) (addrOffset68k + params);
-    DebugInfo("CMagiC::AtariDOSFn(fn = 0x%x)", be16toh(theAtariDOSFnParm->dos_fnr));
+    DebugInfo2("(fn = 0x%x)", be16toh(theAtariDOSFnParm->dos_fnr));
 #endif
     return (uint32_t) EINVFN;
 }
@@ -2347,6 +2294,8 @@ uint32_t CMagiC::AtariDOSFn(uint32_t params, uint8_t *addrOffset68k)
  *
  * @return bits [0:4]=two-seconds [5:10]=min [11:15]=h [16:20]=day [21:24]=month [25-31]=y-1980
  *
+ * @note For Atari the month value is 1..12, while in Unix it is 0..11.
+ *
  ************************************************************************************************/
 uint32_t CMagiC::AtariGettime(uint32_t params, uint8_t *addrOffset68k)
 {
@@ -2354,15 +2303,10 @@ uint32_t CMagiC::AtariGettime(uint32_t params, uint8_t *addrOffset68k)
     (void) addrOffset68k;
 
     time_t t = time(nullptr);
-    struct tm tm;
-    (void) localtime_r(&t, &tm);
-
-    return (tm.tm_sec >> 1) |
-           (tm.tm_min << 5) |
-           (tm.tm_hour << 11) |
-           (tm.tm_mday << 16) |
-           (tm.tm_mon << 21) |
-           ((tm.tm_year) - 80) << 25;
+    uint16_t time;
+    uint16_t date;
+    CConversion::hostDateToDosDate(t, &time, &date);
+    return ((uint32_t) time) | (((uint32_t) date) << 16);
 }
 
 
@@ -2411,14 +2355,21 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
     //DebugError2("(0x%08x, 0x%08x, %u) -- not supported", log, phys, res);
     if (log != 0xffffffff)
     {
+        if (log == addr68kVideo)
+        {
+            DebugWarning2("() -- logical screen address reset to 0x%08x", log);
+            CMagiCScreen::m_logAddr = 0;
+        }
+        else
         if (log > mem68kSize - 32000)
         {
-            DebugError2("() -- invalid 68k address 0x%08x", log);
+            DebugError2("() -- invalid 68k address 0x%08x for logical screen", log);
         }
         else
         {
             CMagiCScreen::m_logAddr = log;
-            DebugError2("() -- changing of logical screen to 0x%08x not supported, yet", log);
+            setAtariBE32(mem68k + _v_bas_ad, log);
+            DebugWarning2("() -- changing of logical screen to 0x%08x is experimental", log);
         }
     }
     if (phys != 0xffffffff)
@@ -2431,7 +2382,7 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
         else
         if (phys > mem68kSize - 32000)
         {
-            DebugError2("() -- invalid 68k address 0x%08x", phys);
+            DebugError2("() -- invalid 68k address 0x%08x for physical screen", phys);
         }
         else
         {
@@ -2442,7 +2393,9 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
     if (res != 0xffff)
     {
         CMagiCScreen::m_res = res;
-        DebugError2("() -- changing of screen resolution to %ux not supported, yet", res);
+        const char *resname = (res == 0) ? "ST LOW" : ((res == 1) ? "ST MID" : ((res == 2) ? "ST HIGH" : "(unknown)"));
+        DebugError2("() -- changing of screen resolution to %u (%s) not supported, yet", res, resname);
+        (void)resname;
     }
     return 0;
 }
@@ -2529,12 +2482,15 @@ uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
     }
 
     uint16_t prev_val = CMagiCScreen::getColourPaletteEntry(index);
+    #if !defined(STE_COLOUR_PALETTE)
+    prev_val &= 0x777;  // ST has 512 colours, STe has 4096
+    #endif
     if (val != 0xffff)
     {
         CMagiCScreen::setColourPaletteEntry(index, val);
     }
 
-    DebugWarning2("(%2d, 0x%04x) -- partially supported", index, val);
+    DebugWarning2("(%2d, 0x%04x) -> 0x%08x", index, val, prev_val);
     return prev_val;
 }
 
@@ -2676,6 +2632,281 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
 #endif
     }
 
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: BIOS Bconin
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return read character in bits 0..7
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariBconin(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct BconinParm
+    {
+        uint16_t devno;             // 3: MIDI, 4: IKDB, TODO: more to come
+    } __attribute__((packed));
+
+    const BconinParm *theParm = (BconinParm *) (addrOffset68k + params);
+    uint16_t devno = be16toh(theParm->devno);
+    DebugWarning2("(devno = %u)", devno);
+
+    if (devno == 0)
+    {
+        unsigned char c;
+        uint32_t n;
+
+        n = CMagiCPrint::read(&c, 1);
+        if (!n)
+            return 0;
+        else
+            return(c);
+    }
+    else
+    if (devno == 1)
+    {
+        // open serial port, if necessary
+        if (!CMagiCSerial::OpenSerialBIOS())
+        {
+            return 0;
+        }
+
+        char c;
+        uint32_t ret = CMagiCSerial::Read(&c, 1);
+        if (ret > 0)
+        {
+            return (uint32_t) c & 0x000000ff;
+        }
+        else
+            return 0xffffffff;
+    }
+
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: BIOS Bconout
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return read character in bits 0..7
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariBconout(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct BconoutParm
+    {
+        uint16_t devno;             // 3: MIDI, 4: IKDB, TODO: more to come
+        PTR32_BE data;            // 68k-pointer to character, as 16-bit word
+    } __attribute__((packed));
+
+    const BconoutParm *theParm = (BconoutParm *) (addrOffset68k + params);
+    uint16_t devno = be16toh(theParm->devno);
+    const uint16_t *pData = (uint16_t *) (addrOffset68k + be32toh(theParm->data));
+    uint16_t datum = be16toh(*pData); // 16-bit big endian
+    DebugWarning2("(devno = %u, c = 0x%04x)", devno, datum);
+
+    if (devno == 0)
+    {
+        uint32_t ret = CMagiCPrint::write(addrOffset68k + params + 1, 1);
+        if (ret == 1)
+            return(0xffffffff);        // OK
+        else
+            return 0;                // Fehler
+    }
+    else
+    if (devno == 1)
+    {
+        // open serial port, if necessary
+        if (!CMagiCSerial::OpenSerialBIOS())
+        {
+            return 0;
+        }
+
+        return CMagiCSerial::Write((char *) addrOffset68k + params + 1, 1);
+    }
+    else
+    if ((devno == 4) && (datum == 0x16))
+    {
+        // Joystick interrogation (IKBD $16)
+        SDL_Event event;
+
+        event.type = SDL_USEREVENT;
+        event.user.code = USEREVENT_POLL_JOYSTICK_STATE;
+        event.user.data1 = 0;
+        event.user.data2 = 0;
+        SDL_PushEvent(&event);
+    }
+    else
+    if ((devno == 4) && (datum == 8))
+    {
+        // Set relative mouse position reporting (IKBD $08)
+        DebugWarning2("() -- Set relative mouse position reporting (IKBD $08)");
+    }
+
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: BIOS Bconstat
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return read character in bits 0..7
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariBconstat(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct BconstatParm
+    {
+        uint16_t devno;             // 3: MIDI, 4: IKDB, TODO: more to come
+    } __attribute__((packed));
+
+    const BconstatParm *theParm = (BconstatParm *) (addrOffset68k + params);
+    uint16_t devno = be16toh(theParm->devno);
+    DebugWarning2("(devno = %u)", devno);
+
+    if (devno == 0)
+    {
+        return CMagiCPrint::getInputStatus();
+    }
+    else
+    if (devno == 1)
+    {
+        // open serial port, if necessary
+        if (!CMagiCSerial::OpenSerialBIOS())
+        {
+            return 0;
+        }
+
+        return CMagiCSerial::ReadStatus() ? 0xffffffff : 0;
+    }
+
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: BIOS Bcostat
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return read character in bits 0..7
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariBcostat(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct BcostatParm
+    {
+        uint16_t devno;             // 3: MIDI, 4: IKDB, 0: PRN, TODO: more to come
+    } __attribute__((packed));
+
+    const BcostatParm *theParm = (BcostatParm *) (addrOffset68k + params);
+    uint16_t devno = be16toh(theParm->devno);
+    DebugWarning2("(devno = %u)", devno);
+
+    if (devno == 0)
+    {
+        return CMagiCPrint::getOutputStatus();
+    }
+    else
+    if (devno == 1)
+    {
+        // open serial port, if necessary
+        if (!CMagiCSerial::OpenSerialBIOS())
+        {
+            return 0;
+        }
+
+        return CMagiCSerial::WriteStatus() ? 0xffffffff : 0;
+    }
+
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS Ikbdws
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return nothing, return values is ignored
+ *
+ * @note The special case Ikbdws(0, "\x1c") for asking the IKBD clock is already handled
+ *       inside the kernel.
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariIkbdws(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct IkbdwsParm
+    {
+        uint16_t len_minus_one;         // 0: one byte, 1: two bytes, et cetera
+        uint32_t data;                  // 68k pointer to data
+    } __attribute__((packed));
+
+    const IkbdwsParm *theParm = (IkbdwsParm *) (addrOffset68k + params);
+    uint32_t len = be16toh(theParm->len_minus_one) + 1;
+    //const uint8_t *pData = (uint8_t *) (addrOffset68k + be32toh(theParm->data));
+    DebugError2("(len = %u, data = 0x%08x) -- not implemented", len, be32toh(theParm->data));
+    (void)len;
+    return EINVFN;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS Dosound
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return previous content of Atari sound_data variable:
+ *              sound_data:     DS.L 1
+ *              sound_delay:    DS.B 1
+ *              sound_byte:     DS.B 1
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariDosound(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct DosoundParm
+    {
+        uint32_t fn;                // 0:XBIOS Dosound() / 1:click / 2:pling
+        uint32_t new_sound;         // 68k pointer to new sound data
+        uint32_t sound_vars;        // 68k address of sound_data, sound_delay und sound_byte
+    } __attribute__((packed));
+
+    const DosoundParm *theParm = (DosoundParm *) (addrOffset68k + params);
+    uint32_t fn = be32toh(theParm->fn);
+    const uint8_t *pSoundData = (uint8_t *) (addrOffset68k + be32toh(theParm->new_sound));
+    uint8_t *pSoundVariables = (uint8_t *) (addrOffset68k + be32toh(theParm->sound_vars));
+    DebugInfo2("(fn = %u, new_sound=0x%08x, sound_vars=0x%08x)", be32toh(theParm->fn), be32toh(theParm->new_sound), be32toh(theParm->sound_vars));
+    if (fn == 1)
+    {
+        CAudio::play_click();
+    }
+    else
+    if (fn == 2)
+    {
+        CAudio::play_pling();
+    }
+    (void) pSoundData;
+    (void) pSoundVariables;
     return 0;
 }
 
@@ -2886,8 +3117,8 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
         {
             mount_buttons = mount_buttons_ab;
             answerA = 101;
-            answerA_ro = 102;
-            answerB = 103;
+            answerB = 102;
+            answerA_ro = 103;
             answerB_ro = 104;
         }
         else
@@ -2977,6 +3208,10 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
                 }
             }
         }
+        else
+        {
+            DebugError2("() -- No diskimage: %s", allocated_path);
+        }
     }
     else
     {
@@ -3001,7 +3236,7 @@ uint32_t CMagiC::AtariSysHalt(uint32_t params, uint8_t *addrOffset68k)
 // Daten werden getrennt von der Nachricht geliefert
 
     showAlert("The emulator was halted", errMsg);
-    pTheMagiC->StopExec();
+    pTheMagiC->stopExec();
     return 0;
 }
 
@@ -3029,16 +3264,6 @@ uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
     uint32_t m68k_pc;
     const char *AtariPrgFname;
 
-#if 0        // #ifdef PATCH_VDI_PPC
-    // patche den Bildschirm(Offscreen-)Treiber
-    static int patched = 0;
-    if (!patched)
-    {
-        patchppc(addrOffset68k);
-        patched = 1;
-    }
-#endif
-
     DebugError2("()");
 
     // FÜR DIE FEHLERSUCHE: GIB DIE LETZTEN TRACE-INFORMATIONEN AUS.
@@ -3050,15 +3275,15 @@ uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
     GetActAtariPrg(&AtariPrgFname, &act_pd);
     m68k_pc = be32toh(*((uint32_t *) (addrOffset68k + proc_stk + 2)));
 
-    DebugInfo("CMagiC::AtariSysErr() -- act_pd = 0x%08lx", act_pd);
-    DebugInfo("CMagiC::AtariSysErr() -- Prozeßpfad = %s", (AtariPrgFname) ? AtariPrgFname : "<unknown>");
+    DebugInfo2("() -- act_pd = 0x%08lx", act_pd);
+    DebugInfo2("() -- Prozeßpfad = %s", (AtariPrgFname) ? AtariPrgFname : "<unknown>");
 #if defined(_DEBUG)
     if (m68k_pc < mem68kSize - 8)
     {
         uint16_t opcode1 = be16toh(*((uint16_t *) (addrOffset68k + m68k_pc)));
         uint16_t opcode2 = be16toh(*((uint16_t *) (addrOffset68k + m68k_pc + 2)));
         uint16_t opcode3 = be16toh(*((uint16_t *) (addrOffset68k + m68k_pc + 4)));
-        DebugInfo("CMagiC::AtariSysErr() -- opcode = 0x%04x 0x%04x 0x%04x", (unsigned) opcode1, (unsigned) opcode2, (unsigned) opcode3);
+        DebugInfo2("() -- opcode = 0x%04x 0x%04x 0x%04x", (unsigned) opcode1, (unsigned) opcode2, (unsigned) opcode3);
     }
 #endif
 
@@ -3138,20 +3363,10 @@ uint32_t CMagiC::AtariExit(uint32_t params, uint8_t *addrOffset68k)
 
 uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
 {
-#ifndef NDEBUG
-    const unsigned char *text = addrOffset68k + params;
-    //printf((char *) text);
-    DebugInfo2("(%s)", CConversion::textAtari2Host(text));
-/*
-    if ((text[0] == 'A') && (text[1] == 'E') && (text[2] == 'S'))
-    {
-        int68k_enable(0);   // TODO: remove
-    }
-*/
-#else
+    DebugInfo2("(%s)", CConversion::textAtari2Host(addrOffset68k + params));
     (void) params;
     (void) addrOffset68k;
-#endif
+
     return 0;
 }
 
@@ -3183,7 +3398,7 @@ uint32_t CMagiC::AtariError(uint32_t params, uint8_t *addrOffset68k)
      [Quit MagiCMacX]
      */
     showAlert("The emulated system could not find a suitable video driver", "Review configuration file!");
-    pTheMagiC->StopExec();    // fatal error for execution thread
+    pTheMagiC->stopExec();    // fatal error for execution thread
     return 0;
 }
 
@@ -3222,7 +3437,7 @@ uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
 /*
     if (EventFlags & EMU_EVNT_TERM)
     {
-        DebugInfo("CMagiC::EmuThread() -- normaler Abbruch");
+        DebugInfo2("() -- normaler Abbruch");
         break;    // normaler Abbruch, Thread-Ende
     }
 */
@@ -3237,10 +3452,12 @@ uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
  * @param[in] params            0: about to handle interrupt, 1: leaving interrupt
  * @param[in] addrOffset68k     Host address of 68k memory (unused)
  *
- * @return scancode or mouse code. Zero, in none is available
+ * @return scancode or mouse code. Zero, if none is available
  *
  * @note params = 0: called from ikbdsys(),
  *       params = 1: called from midikey_int() in MagiC kernel (MFP interrupt 6)
+ * @note The function ikbdsys() must ignore NUL bytes if they do not belong to
+ *       a mouse packet.
  *
  ************************************************************************************************/
 uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffset68k)
@@ -3283,7 +3500,7 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
     {
         OS_ExitCriticalRegion(&m_KbCriticalRegionId);
         // no data to process
-        return 0;  // no mouse or keyboard events to process
+        return 0;  // no mouse or keyboard events to process, note that caller must explicitly ignore zeros
     }
 
     // read byte from mouse/keyboard ringbuffer
@@ -3297,12 +3514,20 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Programmstart aus Apple-Events abholen
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: MMXDAEMON polling
+ *
+ * @param[in] params            0: about to handle interrupt, 1: leaving interrupt
+ * @param[in] addrOffset68k     Host address of 68k memory (unused)
+ *
+ * @return zero or error code
+ *
+ * @note The MMXDAEMON provides an interface between the host and the Atari shell.
+ *       It regularly polls for host shutdown and for starting Atari applications from
+ *       the host's file manager or command line.
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
 {
     uint32_t ret;
@@ -3318,36 +3543,87 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
 
     switch(be16toh(theMmxDaemonParm->cmd))
     {
-        // ermittle zu startende Programme/Dateien aus AppleEvent 'odoc'
+        //
+        // run Atari programs, initiated by host
+        //
+
         case 1:
-#if 0
-            OS_EnterCriticalRegion(&m_AECriticalRegionId);
-            if (m_iNoOfAtariFiles)
+        {
+            // mounting drive seems to fail if done during Atari boot phase
+            if (Preferences::mountDriveParameter != nullptr)
             {
-                unsigned char *pBuf;
-                // Es liegen Anforderungen vor.
-                // Zieladresse:
-                pBuf = addrOffset68k + be32toh(theMmxDaemonParm->parm);
-                // von Quelladresse kopieren
-                strcpy((char *) pBuf, m_szStartAtariFiles[m_iOldestAtariFile]);
-                ret = E_OK;
-                m_iNoOfAtariFiles--;
+                // Send user event to event loop
+                SDL_Event event;
+
+                event.type = SDL_USEREVENT;
+                event.user.code = USEREVENT_POLL_MOUNT;
+                event.user.data1 = 0;
+                event.user.data2 = 0;
+                SDL_PushEvent(&event);
+            }
+
+            // TODO: OS_EnterCriticalRegion(&m_AECriticalRegionId);
+            const char *path = Preferences::AtariStartApplications[0];
+            if (path != nullptr)
+            {
+                uint8_t *pBuf = addrOffset68k + be32toh(theMmxDaemonParm->parm);
+                if (!pTheMagiC->m_HostXFS.isAtariPath(path))
+                {
+                    //
+                    // If the path is a host path, directly convert it to Atari path in the caller's buffer
+                    //
+
+                    if (pTheMagiC->m_HostXFS.hostPath2AtariPath(path, 'C' - 'A', pBuf, 256) == 0)
+                    {
+                        ret = E_OK;
+                    }
+                }
+                else
+                {
+                    //
+                    // If the path is an Atari path, check for overflow and copy it to the caller's buffer.
+                    // TODO: convert non-ASCII characters from host to Atari
+                    //
+
+                    if (strlen(Preferences::AtariStartApplications[0]) < 255)
+                    {
+                        // Copy path of application to start to MMXDAEMN
+                        strcpy((char *) pBuf, Preferences::AtariStartApplications[0]);
+                        ret = E_OK;
+                    }
+                    else
+                    {
+                        DebugError2("() -- path length overflow");
+                    }
+                }
+
+                // update queue
+                free((void *) Preferences::AtariStartApplications[0]);
+                for (unsigned i = 0; i < MAX_START_APPS - 1; i++)
+                {
+                    Preferences::AtariStartApplications[i] = Preferences::AtariStartApplications[i + 1];
+                }
+                Preferences::AtariStartApplications[MAX_START_APPS - 1] = nullptr;
             }
             else
+            {
                 ret = (uint32_t) EFILNF;
-            OS_ExitCriticalRegion(&m_AECriticalRegionId);
-#else
-            ret = (uint32_t) EFILNF;
-#endif
+            }
+            // TODO: OS_ExitCriticalRegion(&m_AECriticalRegionId);
             break;
+        }
 
-        // ermittle shutdown-Status
+        //
+        // Atari queries shutdown status
+        //
+
         case 2:
             ret = (uint32_t) pTheMagiC->m_bShutdown;
             break;
 
         default:
             ret = (uint32_t) EUNCMD;
+            break;
     }
 
     return ret;

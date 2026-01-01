@@ -136,88 +136,136 @@ class CStMmuConf : public CRegisterModel
     CStMmuConf() : CRegisterModel("ST MMU memory configuration", 0xffff8001, 0xffff8001) { }
 };
 
-class CVideoScreenMemoryPositionHigh : public CRegisterModel
-{
-  public:
-    CVideoScreenMemoryPositionHigh() : CRegisterModel("Video screen memory position (High byte)", 0xffff8201, 0xffff8201)
-    {
-        logcnt = 20;
-    }
-    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
-    {
-        (void) addr;
-        (void) len;
-        *p_success = true;
-        return (uint8_t) (addr68kVideo >> 16);
-    }
-};
 
-class CVideoScreenMemoryPositionMid : public CRegisterModel
+/** **********************************************************************************************
+ *
+ * @brief SHIFTER Video Controller: Video addresses (ST, STe, F030)
+ *
+ ************************************************************************************************/
+class CVideoAddress : public CRegisterModel
 {
   public:
-    CVideoScreenMemoryPositionMid() : CRegisterModel("Video screen memory position (Mid byte)", 0xffff8203, 0xffff8203)
+    CVideoAddress() : CRegisterModel("Video screen address", 0xffff8200, 0xffff8211)
     {
         logcnt = 20;
     }
-    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
-    {
-        (void) addr;
-        (void) len;
-        *p_success = true;
-        return (uint8_t) (addr68kVideo >> 8);
-    }
-};
 
-class CVideoAddressPointer : public CRegisterModel
-{
-  public:
-    CVideoAddressPointer() : CRegisterModel("Video address pointer", 0xffff8204, 0xffff8209)
+    virtual const char *regname(uint32_t addr, unsigned len)
     {
-        logcnt = 20;
-    }
-    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
-    {
-        if (((addr & 1) == 0) || (len != 1))
+        addr -= start_addr;
+        if ((addr == 0) && (len == 4))
         {
-            // only support 8-bit read on odd address
-            *p_success = false;
-            return 0;
+            return "pos high and mid";
         }
+        switch(addr)
+        {
+            case    1: return "pos high";
+            case    3: return "pos mid";
+            case    5: return "ptr high";
+            case    7: return "ptr mid";
+            case    9: return "ptr low";
+            case 0x0a: return "sync mode";
+            case 0x0d: return "pos low (STe)";
+        }
+        return "";
+    }
 
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
+    {
         addr -= start_addr;
         *p_success = true;
-        if (addr == 1)
-            return (uint8_t) (addr68kVideo >> 16);
-        else
-        if (addr == 3)
-            return (uint8_t) (addr68kVideo >> 8);
-        else
-        if (addr == 5)
-            return (uint8_t) (addr68kVideo);
-        assert(0);
+
+        uint32_t physaddr = addr68kVideo;   // default screen
+        if (CMagiCScreen::m_physAddr != 0)
+        {
+            physaddr = CMagiCScreen::m_physAddr;    // changed address
+        }
+
+        if ((addr == 0) && (len == 4))
+        {
+            uint32_t high = (physaddr >> 16) & 0xff;
+            uint32_t mid  = (physaddr >>  8) & 0xff;
+            return (high << 16) | mid;   // high and mid bytes
+        }
+
+        if (len == 1)
+        {
+            // only support 8-bit reads
+            switch(addr)
+            {
+                case    1: return (physaddr >> 16) & 0xff;  // high byte
+                case    3: return (physaddr >> 8) & 0xff;   // mid byte
+                case    5: return (physaddr >> 16) & 0xff;  // high byte
+                case    7: return (physaddr >> 8) & 0xff;   // mid byte
+                case    9: return (physaddr) & 0xff;        // low byte
+                case 0x0a: return 0;                        // sync mode
+                case 0x0d: return (physaddr) & 0xff;        // low byte
+            }
+        }
+        *p_success = false;
         return 0;
     }
-};
 
-class CVideoSyncMode : public CRegisterModel
-{
-  public:
-    CVideoSyncMode() : CRegisterModel("Video Synchronisation mode", 0xffff820a, 0xffff820a) { }
-};
-
-class CVideoScreenMemoryPositionLow : public CRegisterModel
-{
-  public:
-    CVideoScreenMemoryPositionLow() : CRegisterModel("Video screen memory position (Low byte)", 0xffff820d, 0xffff820d) { }
-    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
     {
-        (void) addr;
-        (void) len;
-        *p_success = true;
-        return (uint8_t) addr68kVideo;
+        addr -= start_addr;
+
+        uint32_t physaddr = addr68kVideo;   // default screen
+        if (CMagiCScreen::m_physAddr != 0)
+        {
+            physaddr = CMagiCScreen::m_physAddr;    // changed address
+        }
+        uint32_t prev_physaddr = physaddr;
+
+        if ((addr == 0) && (len == 4))
+        {
+            physaddr &= 0xff0000ff;             // mask out high and mid byte
+            uint32_t high = (datum >> 16) & 0xff;
+            uint32_t mid  = datum  & 0xff;
+            physaddr |= high << 16;     // replace high byte
+            physaddr |= mid << 8;       // replace mid byte
+        }
+        else
+        if ((addr == 1) && (len == 1))
+        {
+            physaddr &= 0xff00ffff;             // mask out high byte
+            physaddr |= (datum & 0xff) << 16;   // replace high byte
+        }
+        else
+        if ((addr == 3) && (len == 1))
+        {
+            physaddr &= 0xffff00ff;             // mask out mid byte
+            physaddr |= (datum & 0xff) << 8;    // replace mid byte
+        }
+        if ((addr == 0x0d) && (len == 1))
+        {
+            physaddr &= 0xffffff00;             // mask out low byte
+            physaddr |= (datum & 0xff);         // replace low byte
+        }
+
+        if (physaddr != prev_physaddr)
+        {
+            if (physaddr == addr68kVideo)
+            {
+                DebugWarning("    physical screen address reset to default");
+                CMagiCScreen::m_physAddr = 0;   // go back to default screen
+            }
+            else
+            {
+                DebugWarning("    physical screen address set to 0x%08x", physaddr);
+                CMagiCScreen::m_physAddr = physaddr;
+            }
+        }
+        *p_success = true;  // never bus error, just ignore, if unhandled
     }
 };
 
+
+/** **********************************************************************************************
+ *
+ * @brief SHIFTER Video Controller: Video colour palette (ST(e))
+ *
+ ************************************************************************************************/
 class CVideoPalette : public CRegisterModel
 {
   public:
@@ -284,30 +332,198 @@ class CVideoPalette : public CRegisterModel
     }
 };
 
-class CYM2149Read : public CRegisterModel
+
+/** **********************************************************************************************
+ *
+ * @brief SHIFTER Video Controller: resolution (ST, STe, F030)
+ *
+ ************************************************************************************************/
+class CVideoResolution : public CRegisterModel
 {
   public:
-    CYM2149Read() : CRegisterModel("YM2149 Read data/Register select", 0xffff8800, 0xffff8800) { }
+    CVideoResolution() : CRegisterModel("Video resolution", 0xffff8260, 0xffff8263) { }
+
+    virtual const char *regname(uint32_t addr, unsigned len)
+    {
+        addr -= start_addr;
+        (void) len;
+        switch(addr)
+        {
+            case    0: return "ST shift mode";
+            case    1: return "ST shift mode, only shifter";
+            case    2: return "TT shift mode";
+            case    3: return "ST palette bank (TT)";
+        }
+        return "";
+    }
+
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
+    {
+        addr -= start_addr;
+
+        if ((len != 1) || (addr > 2))
+        {
+            // only support 8-bit reads to the first three bytes
+            *p_success = false;
+            return 0;
+        }
+
+        uint8_t mode = CMagiCScreen::getAtariScreenMode();
+        if ((addr == 0) || (addr == 1))
+        {
+            // ST register: return invalid value 3 for ST incompatible resolution
+            if (mode > 2)
+            {
+                mode = 3;
+            }
+        }
+
+        *p_success = true;
+        return mode;
+    }
+
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
+    {
+        addr -= start_addr;
+
+        if ((len != 1) || (addr > 2))
+        {
+            // only support 8-bit writes to the first three bytes
+            *p_success = false;
+            return;
+        }
+
+        uint8_t mode = CMagiCScreen::getAtariScreenMode();
+        if ((addr == 0) || (addr == 1))
+        {
+            // ST register: return invalid value 3 for ST incompatible resolution
+            if (mode != datum)
+            {
+                // we could show an alert here
+                DebugError("Failed attempt to change ST resolution from %u to %u", mode, datum);
+            }
+        }
+
+        *p_success = true;
+    }
 };
 
-class CYM2149Write : public CRegisterModel
+
+/** **********************************************************************************************
+ *
+ * @brief YM2149 - Sound Chip
+ *
+ ************************************************************************************************/
+class CYM2149 : public CRegisterModel
 {
   public:
-    CYM2149Write() : CRegisterModel("YM2149 Write data", 0xffff8802, 0xffff8802) { }
+    CYM2149() : CRegisterModel("YM2149", 0xffff8800, 0xffff8802) { }
+
+    virtual const char *regname(uint32_t addr, unsigned len)
+    {
+        (void) len;
+        addr -= start_addr;
+        if (addr == 0)
+            return "Read data/Register select";
+        else
+        if (addr == 2)
+            return "Write data";
+        else
+            return "";
+    }
 };
 
+
+/** **********************************************************************************************
+ *
+ * @brief MFP 68901 - Multi Function Peripheral Chip (ST and TT)
+ *
+ ************************************************************************************************/
 class CMfp : public CRegisterModel
 {
   public:
-    CMfp() : CRegisterModel("MFP 68901 - Multi Function Peripheral Chip", 0xfffffa01, 0xfffffa2f) { }
+    CMfp() : CRegisterModel("MFP 68901 - Multi Function Peripheral Chip", 0xfffffa00, 0xfffffa2f) { }
+
+    virtual const char *regname(uint32_t addr, unsigned len)
+    {
+        addr -= start_addr;
+        if (len == 1)
+        {
+            switch(addr)
+            {
+                case 0x07: return "Int Enable A";
+                case 0x09: return "Int Enable B";
+                case 0x0b: return "Int Pending A";
+                case 0x0d: return "Int Pending B";
+                case 0x0f: return "Int In-Service A";
+                case 0x11: return "Int In-Service B";
+                case 0x13: return "Int Mask A";
+                case 0x15: return "Int Mask B";
+                case 0x17: return "Vector Register";
+                case 0x19: return "Timer A control";
+                case 0x1b: return "Timer B control";
+                case 0x1d: return "Timer C/D control";
+                case 0x1f: return "Timer A data";
+                case 0x21: return "Timer B data";
+                case 0x23: return "Timer C data";
+                case 0x25: return "Timer D data";
+            }
+        }
+        return "";
+    }
 };
 
+/** **********************************************************************************************
+ *
+ * @brief Floating Point Coprocessor (Mega-STe)
+ *
+ ************************************************************************************************/
 class CFpu : public CRegisterModel
 {
   public:
     CFpu() : CRegisterModel("Floating Point Coprocessor", 0xfffffa40, 0xfffffa5f) { }
+
+    virtual const char *regname(uint32_t addr, unsigned len)
+    {
+        addr -= start_addr;
+        if (len == 2)
+        {
+            switch(addr)
+            {
+                case 0x00: return "FP_Stat";
+                case 0x02: return "FP_Ctl";
+                case 0x04: return "FP_Save";
+                case 0x06: return "FP_Restore";
+            }
+        }
+        return "";
+    }
+
+    virtual void write(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
+    {
+        // bus error
+        (void) addr;
+        (void) len;
+        (void) datum;
+        *p_success = false;
+    }
+
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
+    {
+        // bus error
+        (void) addr;
+        (void) len;
+        *p_success = false;
+        return 0;
+    }
 };
 
+
+/** **********************************************************************************************
+ *
+ * @brief MFP 68901 #2 - Multi Function Peripheral Chip (TT)
+ *
+ ************************************************************************************************/
 class CMfp2 : public CRegisterModel
 {
   public:
@@ -325,14 +541,10 @@ int CRegisterModel::init()
     // modules
     models[num_models++] = new CTtMmuConf;
     models[num_models++] = new CStMmuConf;
-    models[num_models++] = new CYM2149Read;
-    models[num_models++] = new CYM2149Write;
-    models[num_models++] = new CVideoScreenMemoryPositionHigh;
-    models[num_models++] = new CVideoScreenMemoryPositionMid;
-    models[num_models++] = new CVideoSyncMode;
-    models[num_models++] = new CVideoAddressPointer;
-    models[num_models++] = new CVideoScreenMemoryPositionLow;
+    models[num_models++] = new CYM2149;
+    models[num_models++] = new CVideoAddress;
     models[num_models++] = new CVideoPalette;
+    models[num_models++] = new CVideoResolution;
     models[num_models++] = new CMfp;
     models[num_models++] = new CFpu;
     models[num_models++] = new CMfp2;
@@ -389,16 +601,16 @@ uint32_t CRegisterModel::read_reg(uint32_t addr, unsigned len, bool *p_success)
                 {
                     if (len == 1)
                     {
-                        DebugInfo("m68k (0x%08x) -> 0x%02x (%s)", addr, ret, model->name);
+                        DebugInfo("m68k (0x%08x) -> 0x%02x (%s %s)", addr, ret, model->name, model->regname(addr, len));
                     }
                     else
                     if (len == 2)
                     {
-                        DebugInfo("m68k (0x%08x) -> 0x%04x (%s)", addr, ret, model->name);
+                        DebugInfo("m68k (0x%08x) -> 0x%04x (%s %s)", addr, ret, model->name, model->regname(addr, len));
                     }
                     else
                     {
-                        DebugInfo("m68k (0x%08x) -> 0x%08x (%s)", addr, ret, model->name);
+                        DebugInfo("m68k (0x%08x) -> 0x%08x (%s %s)", addr, ret, model->name, model->regname(addr, len));
                     }
 
                     model->logcnt--;
@@ -448,16 +660,17 @@ void CRegisterModel::write_reg(uint32_t addr, unsigned len, uint32_t datum, bool
                 {
                     if (len == 1)
                     {
-                        DebugInfo("m68k (0x%08x) := 0x%02x (%s)", addr, datum, model->name);
+                        //SDL_SetRelativeMouseMode(SDL_FALSE);
+                        DebugInfo("m68k (0x%08x) := 0x%02x (%s %s)", addr, datum, model->name, model->regname(addr, len));
                     }
                     else
                     if (len == 2)
                     {
-                        DebugInfo("m68k (0x%08x) := 0x%04x (%s)", addr, datum, model->name);
+                        DebugInfo("m68k (0x%08x) := 0x%04x (%s %s)", addr, datum, model->name, model->regname(addr, len));
                     }
                     else
                     {
-                        DebugInfo("m68k (0x%08x) := 0x%08x (%s)", addr, datum, model->name);
+                        DebugInfo("m68k (0x%08x) := 0x%08x (%s %s)", addr, datum, model->name, model->regname(addr, len));
                     }
                     model->logcnt--;
                     if (model->logcnt == 0)

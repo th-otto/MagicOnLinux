@@ -439,6 +439,30 @@ int CHostXFS::getDrvNo(char c)
 
 /** **********************************************************************************************
  *
+ * @brief Check if a given path is an Atari path
+ *
+ * @param[in]   path         Atari path or not
+ *
+ * @return true, if path is an Atari path
+ *
+ ************************************************************************************************/
+bool CHostXFS::isAtariPath(const char *path)
+{
+    if (strlen(path) >= 2)
+    {
+        int drv = getDrvNo(path[0]);
+        if ((drv >= 0) && (path[1] == ':'))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Convert Atari path to host path
  *
  * @param[in]   src          Atari path
@@ -1706,7 +1730,34 @@ INT32 CHostXFS::xfs_link
     GET_hhdl_hostFD_dir_fd(dd_to, hhdl_to, hostFD_to, dir_fd_to)
 
     CONV8p3(drv, name_from, host_name_from)
-    CONV8p3(drv, name_to, host_name_to)
+    CONV8p3(dst_drv, name_to, host_name_to)
+
+    /*
+    * Basically we can move files between two logical Atari drives residing on
+    * the same host device, but we shall not do this with non-empty directories,
+    * if the file name flags differ.
+    * Otherwise we may e.g. move directory abc to 8+3-format ABC, but its content will NOT
+    * also be converted to 8+3.
+    * Thus we must prevent this situation.
+    */
+
+    if ((drv != dst_drv) &&
+        ((drv_longNames[drv] != drv_longNames[dst_drv]) || (drv_caseInsens[drv] != drv_caseInsens[dst_drv])))
+    {
+        // File name flags differ. Check if we move a directory
+        struct stat statbuf;
+        int res = fstatat(dir_fd_from, host_name_from, &statbuf, AT_EMPTY_PATH);
+        if (res < 0)
+        {
+            DebugWarning2("() : fstatat(%s) -> %s", host_name_from, strerror(errno));
+            return CConversion::host2AtariError(errno);
+        }
+        if ((statbuf.st_mode & S_IFMT) == S_IFDIR)
+        {
+            DebugWarning2("() : mv(\"%s\", \"%s\") prevented due to drives with different file name scheme", host_name_from, host_name_to);
+            return ENSAME;
+        }
+    }
 
     if (mode != 0)
     {
@@ -1720,7 +1771,9 @@ INT32 CHostXFS::xfs_link
     }
     else
     {
-        // move or rename: old directory entry is removed, and new one is created that refers to the same file
+        // Move or rename: old directory entry is removed, and new one is created that refers to the same file.
+        // Note that this may fail with Atari error ENSAME, if e.g. source is a USB drive and destination
+        // is the home directory. In this case MGCOPY will fall back to a recursive copy/delete method.
 
         // without RENAME_NOREPLACE, an existing file might be removed here, which we do not allow
         if (renameat2(dir_fd_from, host_name_from, dir_fd_to, host_name_to, RENAME_NOREPLACE))
@@ -1857,7 +1910,6 @@ INT32 CHostXFS::xfs_xattr
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
     CONV8p3(drv, name, host_name)
 
-    struct stat statbuf;
     int flags = AT_EMPTY_PATH;
     if (mode)
     {
@@ -1866,13 +1918,14 @@ INT32 CHostXFS::xfs_xattr
 
 #ifdef __APPLE__
     // macOS cannot deal with empty path?!?
-    if ((mode == 0) && (host_name != nullptr) && (strlen(host_name) == 0))
+    if ((mode == 0) && (strlen(host_name) == 0))
     {
         host_name[0] = '.';
         host_name[1] = '\0';
     }
 #endif
 
+    struct stat statbuf;
     int res = fstatat(dir_fd, host_name, &statbuf, flags);
     if (res < 0)
     {
@@ -2551,9 +2604,19 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
     // saturate 32-bit unsigned overflow
     //
 
-    uint32_t num_free_blocks  = (buf.f_bavail >= 0x100000000) ? -1 : (uint32_t) buf.f_bavail;
-    uint32_t num_total_blocks = (buf.f_blocks >= 0x100000000) ? -1 : (uint32_t) buf.f_blocks;
-    uint32_t block_size       = (buf.f_bsize  >= 0x100000000) ? -1 : (uint32_t) buf.f_bsize;
+    uint32_t num_free_blocks  = (sizeof(buf.f_bavail) > 4 && buf.f_bavail >= 0x100000000) ? -1 : (uint32_t) buf.f_bavail;
+    uint32_t num_total_blocks = (sizeof(buf.f_blocks) > 4 && buf.f_blocks >= 0x100000000) ? -1 : (uint32_t) buf.f_blocks;
+	/* According to Linux manpage, f_frsize should be used for
+	 * total, and according to NetBSD manpage, also for free.
+	 *
+	 * According to GNU coreutils code, f_frsize might not
+	 * be set (according to kernel code, it's set to
+	 * f_bsize when zero, so that might be old info).
+	 *
+	 * => use frsize if it's set
+	 */
+    uint64_t bsize = buf.f_frsize > 0 ? buf.f_frsize : buf.f_bsize;
+    uint32_t block_size       = (bsize >= 0x100000000) ? -1 : (uint32_t) bsize;
 
     if (block_size == 0)
     {
@@ -2582,7 +2645,7 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
     }
     if (buf.f_blocks > num_total_blocks)
     {
-        DebugWarning2("() -- number of free blocks saturated from %llu to %u", buf.f_blocks, num_total_blocks);
+        DebugWarning2("() -- number of total blocks saturated from %llu to %u", buf.f_blocks, num_total_blocks);
     }
 
     data[0] = htobe32(num_free_blocks);     // # free blocks
@@ -3118,16 +3181,19 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
  ************************************************************************************************/
 INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 {
-    DebugInfo2("(fd = 0x%0x, rwflag = %d)", f, rwflag);
+    DebugInfo2("(f = 0x%0x, rwflag = %d)", f, rwflag);
+    uint16_t time, date;
 
     if (rwflag)
     {
-        if (f->fd.fd_mode & OM_WPERM)
+        if (be16toh(f->fd.fd_mode) & OM_WPERM)
         {
             // remember for later, when we close the file
             f->mod_time = be16toh(d[0]);
             f->mod_date = be16toh(d[1]);
+            //DebugWarning2("() -- f->mod_time = 0x%04x, f->mod_date = 0x%04x", f->mod_time, f->mod_date);
             f->mod_tdate_dirty = 1;
+            return E_OK;
         }
         else
         {
@@ -3139,9 +3205,24 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
     if (f->mod_tdate_dirty)
     {
         // already changed
-        d[0] = htobe16(f->mod_time);
-        d[1] = htobe16(f->mod_date);
+        time = f->mod_time;
+        date = f->mod_date;
     }
+    else
+    {
+        GET_hhdl_AND_fd
+        struct stat statbuf;
+        int res = fstat(fd, &statbuf);
+        if (res < 0)
+        {
+            DebugWarning2("() : fstat() -> %s", strerror(errno));
+            return CConversion::host2AtariError(errno);
+        }
+        CConversion::hostDateToDosDate(statbuf.st_mtime, &time, &date);
+    }
+
+    d[0] = htobe16(time);
+    d[1] = htobe16(date);
 
     return E_OK;
 }
@@ -3162,7 +3243,7 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
  ************************************************************************************************/
 INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
 {
-    DebugInfo2("(fd = 0x%0x, cmd = %d)", f, cmd);
+    DebugInfo2("(fd = 0x%0x, cmd = %d/0x%04x)", f, cmd, cmd);
 
     GET_hhdl_AND_fd
 
@@ -3217,6 +3298,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
                 DebugWarning2("() : ftruncate() -> %s", strerror(errno));
                 return CConversion::host2AtariError(errno);
             }
+            return E_OK;
         }
 
         // macOS specific commands are not supported

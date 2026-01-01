@@ -26,8 +26,6 @@
 // system headers
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
-//#include <OpenGL/gl.h>        // needed?
-//#include <OpenGL/glu.h>        // needed?
 // user headers
 #include "MagiC.h"
 #include "MagiCScreen.h"
@@ -49,6 +47,7 @@ class EmulationRunner
   private:
 
     static uint32_t LoopTimer(Uint32 interval, void* param);
+    static bool convertKeyEvent(SDL_KeyboardEvent *ev);
     static void HandleUserEvents(SDL_Event* event);
     static void EmulatorWindowUpdate(void);
     static void _OpenWindow(void);
@@ -77,7 +76,3 @@ class EmulationRunner
     static bool m_bQuitLoop;
     static unsigned m_200HzCnt;
 };
-
-const int RUN_EMULATOR_WINDOW_UPDATE = 1;
-const int OPEN_EMULATOR_WINDOW =2;
-const int RUN_EMULATOR = 3;

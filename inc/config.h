@@ -16,23 +16,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 
-
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#define VERSION_STRING "0.3"
+#define VERSION_STRING "0.91"
 #define PROGRAM_NAME "MagicOnLinux v" VERSION_STRING
 #define PROGRAM_VERSION_MAJOR 0
-#define PROGRAM_VERSION_MINOR 3
+#define PROGRAM_VERSION_MINOR 91
+#define MAGIC_KERNEL_API_VERSION  3     // must match the API of the loaded kernel file
 
-#define EVENT_MOUSE 1
+#define STE_COLOUR_PALETTE      // STe has additional low bit at positions 3,7 and 11
 
-#if defined(USE_MUSASHI_68K_EMU)
-// #define DEBUG_68K_EMU 1
-#endif
+#define DISKIMAGE_FILENAME_EXT "st,raw-disk-image,img,fd,qd"
 
 // debug output for debug configuration
 #if !defined(NDEBUG)
+//#define _DEBUG_MAGIC
 //#define _DEBUG_BASEPAGE
 //#define _DEBUG_KBD_AND_MOUSE
 //#define _DEBUG_KB_CRITICAL_REGION
@@ -45,19 +44,5 @@
 #define EMULATE_NULLPTR_BUSERR          // block 68k access to addresses 0..8 in user mode
 #endif
 
-// emulator kernel
-#if __ppc__
-// PPC can use either Asgard or Musashi
-// default is Asgard (faster)
-#if !defined(USE_MUSASHI_68K_EMU)
-#define USE_ASGARD_PPC_68K_EMU 1
-#define PATCH_VDI_PPC 1
-#endif
-#else
-// i386 never uses Asgard
-// i386 always uses Musashi
-#undef USE_ASGARD_PPC_68K_EMU
-#define USE_MUSASHI_68K_EMU 1
-#endif
 
 #endif

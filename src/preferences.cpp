@@ -147,6 +147,8 @@ unsigned Preferences::AtariScreenHeight = 768;
 unsigned Preferences::AtariScreenStretchX = 2;
 unsigned Preferences::AtariScreenStretchY = 2;
 unsigned Preferences::ScreenRefreshFrequency = 60;
+const char *Preferences::AtariStartApplications[MAX_START_APPS];
+const char *Preferences::mountDriveParameter = nullptr;
 //bool Preferences::bPPC_VDI_Patch;
 struct ethernet_options Preferences::eth[MAX_ETH] =
 {
@@ -189,6 +191,7 @@ static const char *get_home()
  * @param[in] height_override           override prerence value
  * @param[in] stretch_x_override        override prerence value
  * @param[in] stretch_y_override        override prerence value
+ * @param[in] double_vert               override vertical stretch with 2*horizontal
  * @param[in] relative_mouse_override   override prerence value
  * @param[in] memsize_override          override prerence value
  * @param[in] rootfs_override           override prerence value
@@ -208,9 +211,11 @@ int Preferences::init
     int height_override,
     int stretch_x_override,
     int stretch_y_override,
+    bool double_vert,
     int relative_mouse_override,
     int memsize_override,
     const char *rootfs_override,
+    const char *kernel_override,
     bool rewrite_conf
 )
 {
@@ -257,6 +262,11 @@ int Preferences::init
     {
         AtariScreenStretchY = stretch_y_override;
     }
+    if (double_vert)
+    {
+        // 2:1 stretch for ST-MID
+        AtariScreenStretchY = 2 * AtariScreenStretchX;
+    }
     if (relative_mouse_override >= 0)
     {
         bRelativeMouse = (relative_mouse_override) ? true : false;
@@ -268,6 +278,10 @@ int Preferences::init
     if ((rootfs_override != nullptr) && (strlen(rootfs_override) < sizeof(AtariRootfsPath)))
     {
         strcpy(AtariRootfsPath, rootfs_override);
+    }
+    if ((kernel_override != nullptr) && (strlen(kernel_override) < sizeof(AtariKernelPath)))
+    {
+        strcpy(AtariKernelPath, kernel_override);
     }
 
     //
@@ -361,6 +375,24 @@ int Preferences::init
 
 /** **********************************************************************************************
  *
+ * @brief De-inialise, free all allocated resources
+ *
+ ************************************************************************************************/
+void Preferences::exit()
+{
+    for (unsigned startno = 0; startno < MAX_START_APPS; startno++)
+    {
+        if (AtariStartApplications[startno] != nullptr)
+        {
+            free((void *) AtariStartApplications[startno]);
+            AtariStartApplications[startno] = nullptr;
+        }
+    }
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Get text description of video mode
  *
  * @param[in]  mode     video mode
@@ -406,6 +438,56 @@ const char *Preferences::videoModeToShortString(enAtariScreenColourMode mode)
         case atariScreenMode2:      return "monochrome";
         default:                    return "== UNKNOWN ==";
     }
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get video mode from string, used for command line parameter
+ *
+ * @param[in]  mode_str     video mode (textual)
+ *
+ * @return video mode or -1 for unknown
+ *
+ ************************************************************************************************/
+enAtariScreenColourMode Preferences::getVideoModeFromString(const char *mode_str)
+{
+    if (!strcasecmp(mode_str, "16m") || !strcasecmp(mode_str, "tc"))
+    {
+        return atariScreenMode16M;
+    }
+
+    if (!strcasecmp(mode_str, "32k") || !strcasecmp(mode_str, "hc"))
+    {
+        return atariScreenModeHC;
+    }
+
+    if (!strcmp(mode_str, "256"))
+    {
+        return atariScreenMode256;
+    }
+
+    if (!strcmp(mode_str, "16"))
+    {
+        return atariScreenMode16;
+    }
+
+    if (!strcasecmp(mode_str, "16ip"))
+    {
+        return atariScreenMode16ip;
+    }
+
+    if (!strcmp(mode_str, "4") || !strcasecmp(mode_str, "4ip"))
+    {
+        return atariScreenMode4ip;
+    }
+
+    if (!strcmp(mode_str, "2") || !strcasecmp(mode_str, "mono"))
+    {
+        return atariScreenMode2;
+    }
+
+    return (enAtariScreenColourMode) -1;
 }
 
 

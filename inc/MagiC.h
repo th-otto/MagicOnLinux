@@ -65,7 +65,7 @@ class CMagiC
     int sendMousePosition(int x, int y);
     int sendMouseMovement(double xrel, double yrel);
     int sendMouseButton(unsigned int NumOfButton, bool bIsDown);
-    int sendJoystickState(uint8_t header, uint8_t state);
+    int sendJoystickState(uint8_t header, uint8_t state0, uint8_t state1);
     int sendHz200(void);
     int sendVBL(void);
     void sendBusError(uint32_t addr, const char *AccessMode);

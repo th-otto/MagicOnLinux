@@ -1962,14 +1962,15 @@ int CMagiC::sendMouseButton(unsigned int NumOfButton, bool bIsDown)
 *
 **********************************************************************/
 
-int CMagiC::sendJoystickState(uint8_t header, uint8_t state)
+int CMagiC::sendJoystickState(uint8_t header, uint8_t state0, uint8_t state1)
 {
     if (m_bEmulatorIsRunning)
     {
         OS_EnterCriticalRegion(&pTheMagiC->m_KbCriticalRegionId);
 
-        pTheMagiC->PutKeyToBuffer(header);    // joystick #0
-        pTheMagiC->PutKeyToBuffer(state);    // bits 0..3: directions, bit 7: fire
+        pTheMagiC->PutKeyToBuffer(header);    // 0xfd
+        pTheMagiC->PutKeyToBuffer(state0);    // joystick 0: bits 0..3: directions, bit 7: fire
+        pTheMagiC->PutKeyToBuffer(state1);    // joystick 1: bits 0..3: directions, bit 7: fire
 
         m_bInterruptJoystickButtons = true;
         m_bInterruptMouseKeyboardPending = true;

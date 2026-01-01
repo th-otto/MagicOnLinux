@@ -812,7 +812,7 @@ void EmulationRunner::HandleUserEvents(SDL_Event* event)
 
         case USEREVENT_POLL_JOYSTICK_STATE:
         {
-            (void) m_Emulator.sendJoystickState(0xfe, 0x00);
+            (void) m_Emulator.sendJoystickState(0xfd, 0x00, 0x00);
             break;
         }
 

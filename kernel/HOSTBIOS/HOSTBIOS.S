@@ -3021,9 +3021,9 @@ pak_subr_tab:
    dc.w  subr_relmouse - pak_subr_tab  ;$f8: relative Mausposition
    dc.w  subr_relmouse - pak_subr_tab  ;$f9:...
    dc.w  subr_relmouse - pak_subr_tab  ;$fa:...
-   dc.w  subr_relmouse - pak_subr_tab  ;$fb: realtive Mausposition
+   dc.w  subr_relmouse - pak_subr_tab  ;$fb: relative Mausposition
    dc.w  subr_dummy - pak_subr_tab     ;$fc: Uhrzeit
-   dc.w  subr_joy - pak_subr_tab       ;$fd: ??
+   dc.w  subr_joy - pak_subr_tab       ;$fd: Joysticks 0 und 1, nach Abfrage
    dc.w  subr_joy - pak_subr_tab       ;$fe: Joystick 0
    dc.w  subr_joy - pak_subr_tab       ;$ff: Joystick 1
 
@@ -3048,14 +3048,14 @@ subr_dummy:
 pk_code_len:         ;in der Form: ikbd_state, Paket-L„nge
  dc.b 1,7
  dc.b 2,5
+ dc.b 3,2			; Paket $f8 plus 2 Datenbytes: Maus
  dc.b 3,2
  dc.b 3,2
- dc.b 3,2
- dc.b 3,2
- dc.b 4,6
- dc.b 5,2
- dc.b 6,1
- dc.b 7,1
+ dc.b 3,2			; Paket $fb plus 2 Datenbytes: Maus
+ dc.b 4,6			; Paket $fc plus 6 Datenbytes: Uhrzeit
+ dc.b 5,2			; Paket $fd plus 2 Datenbytes: Joysticks
+ dc.b 6,1			; Paket $fe plus 1 Datenbyte: Joystick 0
+ dc.b 7,1			; Paket $ff plus 1 Datenbyte: Joystick 1
  .EVEN
 ;-------------------------------------------------------------
 ;

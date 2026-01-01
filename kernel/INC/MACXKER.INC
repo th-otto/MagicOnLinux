@@ -22,41 +22,41 @@ MacSysX_res34:		DS.L 1
 MacSysX_biosinit:	DS.L 1		; $38 nach Initialisierung aufrufen
 MacSysX_dev_istat:	DS.L 1		; $3c Bconstat()
 MacSysX_dev_ostat:	DS.L 1		; $40 Bcostat()
-MacSysX_Dosound:	DS.L 1
+MacSysX_Dosound:	DS.L 1		; $44 Dosound()
 MacSysX_VdiInit:	DS.L PTRLEN	; $48 nach Initialisierung des VDI aufrufen
-MacSysX_pixmap:	DS.L 1		; Daten fÅrs VDI
-MacSysX_pMMXCookie:	DS.L	1		; 68k-Zeiger auf MgMx-Cookie
-MacSysX_Xcmd:		DS.L PTRLEN	; XCMD-Kommandos
-MacSysX_PPCAddr:	DS.L 1		; tats. PPC-Adresse von 68k-Adresse 0
-MacSysX_VideoAddr:	DS.L	1		; tats. PPC-Adresse des Bildschirmspeichers
-MacSysX_Exec68k:	DS.L	PTRLEN	; hier kann der PPC-Callback 68k-Code ausfÅhren
-MacSysX_gettime:	DS.L 1		; LONG GetTime(void) Datum und Uhrzeit ermitteln
-MacSysX_settime:	DS.L	1		; void SetTime(LONG *time) Datum/Zeit setzen
-MacSysX_Setpalette:	DS.L	1		; void Setpalette( int ptr[16] )
-MacSysX_Setcolor:	DS.L	1		; int Setcolor( int nr, int val )
-MacSysX_VsetRGB:	DS.L	1		; void VsetRGB( WORD index, WORD count, LONG *array )
-MacSysX_VgetRGB:	DS.L	1		; void VgetRGB( WORD index, WORD count, LONG *array )
-MacSysX_syshalt:	DS.L 1		; SysHalt( char *str ) "System halted"
-MacSysX_syserr:	DS.L 1		; SysErr( long val ) "a1 = 0 => Bomben"
-MacSysX_coldboot:	DS.L 1		; ColdBoot(void) Kaltstart ausfÅhren
-MacSysX_exit:	  	DS.L 1		; Exit(void) beenden
-MacSysX_debugout:	DS.L 1		; MacPuts( char *str ) fÅrs Debugging
-MacSysX_error: 	DS.L 1		; d0 = -1: kein Grafiktreiber
-MacSysX_prtos: 	DS.L 1		; Bcostat(void) fÅr PRT
-MacSysX_prtin: 	DS.L 1		; Cconin(void) fÅr PRT
-MacSysX_prtout:	DS.L 1		; Cconout( void *params ) fÅr PRT
-MacSysX_prn_wrts:	DS.L	1		; LONG PrnWrts({char *buf, LONG count}) String auf Drucker
-MacSysX_serconf:	DS.L 1		; Rsconf( void *params ) fÅr ser1
-MacSysX_seris: 	DS.L 1		; Bconstat(void) fÅr ser1 (AUX)
-MacSysX_seros: 	DS.L 1		; Bcostat(void) fÅr ser1
-MacSysX_serin: 	DS.L 1		; Cconin(void) fÅr ser1
-MacSysX_serout:	DS.L 1		; Cconout( void *params ) fÅr ser1
-MacSysX_SerOpen:	DS.L 1		; Serielle Schnittstelle îffnen
-MacSysX_SerClose: 	DS.L 1		; Serielle Schnittstelle schlieûen
-MacSysX_SerRead: 	DS.L 1		; Mehrere Zeichen von seriell lesen
-MacSysX_SerWrite:	DS.L 1		; Mehrere Zeichen auf seriell schreiben
-MacSysX_SerStat:	DS.L 1		; Lese-/Schreibstatus fÅr serielle Schnittstelle
-MacSysX_SerIoctl:	DS.L 1		; Ioctl-Aufrufe fÅr serielle Schnittstelle
+MacSysX_pixmap:	DS.L 1		; $58 Daten fÅrs VDI
+MacSysX_pMMXCookie:	DS.L	1		; $5c 68k-Zeiger auf MgMx-Cookie
+MacSysX_Xcmd:		DS.L PTRLEN	; $60 XCMD-Kommandos
+MacSysX_PPCAddr:	DS.L 1		; $70 tats. PPC-Adresse von 68k-Adresse 0
+MacSysX_VideoAddr:	DS.L	1		; $74 tats. PPC-Adresse des Bildschirmspeichers
+MacSysX_Exec68k:	DS.L	PTRLEN	; $78 hier kann der PPC-Callback 68k-Code ausfÅhren
+MacSysX_gettime:	DS.L 1		; $88 LONG GetTime(void) Datum und Uhrzeit ermitteln
+MacSysX_settime:	DS.L	1		; $8c void SetTime(LONG *time) Datum/Zeit setzen
+MacSysX_Setpalette:	DS.L	1		; $90 void Setpalette( int ptr[16] )
+MacSysX_Setcolor:	DS.L	1		; $94 int Setcolor( int nr, int val )
+MacSysX_VsetRGB:	DS.L	1		; $98 void VsetRGB( WORD index, WORD count, LONG *array )
+MacSysX_VgetRGB:	DS.L	1		; $9c void VgetRGB( WORD index, WORD count, LONG *array )
+MacSysX_syshalt:	DS.L 1		; $a0 SysHalt( char *str ) "System halted"
+MacSysX_syserr:	DS.L 1		; $a4 SysErr( long val ) "a1 = 0 => Bomben"
+MacSysX_coldboot:	DS.L 1		; $a8 ColdBoot(void) Kaltstart ausfÅhren
+MacSysX_exit:	  	DS.L 1		; $ac Exit(void) beenden
+MacSysX_debugout:	DS.L 1		; $b0 MacPuts( char *str ) fÅrs Debugging
+MacSysX_error: 	DS.L 1		; $b4 d0 = -1: kein Grafiktreiber
+MacSysX_resb8: 	DS.L 1		; $b8
+MacSysX_resbc: 	DS.L 1		; $bc
+MacSysX_resc0:		DS.L 1		; $c0
+MacSysX_prn_wrts:	DS.L	1		; $c4 LONG PrnWrts({char *buf, LONG count}) String auf Drucker
+MacSysX_serconf:	DS.L 1		; $c8 Rsconf( void *params ) fÅr ser1
+MacSysX_sercc: 	DS.L 1		; $cc
+MacSysX_resd0: 	DS.L 1		; $d0
+MacSysX_resd4: 	DS.L 1		; $d4
+MacSysX_resd8:		DS.L 1		; $d8
+MacSysX_SerOpen:	DS.L 1		; DEV_SER: Serielle Schnittstelle îffnen
+MacSysX_SerClose: 	DS.L 1		; DEV_SER: Serielle Schnittstelle schlieûen
+MacSysX_SerRead: 	DS.L 1		; DEV_SER: Mehrere Zeichen von seriell lesen
+MacSysX_SerWrite:	DS.L 1		; DEV_SER: Mehrere Zeichen auf seriell schreiben
+MacSysX_SerStat:	DS.L 1		; DEV_SER: Lese-/Schreibstatus fÅr serielle Schnittstelle
+MacSysX_SerIoctl:	DS.L 1		; DEV_SER: Ioctl-Aufrufe fÅr serielle Schnittstelle
 MacSysX_GetKbOrMous: DS.L PTRLEN	; Liefert Tastatur/Maus
 MacSysX_dos_macfn:	DS.L	1		; DosFn({int,void*} *) DOS-Funktionen 0x60..0xfe
 MacSysX_xfs_version: DS.L 1		; Version des Mac-XFS

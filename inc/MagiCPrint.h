@@ -31,14 +31,12 @@ class CMagiCPrint
     static void init();
     static void exit();
 
-    static uint32_t GetOutputStatus(void);
-    static uint32_t Read(uint8_t *pBuf, uint32_t cnt);
-    static uint32_t Write(const uint8_t *pBuf, uint32_t cnt);
-    static uint32_t ClosePrinterFile(void);
+    static uint32_t getInputStatus(void);
+    static uint32_t getOutputStatus(void);
+    static uint32_t read(uint8_t *pBuf, uint32_t cnt);
+    static uint32_t write(const uint8_t *pBuf, uint32_t cnt);
+    static uint32_t closePrinterFile(void);
 
-    static uint32_t AtariPrtOs(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariPrtIn(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariPrtOut(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariPrtOutS(uint32_t params, uint8_t *addrOffset68k);
 
     static uint32_t s_LastPrinterAccess;

@@ -23,7 +23,7 @@
 #define VERSION_STRING "0.91"
 #define PROGRAM_VERSION_MAJOR 0
 #define PROGRAM_VERSION_MINOR 91
-#define MAGIC_KERNEL_API_VERSION  2     // must match the API of the loaded kernel file
+#define MAGIC_KERNEL_API_VERSION  3     // must match the API of the loaded kernel file
 
 #define STE_COLOUR_PALETTE      // STe has additional low bit at positions 3,7 and 11
 

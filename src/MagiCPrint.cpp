@@ -30,6 +30,8 @@
 #include "Debug.h"
 #include "Atari.h"
 #include "preferences.h"
+#include "emulation_globals.h"
+#include "Globals.h"
 #include "MagiCPrint.h"
 
 
@@ -98,7 +100,22 @@ void CMagiCPrint::exit()
  * @retval 0   not ready
  *
  ************************************************************************************************/
-uint32_t CMagiCPrint::GetOutputStatus(void)
+uint32_t CMagiCPrint::getInputStatus(void)
+{
+    return 0;        // never ready
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Get printer output state (called from emulator thread)
+ *
+ * @return status
+ * @retval -1  ready
+ * @retval 0   not ready
+ *
+ ************************************************************************************************/
+uint32_t CMagiCPrint::getOutputStatus(void)
 {
     return 0xffffffff;        // always ready
 }
@@ -116,7 +133,7 @@ uint32_t CMagiCPrint::GetOutputStatus(void)
  * @note Reading from printer is not supported
  *
  ************************************************************************************************/
-uint32_t CMagiCPrint::Read(uint8_t *pBuf, uint32_t cnt)
+uint32_t CMagiCPrint::read(uint8_t *pBuf, uint32_t cnt)
 {
     (void) pBuf;
     (void) cnt;
@@ -134,11 +151,14 @@ uint32_t CMagiCPrint::Read(uint8_t *pBuf, uint32_t cnt)
  * @return number of bytes written or negative error code
  *
  ************************************************************************************************/
-uint32_t CMagiCPrint::Write(const uint8_t *pBuf, uint32_t cnt)
+uint32_t CMagiCPrint::write(const uint8_t *pBuf, uint32_t cnt)
 {
     char PrintFileName[2048];
     long OutCnt;
 
+
+    // Remember time of last (200Hz) printer access
+    s_LastPrinterAccess = getAtariBE32(mem68k + _hz_200);
 
     if (m_printFile == nullptr)
     {
@@ -173,7 +193,7 @@ uint32_t CMagiCPrint::Write(const uint8_t *pBuf, uint32_t cnt)
  * @return zero or negative error code
  *
  ************************************************************************************************/
-uint32_t CMagiCPrint::ClosePrinterFile(void)
+uint32_t CMagiCPrint::closePrinterFile(void)
 {
     char command[2382];
     int ierr;
@@ -207,66 +227,6 @@ uint32_t CMagiCPrint::ClosePrinterFile(void)
 
 /**********************************************************************
 *
-* Callback des Emulators: Ausgabestatus des Druckers abfragen
-* Rückgabe: -1 = bereit 0 = nicht bereit
-*
-**********************************************************************/
-
-uint32_t CMagiCPrint::AtariPrtOs(uint32_t params, uint8_t *addrOffset68k)
-{
-    (void) params;
-    (void) addrOffset68k;
-    return CMagiCPrint::GetOutputStatus();
-}
-
-
-/**********************************************************************
-*
-* Callback des Emulators: Zeichen von Drucker lesen
-* Rückgabe: Zeichen in Bit 0..7, andere Bits = 0
-*
-**********************************************************************/
-
-uint32_t CMagiCPrint::AtariPrtIn(uint32_t params, uint8_t *addrOffset68k)
-{
-    unsigned char c;
-    uint32_t n;
-
-    (void) params;
-    (void) addrOffset68k;
-    n = CMagiCPrint::Read(&c, 1);
-    if (!n)
-        return 0;
-    else
-        return(c);
-}
-
-
-/**********************************************************************
-*
-* Callback des Emulators: Zeichen auf Drucker ausgeben
-* params        Zeiger auf auszugebendes Zeichen (16 Bit)
-* Rückgabe: 0 = Timeout -1 = OK
-*
-**********************************************************************/
-
-uint32_t CMagiCPrint::AtariPrtOut(uint32_t params, uint8_t *addrOffset68k)
-{
-    uint32_t ret;
-
-    DebugInfo2("()");
-    ret = CMagiCPrint::Write(addrOffset68k + params + 1, 1);
-    // Zeitpunkt (200Hz) des letzten Druckerzugriffs merken
-    s_LastPrinterAccess = be32toh(*((uint32_t *) (addrOffset68k + _hz_200)));
-    if (ret == 1)
-        return(0xffffffff);        // OK
-    else
-        return 0;                // Fehler
-}
-
-
-/**********************************************************************
-*
 * Callback des Emulators: mehrere Zeichen auf Drucker ausgeben
 * Rückgabe: Anzahl geschriebener Zeichen
 *
@@ -279,13 +239,9 @@ uint32_t CMagiCPrint::AtariPrtOutS(uint32_t params, uint8_t *addrOffset68k)
         uint32_t buf;
         uint32_t cnt;
     };
-     PrtOutParm *thePrtOutParm = (PrtOutParm *) (addrOffset68k + params);
-     uint32_t ret;
+    PrtOutParm *thePrtOutParm = (PrtOutParm *) (addrOffset68k + params);
+    uint32_t ret;
 
 
-//    CDebug::DebugInfo("CMagiC::AtariPrtOutS()");
-    ret = CMagiCPrint::Write(addrOffset68k + be32toh(thePrtOutParm->buf), be32toh(thePrtOutParm->cnt));
-    // Zeitpunkt (200Hz) des letzten Druckerzugriffs merken
-    s_LastPrinterAccess = be32toh(*((uint32_t *) (addrOffset68k + _hz_200)));
-    return ret;
+    return ret = CMagiCPrint::write(addrOffset68k + be32toh(thePrtOutParm->buf), be32toh(thePrtOutParm->cnt));
 }

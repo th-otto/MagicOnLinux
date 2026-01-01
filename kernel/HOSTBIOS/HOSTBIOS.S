@@ -424,7 +424,7 @@ MSysX:
  DC.L	mem_root			; $10
  DC.L	act_pd			; $14
  DC.L	act_appl			; $18
- DC.L	2				; $1c MacSys_verAtari
+ DC.L	3				; $1c MacSys_verAtari
 
  DC.L	0				; $20 MacSys_verMac
  DC.W	0				; $24 CPU (30=68030, 40=68040)
@@ -1605,7 +1605,7 @@ ret0_rte:
    rte
 
 ori_dev_vecs:
- DC.L	ret0 				; Bconstat(0)		PRT
+ DC.L	bconstat_prt			; Bconstat(0)		PRT
  DC.L	bconstat_ser1			;				AUX
  DC.L	bconstat_con			;				CON
  DC.L	bconstat_midi			;				MIDI
@@ -3416,8 +3416,11 @@ init_aux_iorec:
  rts
 
 bconin_ser1:
- lea		MSysX+MacSysX_serin(pc),a0
+ move.w	#1,-(sp)				; AUX: 1
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_in(pc),a0
  MACPPC
+ addq.l	#2,sp
  cmpi.l	#$ffffffff,d0			; Zeichen gelesen?
  bne.b	bconin_ser1_ende		; ja
  tst.w	pe_slice
@@ -3429,37 +3432,63 @@ bconin_ser1_ende:
 
 bconout_ser1:
  lea		6(sp),a0				; MUSS hier stehen bleiben (wg. jsr 4(a2) im Dispatcher)
- lea 	(a0),a1
- lea		MSysX+MacSysX_serout(pc),a0
+ move.l	a0,-(sp)				; Parameter fÅr Bconout
+ move.w	#1,-(sp)				; AUX: 1
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_out(pc),a0
  MACPPC
+ addq.l	#6,sp
  rts
 
 bconstat_ser1:
- lea		MSysX+MacSysX_seris(pc),a0
+ move.w	#1,-(sp)				; AUX: 1
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_istat(pc),a0
  MACPPC
+ addq.l	#2,sp
  rts
 
 bcostat_ser1:
- lea		MSysX+MacSysX_seros(pc),a0
+ move.w	#1,-(sp)				; AUX: 1
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_ostat(pc),a0
  MACPPC
+ addq.l	#2,sp
  rts
 
+
+bconin_prt:
+ clr.w	-(sp)				; PRN: 0
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_in(pc),a0
+ MACPPC
+ addq.l	#2,sp
+ rts
 
 bconout_prt:
  lea		6(sp),a0				; MUSS hier stehen bleiben (wg. jsr 4(a2) im Dispatcher)
- lea 	(a0),a1
- lea		MSysX+MacSysX_prtout(pc),a0
+ move.l	a0,-(sp)				; Parameter fÅr Bconout
+ clr.w	-(sp)				; PRN: 0
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_out(pc),a0
  MACPPC
+ addq.l	#6,sp
  rts
 
-bconin_prt:
- lea		MSysX+MacSysX_prtin(pc),a0
+bconstat_prt:
+ clr.w	-(sp)				; PRN: 0
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_istat(pc),a0
  MACPPC
+ addq.l	#2,sp
  rts
 
 bcostat_prt:
- lea		MSysX+MacSysX_prtos(pc),a0
+ clr.w	-(sp)				; PRN: 0
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_ostat(pc),a0
  MACPPC
+ addq.l	#2,sp
  rts
 
 

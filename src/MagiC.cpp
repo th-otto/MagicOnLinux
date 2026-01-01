@@ -795,15 +795,8 @@ void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr, CXCmd *pXCmd)
     setHostCallback(&pMacXSysHdr->MacSysX_exit,       AtariExit);
     setHostCallback(&pMacXSysHdr->MacSysX_debugout,   AtariDebugOut);
     setHostCallback(&pMacXSysHdr->MacSysX_error,      AtariError);
-    setHostCallback(&pMacXSysHdr->MacSysX_prtos,      &CMagiCPrint::AtariPrtOs);
-    setHostCallback(&pMacXSysHdr->MacSysX_prtin,      &CMagiCPrint::AtariPrtIn);
-    setHostCallback(&pMacXSysHdr->MacSysX_prtout,     &CMagiCPrint::AtariPrtOut);
     setHostCallback(&pMacXSysHdr->MacSysX_prtouts,    &CMagiCPrint::AtariPrtOutS);
     setHostCallback(&pMacXSysHdr->MacSysX_serconf,    &CMagiCSerial::AtariSerConf);
-    setHostCallback(&pMacXSysHdr->MacSysX_seris,      &CMagiCSerial::AtariSerIs);
-    setHostCallback(&pMacXSysHdr->MacSysX_seros,      &CMagiCSerial::AtariSerOs);
-    setHostCallback(&pMacXSysHdr->MacSysX_serin,      &CMagiCSerial::AtariSerIn);
-    setHostCallback(&pMacXSysHdr->MacSysX_serout,     &CMagiCSerial::AtariSerOut);
     setHostCallback(&pMacXSysHdr->MacSysX_SerOpen,    &CMagiCSerial::AtariSerOpen);
     setHostCallback(&pMacXSysHdr->MacSysX_SerClose,   &CMagiCSerial::AtariSerClose);
     setHostCallback(&pMacXSysHdr->MacSysX_SerRead,    &CMagiCSerial::AtariSerRead);
@@ -1505,7 +1498,7 @@ int CMagiC::EmuThread( void )
 
         if (*((uint32_t *)(mem68k +_hz_200)) - CMagiCPrint::s_LastPrinterAccess > 200 * 10)
         {
-            CMagiCPrint::ClosePrinterFile();
+            CMagiCPrint::closePrinterFile();
         }
     }    // for
 
@@ -2602,6 +2595,37 @@ uint32_t CMagiC::AtariBconin(uint32_t params, uint8_t *addrOffset68k)
     const BconinParm *theParm = (BconinParm *) (addrOffset68k + params);
     uint16_t devno = be16toh(theParm->devno);
     DebugWarning2("(devno = %u)", devno);
+
+    if (devno == 0)
+    {
+        unsigned char c;
+        uint32_t n;
+
+        n = CMagiCPrint::read(&c, 1);
+        if (!n)
+            return 0;
+        else
+            return(c);
+    }
+    else
+    if (devno == 1)
+    {
+        // open serial port, if necessary
+        if (!CMagiCSerial::OpenSerialBIOS())
+        {
+            return 0;
+        }
+
+        char c;
+        uint32_t ret = CMagiCSerial::Read(&c, 1);
+        if (ret > 0)
+        {
+            return (uint32_t) c & 0x000000ff;
+        }
+        else
+            return 0xffffffff;
+    }
+
     return 0;
 }
 
@@ -2632,6 +2656,26 @@ uint32_t CMagiC::AtariBconout(uint32_t params, uint8_t *addrOffset68k)
     datum += *pData;        // 16-bit big endian
     DebugWarning2("(devno = %u, c = 0x%04x)", devno, datum);
 
+    if (devno == 0)
+    {
+        uint32_t ret = CMagiCPrint::write(addrOffset68k + params + 1, 1);
+        if (ret == 1)
+            return(0xffffffff);        // OK
+        else
+            return 0;                // Fehler
+    }
+    else
+    if (devno == 1)
+    {
+        // open serial port, if necessary
+        if (!CMagiCSerial::OpenSerialBIOS())
+        {
+            return 0;
+        }
+
+        return CMagiCSerial::Write((char *) addrOffset68k + params + 1, 1);
+    }
+    else
     if ((devno == 4) && (datum == 0x16))
     {
         // Joystick interrogation (IKBD $16)
@@ -2674,6 +2718,23 @@ uint32_t CMagiC::AtariBconstat(uint32_t params, uint8_t *addrOffset68k)
     const BconstatParm *theParm = (BconstatParm *) (addrOffset68k + params);
     uint16_t devno = be16toh(theParm->devno);
     DebugWarning2("(devno = %u)", devno);
+
+    if (devno == 0)
+    {
+        return CMagiCPrint::getInputStatus();
+    }
+    else
+    if (devno == 1)
+    {
+        // open serial port, if necessary
+        if (!CMagiCSerial::OpenSerialBIOS())
+        {
+            return 0;
+        }
+
+        return CMagiCSerial::ReadStatus() ? 0xffffffff : 0;
+    }
+
     return 0;
 }
 
@@ -2691,12 +2752,29 @@ uint32_t CMagiC::AtariBcostat(uint32_t params, uint8_t *addrOffset68k)
 {
     struct BcostatParm
     {
-        uint16_t devno;             // 3: MIDI, 4: IKDB, TODO: more to come
+        uint16_t devno;             // 3: MIDI, 4: IKDB, 0: PRN, TODO: more to come
     } __attribute__((packed));
 
     const BcostatParm *theParm = (BcostatParm *) (addrOffset68k + params);
     uint16_t devno = be16toh(theParm->devno);
     DebugWarning2("(devno = %u)", devno);
+
+    if (devno == 0)
+    {
+        return CMagiCPrint::getOutputStatus();
+    }
+    else
+    if (devno == 1)
+    {
+        // open serial port, if necessary
+        if (!CMagiCSerial::OpenSerialBIOS())
+        {
+            return 0;
+        }
+
+        return CMagiCSerial::WriteStatus() ? 0xffffffff : 0;
+    }
+
     return 0;
 }
 

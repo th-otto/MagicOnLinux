@@ -10,6 +10,6 @@ Handling of command line parameter "atari-screen-mode" corrected.
 XFS function FTRUNCATE repaired.
 XFS function Fdatime() repaired.
 
-New emulator callbacks for bios Bconin/Bconout/Bconstat/Bcostat, currently only for MIDI and IKBD.
+New emulator callbacks for bios Bconin/Bconout/Bconstat/Bcostat, for PRN, AUX, MIDI and IKBD.
 Joystick interrogation (IKBD $16) implemented, for GFABASIC.
-Kernel API number increased.
+Kernel API number increased to 3.

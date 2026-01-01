@@ -78,10 +78,6 @@ class CMagiCSerial
     static uint32_t OpenSerialBIOS(void);
     // direct Atari callbacks
     static uint32_t AtariSerConf(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerIs(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerOs(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerIn(uint32_t params, uint8_t *addrOffset68k);
-    static uint32_t AtariSerOut(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSerOpen(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSerClose(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSerRead(uint32_t params, uint8_t *addrOffset68k);

@@ -1043,7 +1043,7 @@ struct MacXSysHdr
     PTR32_HOST   MacSysX_biosinit;          // 0x38: called after initialisation
     UINT32_BE    MacSysX_dev_istat;         // 0x3c: Bconstat()
     UINT32_BE    MacSysX_dev_ostat;         // 0x40: Bcostat()
-    PTR32_HOST   MacSysX_Dosound;
+    PTR32_HOST   MacSysX_Dosound;           // 0x44: Dosound()
     #else
     PTR32x4_HOST MacSysX_init;              // called on Atari warm boot
     PTR32x4_HOST MacSysX_biosinit;          // called after initialisation
@@ -1067,21 +1067,21 @@ struct MacXSysHdr
     PTR32_HOST   MacSysX_exit;              // Exit(void) end program
     PTR32_HOST   MacSysX_debugout;          // MacPuts( char *str ) for debugging
     PTR32_HOST   MacSysX_error;             // d0 = -1: no graphics driver
-    PTR32_HOST   MacSysX_prtos;             // Bcostat(void) for PRT
-    PTR32_HOST   MacSysX_prtin;             // Cconin(void) for PRT
-    PTR32_HOST   MacSysX_prtout;            // Cconout( void *params ) for PRT
+    PTR32_HOST   MacSysX_resb8;
+    PTR32_HOST   MacSysX_resbc;
+    PTR32_HOST   MacSysX_resc0;
     PTR32_HOST   MacSysX_prtouts;           // LONG PrnOuts({char *buf, LONG count}) character string to printer
     PTR32_HOST   MacSysX_serconf;           // Rsconf( void *params ) for ser1
-    PTR32_HOST   MacSysX_seris;             // Bconstat(void) for ser1 (AUX)
-    PTR32_HOST   MacSysX_seros;             // Bcostat(void) for ser1
-    PTR32_HOST   MacSysX_serin;             // Cconin(void) for ser1
-    PTR32_HOST   MacSysX_serout;            // Cconout( void *params ) for ser1
-    PTR32_HOST   MacSysX_SerOpen;           // open serial port
-    PTR32_HOST   MacSysX_SerClose;          // close serial port
-    PTR32_HOST   MacSysX_SerRead;           // read multiple characters from serial port
-    PTR32_HOST   MacSysX_SerWrite;          // write multiple characters to serial port
-    PTR32_HOST   MacSysX_SerStat;           // read/write state for serial port
-    PTR32_HOST   MacSysX_SerIoctl;          // Ioctl calls for serial port
+    PTR32_HOST   MacSysX_rescc;
+    PTR32_HOST   MacSysX_resd0;
+    PTR32_HOST   MacSysX_resd4;
+    PTR32_HOST   MacSysX_resd8;
+    PTR32_HOST   MacSysX_SerOpen;           // DEV_SER: open serial port
+    PTR32_HOST   MacSysX_SerClose;          // DEV_SER: close serial port
+    PTR32_HOST   MacSysX_SerRead;           // DEV_SER: read multiple characters from serial port
+    PTR32_HOST   MacSysX_SerWrite;          // DEV_SER: write multiple characters to serial port
+    PTR32_HOST   MacSysX_SerStat;           // DEV_SER: read/write state for serial port
+    PTR32_HOST   MacSysX_SerIoctl;          // DEV_SER: Ioctl calls for serial port
     PTR32x4_HOST MacSysX_GetKeybOrMouse;    // get keys and mouse events
     PTR32_HOST   MacSysX_dos_macfn;         // DosFn({int,void*} *) DOS functions 0x60..0xfe
     UINT32_BE    MacSysX_xfs_version;       // version of host XFS

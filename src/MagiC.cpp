@@ -90,6 +90,24 @@ void print_app(uint32_t addr68k)
     printf(" ap_stkchk = 0x%08x\n", be32toh(app->ap_stkchk));
 }
 
+// post mortem dump. Move to Atari rootfs and analyse with "memexamn c".
+void dumpAtariMem()
+{
+    if (mem68k != nullptr)
+    {
+        FILE *f = fopen("_SYS_.$$$", "wb");
+        if (f != nullptr)
+        {
+            uint32_t header[2];
+            header[0] = htobe32(0x2912);        // mem_root
+            header[1] = htobe32(0x2d72);        // ur_pd;
+            fwrite(header, 1, sizeof(header), f);
+            fwrite(mem68k + 8, 1, mem68kSize - 8, f);
+            fclose(f);
+        }
+    }
+}
+
 }
 #endif
 
@@ -729,41 +747,6 @@ static void PixmapToBigEndian(MXVDI_PIXMAP *thePixMap)
 #endif
 
 
-/**********************************************************************
-*
-* Debug-Hilfe
-*
-**********************************************************************/
-
-#if DEBUG_68K_EMU
-void _DumpAtariMem(const char *filename)
-{
-    if (pTheMagiC)
-        pTheMagiC->DumpAtariMem(filename);
-}
-
-void CMagiC::DumpAtariMem(const char *filename)
-{
-    FILE *f;
-
-    if (!m_RAM68k)
-    {
-        DebugError2("() -- no Atari memory?!?");
-        return;
-    }
-
-    f = fopen(filename, "wb");
-    if (!f)
-    {
-        DebugError2("() -- cannot create dump file.");
-        return;
-    }
-    fwrite(m_RAM68k, 1, m_RAM68ksize, f);
-    fclose(f);
-}
-#endif
-
-
 /** **********************************************************************************************
  *
  * @brief Initialise Atari-to-host callbacks
@@ -1302,8 +1285,11 @@ void CMagiC::stopExec( void )
 void CMagiC::terminateThread(void)
 {
     DebugInfo2("()");
+    //dumpAtariMem();
     #if defined(M68K_TRACE)
+        DebugWarning(" == FINAL TRACE ==");
         m68k_trace_print();
+        //dumpAtariMem();
     #endif
     OS_SetEvent(
             &m_EventId,
@@ -2191,6 +2177,8 @@ uint32_t CMagiC::AtariDOSFn(uint32_t params, uint8_t *addrOffset68k)
  * @param[in] addrOffset68k     Host address of 68k memory
  *
  * @return bits [0:4]=two-seconds [5:10]=min [11:15]=h [16:20]=day [21:24]=month [25-31]=y-1980
+ *
+ * @note For Atari the month value is 1..12, while in Unix it is 0..11.
  *
  ************************************************************************************************/
 uint32_t CMagiC::AtariGettime(uint32_t params, uint8_t *addrOffset68k)

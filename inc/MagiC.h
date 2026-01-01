@@ -69,7 +69,6 @@ class CMagiC
     bool m_bEmulatorIsRunning;
     bool m_bEmulatorHasEnded;
     bool m_bShutdown;
-    void dumpAtariMem(const char *filename);
 
    private:
     struct Atari68kData

@@ -2146,10 +2146,10 @@ bin_to_bcd:
 
 Ikbdws:
  move.w	(a0)+,d0				; Anzahl Zeichen
- bne.b	ikbdws_ende			; ungleich 1, fertig
+ bne.b	ikbdws_host			; ungleich 1, host aufrufen
  move.l	(a0),a0				; Daten
  cmpi.b	#$1c,(a0)				; IKBD: Interrogate time-of-day ?
- bne.b	ikbdws_ende			; nein, fertig
+ bne.b	ikbdws_host			; nein, host aufrufen
 ; Uhr des Tastaturchips auslesen
  subq.l	#6,sp				; char data[6]
  bsr		_Gettime				; d0 = Uhrzeit vom Mac holen
@@ -2159,6 +2159,14 @@ Ikbdws:
  move.l	kbdvecs+$14,a2			; clockvec
  jsr		(a2)
  addq.l	#4,sp
+ addq.l	#6,sp
+ bra.b	ikbdws_ende
+ikbdws_host:
+ move.l	a0,-(sp)
+ move.w	d0,-(sp)
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_Ikbdws(pc),a0
+ MACPPC
  addq.l	#6,sp
 ikbdws_ende:
  moveq	#0,d0

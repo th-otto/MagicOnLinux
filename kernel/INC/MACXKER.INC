@@ -18,7 +18,7 @@ MacSysX_fpu:		DS.W 1		; $26 FPU (0=nix,4=68881,6=68882,8=68040)
 MacSysX_init:		DS.L 1		; $28 Wird beim Warmstart des Atari aufgerufen
 MacSysX_dev_in:	DS.L 1		; $2c Bconin()
 MacSysX_dev_out:	DS.L 1		; $30 Bconout()
-MacSysX_res34:		DS.L 1
+MacSysX_Ikbdws:	DS.L 1		; $34 Ikbdws()
 MacSysX_biosinit:	DS.L 1		; $38 nach Initialisierung aufrufen
 MacSysX_dev_istat:	DS.L 1		; $3c Bconstat()
 MacSysX_dev_ostat:	DS.L 1		; $40 Bcostat()

@@ -1039,7 +1039,7 @@ struct MacXSysHdr
     PTR32_HOST   MacSysX_init;              // 0x28: first initialisiation done
     UINT32_BE    MacSysX_dev_in;            // 0x2c: Bconin()
     UINT32_BE    MacSysX_dev_out;           // 0x30: Bconout()
-    UINT32_BE    MacSysX_res34;
+    UINT32_BE    MacSysX_Ikbdws;            // 0x34: Ikbdws()
     PTR32_HOST   MacSysX_biosinit;          // 0x38: called after initialisation
     UINT32_BE    MacSysX_dev_istat;         // 0x3c: Bconstat()
     UINT32_BE    MacSysX_dev_ostat;         // 0x40: Bcostat()

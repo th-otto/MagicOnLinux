@@ -773,6 +773,7 @@ void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr, CXCmd *pXCmd)
     setHostCallback(&pMacXSysHdr->MacSysX_dev_out, AtariBconout);
     setHostCallback(&pMacXSysHdr->MacSysX_dev_istat, AtariBconstat);
     setHostCallback(&pMacXSysHdr->MacSysX_dev_ostat, AtariBcostat);
+    setHostCallback(&pMacXSysHdr->MacSysX_Ikbdws, AtariIkbdws);
     setHostCallback(&pMacXSysHdr->MacSysX_biosinit, AtariBIOSInit);
     setHostCallback(&pMacXSysHdr->MacSysX_Dosound, AtariDosound);
     #else
@@ -2738,6 +2739,7 @@ uint32_t CMagiC::AtariBconstat(uint32_t params, uint8_t *addrOffset68k)
     return 0;
 }
 
+
 /** **********************************************************************************************
  *
  * @brief Emulator callback: BIOS Bcostat
@@ -2776,6 +2778,35 @@ uint32_t CMagiC::AtariBcostat(uint32_t params, uint8_t *addrOffset68k)
     }
 
     return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: XBIOS Ikbdws
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return nothing, return values is ignored
+ *
+ * @note The special case Ikbdws(0, "\x1c") for asking the IKBD clock is already handled
+ *       inside the kernel.
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariIkbdws(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct IkbdwsParm
+    {
+        uint16_t len_minus_one;         // 0: one byte, 1: two bytes, et cetera
+        uint32_t data;                  // 68k pointer to data
+    } __attribute__((packed));
+
+    const IkbdwsParm *theParm = (IkbdwsParm *) (addrOffset68k + params);
+    uint32_t len = be16toh(theParm->len_minus_one) + 1;
+    //const uint8_t *pData = (uint8_t *) (addrOffset68k + be32toh(theParm->data));
+    DebugError2("(len = %u, data = 0x%08x) -- not implemented", len, be32toh(theParm->data));
+    return EINVFN;
 }
 
 

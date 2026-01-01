@@ -3178,16 +3178,19 @@ INT32 CHostXFS::dev_seek(MAC_FD *f, int32_t pos, uint16_t mode)
  ************************************************************************************************/
 INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
 {
-    DebugInfo2("(fd = 0x%0x, rwflag = %d)", f, rwflag);
+    DebugInfo2("(f = 0x%0x, rwflag = %d)", f, rwflag);
+    uint16_t time, date;
 
     if (rwflag)
     {
-        if (f->fd.fd_mode & OM_WPERM)
+        if (be16toh(f->fd.fd_mode) & OM_WPERM)
         {
             // remember for later, when we close the file
             f->mod_time = be16toh(d[0]);
             f->mod_date = be16toh(d[1]);
+            //DebugWarning2("() -- f->mod_time = 0x%04x, f->mod_date = 0x%04x", f->mod_time, f->mod_date);
             f->mod_tdate_dirty = 1;
+            return E_OK;
         }
         else
         {
@@ -3199,9 +3202,24 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
     if (f->mod_tdate_dirty)
     {
         // already changed
-        d[0] = htobe16(f->mod_time);
-        d[1] = htobe16(f->mod_date);
+        time = f->mod_time;
+        date = f->mod_date;
     }
+    else
+    {
+        GET_hhdl_AND_fd
+        struct stat statbuf;
+        int res = fstat(fd, &statbuf);
+        if (res < 0)
+        {
+            DebugWarning2("() : fstat() -> %s", strerror(errno));
+            return CConversion::host2AtariError(errno);
+        }
+        CConversion::hostDateToDosDate(statbuf.st_mtim.tv_sec, &time, &date);
+    }
+
+    d[0] = htobe16(time);
+    d[1] = htobe16(date);
 
     return E_OK;
 }
@@ -3222,7 +3240,7 @@ INT32 CHostXFS::dev_datime(MAC_FD *f, UINT16 d[2], uint16_t rwflag)
  ************************************************************************************************/
 INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
 {
-    DebugInfo2("(fd = 0x%0x, cmd = %d)", f, cmd);
+    DebugInfo2("(fd = 0x%0x, cmd = %d/0x%04x)", f, cmd, cmd);
 
     GET_hhdl_AND_fd
 
@@ -3277,6 +3295,7 @@ INT32 CHostXFS::dev_ioctl(MAC_FD *f, uint16_t cmd, void *buf)
                 DebugWarning2("() : ftruncate() -> %s", strerror(errno));
                 return CConversion::host2AtariError(errno);
             }
+            return E_OK;
         }
 
         // macOS specific commands are not supported

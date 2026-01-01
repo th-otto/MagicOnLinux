@@ -190,10 +190,10 @@ COMMAND		EQU	$37			; "Apple"-Taste fÅr Calamus-UnterstÅtzung
 	INCLUDE "DEBUG.INC"
 
 
-D_DAY	EQU	29
-D_MONTH	EQU	12
-D_YEAR	EQU	2003
-D_BCD	EQU	$12292003			; mmttjj
+D_DAY	EQU	1
+D_MONTH	EQU	1
+D_YEAR	EQU	2026
+D_BCD	EQU	$01012026			; mmttjj
 
 NCOOKIES	EQU	21
 
@@ -424,18 +424,18 @@ MSysX:
  DC.L	mem_root			; $10
  DC.L	act_pd			; $14
  DC.L	act_appl			; $18
- DC.L	1				; $1c MacSys_verAtari
+ DC.L	2				; $1c MacSys_verAtari
 
  DC.L	0				; $20 MacSys_verMac
  DC.W	0				; $24 CPU (30=68030, 40=68040)
  DC.W	0				; $26 FPU-Typ
  DC.L	0				; $28 MacSys_Init
- DC.L	0				; $2c (reserviert)
- DC.L	0				; $30 (reserviert)
+ DC.L	0				; $2c MacSysX_dev_in
+ DC.L	0				; $30 MacSysX_dev_out
  DC.L	0				; $34 (reserviert)
  DC.L	0				; $38 MacSys_BiosInit
- DC.L	0				; $3c (reserviert)
- DC.L	0				; $40 (reserviert)
+ DC.L	0				; $3c MacSysX_dev_istat
+ DC.L	0				; $40 MacSysX_dev_ostat
  DC.L	0				; $44 MacSysX_Dosound
  DCB.L	PTRLEN,0			; $48 MacSys_VdiInit
  DC.L	0				; MacSys_pixmap
@@ -456,11 +456,11 @@ MSysX:
  DC.L	0				; MacSys_exit
  DC.L	0				; MacSys_debugout
  DC.L	0				; MacSys_error
- DC.L	0				; prt_cos
- DC.L	0				; prt_cin
- DC.L	0				; prt_cout
+ DC.L	0				; MacSysX_prtos
+ DC.L	0				; MacSysX_prtin
+ DC.L	0				; MacSysX_prtout
  DC.L	0				; MacSys_prn_wrts
- DC.L	0				; ser_rsconf
+ DC.L	0				; MacSysX_serconf
  DC.L	0				; MacSys_seris
  DC.L	0				; MacSys_seros
  DC.L	0				; MacSys_serin
@@ -1608,24 +1608,24 @@ ori_dev_vecs:
  DC.L	ret0 				; Bconstat(0)		PRT
  DC.L	bconstat_ser1			;				AUX
  DC.L	bconstat_con			;				CON
- DC.L	ret0 				;				MIDI
- DC.L	dummyfn				;				IKBD
+ DC.L	bconstat_midi			;				MIDI
+ DC.L	bconstat_ikbd			;				IKBD
  DC.L	dummyfn				;				RAWCON
  DC.L	dummyfn
  DC.L	dummyfn
  DC.L	bconin_prt			; Bconin(0)		PRT
  DC.L	bconin_ser1			;				AUX
  DC.L	bconin_con			;				CON
- DC.L	ret0 				;				MIDI
- DC.L	dummyfn				;				IKBD
+ DC.L	bconin_midi			;				MIDI
+ DC.L	bconin_ikbd			;				IKBD
  DC.L	dummyfn				;				RAWCON
  DC.L	dummyfn
  DC.L	dummyfn
  DC.L	bcostat_prt			; Bcostat(0)		PRT
  DC.L	bcostat_ser1			;				AUX
  DC.L	bcostat_con			;				CON
- DC.L	ret0 				;				MIDI (!!!)
- DC.L	ret0 				;				IKBD (!!!)
+ DC.L	bcostat_midi			;				MIDI (!!!)
+ DC.L	bcostat_ikbd			;				IKBD (!!!)
 
  DC.L	dummyfn				;				RAWCON
  DC.L	dummyfn
@@ -1633,8 +1633,8 @@ ori_dev_vecs:
  DC.L	bconout_prt			; Bconout(0,c) 	PRT
  DC.L	bconout_ser1			;				AUX
  DC.L	vdi_conout			;				CON
- DC.L	ret0 				;				MIDI
- DC.L	ret0 				;				IKBD
+ DC.L	bconout_midi			;				MIDI
+ DC.L	bconout_ikbd			;				IKBD
  DC.L	vdi_rawout			;				RAWCON
  DC.L	dummynopfn
  DC.L	dummynopfn
@@ -2280,8 +2280,8 @@ _bmp_ende:
 
 init_bconmap:
  lea 	dflt_maptable,a0
- lea 	bconmap_struct,a1
- move.l	a0,(a1)+
+ lea 	bconmap_struct,a1	; Zeiger vom Typ (BCONMAP *)
+ move.l	a0,(a1)+			; Zeiger vom Typ (MAPTAB *), ist dflt_maptable
  lea 	maptab_data(pc),a2
  bsr 	_bco_cpy			; ser1 (ST-MFP)
  moveq	#1,d0			; zunÑchst eine Schnittstelle
@@ -3444,6 +3444,7 @@ bcostat_ser1:
  MACPPC
  rts
 
+
 bconout_prt:
  lea		6(sp),a0				; MUSS hier stehen bleiben (wg. jsr 4(a2) im Dispatcher)
  lea 	(a0),a1
@@ -3459,6 +3460,76 @@ bconin_prt:
 bcostat_prt:
  lea		MSysX+MacSysX_prtos(pc),a0
  MACPPC
+ rts
+
+
+bconin_midi:
+ move.w	#3,-(sp)				; MIDI: 3
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_in(pc),a0
+ MACPPC
+ addq.l	#2,sp
+ rts
+
+bconout_midi:
+ lea		6(sp),a0				; MUSS hier stehen bleiben (wg. jsr 4(a2) im Dispatcher)
+ move.l	a0,-(sp)				; Parameter fÅr Bconout
+ move.w	#3,-(sp)				; MIDI: 3
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_out(pc),a0
+ MACPPC
+ addq.l	#6,sp
+ rts
+
+bconstat_midi:
+ move.w	#3,-(sp)				; MIDI: 3
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_istat(pc),a0
+ MACPPC
+ addq.l	#2,sp
+ rts
+
+bcostat_midi:
+ move.w	#3,-(sp)				; MIDI: 3
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_ostat(pc),a0
+ MACPPC
+ addq.l	#2,sp
+ rts
+
+
+bconin_ikbd:
+ move.w	#4,-(sp)				; IKBD: 4
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_in(pc),a0
+ MACPPC
+ addq.l	#2,sp
+ rts
+
+bconout_ikbd:
+ lea		6(sp),a0				; MUSS hier stehen bleiben (wg. jsr 4(a2) im Dispatcher)
+ move.l	a0,-(sp)				; Parameter fÅr Bconout
+ move.w	#4,-(sp)				; IKBD: 4
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_out(pc),a0
+ MACPPC
+ addq.l	#6,sp
+ rts
+
+bconstat_ikbd:
+ move.w	#4,-(sp)				; IKBD: 4
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_istat(pc),a0
+ MACPPC
+ addq.l	#2,sp
+ rts
+
+bcostat_ikbd:
+ move.w	#4,-(sp)				; IKBD: 4
+ lea 	(sp),a1
+ lea		MSysX+MacSysX_dev_ostat(pc),a0
+ MACPPC
+ addq.l	#2,sp
  rts
 
 

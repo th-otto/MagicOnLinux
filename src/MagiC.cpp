@@ -769,6 +769,10 @@ void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr, CXCmd *pXCmd)
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
     #if MAGIC_KERNEL_API_VERSION > 0
     setHostCallback(&pMacXSysHdr->MacSysX_init, AtariInit);
+    setHostCallback(&pMacXSysHdr->MacSysX_dev_in, AtariBconin);
+    setHostCallback(&pMacXSysHdr->MacSysX_dev_out, AtariBconout);
+    setHostCallback(&pMacXSysHdr->MacSysX_dev_istat, AtariBconstat);
+    setHostCallback(&pMacXSysHdr->MacSysX_dev_ostat, AtariBcostat);
     setHostCallback(&pMacXSysHdr->MacSysX_biosinit, AtariBIOSInit);
     setHostCallback(&pMacXSysHdr->MacSysX_Dosound, AtariDosound);
     #else
@@ -2515,6 +2519,106 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
 #endif
     }
 
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: BIOS Bconin
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return read character in bits 0..7
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariBconin(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct BconinParm
+    {
+        uint16_t devno;             // 3: MIDI, 4: IKDB, TODO: more to come
+    } __attribute__((packed));
+
+    const BconinParm *theParm = (BconinParm *) (addrOffset68k + params);
+    uint16_t devno = be16toh(theParm->devno);
+    DebugWarning2("(devno = %u)", devno);
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: BIOS Bconout
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return read character in bits 0..7
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariBconout(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct BconoutParm
+    {
+        uint16_t devno;             // 3: MIDI, 4: IKDB, TODO: more to come
+        PTR32_BE data;            // 68k-pointer to character
+    } __attribute__((packed));
+
+    const BconoutParm *theParm = (BconoutParm *) (addrOffset68k + params);
+    uint16_t devno = be16toh(theParm->devno);
+    const uint8_t *pData = (uint8_t *) (addrOffset68k + be32toh(theParm->data));
+    uint16_t datum = *pData++;
+    datum <<= 8;
+    datum += *pData;        // 16-bit big endian
+    DebugWarning2("(devno = %u, c = 0x%04x)", devno, datum);
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: BIOS Bconstat
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return read character in bits 0..7
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariBconstat(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct BconstatParm
+    {
+        uint16_t devno;             // 3: MIDI, 4: IKDB, TODO: more to come
+    } __attribute__((packed));
+
+    const BconstatParm *theParm = (BconstatParm *) (addrOffset68k + params);
+    uint16_t devno = be16toh(theParm->devno);
+    DebugWarning2("(devno = %u)", devno);
+    return 0;
+}
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: BIOS Bcostat
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     Host address of 68k memory
+ *
+ * @return read character in bits 0..7
+ *
+ ************************************************************************************************/
+uint32_t CMagiC::AtariBcostat(uint32_t params, uint8_t *addrOffset68k)
+{
+    struct BcostatParm
+    {
+        uint16_t devno;             // 3: MIDI, 4: IKDB, TODO: more to come
+    } __attribute__((packed));
+
+    const BcostatParm *theParm = (BcostatParm *) (addrOffset68k + params);
+    uint16_t devno = be16toh(theParm->devno);
+    DebugWarning2("(devno = %u)", devno);
     return 0;
 }
 

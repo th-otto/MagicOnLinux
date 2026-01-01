@@ -88,6 +88,11 @@ class CMagiC
     static int IRQCallback(int IRQLine);
     static uint32_t AtariInit(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariBIOSInit(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBconin(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBconout(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBconstat(uint32_t params, uint8_t *addrOffset68k);
+    static uint32_t AtariBcostat(uint32_t params, uint8_t *addrOffset68k);
+
     uint32_t AtariVdiInit(uint32_t params, uint8_t *addrOffset68k);
     uint32_t AtariExec68k(uint32_t params, uint8_t *addrOffset68k);
     uint32_t OpenSerialBIOS(void);

@@ -1032,17 +1032,17 @@ struct MacXSysHdr
     PTR32_BE     MacSysX_act_appl;          // pointer to current task (appl)
     UINT32_BE    MacSysX_verAtari;          // version number of MagicMacX.OS resp. MAGICLIN.OS
     // host -> Atari
-    UINT32_BE    MacSysX_verMac;            // version number of this structure
-    UINT16_BE    MacSysX_cpu;               // CPU (20 = 68020, 30=68030, 40=68040)
-    UINT16_BE    MacSysX_fpu;               // FPU (0=nothing,4=68881,6=68882,8=68040)
+    UINT32_BE    MacSysX_verMac;            // 0x20: version number of this structure
+    UINT16_BE    MacSysX_cpu;               // 0x24: CPU (20 = 68020, 30=68030, 40=68040)
+    UINT16_BE    MacSysX_fpu;               // 0x26: FPU (0=nothing,4=68881,6=68882,8=68040)
     #if MAGIC_KERNEL_API_VERSION > 0
-    PTR32_HOST   MacSysX_init;              // first initialisiation done
-    UINT32_BE    MacSysX_res2c;
-    UINT32_BE    MacSysX_res30;
+    PTR32_HOST   MacSysX_init;              // 0x28: first initialisiation done
+    UINT32_BE    MacSysX_dev_in;            // 0x2c: Bconin()
+    UINT32_BE    MacSysX_dev_out;           // 0x30: Bconout()
     UINT32_BE    MacSysX_res34;
-    PTR32_HOST   MacSysX_biosinit;          // called after initialisation
-    UINT32_BE    MacSysX_res3c;
-    UINT32_BE    MacSysX_res40;
+    PTR32_HOST   MacSysX_biosinit;          // 0x38: called after initialisation
+    UINT32_BE    MacSysX_dev_istat;         // 0x3c: Bconstat()
+    UINT32_BE    MacSysX_dev_ostat;         // 0x40: Bcostat()
     PTR32_HOST   MacSysX_Dosound;
     #else
     PTR32x4_HOST MacSysX_init;              // called on Atari warm boot

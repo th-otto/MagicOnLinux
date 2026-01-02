@@ -14,3 +14,8 @@ New emulator callbacks for Bios Bconin/Bconout/Bconstat/Bcostat, for PRN, AUX, M
 Joystick interrogation (IKBD $16) implemented, for GFABASIC.
 Xbios Ikbdws() is routed to the emulator, to detect program incompatibilities.
 Kernel API number increased to 3.
+
+2026-01-02
+
+MAGXDESK.RSC: some information fields extended to avoid overflow
+Some bugfixes.

@@ -2642,7 +2642,7 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
     }
     if (buf.f_blocks > num_total_blocks)
     {
-        DebugWarning2("() -- number of free blocks saturated from %llu to %u", buf.f_blocks, num_total_blocks);
+        DebugWarning2("() -- number of total blocks saturated from %llu to %u", buf.f_blocks, num_total_blocks);
     }
 
     data[0] = htobe32(num_free_blocks);     // # free blocks

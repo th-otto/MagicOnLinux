@@ -1234,7 +1234,7 @@ int CMagiC::createThread( void )
             this                // Parameter
             ))
     {
-        DebugError2("() : pthread_create() -> %s", strerror(errno));
+        DebugError2("() : pthread_create() failed");
         return -1;
     }
 
@@ -3541,7 +3541,7 @@ uint32_t CMagiC::MmxDaemon(uint32_t params, uint8_t *addrOffset68k)
 
                 // update queue
                 free((void *) Preferences::AtariStartApplications[0]);
-                for (unsigned i = 0; i < MAX_START_APPS; i++)
+                for (unsigned i = 0; i < MAX_START_APPS - 1; i++)
                 {
                     Preferences::AtariStartApplications[i] = Preferences::AtariStartApplications[i + 1];
                 }

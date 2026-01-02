@@ -1209,11 +1209,11 @@ void m68k_trace_print()
         unsigned index = (M68K_TRACE + m68k_trace_i - i - 1) % M68K_TRACE;
 		uint32_t prevpc = m68k_trace[index][0];
         uint32_t rd0    = m68k_trace[index][1];
-        uint32_t rd1    = m68k_trace[index][2];
+        uint32_t ra0    = m68k_trace[index][2];
 		uint16_t instr = (mem68k[prevpc] << 8) + (mem68k[prevpc + 1]);
 		if ((prevpc >= addrOsRomStart) && (prevpc < addrOsRomEnd))
 		{
-			printf(" PC was 0x%08x, d0 = 0x%08x, d1 = 0x%08x, instr 0x%04x (OS rel 0x%06x)\n", prevpc, rd0, rd1, instr, prevpc - addrOsRomStart);
+			printf(" PC was 0x%08x, d0 = 0x%08x, a0 = 0x%08x, instr 0x%04x (OS rel 0x%06x)\n", prevpc, rd0, ra0, instr, prevpc - addrOsRomStart);
 		}
         #if 0
 		else
@@ -1230,7 +1230,7 @@ void m68k_trace_print()
         #endif
 		else
 		{
-			printf(" PC was 0x%08x, d0 = 0x%08x, instr 0x%04x\n", prevpc, rd0, instr);
+			printf(" PC was 0x%08x, d0 = 0x%08x, a0 = 0x%08x, instr 0x%04x\n", prevpc, rd0, ra0, instr);
 		}
 	}
 }
@@ -1302,7 +1302,7 @@ void m68k_execute(void)
 		#if defined(M68K_TRACE)
 		m68k_trace[m68k_trace_i][0] = REG_PC;
 		m68k_trace[m68k_trace_i][1] = REG_D[0];
-		m68k_trace[m68k_trace_i][2] = REG_D[1];
+		m68k_trace[m68k_trace_i][2] = REG_A[0];
         m68k_trace_i++;
 		m68k_trace_i %= M68K_TRACE;
 		#endif

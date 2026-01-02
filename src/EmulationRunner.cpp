@@ -42,7 +42,8 @@
 // global variables from "emulation_globals.h"
 uint8_t *mem68k;                    // host pointer to memory block used by emulator
 uint32_t mem68kSize;                // complete address range for 68k emulator, but without video memory
-uint32_t memVideo68kSize;        // size of emulated video memory
+uint32_t memVideo68kSize;           // size of emulated video memory, including padding, i.e. 32768 instead of 32000
+uint32_t memVideo68kSizeVisible;    // size of emulated video memory, without padding, visible part
 uint8_t *addrOpcodeROM;				// pointer to 68k memory (host address)
 uint32_t addr68kVideo;				// start of 68k video memory (68k address)
 uint32_t addr68kVideoEnd;			// end of 68k video memory (68k address)

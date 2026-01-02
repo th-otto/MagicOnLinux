@@ -141,6 +141,10 @@ class CStMmuConf : public CRegisterModel
  *
  * @brief SHIFTER Video Controller: Video addresses (ST, STe, F030)
  *
+ * @note While 0xffff8201/0xffff8203/0xffff820d are meant to configure the video memory address,
+ *       the registers 0xffff8205/0xffff8207/0xffff8209 reflect the current read address by
+ *       the shifter, i.e. these addresses are constantly changing.
+ *
  ************************************************************************************************/
 class CVideoAddress : public CRegisterModel
 {
@@ -161,9 +165,9 @@ class CVideoAddress : public CRegisterModel
         {
             case    1: return "pos high";
             case    3: return "pos mid";
-            case    5: return "ptr high";
-            case    7: return "ptr mid";
-            case    9: return "ptr low";
+            case    5: return "ptr high";   // read-only on ST, otherwise R/W
+            case    7: return "ptr mid";    // "
+            case    9: return "ptr low";    // "
             case 0x0a: return "sync mode";
             case 0x0d: return "pos low (STe)";
         }
@@ -188,18 +192,37 @@ class CVideoAddress : public CRegisterModel
             return (high << 16) | mid;   // high and mid bytes
         }
 
+        //
+        // hack to make SHIFTER read pointer change between calls
+        //
+
+        static unsigned offs = 0;
+        uint32_t ptr = physaddr + offs;
+        if (ptr >= physaddr + memVideo68kSizeVisible)
+        {
+            ptr = physaddr;
+        }
+        offs += 640;
+        if (offs >= memVideo68kSizeVisible)
+        {
+            offs = 0;
+        }
+
         if (len == 1)
         {
             // only support 8-bit reads
             switch(addr)
             {
+                // physical screen address, as defined by OS or user
                 case    1: return (physaddr >> 16) & 0xff;  // high byte
                 case    3: return (physaddr >> 8) & 0xff;   // mid byte
-                case    5: return (physaddr >> 16) & 0xff;  // high byte
-                case    7: return (physaddr >> 8) & 0xff;   // mid byte
-                case    9: return (physaddr) & 0xff;        // low byte
-                case 0x0a: return 0;                        // sync mode
                 case 0x0d: return (physaddr) & 0xff;        // low byte
+                // current SHIFTER read address
+                case    5: return (ptr >> 16) & 0xff;  // high byte
+                case    7: return (ptr >> 8) & 0xff;   // mid byte
+                case    9: return (ptr) & 0xff;        // low byte
+                // sync mode
+                case 0x0a: return 0;                        // sync mode
             }
         }
         *p_success = false;

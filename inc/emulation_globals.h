@@ -9,7 +9,8 @@ extern bool gbAtariVideoRamHostEndian;  // true: video RAM is stored in host end
 // global variables
 extern uint8_t *mem68k;                 // host pointer to memory block used by emulator
 extern uint32_t mem68kSize;             // complete address range for 68k emulator, but without video memory
-extern uint32_t memVideo68kSize;        // size of emulated video memory
+extern uint32_t memVideo68kSize;        // size of emulated video memory, including padding, i.e. 32768 instead of 32000
+extern uint32_t memVideo68kSizeVisible; // size of emulated video memory, without padding, visible part
 extern uint8_t *addrOpcodeROM;
 extern uint32_t addr68kVideo;           // start of 68k video memory (68k address)
 extern uint32_t addr68kVideoEnd;        // end of 68k video memory (68k address)
@@ -37,7 +38,7 @@ extern const char *exception68k_to_name(uint32_t addr);
 #ifndef NDEBUG
 //#define M68K_BREAKPOINTS   4            // for debugging 68k code
 //#define M68K_WRITE_WATCHES 3            // for debugging 68k code
-//#define M68K_TRACE  1024
+// #define M68K_TRACE  256
 
 #if defined(M68K_TRACE)
 extern uint32_t m68k_trace[M68K_TRACE][3];

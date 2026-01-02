@@ -227,6 +227,7 @@ Atari applications that might work partially (greylist)
 - RSCTEXT (direct video memory access, might work with 640x400)
 - ST-Pascal (direct memory access, then bus error)
 - GFABASIC 3.6 runs in single application mode in ST-high and ST-mid, otherwise total crash. Asks IKBD for Joystick status.
+- Omikron BASIC v3.60 in single mode, st-high, does I/O access, needs 0xffff8205/07/09 hack.
 - Tempus Word <<<=== find out, what files is missing and cannot find
 
 
@@ -241,7 +242,6 @@ Atari applications that do not work at all (blacklist)
 - GEM2 Wordchart (bus error)
 - NRSC 2.4 (writing to I/O)
 - Omicron Basic Compiler 3.06 (crash, and when ejecting "omikron_basic_compiler_3_06_omikron.st", system crashes)
-- Omikron BASIC v3.60 (I/O access)
 - PERSYS (draws artifacts like task manager in B/W)
 - PLOT_IT.PRG (draws artifacts like task manager in B/W, then crashes)
 - STAD_1_3.PRG (accesses video base register, needs case-insensitive drive, freezes system after crash)

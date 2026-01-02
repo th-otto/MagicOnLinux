@@ -18,4 +18,5 @@ Kernel API number increased to 3.
 2026-01-02
 
 MAGXDESK.RSC: some information fields extended to avoid overflow
+Mock hardware registers 0xffff8205/07/09 to make Omikron Basic starting.
 Some bugfixes.

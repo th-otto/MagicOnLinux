@@ -885,13 +885,11 @@ int CMagiC::init(CXCmd *pXCmd)
     */
 
     mem68kSize = Preferences::AtariMemSize;
-    #if 0
     unsigned numVideoLines = CMagiCScreen::m_PixMap.bounds_bottom - CMagiCScreen::m_PixMap.bounds_top;
     unsigned bufferLineLenInBytes = (CMagiCScreen::m_PixMap.rowBytes & 0x3fff);
-    memVideo68kSize = bufferLineLenInBytes * numVideoLines;
-    #else
+    memVideo68kSizeVisible = bufferLineLenInBytes * numVideoLines;
     memVideo68kSize = CMagiCScreen::pixels_size;
-    #endif
+
     // Get Atari memory, not that the <memVideo68kSize> virtual screen RAM is allocated later
     // and actually is an SDL surface.
     mem68k = (unsigned char *) malloc(mem68kSize);
@@ -1277,6 +1275,7 @@ void CMagiC::stopExec( void )
 /**********************************************************************
 *
 * Terminiert den Ausführungs-Thread bei Programm-Ende
+* Wird nicht aufgerufen, wenn SHUTDOWN.PRG das erledigt.
 *
 **********************************************************************/
 
@@ -1287,7 +1286,7 @@ void CMagiC::terminateThread(void)
     #if defined(M68K_TRACE)
         DebugWarning(" == FINAL TRACE ==");
         m68k_trace_print();
-        //dumpAtariMem();
+        dumpAtariMem();
     #endif
     OS_SetEvent(
             &m_EventId,

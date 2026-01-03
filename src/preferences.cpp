@@ -121,7 +121,7 @@ static const char *var_name[VAR_NUMBER] =
 };
 
 
-char Preferences::AtariLanguage[16] = "";       // empty: default
+char Preferences::AtariLanguage[16] = "en";       // empty: default
 unsigned Preferences::AtariMemSize = (8 * 1024 * 1024);
 bool Preferences::bShowHostMenu = true;
 enAtariScreenColourMode Preferences::atariScreenColourMode = atariScreenMode16M;
@@ -531,11 +531,11 @@ int Preferences::writePreferences(const char *cfgfile)
     fprintf(f, "%s = %s\n",     var_name[VAR_RELATIVE_MOUSE], bRelativeMouse ? "YES" : "NO");
     fprintf(f, "[SCREEN PLACEMENT]\n");
     fprintf(f, "%s = %u\n",     var_name[VAR_APP_DISPLAY_NUMBER], Monitor);
-    fprintf(f, "%s = %u\n",     var_name[VAR_APP_WINDOW_X], AtariScreenX);
-    fprintf(f, "%s = %u\n",     var_name[VAR_APP_WINDOW_Y], AtariScreenY);
+    fprintf(f, "%s = %d\n",     var_name[VAR_APP_WINDOW_X], AtariScreenX);
+    fprintf(f, "%s = %d\n",     var_name[VAR_APP_WINDOW_Y], AtariScreenY);
     fprintf(f, "[ATARI EMULATION]\n");
     fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_MEMORY_SIZE], AtariMemSize);
-    fprintf(f, "#%s = %s\n",     var_name[VAR_ATARI_LANGUAGE], AtariLanguage);
+    fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_LANGUAGE], AtariLanguage);
     fprintf(f, "%s = %s\n",     var_name[VAR_SHOW_HOST_MENU], bShowHostMenu ? "YES" : "NO");
     fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_AUTOSTART], bAutoStartMagiC ? "YES" : "NO");
     fprintf(f, "[ADDITIONAL ATARI DRIVES]\n");

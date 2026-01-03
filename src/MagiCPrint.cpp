@@ -74,6 +74,7 @@ void CMagiCPrint::exit()
         // when cd command failed.
         // Redirect stdout and stderr to PrintCommand_rm.txt, for debugging purposes.
 
+        command = NULL;
         asprintf(&command, "cd \"%s\" && rm PrintQueue/MagiCPrintFile???????? >&\"%sPrintQueue/PrintCommand_rm.txt\"",
                             Preferences::AtariTempFilesUnixPath,
                             Preferences::AtariTempFilesUnixPath);
@@ -205,6 +206,7 @@ uint32_t CMagiCPrint::closePrinterFile(void)
 
     // Generate filename of previous print file, enclosed in quotation marks.
     // This is necessary if there are spaces in the path.
+    command = NULL;
     asprintf(&command, "%s \"%s/PrintQueue/MagiCPrintFile%08d\" >&\"%s/PrintQueue/PrintCommand_stdout.txt\"",
                         Preferences::szPrintingCommand,
                         Preferences::AtariTempFilesUnixPath,

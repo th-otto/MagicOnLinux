@@ -771,7 +771,7 @@ uint32_t CMagiC::UndefinedFunction(uint32_t params, unsigned char *AdrOffset68k)
 	uint32_t m68k_pc = m68k_get_reg(NULL, M68K_REG_PC);
 	(void)params;
 	(void)AdrOffset68k;
-	char *msg;
+	char *msg = NULL;
 	asprintf(&msg, "Unset emulator function called at PC = $%08x\n\n%s", m68k_pc, "Review configuration file!");
     showAlert("The emulator was halted", msg);
     free(msg);
@@ -3108,32 +3108,32 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
     {
         uint16_t drv = 0xffff;
         const char *mount_buttons;
-        int answerA = 1000;         // initialise as invalid
-        int answerB = 1000;
-        int answerA_ro = 1000;
-        int answerB_ro = 1000;
+        int answerA = -1;         // initialise as invalid
+        int answerB = -1;
+        int answerA_ro = -1;
+        int answerB_ro = -1;
 
         if (availA && availB)
         {
             mount_buttons = mount_buttons_ab;
-            answerA = 101;
-            answerB = 102;
-            answerA_ro = 103;
-            answerB_ro = 104;
+            answerA = ALERT_BUTTON_1;
+            answerB = ALERT_BUTTON_2;
+            answerA_ro = ALERT_BUTTON_3;
+            answerB_ro = ALERT_BUTTON_4;
         }
         else
         if (availA)
         {
             mount_buttons = mount_buttons_a;
-            answerA = 101;
-            answerA_ro = 102;
+            answerA = ALERT_BUTTON_1;
+            answerA_ro = ALERT_BUTTON_2;
         }
         else
         if (availB)
         {
             mount_buttons = mount_buttons_b;
-            answerB = 101;
-            answerB_ro = 102;
+            answerB = ALERT_BUTTON_1;
+            answerB_ro = ALERT_BUTTON_2;
         }
 
         // drive A: or B: currently unused. Mount image or path.

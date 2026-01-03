@@ -53,38 +53,30 @@
 int showDialogue(const char *msg_text, const char *info_txt, const char *buttons)
 {
     const char *title = "MagicOnLinux";
-    char fname[] = "/tmp/magic-on-linux_XXXXXX";
-    // TODO: find some reasonable unicode long space
-    const char *spaces = "                                                                                                    ";
-    char text[512];
+    char *command;
 
-    FILE *f = nullptr;
-    int fd = mkstemp(fname);
-    if (fd >= 0)
-    {
-        f = fdopen(fd, "wt");
-    }
-    if (f != nullptr)
-    {
-        fprintf(f, "%s\n\n%s\n%s\n",msg_text, info_txt, spaces);
-        sprintf(text, "-file \"%s\"", fname);
-        fclose(f);
-    }
-    else
-    {
-        sprintf(text, "%s\n\n%s\n", msg_text, info_txt);
-    }
-
-    char command[1024];
-    sprintf(command, "gxmessage -nearmouse -wrap -title \"%s\" -buttons \"%s\" %s", title, buttons, text);
+    /*
+     * try gxmessage first
+     */
+    command = NULL;
+    asprintf(&command, "gxmessage -nearmouse -wrap -title '%s' -buttons '%s' '%s\n\n%s'", title, buttons, msg_text, info_txt);
     // Contrary to man page, we do not get 101, 102, 103 for the buttons, but the value is
     // shifted by 8, so that we receive 0x6500, 0x6600 and 0x6700 for buttons and 0x0100 for window close.
     //fprintf(stderr, "%s\n", command);
     int result = system(command);
-    unlink(fname);
+    free(command);
+    if (result == 127)
+    {
+        /*
+         * gxmessage not found, try alternatives (TODO)
+         */
+        result = -1;
+    } else
+    {
+        result = result >> 8;
+    }
     //fprintf(stderr, "-> %d (0x%08x)\n", result, result);
-
-    return result >> 8;
+    return result;
 }
 #endif
 
@@ -105,7 +97,7 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
 int showDialogue(const char *msg_text, const char *info_txt, const char *buttons)
 {
     const char *title = "MagicOnLinux";
-    char command[2048];
+    char *command;
     char escaped_msg[512];
     char escaped_info[512];
 
@@ -115,7 +107,7 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
     char *dst = escaped_msg;
     while (*src && (size_t)(dst - escaped_msg) < sizeof(escaped_msg) - 2)
     {
-        if (*src == '"')
+        if (*src == '"' || *src == '\\')
         {
             *dst++ = '\\';
         }
@@ -127,7 +119,7 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
     dst = escaped_info;
     while (*src && (size_t)(dst - escaped_info) < sizeof(escaped_info) - 2)
     {
-        if (*src == '"')
+        if (*src == '"' || *src == '\\')
         {
             *dst++ = '\\';
         }
@@ -136,11 +128,13 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
     *dst = '\0';
 
     // Build AppleScript command - for now, ignore custom buttons and just use OK
-    snprintf(command, sizeof(command),
+    command = NULL;
+    asprintf(&command,
              "osascript -e 'tell app \"System Events\" to display dialog \"%s\\n\\n%s\" with title \"%s\" buttons {\"OK\"} default button \"OK\"'",
              escaped_msg, escaped_info, title);
 
     int result = system(command);
+    free(command);
     // osascript returns 0 on success (button clicked)
     return (result == 0) ? 0 : 1;
 }

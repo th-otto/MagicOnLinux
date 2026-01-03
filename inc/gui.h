@@ -27,6 +27,11 @@
 
 #include <stdint.h>
 
+#define ALERT_BUTTON_1 101
+#define ALERT_BUTTON_2 102
+#define ALERT_BUTTON_3 103
+#define ALERT_BUTTON_4 104
+#define ALERT_BUTTON_5 105
 
 extern int showAlert(const char *msg_text, const char *info_txt);
 extern int showDialogue(const char *msg_text, const char *info_txt, const char *buttons);

@@ -22,6 +22,9 @@
 *
 */
 
+#ifndef _INCLUDED_NETWORK_H
+#define _INCLUDED_NETWORK_H
+
 #include <stdint.h>
 #include "Atari.h"
 #include "preferences.h"
@@ -35,9 +38,9 @@ class CNetwork
     typedef uint32_t m68k_data_type;
 
     static uint32_t AtariNetwork(m68k_addr_type params, uint8_t *addrOffset68k);
-    void init(void);
-    void exit(void);
-    void reset(void);
+    static void init(void);
+    static void exit(void);
+    static void reset(void);
 
     class Handler
     {
@@ -171,3 +174,5 @@ public:
 #define ETHERNET_HANDLER_CLASSNAME BPFEthernetHandler
 
 #endif
+
+#endif // included _INCLUDED_NETWORK_H

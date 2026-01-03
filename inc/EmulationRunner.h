@@ -68,7 +68,6 @@ class EmulationRunner
     static SDL_Texture *m_sdl_texture;
     static CXCmd m_EmulatorXcmd;
     static CMagiC m_Emulator;
-    static CNetwork m_Network;
     static SDL_Thread *m_EmulatorThread;
     static bool m_EmulatorRunning;
 

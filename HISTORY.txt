@@ -20,3 +20,10 @@ Kernel API number increased to 3.
 MAGXDESK.RSC: some information fields extended to avoid overflow
 Mock hardware registers 0xffff8205/07/09 to make Omikron Basic starting.
 Some bugfixes.
+
+2026-01-03
+
+Bcostat() MIDI and IKBD exchanged.
+Simplified network class
+Suppress network and serial device messages if not configured.
+Repaired writing of default config file.

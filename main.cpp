@@ -7,6 +7,7 @@
 #include "volume_images.h"
 #include "audio.h"
 #include "MagiCScreen.h"
+//#include "network.h"
 #include "MagiCPrint.h"
 #include "MagiCSerial.h"
 #include "EmulationRunner.h"
@@ -789,6 +790,10 @@ int main(int argc, char * const argv[])
     //CAudio::init("assets/820351_17769113-lq.mp3", "assets/638638_433684-lq.mp3");
     CAudio::init(nullptr, nullptr);
     CMagiCScreen::init();
+    if (Preferences::eth[0].type != 0)
+    {
+       CNetwork::init();
+    }
     if (EmulationRunner::init())
     {
         return -1;
@@ -799,6 +804,10 @@ int main(int argc, char * const argv[])
     }
     EmulationRunner::StartEmulatorThread();
     EmulationRunner::EventLoop();
+    if (Preferences::eth[0].type != 0)
+    {
+       CNetwork::exit();
+    }
     CMagiCScreen::exit();
     CAudio::exit();
     CMagiCPrint::exit();

@@ -194,8 +194,8 @@ keyctab:
    dc.w	  ShRAltKey-keyctab 	 ;9
    dc.w	  ShLAltKey-keyctab 	 ;10
    dc.w	  ShRLAltKey-keyctab	 ;11
-   dc.w	  CtrlAltKey-keyctab	 ;12 -> auf DEL abtesten!
-   dc.w	  ShRCtrlAltKey-keyctab	 ;13 -> auf DEL abtesten!
+   dc.w	  CtrlAltKey-keyctab	 ;12 -> auf DEL testen!
+   dc.w	  ShRCtrlAltKey-keyctab	 ;13 -> auf DEL testen!
    dc.w	  ShLCtrlAltKey-keyctab	 ;14
    dc.w	  ShRLCtrlAltKey-keyctab  ;15
 
@@ -204,14 +204,15 @@ keyctab:
 ; <klick> sichert im Gegensatz zur alten <klick>-Routine
 ; nur das von den Tastatur IR-Routinen ben”tigte Register d0.b!
 klick:
-   btst	  #0,conterm
-   beq.b	  kl_silent
+   btst	  #0,conterm			; Tastaturklick eingeschaltet?
+   beq.b	  kl_silent			; nein
    move.w   d0,-(sp)
    movea.l  kcl_hook,a1			; Die aufgerufene Routine darf
-   jsr	  (a1)				; Register d0-d2/a0-a2 zerst”ren
+   jsr	  (a1)				;  Register d0-d2/a0-a2 zerst”ren
    move.w   (sp)+,d0
 kl_silent:
    rts
+
 ;---------------------------------------------------------
 ShRCtrlKey:
 ShLCtrlKey:

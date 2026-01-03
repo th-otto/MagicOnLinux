@@ -190,10 +190,10 @@ COMMAND		EQU	$37			; "Apple"-Taste fÅr Calamus-UnterstÅtzung
 	INCLUDE "DEBUG.INC"
 
 
-D_DAY	EQU	1
+D_DAY	EQU	3
 D_MONTH	EQU	1
 D_YEAR	EQU	2026
-D_BCD	EQU	$01012026			; mmttjj
+D_BCD	EQU	$01032026			; mmttjj
 
 NCOOKIES	EQU	21
 
@@ -369,7 +369,7 @@ do_gettime:		DS.W 1
 warmbvec: 		DS.L 1			/* Sprungadr. fÅr Ctrl-Alt-Del	*/
 coldbvec: 		DS.L 1			/* Sprungadr. fÅr Ctrl-Alt-Rsh-Del */
 sust_len:			DS.L	1			/* Supervisorstack pro Applikation */
-datemode:			DS.W	1		;fÅr date2str (->STD.S)
+datemode:			DS.W	1			;fÅr date2str (->STD.S)
 log_fd:			DS.L	1			/* DateiHandle fÅr Bootlog */
 log_fd_pd:		DS.L	1			/* Prozeûdeskriptor fÅr Handle */
 log_oldconout:		DS.L	1			/* Alter Vektor fÅr Bootlog */
@@ -1613,6 +1613,7 @@ ori_dev_vecs:
  DC.L	dummyfn				;				RAWCON
  DC.L	dummyfn
  DC.L	dummyfn
+
  DC.L	bconin_prt			; Bconin(0)		PRT
  DC.L	bconin_ser1			;				AUX
  DC.L	bconin_con			;				CON
@@ -1621,15 +1622,16 @@ ori_dev_vecs:
  DC.L	dummyfn				;				RAWCON
  DC.L	dummyfn
  DC.L	dummyfn
+
  DC.L	bcostat_prt			; Bcostat(0)		PRT
  DC.L	bcostat_ser1			;				AUX
  DC.L	bcostat_con			;				CON
- DC.L	bcostat_midi			;				MIDI (!!!)
  DC.L	bcostat_ikbd			;				IKBD (!!!)
-
+ DC.L	bcostat_midi			;				MIDI (!!!)
  DC.L	dummyfn				;				RAWCON
  DC.L	dummyfn
  DC.L	dummyfn
+
  DC.L	bconout_prt			; Bconout(0,c) 	PRT
  DC.L	bconout_ser1			;				AUX
  DC.L	vdi_conout			;				CON

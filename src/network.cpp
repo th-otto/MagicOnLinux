@@ -125,6 +125,17 @@ CNetwork::Handler *CNetwork::getHandler(unsigned int ethX, bool msg)
     return NULL;
 }
 
+
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: network (static function)
+ *
+ * @param[in] params            parameters
+ * @param[in] addrOffset68k     Host address of 68k memory (unused)
+ *
+ * @return zero or error code
+ *
+ ************************************************************************************************/
 uint32_t CNetwork::AtariNetwork(m68k_addr_type params, uint8_t *addrOffset68k)
 {
     uint32_t cmd;
@@ -158,8 +169,10 @@ uint32_t CNetwork::AtariNetwork(m68k_addr_type params, uint8_t *addrOffset68k)
 
             unit = m68ki_read_data_32(params);
             params += 4;
-            if (unit >= MAX_ETH || Preferences::eth[unit].type == ETH_TYPE_NONE)
+            if ((unit >= MAX_ETH) || (Preferences::eth[unit].type == ETH_TYPE_NONE))
+            {
                 return EUNDEV;
+            }
 
             uint32_t buf_ptr = params;    // destination buffer
             DebugInfo2("ETH%d: getMAC(%x)", unit, buf_ptr);

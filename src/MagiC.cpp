@@ -2669,7 +2669,7 @@ uint32_t CMagiC::AtariBconin(uint32_t params, uint8_t *addrOffset68k)
             return(c);
     }
     else
-    if (devno == 1)
+    if ((devno == 1) && (Preferences::szAuxPath[0]))        // ignore, if not configured
     {
         // open serial port, if necessary
         if (!CMagiCSerial::OpenSerialBIOS())
@@ -2724,7 +2724,7 @@ uint32_t CMagiC::AtariBconout(uint32_t params, uint8_t *addrOffset68k)
             return 0;                // Fehler
     }
     else
-    if (devno == 1)
+    if ((devno == 1) && (Preferences::szAuxPath[0]))        // ignore, if not configured
     {
         // open serial port, if necessary
         if (!CMagiCSerial::OpenSerialBIOS())
@@ -2783,7 +2783,7 @@ uint32_t CMagiC::AtariBconstat(uint32_t params, uint8_t *addrOffset68k)
         return CMagiCPrint::getInputStatus();
     }
     else
-    if (devno == 1)
+    if ((devno == 1) && (Preferences::szAuxPath[0]))        // ignore, if not configured
     {
         // open serial port, if necessary
         if (!CMagiCSerial::OpenSerialBIOS())
@@ -2824,7 +2824,7 @@ uint32_t CMagiC::AtariBcostat(uint32_t params, uint8_t *addrOffset68k)
         return CMagiCPrint::getOutputStatus();
     }
     else
-    if (devno == 1)
+    if ((devno == 1) && (Preferences::szAuxPath[0]))        // ignore, if not configured
     {
         // open serial port, if necessary
         if (!CMagiCSerial::OpenSerialBIOS())

@@ -631,7 +631,7 @@ int CMagiC::LoadReloc
 **********************************************************************/
 void CMagiC::initCookieData(MgMxCookieData *pCookieData)
 {
-    pCookieData->mgmx_magic     = htobe32('MgMx');
+    pCookieData->mgmx_magic     = htobe32(0x4d674d78); /* 'MgMx' */
     pCookieData->mgmx_version   = htobe32(PROGRAM_VERSION_MAJOR);
     pCookieData->mgmx_len       = htobe32(sizeof(MgMxCookieData));
     pCookieData->mgmx_xcmd      = htobe32(0);        // wird vom Kernel gesetzt
@@ -967,7 +967,7 @@ int CMagiC::init(CXCmd *pXCmd)
     */
 
     struct MacXSysHdr *pMacXSysHdr = (MacXSysHdr *) (m_BasePage + 1);
-    if (be32toh(pMacXSysHdr->MacSysX_magic) != 'MagC')
+    if (be32toh(pMacXSysHdr->MacSysX_magic) != 0x4d616743) /* 'MagC' */
     {
         DebugError2("() - magic value mismatch");
         return -2;

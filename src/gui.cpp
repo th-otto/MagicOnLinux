@@ -109,10 +109,11 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
     char escaped_msg[512];
     char escaped_info[512];
 
+    (void)buttons;
     // Simple escape for AppleScript strings - replace quotes with escaped quotes
     const char *src = msg_text;
     char *dst = escaped_msg;
-    while (*src && (dst - escaped_msg) < sizeof(escaped_msg) - 2)
+    while (*src && (size_t)(dst - escaped_msg) < sizeof(escaped_msg) - 2)
     {
         if (*src == '"')
         {
@@ -124,7 +125,7 @@ int showDialogue(const char *msg_text, const char *info_txt, const char *buttons
 
     src = info_txt;
     dst = escaped_info;
-    while (*src && (dst - escaped_info) < sizeof(escaped_info) - 2)
+    while (*src && (size_t)(dst - escaped_info) < sizeof(escaped_info) - 2)
     {
         if (*src == '"')
         {

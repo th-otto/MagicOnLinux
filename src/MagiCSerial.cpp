@@ -796,7 +796,7 @@ uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
          (be16toh(theSerConfParm->rsr) == 0xffff) &&
          (be16toh(theSerConfParm->tsr) == 0xffff) &&
          (be16toh(theSerConfParm->scr) == 0xffff) &&
-         (be32toh(theSerConfParm->xtend_magic) == 'iocl'))
+         (be32toh(theSerConfParm->xtend_magic) == 0x696f636c)) /* 'iocl' */
     {
         uint32_t grp;
         uint32_t mode;

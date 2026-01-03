@@ -12,7 +12,7 @@ else()
     find_package(SDL2_mixer REQUIRED)
 endif()
 
-add_compile_options(-Wall -Wextra -Wpedantic -Wno-multichar)
+add_compile_options(-Wall -Wextra -Wpedantic)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-fPIC)
 endif()

@@ -93,6 +93,9 @@ typedef uint32_t PTR32x4_HOST[4];   // might be used as 64 bit function pointer 
 #define FUTIME          0x4603
 #define FTRUNCATE       0x4604
 
+#undef TIOCGPGRP
+#undef TIOCSPGRP
+#undef TIOCFLUSH
 #define TIOCGPGRP       (('T'<< 8) | 6)     // 0x54 is 'T'
 #define TIOCSPGRP       (('T'<< 8) | 7)
 #define TIOCFLUSH       (('T'<< 8) | 8)
@@ -700,7 +703,7 @@ struct strXCMD
             UINT32_BE m_SymPtr;         // <-    Pointer to symbol
             UINT8 m_SymClass;           // <-    type of symbol
         } m_12_13;
-    };
+    } u;
 } __attribute__((packed));
 
 

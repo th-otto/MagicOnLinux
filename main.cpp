@@ -12,20 +12,19 @@
 #include "EmulationRunner.h"
 
 #if !defined(DEFAULT_EDITOR)
+#ifdef __APPLE__
+#define DEFAULT_EDITOR "open -e"
+#else
 #define DEFAULT_EDITOR "xdg-open"
+#endif
 #endif
 
 #if !defined(DEFAULT_CONFIG)
-#define DEFAULT_CONFIG "~/.config/magiclinux.conf"
-#endif
-
-
 #ifdef __APPLE__
-#define DEFAULT_EDITOR "open -e"
 #define DEFAULT_CONFIG "~/Library/Preferences/magiclinux.conf"
 #else
-#define DEFAULT_EDITOR "xdg-open"
 #define DEFAULT_CONFIG "~/.config/magiclinux.conf"
+#endif
 #endif
 
 

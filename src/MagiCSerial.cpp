@@ -777,6 +777,12 @@ uint32_t CMagiCSerial::AtariSerConf(uint32_t params, uint8_t *addrOffset68k)
     unsigned int nBits, nStopBits;
 
 
+    if (!Preferences::szAuxPath[0])
+    {
+        DebugInfo2("() -- AUX not configured");
+        return EFILNF;
+    }
+
     DebugInfo2("()");
 
     // open serial interface, if necessary

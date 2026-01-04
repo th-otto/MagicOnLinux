@@ -3211,8 +3211,8 @@ uint32_t CMagiC::AtariColdBoot(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
     (void) addrOffset68k;
-    DebugError2("() - yet to be implemented");
-    return 0;
+    DebugError2("() - yet to be implemented. Instead exit application.");
+    return AtariExit(params, addrOffset68k);
 }
 
 

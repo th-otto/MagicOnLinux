@@ -1,8 +1,10 @@
 # Localise MagiC root fs
-# Note that this script can be run from anywhere
+# Note that this script can be run from anywhere.
+# Note that macOS only knows "-v" and "-n" and not "--verbose" and "--update=none".
 # TODO: should run recursively
 
-#VERBOSE="--verbose"
+
+#VERBOSE="-v"
 VERBOSE=""
 
 if [ "$#" -eq 1 ]; then
@@ -24,8 +26,8 @@ if [ "$#" -eq 1 ]; then
         cp $VERBOSE -pf $CODE/GEMSYS/GEMDESK/*.PRG ../GEMSYS/GEMDESK/
         cp $VERBOSE -pf $CODE/GEMSYS/GEMDESK/*.TXT ../GEMSYS/GEMDESK/
         # do not overwrite application database, if exists
-        cp $VERBOSE -p --update=none $CODE/GEMSYS/GEMDESK/APPLICAT.DAT ../GEMSYS/GEMDESK/ 2>/dev/null
-        cp $VERBOSE -p --update=none $CODE/GEMSYS/GEMDESK/APPLICAT.INF ../GEMSYS/GEMDESK/
+        cp $VERBOSE -pn $CODE/GEMSYS/GEMDESK/APPLICAT.DAT ../GEMSYS/GEMDESK/ 2>/dev/null
+        cp $VERBOSE -pn $CODE/GEMSYS/GEMDESK/APPLICAT.INF ../GEMSYS/GEMDESK/
     fi
 else
     echo "usage: LOCALISE.SH DE|EN|FR"

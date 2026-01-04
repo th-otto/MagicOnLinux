@@ -865,6 +865,7 @@ void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr)
 #else
     setCMagiCHostCallback(&pMacXSysHdr->MacSysX_Daemon, thunk_MmxDaemon);
 #endif
+    setHostCallback(&pMacXSysHdr->MacSysX_Daemon, MmxDaemon);
     setHostCallback(&pMacXSysHdr->MacSysX_Yield, AtariYield);
 #pragma GCC diagnostic pop
 }
@@ -1566,7 +1567,6 @@ int CMagiC::EmuThread( void )
 
     // Main Task mitteilen, daß der Emulator-Thread beendet wurde
     pTheMagiC->m_bEmulatorHasEnded = true;
-//    SendMessageToMainThread(true, kHICommandQuit);        // veraltet?
 
     m_bEmulatorIsRunning = false;
     return 0;
@@ -2261,12 +2261,16 @@ uint32_t CMagiC::AtariExec68k(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: DOS-Funktionen 0x60-0xfe
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: DOS functions 0x60-0xfe
+ *
+ * @param[in] param             68k address of parameter structure
+ * @param[in] addrOffset68k     host address of 68k memory
+ *
+ * @return zero or negative error code
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariDOSFn(uint32_t params, uint8_t *addrOffset68k)
 {
     struct AtariDOSFnParm
@@ -2290,7 +2294,7 @@ uint32_t CMagiC::AtariDOSFn(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: XBIOS Gettime
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return bits [0:4]=two-seconds [5:10]=min [11:15]=h [16:20]=day [21:24]=month [25-31]=y-1980
  *
@@ -2315,7 +2319,7 @@ uint32_t CMagiC::AtariGettime(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: XBIOS Settime
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return not supported, always zero
  *
@@ -2334,7 +2338,7 @@ uint32_t CMagiC::AtariSettime(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: XBIOS Setcreen
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return not supported, always zero
  *
@@ -2406,7 +2410,7 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: XBIOS Setpalette
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return not supported, always zero
  *
@@ -2457,7 +2461,7 @@ uint32_t CMagiC::AtariSetpalette(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: XBIOS Setcolor
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return previous value
  *
@@ -2500,7 +2504,7 @@ uint32_t CMagiC::AtariSetcolor(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: XBIOS VsetRGB (Falcon TOS)
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return always zero
  *
@@ -2579,7 +2583,7 @@ uint32_t CMagiC::AtariVsetRGB(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: XBIOS VgetRGB (Falcon TOS)
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return always zero
  *
@@ -2641,7 +2645,7 @@ uint32_t CMagiC::AtariVgetRGB(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: BIOS Bconin
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return read character in bits 0..7
  *
@@ -2696,7 +2700,7 @@ uint32_t CMagiC::AtariBconin(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: BIOS Bconout
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return read character in bits 0..7
  *
@@ -2762,7 +2766,7 @@ uint32_t CMagiC::AtariBconout(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: BIOS Bconstat
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return read character in bits 0..7
  *
@@ -2803,7 +2807,7 @@ uint32_t CMagiC::AtariBconstat(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: BIOS Bcostat
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return read character in bits 0..7
  *
@@ -2844,7 +2848,7 @@ uint32_t CMagiC::AtariBcostat(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: XBIOS Ikbdws
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return nothing, return values is ignored
  *
@@ -2874,7 +2878,7 @@ uint32_t CMagiC::AtariIkbdws(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: XBIOS Dosound
  *
  * @param[in] param             68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return previous content of Atari sound_data variable:
  *              sound_data:     DS.L 1
@@ -2916,12 +2920,11 @@ uint32_t CMagiC::AtariDosound(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: Convert Atari drive to device code
  *
  * @param[in] params            68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return zero or non-negative device code
  *
  * @note Used by the Atari to eject the correct medium for the respective virtual drive.
- *       Not really useful for Linux host.
  *
  ************************************************************************************************/
 uint32_t CMagiC::Drv2DevCode(uint32_t params, uint8_t *addrOffset68k)
@@ -2952,7 +2955,7 @@ uint32_t CMagiC::Drv2DevCode(uint32_t params, uint8_t *addrOffset68k)
  *
  * @brief Update _drvbits and _nflops in Atari memory
  *
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @note Needed during boot and whenever a volume is added or removed
  *
@@ -2983,11 +2986,11 @@ void CMagiC::updateDriveBits(uint8_t *addrOffset68k)
  * @brief Emulator callback: Device operations
  *
  * @param[in] params            68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return zero or negative error code
  *
- * @note Used by the Atari to eject a medium. Not really useful for Linux host.
+ * @note Used by the Atari to eject a medium, like a virtual floppy drive A:
  *
  ************************************************************************************************/
 uint32_t CMagiC::RawDrvr(uint32_t param, uint8_t *addrOffset68k)
@@ -3043,54 +3046,17 @@ uint32_t CMagiC::RawDrvr(uint32_t param, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* (STATIC) Nachricht (a)synchron an Haupt-Thread schicken
-*
-**********************************************************************/
-
-void CMagiC::SendMessageToMainThread(bool bAsync, uint32_t command)
-{
-    (void) bAsync;
-    (void) command;
-    DebugWarning2("() -- not supported, yet");
-
-#if 0
-    EventRef ev;
-    HICommand commandStruct;
-
-    CreateEvent(
-            NULL,
-            kEventClassCommand,
-            kEventProcessCommand,
-            GetCurrentEventTime(),
-            kEventAttributeNone,
-            &ev);
-
-    commandStruct.attributes = 0;
-    commandStruct.menu.menuRef = 0;
-    commandStruct.menu.menuItemIndex = 0;
-    commandStruct.commandID = command;
-
-    SetEventParameter(
-            ev,
-            kEventParamDirectObject,
-            typeHICommand,            // gewünschter Typ
-            sizeof(commandStruct),        // max. erlaubte Länge
-            (void *) &commandStruct
-            );
-
-    if (bAsync)
-        PostEventToQueue(GetMainEventQueue(), ev, kEventPriorityStandard);
-    else
-        SendEventToApplication(ev);
-#endif
-}
-
-
-// try to mount image as drive A:
-// called from main thread
-// TODO: add semaphore
+/** **********************************************************************************************
+ *
+ * @brief Try to mount disk or volume immage (virtual mass storage), called from main thread.
+ *
+ * @param[in] allocated_path    image path, allocated and to be released after use
+ *
+ * @return true for success, otherwise false
+ *
+ * @note Do we need a semaphore here?
+ *
+ ************************************************************************************************/
 bool CMagiC::sendDragAndDropFile(const char *allocated_path)
 {
     // note that colons in buttons must be quoted
@@ -3221,19 +3187,20 @@ bool CMagiC::sendDragAndDropFile(const char *allocated_path)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: System aufgrund eines fatalen Fehlers anhalten
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: System halted due to fatal error
+ *
+ * @param[in] params            68k address of parameter structure
+ * @param[in] addrOffset68k     host address of 68k memory
+ *
+ * @return (irrelevant)
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariSysHalt(uint32_t params, uint8_t *addrOffset68k)
 {
     char *errMsg = (char *) (addrOffset68k + params);
-
     DebugError2("() -- %s", errMsg);
-
-// Daten werden getrennt von der Nachricht geliefert
 
     showAlert("The emulator was halted", errMsg);
     pTheMagiC->stopExec();
@@ -3241,22 +3208,16 @@ uint32_t CMagiC::AtariSysHalt(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Fehler ausgeben (68k-Exception)
-*
-**********************************************************************/
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-    #if DEBUG_68K_EMU
-    extern void m68k_trace_print(const char *fname);
-    #endif
-#ifdef __cplusplus
-}
-#endif
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Report 68k exception
+ *
+ * @param[in] params            68k address of parameter structure
+ * @param[in] addrOffset68k     host address of 68k memory
+ *
+ * @return (irrelevant)
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
@@ -3266,7 +3227,6 @@ uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
 
     DebugError2("()");
 
-    // FÜR DIE FEHLERSUCHE: GIB DIE LETZTEN TRACE-INFORMATIONEN AUS.
     #if DEBUG_68K_EMU
     m68k_trace_print("68k-trace-dump-syserr.txt");
     _DumpAtariMem("atarimem.bin");
@@ -3276,7 +3236,7 @@ uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
     m68k_pc = be32toh(*((uint32_t *) (addrOffset68k + proc_stk + 2)));
 
     DebugInfo2("() -- act_pd = 0x%08lx", act_pd);
-    DebugInfo2("() -- Prozeßpfad = %s", (AtariPrgFname) ? AtariPrgFname : "<unknown>");
+    DebugInfo2("() -- Process path = %s", (AtariPrgFname) ? AtariPrgFname : "<unknown>");
 #if defined(_DEBUG)
     if (m68k_pc < mem68kSize - 8)
     {
@@ -3304,19 +3264,23 @@ uint32_t CMagiC::AtariSysErr(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Kaltstart
-*
-* Zur Zeit nur Dummy
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Atari cold boot
+ *
+ * @param[in] params            68k address of parameter structure
+ * @param[in] addrOffset68k     host address of 68k memory
+ *
+ * @return (irrelevant)
+ *
+ * @note Not implemnted, yet
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariColdBoot(uint32_t params, uint8_t *addrOffset68k)
 {
     (void) params;
     (void) addrOffset68k;
-    DebugInfo2("()");
+    DebugError2("() - yet to be implemented");
     return 0;
 }
 
@@ -3326,7 +3290,7 @@ uint32_t CMagiC::AtariColdBoot(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: Atari has shut down itself
  *
  * @param[in] params            68k address of parameter structure
- * @param[in] addrOffset68k     Host address of 68k memory
+ * @param[in] addrOffset68k     host address of 68k memory
  *
  * @return (irrelevant)
  *
@@ -3355,12 +3319,16 @@ uint32_t CMagiC::AtariExit(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Debug-Ausgaben
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Debug Output
+ *
+ * @param[in] params            parameter block
+ * @param[in] addrOffset68k     host address of 68k memory
+ *
+ * @return return value is ignored
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
 {
     DebugInfo2("(%s)", CConversion::textAtari2Host(addrOffset68k + params));
@@ -3371,46 +3339,51 @@ uint32_t CMagiC::AtariDebugOut(uint32_t params, uint8_t *addrOffset68k)
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Fehler-Alert
-*
-* zur Zeit nur Dummy
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: System Error
+ *
+ * @param[in] params            parameter block
+ * @param[in] addrOffset68k     host address of 68k memory
+ *
+ * @return return value is ignored
+ *
+ * @note Currently, the error code is ignored, because the only error
+ *       is "No Graphics Driver Found".
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariError(uint32_t params, uint8_t *addrOffset68k)
 {
-    uint16_t errorCode = be16toh(*((uint16_t *) (addrOffset68k + params)));
+    struct ErrorParm
+    {
+        uint16_t error_code;     // big-endian
+    } __attribute__((packed));
+
+    ErrorParm *theErrorParm = (ErrorParm *) (addrOffset68k + params);
+    uint16_t errorCode = be16toh(theErrorParm->error_code);
     DebugInfo2("(%hd)", errorCode);
     (void) errorCode;
     (void) params;
     (void) addrOffset68k;
-    /*
-     Das System kann keinen passenden Grafiktreiber finden.
 
-     Installieren Sie einen Treiber, oder wechseln Sie die Bildschirmauflösung unter MacOS, und starten Sie MagiCMacX neu.
-     [MagiCMacX beenden]
-
-     The system could not find an appropriate graphics driver.
-
-     Install a driver, or change the monitor resolution resp. colour depth using the system's control panel. Finally, restart  MagiCMacX.
-     [Quit MagiCMacX]
-     */
     showAlert("The emulated system could not find a suitable video driver", "Review configuration file!");
     pTheMagiC->stopExec();    // fatal error for execution thread
     return 0;
 }
 
 
-/**********************************************************************
-*
-* Callback des Emulators: Idle Task
-* params        Zeiger auf uint32_t
-* Rückgabe:
-*
-**********************************************************************/
-
+/** **********************************************************************************************
+ *
+ * @brief Emulator callback: Idle Task
+ *
+ * @param[in] params            parameter block
+ * @param[in] addrOffset68k     host address of 68k memory (unused)
+ *
+ * @return return value is ignored
+ *
+ * @note The MagiC kernel is currently idle, so that the emulator can save CPU time here.
+ *
+ ************************************************************************************************/
 uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
 {
     struct YieldParm
@@ -3420,27 +3393,23 @@ uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
     uint32_t eventFlags;
 
 
-    // zuerst testen, ob während des letzten Assembler-Befehls gerade
-    // Ereignisse eingetroffen sind, die im Interrupt bearbeitet worden
-    // sind. Wenn ja, hier nicht warten, sondern gleich weitermachen.
+    /*
+    * First check for new events received during last 68k instruction.
+    * If yes, then immediately continue 68k execution.
+    */
 
     YieldParm *theYieldParm = (YieldParm *) (addrOffset68k + params);
     if (be32toh(theYieldParm->num))
+    {
         return 0;
+    }
 
-//    MPYield();
+    // Save host CPU and wait for events (keyboard, mouse, timer, ...)
 
     pTheMagiC->OS_WaitForEvent(
                 &pTheMagiC->m_InterruptEventsId,
                 &eventFlags);
 
-/*
-    if (EventFlags & EMU_EVNT_TERM)
-    {
-        DebugInfo2("() -- normaler Abbruch");
-        break;    // normaler Abbruch, Thread-Ende
-    }
-*/
     return 0;
 }
 
@@ -3450,7 +3419,7 @@ uint32_t CMagiC::AtariYield(uint32_t params, uint8_t *addrOffset68k)
  * @brief Emulator callback: get keyboard and mouse data
  *
  * @param[in] params            0: about to handle interrupt, 1: leaving interrupt
- * @param[in] addrOffset68k     Host address of 68k memory (unused)
+ * @param[in] addrOffset68k     host address of 68k memory (unused)
  *
  * @return scancode or mouse code. Zero, if none is available
  *
@@ -3518,8 +3487,8 @@ uint32_t CMagiC::AtariGetKeyboardOrMouseData(uint32_t params, uint8_t *addrOffse
  *
  * @brief Emulator callback: MMXDAEMON polling
  *
- * @param[in] params            0: about to handle interrupt, 1: leaving interrupt
- * @param[in] addrOffset68k     Host address of 68k memory (unused)
+ * @param[in] params            parameter block
+ * @param[in] addrOffset68k     host address of 68k memory (unused)
  *
  * @return zero or error code
  *

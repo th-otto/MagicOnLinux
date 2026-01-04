@@ -23,7 +23,6 @@ extern volatile unsigned char sExitImmediately;     // m68kcpu.c
 #if defined(__cplusplus)
 extern "C" {
 #endif
-const char *AtariAddr2Description(uint32_t addr);
 extern int m68k_get_super(void);
 extern const char *exception68k_to_name(uint32_t addr);
 #if defined(__cplusplus)

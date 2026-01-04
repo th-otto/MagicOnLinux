@@ -30,6 +30,7 @@
 #include "Debug.h"
 #include "Atari.h"
 #include "emulation_globals.h"
+#include "register_model.h"
 #include "gui.h"
 
 
@@ -221,19 +222,27 @@ static void GuiAtariCrash
     sprintf(srbits + strlen(srbits), "INT=%u", (sr >> 8) & 7);
 
     bool pc_is_rom = (pc >= addrOsRomStart) && (pc < addrOsRomEnd);
-    sprintf(text + strlen(text), "    exc = %s (%u)\n", exception68k_to_name(exception_no << 2), exception_no);
-    sprintf(text + strlen(text), "    exception address = 0x%08x (%s)\n", err_addr, AtariAddr2Description(err_addr));
-    sprintf(text + strlen(text), "    AccessMode = %s\n", access_mode);
+    const char *register_name = CRegisterModel::name_addr(err_addr);
+    uint32_t exception_addr = exception_no << 2;
+    sprintf(text + strlen(text), "    exc = %s (%u)\n", exception68k_to_name(exception_addr), exception_no);
+
+    if ((exception_addr == INTV_2_BUS_ERROR) || (exception_addr == INTV_3_ADDRESS_ERROR))
+    {
+        sprintf(text + strlen(text), "    exception address = 0x%08x (%s)\n", err_addr, register_name);
+        sprintf(text + strlen(text), "    access mode = %s\n", access_mode);
+    }
+
     if (pc_is_rom)
     {
         sprintf(text + strlen(text), "    pc = 0x%08x (OS ROM 0x%06x)\n", pc, pc - addrOsRomStart);
-        sprintf(text + strlen(text), "         code = 0x%02x%02x [0x%02x%02x] 0x%02x%02x\n",
-                                        mem68k[pc - 2], mem68k[pc - 1], mem68k[pc], mem68k[pc + 1], mem68k[pc + 2], mem68k[pc + 3]);
     }
     else
     {
         sprintf(text + strlen(text), "    pc = 0x%08x\n", pc);
     }
+    sprintf(text + strlen(text), "         code = 0x%02x%02x [0x%02x%02x] 0x%02x%02x\n",
+                                        mem68k[pc - 2], mem68k[pc - 1], mem68k[pc], mem68k[pc + 1], mem68k[pc + 2], mem68k[pc + 3]);
+
     sprintf(text + strlen(text), "    sr = 0x%04x (%s)\n", sr, srbits);
     sprintf(text + strlen(text), "    usp = 0x%08x\n", usp);
     for (int i = 0; i < 8; i++)
@@ -244,7 +253,7 @@ static void GuiAtariCrash
     {
         sprintf(text + strlen(text), "     a%i = 0x%08x\n", i, be32toh(pAx[i]));
     }
-    sprintf(text + strlen(text), "    ProcPath = %s\n", proc_path);
+    sprintf(text + strlen(text), "    program path = %s\n", proc_path);
     sprintf(text + strlen(text), "    pd = 0x%08x\n", pd);
     (void) showAlert("Atari crash", text);
 }

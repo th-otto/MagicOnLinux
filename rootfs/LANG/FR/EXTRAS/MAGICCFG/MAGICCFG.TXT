@@ -1,0 +1,540 @@
+
+
+
+                             The hypertext for
+
+                            MagiC-Configurator
+
+                               Version 1.26
+                            22th September 2001
+
+                                    by
+
+                               Philipp Donz‚
+                           Rue de l'industrie 7
+                                1020 Renens
+                                Switzerland
+
+                            PhilippDonze@gmx.ch
+
+
+
+
+
+
+
+Table of contents
+*****************
+
+ 1  Introduction
+
+ 2  Using MagiC-Configurator
+    2.1  Program Info...
+    2.2  Main dialog
+    2.3  Change access paths
+    2.4  Change default resolution
+    2.5  Change environment variables
+    2.6  Change AES font
+    2.7  Activate long file names
+    2.8  Window
+    2.9  Background
+    2.10  Boot settings
+    2.11  Resident libraries
+    2.12  Miscellaneous
+
+ 3  System requirements
+
+ 4  Known bugs
+
+ 5  History
+
+ 6  Internal
+
+ 7  Copyright notice
+
+ 8  Author
+
+ 9  Thanks
+
+
+1  Introduction
+***************
+
+MagiC-Configurator (=MAGICCFG) is a program, which helps to configure the
+MAGX.INF of MagiC 5.0 to 6.0 with a user friendly GEM interface. The file
+(MAGX.INF) is there to specify exactly how MagiC should behave. So it is
+possible to change the window management and indeed the Look&Feel of MagiC.
+Previously, to be able to adapt this file it was necessary to know a lot
+about the different flags and unusual counting systems involved: binary and
+hexadecimal. So because this type of editing work isn't everyones's cup of
+tea I wrote this program.
+
+Basically MAGICCFG is a simplification of the configuration editing process
+of MagiC, so that the user doesn't have to have previous knowledge about
+flags and segments (see "segment").
+
+The most important features are:
+
+                            MagiC-Configurator
+
+   ù conforms completely to GEM and uses modern window dialogs.
+
+   ù knows every flag and segment up to MagiC version 6.01.
+
+   ù sensitive to unknown flags and segments and doesn't alter such values
+     (= it can be used with future versions of MagiC)
+
+   ù is BubbleGEM compatible, this means it supports this famous help
+     system.
+
+   ù has an ST-Guide online help.
+
+   ù uses the MagiC-Fontselector (from V1.25 in a window).
+
+   ù uses the MagiC-Fileselector.
+
+   ù supports long filenames.
+
+   ù supports ARGV, Drag&Drop how Atari defined it and VA_START to load new
+     files without errors.
+
+   ù uses iconify and alliconify.
+
+
+
+2  Using MagiC-Configurator
+***************************
+
+If ST-Guide is installed (this means it is already resident in memory), by
+clicking "HELP" more information is available.
+If BubbleGEM is installed, you can press the right mouse button to get a
+short context help in a bubble.
+
+Generally: any change will become active after the next reboot.
+
+
+2.1  Program Info...
+====================
+
+Here you will find more about the program version and the author's address.
+
+
+2.2  Main dialog
+================
+
+In the window title bar you can see the name of the currently processed
+file.
+
+Below you'll find the version number of MagiC. This is the number, which
+will be stored in the #_MAG flag.
+
+In the frame "Flags" you'll find every configuration bit which can be
+changed in the #_FLG flag.
+
+   ù MagiC Logo left/right:
+     This will move the MagiC Logo to the left or right upper corner of the
+     screen.
+
+   ù 3D effects on/off :
+     If there are more than 16 colours, windows and dialogs are drawn in a
+     modern 3D look.
+
+   ù Backdrop button on/off
+     The backdrop button will be enabled or disabled. If it is disabled a
+     single click on the title bar puts the current window in the
+     background.
+
+   ù Title bar lines on/off
+     From MagiC 4 the window title bar can be filled with lines instead of
+     the traditional filling pattern.
+
+   ù 3D window title on/off
+     If the title bar lines are enabled you can also choose to have it
+     drawn in 3D.
+
+   ù Real time scrolling on/off
+     This button selects if real time scrolling is enabled by default or
+     not. You can disable the current state by pressing CTRL while scrol-
+     ling the window.
+
+   ù Real time resizing on/off
+     Selects whether the resizing and moving of the windows is in real
+     time.
+
+   ù 3D menus on/off :
+     From version 6 of MagiC the menu bar can also be drawn with 3D ef-
+     fects. In version 6.01 this works only if the current AES font is a
+     proportional font.
+
+Below you will find different buttons to access further dialogs.
+
+
+2.3  Change access paths
+========================
+
+In this dialog you can set up the different access paths. For this you can
+Drag a file or folder to the edit fields or you can double click on the
+edit field to get a fileselector box. (it is also possible to write the
+path using the keyboard ;-))
+
+   ù Scrap:
+     This directory will contain the data you Cut&Copy out of a GEM appli-
+     cation (=the clipboard path). Most users will use one of the following
+     choices: "C:\CLIPBRD\" or "C:\GEMSYS\GEMSCRAP\".
+
+   ù Acc:
+     This is the path to the accessories. Most users will use one of the
+     following choices: "C:\ACC\" or "C:\GEMSYS\ACC\".
+     Note: if you want to install accessories you have to put them into
+     this designated folder! MagiC loads no accessories from the root
+     directory if a path is defined.
+
+   ù Start:
+     With MagiC there is also a new type of start folder. In this folder
+     you can put any GEM applications you want to start while the system
+     boots. These applications are started before the shell application has
+     started. They are running parallel to the shell
+     It's difference to the standard AUTO folder is: These applications are
+     allowed to call the AES.
+     Most users put programs like BUBBLE.APP (=BubbleGEM), OLGA.APP (=OLGA
+     manager) in this folder.
+
+   ù Shell:
+     Here you can define the shell process/application (Ease, jinnee,
+     Thing,...) If you want to use MagXDesk you have to leave this field
+     empty. MagiC automatically starts MagXDesk if no other shell is
+     defined.
+
+   ù Auto start:
+     Here you can choose the program which will be called before the shell
+     boots up. The application is not going to run in parallel with the
+     shell. Only when this program has finished will the shell program be
+     called. (handy for net login)
+
+   ù Terminal:
+     Here you can define the terminal emulator you want to use. It is then
+     called if a TOS program has been started. The terminal emulator has to
+     ensure that output of the program is in a window.
+     Most users will choose: "C:\GEMSYS\GEMDESK\VT52.PRG".
+
+
+2.4  Change default resolution
+==============================
+
+In this dialog you can choose the default resolution (the screen resolution
+which the AES sets after booting). The selected resolution can't influence
+the resolution during the actual boot process!
+MAGICCFG uses the "_VDO"-Cookie to allow selection of the various resolu-
+tions. This means MAGICCFG only supports the standard resolutions documen-
+ted for each Atari.
+
+The handling of this dialog is very similar to the handling of CHGRES.PRG
+which is supported by MagXDesk and jinnee to change the resolution. First
+of all you can choose the colour depth and after that all the possible re-
+solutions are listed. It's also possible to set the option "no resolution
+change". This means the AES doesn't change the current resolution (for
+MagiC-PC or MagiC-Mac).
+If you want to use a different VDI driver (because you use a graphics card)
+you can set the driver number (which is written in the ASSIGN.SYS file) in
+the "driver" edit field. You may also have to adjust the "mode". If not set
+this value to 0.
+
+
+2.5  Change environment variables
+=================================
+
+Here you can set, change or delete the (in)famous environment variables.
+With 'New' a new variable is added to the list. First enter a name and then
+the variable content. To set a specific path you can also use Drag&Drop.
+
+With 'Change' the change you made in the selected variable over writes the
+previous one in the list. NOTE!: There is no UNDO option!
+
+'Delete' removes the selected variable from the list. Here too there is no
+UNDO option!
+
+If you want to activate or deactivate a variable, you can tick the check
+box (on the left, beside the name) while you are changing a variable. The
+same task can be done by double clicking on an entry in the list.
+
+
+2.6  Change AES font
+====================
+
+If you have always hated the standard Atari font, you are probably familiar
+to different tools used to replace the old Atari font.
+
+With MagiC you don't have to replace the font, you can set the AES font on
+your own choice. The AES uses this font to draw any AES objects.
+
+In this dialog you can set a large and a small font. The large font is used
+to draw normal objects like text fields. The small font is mostly used for
+icon texts. (Attention: jinnee uses his own settings to draw icons) Click
+on the corresponding popup to alter the font.
+If you set the font height to 0 the AES will take standard values. Atten-
+tion: the AES calculates the font height in pixel not in points!)
+
+From MagiC 6 it is possible to use proportional fonts. If used, it is then
+necessary to set the AES object raster. Useful values are: width 8 and
+height 16 pixel.
+
+
+2.7  Activate long file names
+=============================
+
+Here you can set the option for each drive whether the Win95 compatible
+VFAT system should be used. Just select via the corresponding buttons.
+The VFAT system is compatible to the old FAT system. So if you are going
+back to TOS you'll find the file names cut off (the file name ends with the
+'(~)'). Don't change or move these files while you are running TOS because
+they will loose their long name.
+
+You can also use Drag&Drop to choose a drive.
+
+
+2.8  Window
+===========
+
+In this window you can set up the number of windows the system reserves
+space for at boot up.
+
+From MagiC 6 you can also set the font which the AES uses to draw the INFO
+line. The overall height of the INFO line can also be set.
+
+Note: jinnee uses his own settings.
+
+
+2.9  Background
+===============
+
+From MagiC 5.2 you can choose the background pattern and colour. The
+preview window shows you how your desktop background will look.
+
+Note: this option is only active if the shell application (jinnee or
+MagXDesk) you use doesn't have its own settings.
+
+
+2.10  Boot settings
+===================
+
+From MagiC 6 the OS can display a picture while booting up (like Mac OS and
+Windows). This and the background pattern are normal XIMG pictures.
+If these bootup pictures are used it is probably also desirable that the
+programs in the AUTO folder don't mess up the screen with their output
+(program blabla is started...). To avoid this problem it is possible to
+define a log file into which all the output is written. Everything which
+was formerly written to the screen will then be written to this file.
+Note: If a program asks for a key press while the system is booting up you
+won't see anything of the message. So you shouldn't use a program which
+asks for key pressess or you shouldn't use the log file option.
+
+WARNING: Some users have found that with the log mode active within MagiC 6
+it will occasionally write the log data to other files that have been
+opened by other programs during the boot process, rather than to the log
+file. You can disable this by leaving the entries that define the logging
+and boot picture empty.
+
+You can also set the number of cookies for which MagiC reserves space. If
+the cookie jar is large enough no other program is needed to resize the
+cookie jar.
+
+
+2.11  Resident libraries
+========================
+
+Here you can see the list of resident shared-libraries. They are loaded
+into memory when MagiC is booting and wait there until needed.
+In the field "Version" you can set the minimum version number. If the
+corresponding library doesn't have this minimum version number it won't be
+loaded into memory.
+
+
+2.12  Miscellaneous
+===================
+
+In this dialog you can alter the default masks from the fileselect box. The
+different masks have to be separated by ";". Multiple masks have to be
+separated by ",".
+For example: *.PRG,*.APP;*.JPG,*.JPEG;MAGX.INF;*.BAK
+
+In the segment "System" you can set the size of the shell buffer (which can
+be altered with shel_get() and shel_put()). If no value is set MagiC
+reserves at least 4096 Bytes (since MagiC 6 8192 Bytes).
+The multitasking while booting option can also be activated. The first
+value represents the time slice. The second value represents the background
+priority.
+
+WARNING: If you activate this multitasking option while booting up this can
+lead to various problems.
+
+
+
+3  System requirements
+**********************
+
+This program needs at least an installed MagiC 5.0.
+
+
+
+4  Known bugs
+*************
+
+Because of a bug in older wdlg_x() routines it is possible on some systems
+that you can't de-iconify an iconificated dialog.
+Remedy: install WDIALOG.PRG (at least V1.98) or use MagiC 5.13 or higher.
+
+Because of the 256 characters limitation (MagiC before 5.20: 80 characters)
+in scrolling edit fields, you can't write any path or environment variable
+longer then this limit. But from version 1.26 of MagiCCfg lines longer then
+this limitation are loaded and saved properly. Be carefull not to edit
+these long entries though or you will lose data!
+
+Sometimes MagiCCfg users send me bug reports regarding the font dialog. But
+generaly the problem is not MagiCCfg but the used fontselector. MagiCCfg
+doesn't make use of alternative fontselectors. It uses just the MagiC
+internal fnts_xx() calls. If you've got a fontselector which traps the
+MagiC internal calls but doesn't support all these calls (some are just
+ignored), you'll have problems with MagiCCfg. MagiCCfg makes intensive use
+of the internal calls. If some are missing it can't work properly. Disable
+the fontselector. It is known (and documented) that the Calvino-Shell
+V0.99d/beta3 for MagiC has this problem.
+
+
+
+5  History
+**********
+
+Sorry, there is no English history file. Try the German HISTORY.TXT
+
+
+
+6  Internal
+***********
+
+The program in the actual version 1.26 supports following flags and
+segments:
+
+since MagiC 5.0:
+    #_MAG       (=version number; automatically set)
+
+    #[vfat]     (=settings for drives with long file names)
+    drives=     (=drives which use VFAT)
+
+    #[aes]      (=start of the AES segment)
+    #_ACC       (=accessory folder)
+    #_APP       (=START folder)
+    #_AUT       (=login program file)
+    #_BUF       (=shell buffer size)
+    #_DEV       (=start resolution)
+    #_ENV       (=environment variables)
+    #_FLG       (=configuration flags)
+    #_FSL       (=masks for the fileselektor box)
+    #_SCP       (=scrap/clipboard folder)
+    #_SHL       (=shell program)
+    #_TRM       (=terminal program)
+    #_TSL       (=pre-emptive multitasking)
+    #_TXT       (=system font)
+    #_WND       (=number of windows)
+    #_CTR       (=shows the start of the control panel and shell buffer
+                  data = end of MAGX.INF)
+
+since MagiC 5.2:
+    #_BKG       (=desktop background color and pattern)
+    #_TXB       (=large system font)
+    #_TXS       (=small system font)
+
+since MagiC 6.0:
+    #_INW       (=INFO line configuration)
+    #_OBS       (=AES object raster)
+    #_SLB       (=resident shared libraries)
+
+    #[boot]     (=begin of boot segment)
+    log=        (=log file)
+    cookies=    (=number of cookies)
+    image=      (=start picture)
+    tiles=      (=background pattern/image for the start picture)
+
+    #[shelbuf]  (=start of shell buffer data)
+
+
+
+7  Copyright notice
+*******************
+
+                      MagiC-Configurator Version 1.26
+                    Copyright (c) 2000 by Philipp Donz‚
+
+This version of MagiC-Configurator is FREEWARE. This means everyone can
+use, copy or distribute it to their friends/uncles etc. as long as all
+files remain unchanged.
+
+At least following files should be present in your distribution folder:
+
+                        MAGICCFG.APP
+                        MAGICCFG.BGH
+                        MAGICCFG.RSC
+                        MAGICCFG.HYP
+                        MAGICCFG.TXT
+                        HISTORY.TXT
+
+This program comes with NO WARRANTY. The author cannot be held responsible
+for any damage done by proper or improper use of this program.
+
+Although the author wrote the program with the best intentions, he can't
+guarantee that the software is free from faults or bugs.
+
+
+
+8  Author
+*********
+
+Send bug reports, criticism and encouragement to: (rewards are also very
+welcome ;-)
+
+                  Address:  Philipp Donz‚                  
+                            Rue de l'industrie 7           
+                            1020 Renens                    
+                            Switzerland                    
+                 Internet:  PhilippDonze@gmx.ch            
+                 Homepage:  http://philippdonze.atari.org/ 
+
+
+
+9  Thanks
+*********
+
+Here I would like to thank the Atari community. First I was very sceptical
+about any receiving any feedback from users. I assumed I wouldn't have much
+reaction but I was wrong. Some users wrote to me with their ideas and
+criticisms which has helped to continually improve the program.
+
+Many Thanks!
+
+Special thanks go to:
+
+      Wilfried Behne (for the 1st English RSC+BGH)
+      Silvain Perchaud (for the 1st French RSC+BGH)
+
+Very special thanks to Sean Barbieri who showed me that Atari (and MagiC)
+is still alive outside the German speaking countries. He encouraged me with
+his emails and letter to translate MAGICCFG into English.
+
+
+
+flags
+*****
+
+For me flags are special tags like #_FLG, #_MAG, #_DEV ... in the MAGX.INF
+file. The ones which are AES specific start with '#_'.
+
+
+
+segment
+*******
+
+For me are segments tags which group different flags in the MAGX.INF file.
+A segment starts always with #[<name>]. <name> is a placeholder for the
+segment name (=aes,boot, vfat, shelbuf).
+
+
+

@@ -745,7 +745,7 @@ int main(int argc, char * const argv[])
     // We must get the preferences first to know the location of the Atari root file system.
     // Also we can set localisation from config file.
     // command line has precedence
-    if (localise(arg_lang))
+    if (arg_lang != nullptr && localise(arg_lang))
     {
         return 4;
     }

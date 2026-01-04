@@ -27,6 +27,24 @@ if(APPLE)
 endif()
 target_link_libraries(magic-on-linux PUBLIC ${SDL2_LIBRARIES} SDL2_mixer)
 
+if(APPLE)
+    add_compile_definitions(
+        DEFAULT_ATARI_ROOT="~/Documents/MAGIC_C"
+        DEFAULT_CONFIG="~/Library/Preferences/magiclinux.conf"
+        DEFAULT_EDITOR="open -e"
+    )
+else()
+    execute_process(COMMAND xdg-user-dir DOCUMENTS
+      ERROR_QUIET
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      OUTPUT_VARIABLE userdir)
+    add_compile_definitions(
+        DEFAULT_ATARI_ROOT="${userdir}/MAGIC_C"
+        DEFAULT_CONFIG="~/.config/magiclinux.conf"
+        DEFAULT_EDITOR="xdg-open"
+    )
+endif()
+
 target_compile_options(magic-on-linux PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>)
 
 if(NOT APPLE)

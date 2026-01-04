@@ -2615,7 +2615,7 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 
     uint32_t num_free_blocks  = (buf.f_bavail >= 0x100000000) ? -1 : (uint32_t) buf.f_bavail;
     uint32_t num_total_blocks = (buf.f_blocks >= 0x100000000) ? -1 : (uint32_t) buf.f_blocks;
-    uint32_t block_size       = (buf.f_bsize  >= 0x100000000) ? -1 : (uint32_t) buf.f_bsize;
+    uint32_t block_size       = (buf.f_frsize >= 0x100000000) ? -1 : (uint32_t) buf.f_frsize;
 
     if (block_size == 0)
     {

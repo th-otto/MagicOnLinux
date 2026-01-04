@@ -105,7 +105,6 @@ class CMagiC
     uint32_t AtariVdiInit(uint32_t params, uint8_t *addrOffset68k);
     uint32_t AtariExec68k(uint32_t params, uint8_t *addrOffset68k);
     uint32_t OpenSerialBIOS(void);
-    static void SendMessageToMainThread( bool bAsync, uint32_t command );
     static uint32_t AtariDOSFn(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariGettime(uint32_t params, uint8_t *addrOffset68k);
     static uint32_t AtariSettime(uint32_t params, uint8_t *addrOffset68k);

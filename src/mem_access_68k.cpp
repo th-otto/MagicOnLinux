@@ -65,7 +65,7 @@ extern void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value);
  * @return name or "?", if unknown
  *
  ************************************************************************************************/
-const char *AtariAddr2Description(uint32_t addr)
+static const char *AtariAddr2Description(uint32_t addr)
 {
     // Convert ST address to TT address
 

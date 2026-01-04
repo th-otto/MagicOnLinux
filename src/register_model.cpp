@@ -62,7 +62,10 @@ class CTosRom512k : public CRegisterModel
 class CReservedIO_1 : public CRegisterModel
 {
   public:
-    CReservedIO_1() : CRegisterModel("Reserved I/O Space #1", 0x00f00000, 0x00fa0000 - 1) { }
+    CReservedIO_1() : CRegisterModel("Reserved I/O Space #1", 0x00f00000, 0x00fa0000 - 1)
+    {
+        bSuccess = false;   // generate bus error
+    }
 };
 
 class CRomCartridge : public CRegisterModel
@@ -80,7 +83,10 @@ class CTosRom192k : public CRegisterModel
 class CReservedIO_2 : public CRegisterModel
 {
   public:
-    CReservedIO_2() : CRegisterModel("Reserved I/O Space #2", 0x00ff0000, 0x00ff8000 - 1) { }
+    CReservedIO_2() : CRegisterModel("Reserved I/O Space #2", 0x00ff0000, 0x00ff8000 - 1)
+    {
+        bSuccess = false;   // generate bus error
+    }
 };
 
 class CST_TT_IO : public CRegisterModel
@@ -108,7 +114,10 @@ class CTTFastRam : public CRegisterModel
 class CReserved : public CRegisterModel
 {
   public:
-    CReserved() : CRegisterModel("Reserved", 0x01400000, 0xfe000000 - 1) { }
+    CReserved() : CRegisterModel("Reserved", 0x01400000, 0xfe000000 - 1)
+    {
+        bSuccess = false;   // generate bus error
+    }
 };
 
 class CVme : public CRegisterModel
@@ -657,14 +666,12 @@ uint32_t CRegisterModel::read_reg(uint32_t addr, unsigned len, bool *p_success)
 
 /** **********************************************************************************************
  *
- * @brief Read 8-bit or 16-bit or 32-bit value from hardware register address range
+ * @brief Write 8-bit or 16-bit or 32-bit value from hardware register address range
  *
  * @param[in]  addr         absolute 68k address, 32-bit or 24-bit
  * @param[in]  len          1, 2 or 4 for 8-bit, 16-bit or 32-bit
  * @param[in]  datum        datum to write
  * @param[out] p_success    true: access granted, false: illegal access
- *
- * @return read value, extended to 32-bit
  *
  ************************************************************************************************/
 void CRegisterModel::write_reg(uint32_t addr, unsigned len, uint32_t datum, bool *p_success)
@@ -723,3 +730,42 @@ void CRegisterModel::write_reg(uint32_t addr, unsigned len, uint32_t datum, bool
     }
 }
 
+
+/** **********************************************************************************************
+ *
+ * @brief Get register name or address range name from address
+ *
+ * @param[in]  addr         absolute 68k address, 32-bit or 24-bit
+ *
+ * @return register name or name of address range
+ *
+ ************************************************************************************************/
+const char *CRegisterModel::name_addr(uint32_t addr)
+{
+    const char *name = "<unknown>";
+
+    if (addr < 4)
+    {
+        name = "reset_ssp";
+    }
+    else
+    if (addr < 8)
+    {
+        name = "reset_pc";
+    }
+    else
+    for (unsigned n = 0; n < num_models; n++)
+    {
+        CRegisterModel *model = models[n];
+        if ((model != nullptr) && (addr >= model->start_addr) && (addr <= model->last_addr))
+        {
+            name = model->regname(addr, 1);
+            if (name[0] == '\0')
+            {
+                name = model->name;
+            }
+        }
+    }
+
+    return name;
+}

@@ -35,10 +35,12 @@ class CRegisterModel
     static int init();
     static uint32_t read_reg(uint32_t addr, unsigned len, bool *p_success);
     static void write_reg(uint32_t addr, unsigned len, uint32_t datum, bool *p_success);
+    static const char *name_addr(uint32_t addr);
 
     const char *name = "base";
     const uint32_t start_addr = 0;
     const uint32_t last_addr = 0;
+    bool bSuccess = true;
     unsigned logcnt = 100;     // maximum debug messages for this model
 
 	CRegisterModel(const char *my_name, uint32_t my_start_addr, uint32_t my_last_addr) :
@@ -69,7 +71,7 @@ class CRegisterModel
         (void) addr;
         (void) len;
         (void) datum;
-        *p_success = true;
+        *p_success = bSuccess;
     }
 
     virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
@@ -77,7 +79,7 @@ class CRegisterModel
         // default: read zeros, no bus error
         (void) addr;
         (void) len;
-        *p_success = true;
+        *p_success = bSuccess;
         return 0;
     }
 };

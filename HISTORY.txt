@@ -32,3 +32,5 @@ Repaired writing of default config file.
 Address ranges "Reserved" and "Reserved I/O Space #1" and "Reserved I/O Space #2" generate bus error on access.
 Address-to-name handling done by register model.
 Atari exception information tidied-up. Ignore wrong information and instead show offending 68k opcode.
+Adapt LOCALISE.SH to macOS.
+Atari coldboot handled.

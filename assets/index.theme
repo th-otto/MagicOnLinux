@@ -1,5 +1,5 @@
 Hidden=true
-Directories=512x512/apps
+Directories=512x512/apps,512x512/mimetypes,256x256/mimetypes
 
 
 [512x512/apps]
@@ -7,5 +7,18 @@ MinSize=64
 Size=512
 MaxSize=512
 Context=Applications
-Type=Scalable
+Type=Threshold
 
+[512x512/mimetypes]
+MinSize=64
+Size=512
+MaxSize=512
+Context=MimeTypes
+Type=Threshold
+
+[256x256/mimetypes]
+MinSize=64
+Size=256
+MaxSize=256
+Context=MimeTypes
+Type=Threshold

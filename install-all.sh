@@ -1,3 +1,4 @@
+#!/bin/bash
 # prerequisites:
 #  git clone https://gitlab.com/AndreasK/magiclinux
 #  cd magiclinux

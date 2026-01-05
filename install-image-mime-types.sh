@@ -13,6 +13,7 @@
 # otherwise:
 
 xdg-mime install --novendor --mode system assets/st-disk-image.xml
-xdg-icon-resource install --context mimetypes assets/application-x-st-disk-image.svg application-x-st-disk-image
+# Note that xdg-icon-resource cannot deal with .svg images. FWFR.
+xdg-icon-resource install --context mimetypes --size 512 assets/application-x-st-disk-image.png application-x-st-disk-image
 update-mime-database -V /usr/share/mime
 update-icon-caches /usr/local/share/icons

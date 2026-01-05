@@ -34,12 +34,18 @@ if(APPLE)
         DEFAULT_EDITOR="open -e"
     )
 else()
+    execute_process(COMMAND xdg-user-dir DOCUMENTS
+      ERROR_QUIET
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      OUTPUT_VARIABLE userdir)
     add_compile_definitions(
-        DEFAULT_ATARI_ROOT="~/Documents/MAGIC_C"
+        DEFAULT_ATARI_ROOT="${userdir}/MAGIC_C"
         DEFAULT_CONFIG="~/.config/magiclinux.conf"
         DEFAULT_EDITOR="xdg-open"
-)
+    )
 endif()
+
+target_compile_options(magic-on-linux PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>)
 
 if(NOT APPLE)
 # Installs the executable to /usr/local/bin/

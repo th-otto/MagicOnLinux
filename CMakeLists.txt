@@ -30,13 +30,13 @@ target_link_libraries(magic-on-linux PUBLIC ${SDL2_LIBRARIES} SDL2_mixer)
 if(APPLE)
     add_compile_definitions(
         DEFAULT_ATARI_ROOT="~/Documents/MAGIC_C"
-        DEFAULT_CONFIG="~/Library/Preferences/magiclinux.conf"
+        DEFAULT_CONFIG="~/Library/Preferences/magic-on-linux.conf"
         DEFAULT_EDITOR="open -e"
     )
 elseif(HAIKU)
     add_compile_definitions(
         DEFAULT_ATARI_ROOT="~/config/non-packaged/data/MagicOnLinux/MAGIC_C"
-        DEFAULT_CONFIG="~/config/settings/magiclinux.conf"
+        DEFAULT_CONFIG="~/config/settings/magic-on-linux.conf"
         DEFAULT_EDITOR="StyledEdit"
     )
 else()
@@ -46,7 +46,7 @@ else()
       OUTPUT_VARIABLE userdir)
     add_compile_definitions(
         DEFAULT_ATARI_ROOT="${userdir}/MAGIC_C"
-        DEFAULT_CONFIG="~/.config/magiclinux.conf"
+        DEFAULT_CONFIG="~/.config/magic-on-linux.conf"
         DEFAULT_EDITOR="xdg-open"
     )
 endif()

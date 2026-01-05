@@ -144,7 +144,7 @@ int Preferences::AtariScreenX = -1;    // -1 = auto
 int Preferences::AtariScreenY = -1;
 unsigned Preferences::AtariScreenWidth = 1024;
 unsigned Preferences::AtariScreenHeight = 768;
-unsigned Preferences::AtariScreenStretchX = 2;
+unsigned Preferences::AtariScreenStretchX = 2;      // for 4k screens, this is essential
 unsigned Preferences::AtariScreenStretchY = 2;
 unsigned Preferences::ScreenRefreshFrequency = 60;
 const char *Preferences::AtariStartApplications[MAX_START_APPS];
@@ -288,7 +288,11 @@ int Preferences::init
     // rootfs path: make absolute, without trailing "/"
     //
 
-    if (AtariRootfsPath[0] != '~')
+    if (AtariRootfsPath[0] == '~')
+    {
+        eval_home(AtariRootfsPath, sizeof(AtariRootfsPath));
+    }
+    else
     {
         // Note that realpath() cannot evaluate '~' for the home directory,
         // but evaluation should already have been done by the shell, hopefully.
@@ -536,6 +540,7 @@ int Preferences::writePreferences(const char *cfgfile)
     fprintf(f, "[ATARI EMULATION]\n");
     fprintf(f, "%s = %u\n",     var_name[VAR_ATARI_MEMORY_SIZE], AtariMemSize);
     fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_LANGUAGE], AtariLanguage);
+    fprintf(f, "# language "" is default, i.e. no changes on start\n");
     fprintf(f, "%s = %s\n",     var_name[VAR_SHOW_HOST_MENU], bShowHostMenu ? "YES" : "NO");
     fprintf(f, "%s = %s\n",     var_name[VAR_ATARI_AUTOSTART], bAutoStartMagiC ? "YES" : "NO");
     fprintf(f, "[ADDITIONAL ATARI DRIVES]\n");
@@ -744,7 +749,7 @@ static int eval_quotated_str_bool(bool *outval, const char **line)
  * @return 0 for OK or 1 for error
  *
  ************************************************************************************************/
-static int eval_home(char *pathbuf, unsigned bufsiz)
+int Preferences::eval_home(char *pathbuf, unsigned bufsiz)
 {
     if ((pathbuf[0] == '~') && (pathbuf[1] == '/'))
     {
@@ -780,7 +785,7 @@ static int eval_home(char *pathbuf, unsigned bufsiz)
  * @return 0 for OK or 1 for error
  *
  ************************************************************************************************/
-static int eval_quotated_str_path(char *outbuf, unsigned bufsiz, const char **in)
+int Preferences::eval_quotated_str_path(char *outbuf, unsigned bufsiz, const char **in)
 {
     int num_errors = eval_quotated_str(outbuf, bufsiz, in);
     if (num_errors == 0)

@@ -34,3 +34,10 @@ Address-to-name handling done by register model.
 Atari exception information tidied-up. Ignore wrong information and instead show offending 68k opcode.
 Adapt LOCALISE.SH to macOS.
 Atari coldboot handled.
+
+2026-01-05
+
+"kernel-not-found error" on first start resolved.
+For program name tidy-up: The configuration file is now "magic-on-linux.conf".
+Language string in config file is explained in default config, set to "" for default language.
+Trying to resolve failed icon installation on some Ubuntu computer.

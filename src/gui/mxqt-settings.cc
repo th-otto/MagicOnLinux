@@ -1431,9 +1431,11 @@ void GuiWindow::enableTooltips(void)
 QString GuiWindow::defaultConfig(void)
 {
 #if defined(__APPLE__)
-	return path_expand("~/Library/Preferences/magiclinux.conf");
+	return path_expand("~/Library/Preferences/magic-on-linux.conf");
+#elif defined(__HAIKU)
+	return path_expand("~/config/settings/magic-on-linux.conf");
 #else
-	return path_expand("~/.config/magiclinux.conf");
+	return path_expand("~/.config/magic-on-linux.conf");
 #endif
 
 }

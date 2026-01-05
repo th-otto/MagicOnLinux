@@ -92,7 +92,7 @@
   Usage:
     -h, --help                     display help text and exit
     -c, --config=config-file       open configuration file in editor and exit
-    -e, --config-edit              configuration file (default: ~/.config/magiclinux.conf)
+    -e, --config-edit              configuration file (default: ~/.config/magic-on-linux.conf)
     -w, --config-write             write configuration file with default values and exit
     -g, --geometry=wxh[xb][ip]     e.g. 640x400x2 or 800x600 or 640x200x4ip
     -s, --stretch=w[xh]            e.g. 2x2 or 2 or 2x4

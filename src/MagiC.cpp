@@ -339,16 +339,16 @@ void CMagiC::OS_WaitForEvent(uint32_t *event, uint32_t *flags)
  ************************************************************************************************/
 static int64_t getFileSize(const char *hostPath)
 {
-	int ret;
-	struct stat statbuf;
+    int ret;
+    struct stat statbuf;
 
-	ret = stat(hostPath, &statbuf);
-	if (ret == 0)
-	{
-		return statbuf.st_size;
-	}
+    ret = stat(hostPath, &statbuf);
+    if (ret == 0)
+    {
+        return statbuf.st_size;
+    }
 
-	return -1;
+    return -1;
 }
 
 
@@ -723,56 +723,56 @@ void CMagiC::DumpAtariMem(const char *filename)
 /* CMagiC */
 uint32_t CMagiC::thunk_AtariInit(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->AtariInit(params, AdrOffset68k);
+    return pTheMagiC->AtariInit(params, AdrOffset68k);
 }
 uint32_t CMagiC::thunk_AtariBIOSInit(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->AtariBIOSInit(params, AdrOffset68k);
+    return pTheMagiC->AtariBIOSInit(params, AdrOffset68k);
 }
 uint32_t CMagiC::thunk_AtariVdiInit(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->AtariVdiInit(params, AdrOffset68k);
+    return pTheMagiC->AtariVdiInit(params, AdrOffset68k);
 }
 uint32_t CMagiC::thunk_AtariExec68k(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->AtariExec68k(params, AdrOffset68k);
+    return pTheMagiC->AtariExec68k(params, AdrOffset68k);
 }
 uint32_t CMagiC::thunk_AtariGetKeyboardOrMouseData(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->AtariGetKeyboardOrMouseData(params, AdrOffset68k);
+    return pTheMagiC->AtariGetKeyboardOrMouseData(params, AdrOffset68k);
 }
 
 /* HostXFS */
 uint32_t CMagiC::thunk_XFSFunctions(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->m_HostXFS.XFSFunctions(params, AdrOffset68k);
+    return pTheMagiC->m_HostXFS.XFSFunctions(params, AdrOffset68k);
 }
 uint32_t CMagiC::thunk_XFSDevFunctions(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->m_HostXFS.XFSDevFunctions(params, AdrOffset68k);
+    return pTheMagiC->m_HostXFS.XFSDevFunctions(params, AdrOffset68k);
 }
 uint32_t CMagiC::thunk_Drv2DevCode(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->Drv2DevCode(params, AdrOffset68k);
+    return pTheMagiC->Drv2DevCode(params, AdrOffset68k);
 }
 uint32_t CMagiC::thunk_RawDrvr(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->RawDrvr(params, AdrOffset68k);
+    return pTheMagiC->RawDrvr(params, AdrOffset68k);
 }
 
 /* XCmd */
 uint32_t CMagiC::thunk_XCmdCommand(uint32_t params, unsigned char *AdrOffset68k)
 {
-	return pTheMagiC->m_pXCmd->Command(params, AdrOffset68k);
+    return pTheMagiC->m_pXCmd->Command(params, AdrOffset68k);
 }
 
 uint32_t CMagiC::UndefinedFunction(uint32_t params, unsigned char *AdrOffset68k)
 {
-	uint32_t m68k_pc = m68k_get_reg(NULL, M68K_REG_PC);
-	(void)params;
-	(void)AdrOffset68k;
-	char *msg = NULL;
-	asprintf(&msg, "Unset emulator function called at PC = $%08x\n\n%s", m68k_pc, "Review configuration file!");
+    uint32_t m68k_pc = m68k_get_reg(NULL, M68K_REG_PC);
+    (void)params;
+    (void)AdrOffset68k;
+    char *msg = NULL;
+    asprintf(&msg, "Unset emulator function called at PC = $%08x\n\n%s", m68k_pc, "Review configuration file!");
     showAlert("The emulator was halted", msg);
     free(msg);
     pTheMagiC->stopExec();
@@ -789,29 +789,29 @@ uint32_t CMagiC::UndefinedFunction(uint32_t params, unsigned char *AdrOffset68k)
  ************************************************************************************************/
 void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr)
 {
-	jump_table_len = 0;
+    jump_table_len = 0;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-	/*
-	 * reserve function #0 to detect cases where the kernel
-	 * tries to call functions that we did not install
-	 */
-	jump_table[jump_table_len++].c = UndefinedFunction;
-	
+    /*
+     * reserve function #0 to detect cases where the kernel
+     * tries to call functions that we did not install
+     */
+    jump_table[jump_table_len++].c = UndefinedFunction;
+
     if (be32toh(pMacXSysHdr->MacSysX_verAtari) >= 1)
     {
-	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_init, AtariInit);
-    	setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_biosinit, AtariBIOSInit);
-	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_Dosound, AtariDosound);
+        setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_init, AtariInit);
+        setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_biosinit, AtariBIOSInit);
+        setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_Dosound, AtariDosound);
     } else
     {
-	    setCMagiCHostCallback(&pMacXSysHdr->MacLinux_init.v0.MacSysX_init, thunk_AtariInit);
-	    setCMagiCHostCallback(&pMacXSysHdr->MacLinux_init.v0.MacSysX_biosinit, thunk_AtariBIOSInit);
-	}
+        setCMagiCHostCallback(&pMacXSysHdr->MacLinux_init.v0.MacSysX_init, thunk_AtariInit);
+        setCMagiCHostCallback(&pMacXSysHdr->MacLinux_init.v0.MacSysX_biosinit, thunk_AtariBIOSInit);
+    }
     if (be32toh(pMacXSysHdr->MacSysX_verAtari) >= 3)
     {
-	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_Ikbdws, AtariIkbdws);
-	}
+        setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_Ikbdws, AtariIkbdws);
+    }
     setCMagiCHostCallback(&pMacXSysHdr->MacSysX_VdiInit, thunk_AtariVdiInit);
     setCMagiCHostCallback(&pMacXSysHdr->MacSysX_Exec68k, thunk_AtariExec68k);
     setCXCmdHostCallback(&pMacXSysHdr->MacSysX_Xcmd, thunk_XCmdCommand);
@@ -830,20 +830,20 @@ void CMagiC::initHostCallbacks(struct MacXSysHdr *pMacXSysHdr)
     setHostCallback(&pMacXSysHdr->MacSysX_error,      AtariError);
     if (be32toh(pMacXSysHdr->MacSysX_verAtari) >= 2)
     {
-	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_in, AtariBconin);
-	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_out, AtariBconout);
-	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_istat, AtariBconstat);
-	    setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_ostat, AtariBcostat);
+        setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_in, AtariBconin);
+        setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_out, AtariBconout);
+        setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_istat, AtariBconstat);
+        setHostCallback(&pMacXSysHdr->MacLinux_init.v1.MacSysX_dev_ostat, AtariBcostat);
     } else
     {
-	    setHostCallback(&pMacXSysHdr->MacSysX_resb8,      &CMagiCPrint::AtariPrtOs);
-	    setHostCallback(&pMacXSysHdr->MacSysX_resbc,      &CMagiCPrint::AtariPrtIn);
-	    setHostCallback(&pMacXSysHdr->MacSysX_resc0,      &CMagiCPrint::AtariPrtOut);
-	    setHostCallback(&pMacXSysHdr->MacSysX_rescc,      &CMagiCSerial::AtariSerIs);
-	    setHostCallback(&pMacXSysHdr->MacSysX_resd0,      &CMagiCSerial::AtariSerOs);
-	    setHostCallback(&pMacXSysHdr->MacSysX_resd4,      &CMagiCSerial::AtariSerIn);
-	    setHostCallback(&pMacXSysHdr->MacSysX_resd8,      &CMagiCSerial::AtariSerOut);
-	}
+        setHostCallback(&pMacXSysHdr->MacSysX_resb8,      &CMagiCPrint::AtariPrtOs);
+        setHostCallback(&pMacXSysHdr->MacSysX_resbc,      &CMagiCPrint::AtariPrtIn);
+        setHostCallback(&pMacXSysHdr->MacSysX_resc0,      &CMagiCPrint::AtariPrtOut);
+        setHostCallback(&pMacXSysHdr->MacSysX_rescc,      &CMagiCSerial::AtariSerIs);
+        setHostCallback(&pMacXSysHdr->MacSysX_resd0,      &CMagiCSerial::AtariSerOs);
+        setHostCallback(&pMacXSysHdr->MacSysX_resd4,      &CMagiCSerial::AtariSerIn);
+        setHostCallback(&pMacXSysHdr->MacSysX_resd8,      &CMagiCSerial::AtariSerOut);
+    }
     setHostCallback(&pMacXSysHdr->MacSysX_prtouts,    &CMagiCPrint::AtariPrtOutS);
     setHostCallback(&pMacXSysHdr->MacSysX_serconf,    &CMagiCSerial::AtariSerConf);
     setHostCallback(&pMacXSysHdr->MacSysX_SerOpen,    &CMagiCSerial::AtariSerOpen);
@@ -1056,10 +1056,10 @@ int CMagiC::init(CXCmd *pXCmd)
     pMacXSysHdr->MacSysX_PPCAddr = 0;                // on 32-bit host: mem68k
     pMacXSysHdr->MacSysX_VideoAddr = 0x80000000;     // on 32-bit host: CMagiCScreen::m_PixMap.baseAddr
 
-	/*
-	 * set callbacks for kernel
-	 */
-	m_pXCmd = pXCmd;
+    /*
+     * set callbacks for kernel
+     */
+    m_pXCmd = pXCmd;
     initHostCallbacks(pMacXSysHdr);
 
     // 68k ssp and PC after reset

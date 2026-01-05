@@ -159,5 +159,7 @@ class Preferences
     static int getPreferences(const char *cfgfile, bool rewrite_conf);
     static int writePreferences(const char *cfgfile);
     static int evaluatePreferencesLine(const char *line);
+    static int eval_quotated_str_path(char *outbuf, unsigned bufsiz, const char **in);
+    static int eval_home(char *pathbuf, unsigned bufsiz);
 };
 #endif

@@ -118,7 +118,7 @@ For Linux, run:
 to unregister the application, its icons and MIME types.
 To also remove the configuration file, root filesystem and the application itself:
 
-- rm ~/.config/magiclinux.conf
+- rm ~/.config/magic-on-linux.conf
 - rm -rf ~/Documents/MAGIC_C
 - rm -rf build/*
 

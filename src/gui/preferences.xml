@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<preferences name="magixlinux.conf">
+<preferences name="magiclinux.conf">
   <section name="HOST PATHS" _label="Host Paths" _desc="Configure kernel, rootfs, and temporary paths on the host system" icon="folder">
     <path name="atari_kernel_path" _label="Kernel File (ROM)" default="~/Documents/MAGIC_C/MAGICLIN.OS" _tooltip="Path to the Atari Kernel/ROM file (e.g., MAGICLIN.OS)"></path>
     <folder name="atari_rootfs_path" _label="Path for boot filesystem (Folder)" default="~/Documents/MAGIC_C" _tooltip="Path to the host directory containing the root filesystem of the emulation"/>

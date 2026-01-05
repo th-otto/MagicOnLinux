@@ -2440,9 +2440,11 @@ int main(int argc, char **argv)
 	} else
 	{
 #if defined(__APPLE__)
-		gui.config_file = path_expand("~/Library/Preferences/magiclinux.conf");
+		gui.config_file = path_expand("~/Library/Preferences/magic-on-linux.conf");
+#elif defined(__HAIKU)
+		gui.config_file = path_expand("~/config/settings/magic-on-linux.conf");
 #else
-		gui.config_file = path_expand("~/.config/magiclinux.conf");
+		gui.config_file = path_expand("~/.config/magic-on-linux.conf");
 #endif
 	}
 	getPreferences(&gui);

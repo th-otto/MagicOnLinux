@@ -24,11 +24,11 @@
 
 #if !defined(DEFAULT_CONFIG)
 #if defined(__APPLE__)
-#define DEFAULT_CONFIG "~/Library/Preferences/magiclinux.conf"
+#define DEFAULT_CONFIG "~/Library/Preferences/magic-on-linux.conf"
 #elif defined(__HAIKU__)
-#define DEFAULT_CONFIG "~/config/settings/magiclinux.conf"
+#define DEFAULT_CONFIG "~/config/settings/magic-on-linux.conf"
 #else
-#define DEFAULT_CONFIG "~/.config/magiclinux.conf"
+#define DEFAULT_CONFIG "~/.config/magic-on-linux.conf"
 #endif
 #endif
 
@@ -353,6 +353,9 @@ static int localise(const char *arg_lang)
     {
         arg_lang = Preferences::AtariLanguage;
     }
+
+    // An empty language string means default, i.e. no checks here.
+    // The "0" is for backward compatibility only.
     if ((arg_lang[0] != '\0') && (arg_lang[0] != '0'))
     {
         // Note that the shell script converts language code to uppercase.

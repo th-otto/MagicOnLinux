@@ -1,5 +1,5 @@
 # If you change the rootfs path, you must later adapt the config file accordingly!
-ROOTFS=~/Documents/MAGIC_C
+ROOTFS=`xdg-user-dir DOCUMENTS`/MAGIC_C
 # This is only the default language, it can easily be changed later.
 INITIAL_LANGUAGE=EN
 

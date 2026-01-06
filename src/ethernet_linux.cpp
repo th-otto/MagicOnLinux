@@ -29,6 +29,8 @@
 #include <errno.h>
 #include <unistd.h>
 
+#if defined(__linux__) || defined(__APPLE__)
+
 /****************************
  * Configuration zone begins
  */
@@ -262,3 +264,5 @@ int TunTapEthernetHandler::tapOpen(char *dev)
 }
 
 #endif /* New driver support */
+
+#endif /* __linux__ */

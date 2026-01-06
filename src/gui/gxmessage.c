@@ -1236,6 +1236,11 @@ int main(gint argc, gchar *argv[])
 	gboolean ok;
 	static gchar bu_default[] = "okay:0";
 
+#ifdef __HAIKU__
+	/* broken port of Gtk3 prints debug messages to stderr */
+	close(2);
+#endif
+
 	/* The default "okay:0" string is intentionally hard-wired, to avoid
 	 * breaking scripts that make use of xmessage's -print option.
 	 * It must not be changed or gettextize'd. */

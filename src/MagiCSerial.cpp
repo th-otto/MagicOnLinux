@@ -62,7 +62,7 @@ unsigned int CMagiCSerial::m_InBufFill;
 void CMagiCSerial::init()
 {
     m_fd = -1;
-    gActualTTYAttrs.c_ospeed = gActualTTYAttrs.c_ispeed = 0xffffffff;    // invalid
+    gActualTTYAttrs.c_ospeed = gActualTTYAttrs.c_ispeed = -1;    // invalid
 }
 
 
@@ -591,6 +591,7 @@ uint32_t CMagiCSerial::Config
     {
         switch(gActualTTYAttrs.c_cflag & CSIZE)
         {
+#ifndef __HAIKU__
             case CS5:
                 *pOldnBits = 5;
                 break;
@@ -598,7 +599,7 @@ uint32_t CMagiCSerial::Config
             case CS6:
                 *pOldnBits = 6;
                 break;
-
+#endif
             case CS7:
                 *pOldnBits = 7;
                 break;

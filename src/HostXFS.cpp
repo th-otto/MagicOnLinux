@@ -51,16 +51,16 @@
 #include "gui.h"
 
 
-#ifdef __APPLE__
-// AT_EMPTY_PATH is not available on macOS
+// AT_EMPTY_PATH is not available on macOS & Haiku
 #ifndef AT_EMPTY_PATH
 #define AT_EMPTY_PATH 0
 #endif
-// RENAME_NOREPLACE is not available on macOS
+// RENAME_NOREPLACE is not available on macOs & Haiku
 #ifndef RENAME_NOREPLACE
 #define RENAME_NOREPLACE (1 << 0)
 #endif
 
+#if defined(__APPLE__) || defined(__HAIKU__)
 // macOS doesn't have renameat2, so we provide a simple wrapper
 static int renameat2(int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
 {
@@ -319,7 +319,11 @@ INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
         return ERANGE;
     }
     strcpy(pathbuf, pathbuf_max);
-#else
+#elif defined(__HAIKU__)
+    (void)dir_fd;
+    (void)pathbuf;
+    (void)bufsiz;
+#elif defined(__linux__)
     char pathname[32];
     sprintf(pathname, "/proc/self/fd/%u", dir_fd);
     ssize_t size = readlink(pathname, pathbuf, bufsiz - 1);     // leave one byte for end-of-string
@@ -329,6 +333,8 @@ INT32 CHostXFS::hostFd2Path(int dir_fd, char *pathbuf, uint16_t bufsiz)
         return EINTRN;
     }
     pathbuf[size] = '\0';   // necessary
+#else
+#error "unsupported OS"
 #endif
 
     return E_OK;
@@ -993,6 +999,9 @@ INT32 CHostXFS::hostpath2HostFD
         // Check if hostFD->fd is valid, i.e. is inside this Atari drive
         //
 
+#if defined(__HAIKU__)
+        (void)drv;
+#else
         char pathbuf[PATH_MAX];
         INT32 aret = hostFd2Path(dir_fd, pathbuf, sizeof(pathbuf));
         if (aret != E_OK)
@@ -1008,6 +1017,7 @@ INT32 CHostXFS::hostpath2HostFD
             close(dir_fd);
             return EPTHNF;
         }
+#endif
 
         //
         // new path is valid, continue
@@ -1292,6 +1302,7 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MX_DT
     }
 
     // TODO: handle symbolic links here
+#ifdef _DIRENT_HAVE_D_TYPE
     if (entry->d_type == DT_REG)
     {
         dosname[11] = 0;    // regular file
@@ -1302,10 +1313,38 @@ int CHostXFS::_snext(uint16_t drv, int dir_fd, const struct dirent *entry, MX_DT
         dosname[11] = F_SUBDIR;
     }
     else
+    if (entry->d_type == DT_LNK)
+    {
+        dosname[11] = F_SYMLINK;
+    }
+    else
     {
         DebugWarning2("() -- unhandled file type %d", entry->d_type);
         return -2;   // unhandled file type
     }
+#else
+    dosname[11] = 0;    // regular file
+    {
+        struct stat statbuf;
+        if (fstatat(dir_fd, entry->d_name, &statbuf, AT_SYMLINK_NOFOLLOW) == 0)
+        {
+            if (S_ISREG(statbuf.st_mode))
+            {
+                dosname[11] = F_SUBDIR;
+            } else if (S_ISDIR(statbuf.st_mode))
+            {
+                dosname[11] = F_SUBDIR;
+            } else if (S_ISLNK(statbuf.st_mode))
+            {
+                dosname[11] = F_SYMLINK;
+            } else
+            {
+                DebugWarning2("() -- unhandled file type %o", statbuf.st_mode & S_IFMT);
+                return -2;   // unhandled file type
+            }
+        }
+    }
+#endif
 
     if (!filename8p3_match(dta->sname, (char *) dosname, convUpper))
     {
@@ -1916,7 +1955,7 @@ INT32 CHostXFS::xfs_xattr
         flags |= AT_SYMLINK_NOFOLLOW;
     }
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(__HAIKU__)
     // macOS cannot deal with empty path?!?
     if ((mode == 0) && (strlen(host_name) == 0))
     {
@@ -2142,6 +2181,12 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 {
     DebugInfo2("(drv = %u)", drv);
     CHK_DRIVE_WRITEABLE(drv)
+#ifdef __HAIKU__
+    (void)drv;
+    (void)dd;
+    DebugInfo2("() -> EACCDN");
+    return EACCDN;
+#else
     GET_hhdl_hostFD_dir_fd(dd, hhdl, hostFD, dir_fd)
 
     // We cannot remove the directory via its DD or fd, instead we need a path
@@ -2164,6 +2209,7 @@ INT32 CHostXFS::xfs_ddelete(uint16_t drv, MXFSDD *dd)
 
     DebugInfo2("() -> E_OK");
     return E_OK;
+#endif
 }
 
 
@@ -2606,15 +2652,15 @@ INT32 CHostXFS::xfs_dfree(uint16_t drv, INT32 dirID, UINT32 data[4])
 
     uint32_t num_free_blocks  = (sizeof(buf.f_bavail) > 4 && buf.f_bavail >= 0x100000000) ? -1 : (uint32_t) buf.f_bavail;
     uint32_t num_total_blocks = (sizeof(buf.f_blocks) > 4 && buf.f_blocks >= 0x100000000) ? -1 : (uint32_t) buf.f_blocks;
-	/* According to Linux manpage, f_frsize should be used for
-	 * total, and according to NetBSD manpage, also for free.
-	 *
-	 * According to GNU coreutils code, f_frsize might not
-	 * be set (according to kernel code, it's set to
-	 * f_bsize when zero, so that might be old info).
-	 *
-	 * => use frsize if it's set
-	 */
+    /* According to Linux manpage, f_frsize should be used for
+     * total, and according to NetBSD manpage, also for free.
+     *
+     * According to GNU coreutils code, f_frsize might not
+     * be set (according to kernel code, it's set to
+     * f_bsize when zero, so that might be old info).
+     *
+     * => use frsize if it's set
+     */
     uint64_t bsize = buf.f_frsize > 0 ? buf.f_frsize : buf.f_bsize;
     uint32_t block_size       = (bsize >= 0x100000000) ? -1 : (uint32_t) bsize;
 
@@ -2984,6 +3030,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
         if (f->mod_tdate_dirty)
         {
             // get host path from file descriptor
+#if !defined(__HAIKU__)
             char pathbuf[PATH_MAX];
             aret = hostFd2Path(fd, pathbuf, sizeof(pathbuf));
             if (aret == E_OK)
@@ -2997,6 +3044,7 @@ INT32 CHostXFS::dev_close(MAC_FD *f)
                     aret = CConversion::host2AtariError(errno);
                 }
             }
+#endif
             f->mod_tdate_dirty = 0;
         }
         HostHandles::freeHostFD(hostFD);     // also closes hostFD->fd

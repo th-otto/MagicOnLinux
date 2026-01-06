@@ -57,6 +57,7 @@ typedef uint32_t PTR32x4_HOST[4];   // might be used as 64 bit function pointer 
 #define F_VOLUME 0x08
 #define F_SUBDIR 0x10
 #define F_ARCHIVE 0x20
+#define F_SYMLINK 0x40
 
 /* GEMDOS (MiNT) Fopen modes */
 

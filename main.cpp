@@ -13,16 +13,20 @@
 #include "EmulationRunner.h"
 
 #if !defined(DEFAULT_EDITOR)
-#ifdef __APPLE__
+#if defined(__APPLE__)
 #define DEFAULT_EDITOR "open -e"
+#elif defined(__HAIKU__)
+#define DEFAULT_EDITOR "StyledEdit"
 #else
 #define DEFAULT_EDITOR "xdg-open"
 #endif
 #endif
 
 #if !defined(DEFAULT_CONFIG)
-#ifdef __APPLE__
+#if defined(__APPLE__)
 #define DEFAULT_CONFIG "~/Library/Preferences/magiclinux.conf"
+#elif defined(__HAIKU__)
+#define DEFAULT_CONFIG "~/config/settings/magiclinux.conf"
 #else
 #define DEFAULT_CONFIG "~/.config/magiclinux.conf"
 #endif

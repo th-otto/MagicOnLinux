@@ -33,6 +33,12 @@ if(APPLE)
         DEFAULT_CONFIG="~/Library/Preferences/magiclinux.conf"
         DEFAULT_EDITOR="open -e"
     )
+elseif(HAIKU)
+    add_compile_definitions(
+        DEFAULT_ATARI_ROOT="~/config/non-packaged/data/MagicOnLinux/MAGIC_C"
+        DEFAULT_CONFIG="~/config/settings/magiclinux.conf"
+        DEFAULT_EDITOR="StyledEdit"
+    )
 else()
     execute_process(COMMAND xdg-user-dir DOCUMENTS
       ERROR_QUIET

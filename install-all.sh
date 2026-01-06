@@ -13,10 +13,11 @@ Linux*)
         ;;
     opensuse | leap)
         sudo zypper install SDL2-devel SDL2_mixer-devel cmake pkgconf-pkg-config
-        # TODO: gxmessage not a package in openSUSE
+        # TODO: gxmessage not a package in openSUSE, but can be compiled from source
         ;;
     fedora)
         sudo yum install SDL2-devel SDL2_mixer-devel cmake
+        # TODO: gxmessage not a package in Fedora, but can be compiled from source
         ;;
     *)
         echo "Don't know how to install packages on $release; assuming already installed" >&2
@@ -33,6 +34,12 @@ Darwin*)
         echo "Please install MacPorts or HomeBrew first" >&2
         exit 1
     fi
+    ;;
+    esac
+Haiku*)
+    os=haiku
+    pkgman install cmake libsdl2_devel sdl2_mixer_devel
+    # TODO: gxmessage not a package in Haiku, but can be compiled from source
     ;;
 MINGW*|MINGW*|MSYS*)
     os=win32

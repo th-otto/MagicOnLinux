@@ -175,4 +175,24 @@ public:
 
 #endif
 
+class DummyEthernetHandler : public CNetwork::Handler
+{
+public:
+    DummyEthernetHandler(unsigned int eth_idx);
+    virtual ~DummyEthernetHandler();
+    virtual const char *type(void) { return "DummyEthernetHandler"; }
+
+    virtual bool open();
+    virtual void close();
+    virtual int recv(uint8_t *buf, int len);
+    virtual int send(const uint8_t *buf, int len);
+};
+
+#ifndef ETHERNET_HANDLER_CLASSNAME
+/* No network, provide dummy handler */
+
+#define ETHERNET_HANDLER_CLASSNAME DummyEthernetHandler
+
+#endif
+
 #endif // included _INCLUDED_NETWORK_H

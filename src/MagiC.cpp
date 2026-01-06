@@ -2954,7 +2954,10 @@ uint32_t CMagiC::RawDrvr(uint32_t param, uint8_t *addrOffset68k)
             //
             // Host XFS
             //
-
+            if (drv == 'U' - 'A')
+                return EACCDN;
+            if (drv == 'C' - 'A')
+                return EACCDN;
             m_HostXFS.eject(drv);
             updateDriveBits(addrOffset68k);
             return E_OK;

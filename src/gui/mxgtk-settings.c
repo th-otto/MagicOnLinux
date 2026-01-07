@@ -90,10 +90,10 @@ struct pref_val {
 		} b;
 		struct {
 			int c;
-			int minval;
-			int maxval;
 			int orig_value;
 			int default_value;
+			int num_choices;
+			const xml_widget_choice *choices;
 		} c;
 	} u;
 };
@@ -416,6 +416,25 @@ static char *path_shrink(const char *value)
 
 /*** ---------------------------------------------------------------------- ***/
 
+static int enum_from_value(const char *value, int num_choices, const xml_widget_choice *choices)
+{
+	int i;
+	/*
+	 * convert the value from preferences to the combobox index
+	 */
+	
+	for (i = 0; i < num_choices; i++)
+	{
+		if (value != NULL && strcmp(value, choices[i].value) == 0)
+		{
+			return i;
+		}
+	}
+	return 0;
+}
+
+/*** ---------------------------------------------------------------------- ***/
+
 static void set_value(GtkWidget *w, const xml_widget *widget)
 {
 	struct pref_val val;
@@ -463,9 +482,11 @@ static void set_value(GtkWidget *w, const xml_widget *widget)
 		val.u.i.maxval = gtk_adjustment_get_upper(gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w)));
 		break;
 	case TYPE_CHOICE:
-		val.u.c.c = widget->u.choice.default_value;
+		val.u.c.c = enum_from_value(widget->u.choice.default_value, widget->u.choice.num_choices, widget->u.choice.choices);
 		val.u.c.default_value = val.u.c.c;
 		val.u.c.orig_value = val.u.c.c;
+		val.u.c.num_choices = widget->u.choice.num_choices;
+		val.u.c.choices = widget->u.choice.choices;
 		break;
 	default:
 		assert(0);
@@ -585,7 +606,8 @@ static void cb_language_changed(GtkComboBox *widget, gpointer data)
 	GtkTreeIter iter;
 	GtkTreeModel *model;
 	GValue value = G_VALUE_INIT;
-	
+	const char *str;
+
 	model = gtk_combo_box_get_model(GTK_COMBO_BOX(widget));
 	path = gtk_tree_path_new_from_indices(choice, -1);
 	if (!gtk_tree_model_get_iter(GTK_TREE_MODEL(model), &iter, path))
@@ -594,7 +616,11 @@ static void cb_language_changed(GtkComboBox *widget, gpointer data)
 	}
 	gtk_tree_model_get_value(GTK_TREE_MODEL(model), &iter, CHOICE_COL_VALUE, &value);
 	gtk_tree_path_free(path);
-	lang = (language_t)g_value_get_int(&value);
+	str = g_value_get_string(&value);
+	if (strcmp(str, "default") == 0)
+		lang = LANG_SYSTEM;
+	else
+		lang = language_from_name(str);
 	g_value_unset(&value);
 	if (lang == LANG_SYSTEM)
 	{
@@ -913,9 +939,9 @@ static void parseXml(GuiWindow *gui)
 					gtk_widget_show(label);
 					table_attach(section_table, label, section_row, 0);
 #ifdef FORCE_LIBINTL
-					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, GDK_TYPE_PIXBUF);
+					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF);
 #else
-					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_INT, G_TYPE_INT, GDK_TYPE_PIXBUF);
+					store = gtk_list_store_new(CHOICE_NUM_COLS, G_TYPE_STRING, G_TYPE_INT, G_TYPE_STRING, GDK_TYPE_PIXBUF);
 #endif
 					assert(store);
 					combo_box = gtk_combo_box_new_with_model(GTK_TREE_MODEL(store));
@@ -1073,7 +1099,7 @@ static gboolean writePreferences(GuiWindow *gui)
 			fprintf(f, "%s = %s\n", name, bool_to_string(val->u.b.b));
 			break;
 		case TYPE_CHOICE:
-			fprintf(f, "%s = %d\n", name, val->u.c.c);
+			fprintf(f, "%s = %s\n", name, val->u.c.choices[val->u.c.c].value);
 			/* Cosmetic: write back original comment from example configuration */
 			if (strcmp(name, "atari_screen_colour_mode") == 0)
 			{
@@ -1354,11 +1380,14 @@ static gboolean evaluatePreferencesLine(GuiWindow *gui, const char *line, gboole
 		break;
 
 	case TYPE_CHOICE:
-		ok &= eval_int(&lv, 0, 0, &line);
-		if (ok)
+		str = eval_quotated_str(&line);
+		if (str != NULL)
 		{
-			val->u.c.c = lv;
+			val->u.c.c = enum_from_value(str, val->u.c.num_choices, val->u.c.choices);
 			val->u.c.orig_value = val->u.c.c;
+		} else
+		{
+			ok = FALSE;
 		}
 		break;
 
@@ -1557,23 +1586,6 @@ static gboolean updatePreferences(GuiWindow *gui)
 			break;
 		case TYPE_CHOICE:
 			val->u.c.c = gtk_combo_box_get_active(GTK_COMBO_BOX(w));
-			{
-				GtkTreePath *path;
-				GtkTreeIter iter;
-				GtkListStore *model;
-				GValue value = G_VALUE_INIT;
-				
-				model = GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(w)));
-				path = gtk_tree_path_new_from_indices(val->u.c.c, -1);
-				if (!gtk_tree_model_get_iter(GTK_TREE_MODEL(model), &iter, path))
-				{
-					assert(0);
-				}
-				gtk_tree_model_get_value(GTK_TREE_MODEL(model), &iter, CHOICE_COL_VALUE, &value);
-				gtk_tree_path_free(path);
-				val->u.c.c = g_value_get_int(&value);
-				g_value_unset(&value);
-			}
 			break;
 		default:
 			assert(0);
@@ -1669,40 +1681,6 @@ static gboolean populatePreferences(GuiWindow *gui)
 			gtk_check_button_set_active(w, val->u.b.b);
 			break;
 		case TYPE_CHOICE:
-			{
-				int i;
-				GtkTreePath *path;
-				GtkTreeIter iter;
-				GtkListStore *model;
-				
-				/*
-				 * convert the value from preferences to the combobox index
-				 */
-				model = GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(w)));
-				for (i = 0; i <= val->u.c.maxval; i++)
-				{
-					path = gtk_tree_path_new_from_indices(i, -1);
-					if (gtk_tree_model_get_iter(GTK_TREE_MODEL(model), &iter, path))
-					{
-						GValue value = G_VALUE_INIT;
-						int v;
-						
-						gtk_tree_model_get_value(GTK_TREE_MODEL(model), &iter, CHOICE_COL_VALUE, &value);
-						v = g_value_get_int(&value);
-						g_value_unset(&value);
-						if (v == val->u.c.c)
-						{
-							val->u.c.c = i;
-#if 0 /* not here: updatePreferences has already converted the value again */
-							val->u.c.orig_value = i;
-#endif
-							gtk_tree_path_free(path);
-							break;
-						}
-					}
-					gtk_tree_path_free(path);
-				}
-			}
 			gtk_combo_box_set_active(GTK_COMBO_BOX(w), val->u.c.c);
 			break;
 		default:
@@ -2452,7 +2430,7 @@ int main(int argc, char **argv)
 #ifdef ENABLE_NLS
 	retranslate_ui(&gui);
 #endif
-	gtk_notebook_set_current_page(GTK_NOTEBOOK(gui.notebook), 0);
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(gui.notebook), 4);
 	
 	/* open the window */
 	gtk_widget_show(gui.window);

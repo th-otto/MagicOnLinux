@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <preferences name="magiclinux.conf">
   <section name="HOST PATHS" _label="Host Paths" _desc="Configure kernel, rootfs, and temporary paths on the host system" icon="folder">
-    <path name="atari_kernel_path" _label="Kernel File (ROM)" default="~/Documents/MAGIC_C/MAGICLIN.OS" _tooltip="Path to the Atari Kernel/ROM file (e.g., MAGICLIN.OS)"></path>
+    <path name="atari_kernel_path" _label="Kernel File (ROM)" default="~/Documents/MAGIC_C/MAGICLIN.OS" _tooltip="Path to the Atari Kernel/ROM file.\nIf empty, MAGICLIN.OS in the root filesystem will be used."></path>
     <folder name="atari_rootfs_path" _label="Path for boot filesystem (Folder)" default="~/Documents/MAGIC_C" _tooltip="Path to the host directory containing the root filesystem of the emulation"/>
     <bool name="atari_h_home" _label="Mount $HOME directory as drive H:" default="1" _tooltip="If enabled, mounts the host home directory (~/) as U:/home inside the emulation"></bool>
     <bool name="atari_h_rdonly" _label="Set HOME directory read-only" default="1" _tooltip="Mounts the host home directory as read-only. Requires 'Mount $HOME...' to be enabled"></bool>
@@ -38,17 +38,17 @@
   </section>
   <section name="ATARI EMULATION" _label="Atari Emulation" _desc="General emulation settings, including RAM size, language ROM, and menu behavior" icon="preferences-system">
     <int name="atari_memory_size" _label="Memory size (RAM in bytes)" default="8388608" minval="819200" maxval="2147483648" step="4096" _tooltip="Amount of RAM allocated to the emulated system (e.g., 8MB, 32MB)"></int>
-    <choice name="atari_language" _label="Atari language" default="0" _tooltip="Selects the language ROM to be used by the emulation (affects keyboard layout and startup language)">
-       <select value="0" _label="English (USA)" icon="flag-us"/>
-       <select value="1" _label="German" icon="flag-de"/>
-       <select value="2" _label="French" icon="flag-fr"/>
+    <choice name="atari_language" _label="Atari language" default="en" _tooltip="Selects the language ROM to be used by the emulation (affects keyboard layout and startup language)">
+       <select value="en" _label="English (USA)" icon="flag-us"/>
+       <select value="de" _label="German" icon="flag-de"/>
+       <select value="fr" _label="French" icon="flag-fr"/>
     </choice>
-    <choice name="gui_language" _label="Application language" default="-1" _tooltip="Selects the language for this application" gui="1">
-       <select value="-1" _label="System Default"/>
-       <select value="0" _label="English (USA)" icon="flag-us"/>
-       <select value="1" _label="German" icon="flag-de"/>
-       <select value="2" _label="French" icon="flag-fr"/>
-       <select value="3" _label="English (UK)" icon="flag-gb"/>
+    <choice name="gui_language" _label="Application language" default="default" _tooltip="Selects the language for this application" gui="1">
+       <select value="default" _label="System Default"/>
+       <select value="en_US" _label="English (USA)" icon="flag-us"/>
+       <select value="de_DE" _label="German" icon="flag-de"/>
+       <select value="fr_FR" _label="French" icon="flag-fr"/>
+       <select value="en_GB" _label="English (UK)" icon="flag-gb"/>
        <!-- no translations available yet:
        <select value="4" _label="Spanish" icon="flag-es"/>
        <select value="5" _label="Italian" icon="flag-it"/>

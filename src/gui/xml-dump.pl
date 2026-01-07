@@ -251,8 +251,9 @@ print << "EOF";
  */
 enum {
 	TYPE_NONE,
-	TYPE_PATH,
-	TYPE_FOLDER,
+	TYPE_PATH,				/* path only, eg. the name of the config file */
+	TYPE_FOLDER,			/* folder only, eg. the rootfs folder */
+	TYPE_FOLDER_OR_PATH,	/* folder or path, eg. an XFS mount directory or volume image */
 	TYPE_STRING,
 	TYPE_INT,
 	TYPE_UINT,
@@ -262,7 +263,7 @@ enum {
 
 typedef struct {
 	const char *label;
-	int value;
+	const char *value;
 	const char *icon_name;
 } xml_widget_choice;
 
@@ -290,9 +291,8 @@ typedef struct {
 			long step;
 		} integer;
 		struct {
-			int default_value;
-			int minval;
-			int maxval;
+			const char *default_value;
+			int num_choices;
 			const xml_widget_choice *choices;
 		} choice;
 	} u;
@@ -346,9 +346,9 @@ EOF
 					{
 						$icon = "NULL";
 					}
-					printf $OUT "\t{ N_(\"%s\"), %d, %s },\n", escape($choice->{'_label'}), $choice->{'value'}, $icon;
+					printf $OUT "\t{ N_(\"%s\"), \"%s\", %s },\n", escape($choice->{'_label'}), $choice->{'value'}, $icon;
 				}
-				print $OUT "\t{ NULL, 0, NULL }\n};\n\n";
+				print $OUT "\t{ NULL, NULL, NULL }\n};\n\n";
 			}
 		}
 	}
@@ -372,14 +372,16 @@ EOF
 
 			if (defined($widget->{'_tooltip'}))
 			{
-				$tooltip = 'N_("' . escape($widget->{'_tooltip'}) . '")';
+				# $tooltip = 'N_("' . escape($widget->{'_tooltip'}) . '")';
+				$tooltip = 'N_("' . $widget->{'_tooltip'} . '")';
 			} else
 			{
 				$tooltip = "0";
 			}
 			if (defined($widget->{'default'}))
 			{
-				$default_value = '"' . escape($widget->{'default'}) . '"';
+				# $default_value = '"' . escape($widget->{'default'}) . '"';
+				$default_value = '"' . $widget->{'default'} . '"';
 			} else
 			{
 				$default_value = "NULL";
@@ -397,6 +399,15 @@ EOF
 			} elsif ($widget->{'type'} eq 'folder')
 			{
 				printf $OUT "\t{ TYPE_FOLDER, %s,\n", $name;
+				printf $OUT "\t  .label = %s,\n", $label;
+				printf $OUT "\t  .tooltip = %s,\n", $tooltip;
+				printf $OUT "\t  .gui_only = %d,\n", $widget->{'gui'};
+				printf $OUT "\t  { .path = {\n";
+				printf $OUT "\t    .default_value = %s,\n", $default_value;
+				printf $OUT "\t    .flags = %s } } },\n", $widget->{'flags'};
+			} elsif ($widget->{'type'} eq 'pathfolder')
+			{
+				printf $OUT "\t{ TYPE_FOLDER_OR_PATH, %s,\n", $name;
 				printf $OUT "\t  .label = %s,\n", $label;
 				printf $OUT "\t  .tooltip = %s,\n", $tooltip;
 				printf $OUT "\t  .gui_only = %d,\n", $widget->{'gui'};
@@ -449,9 +460,8 @@ EOF
 				printf $OUT "\t  .tooltip = %s,\n", $tooltip;
 				printf $OUT "\t  .gui_only = %d,\n", $widget->{'gui'};
 				printf $OUT "\t  { .choice = {\n";
-				printf $OUT "\t\t.default_value = %d,\n", defined($widget->{'default'}) ? $widget->{'default'} : 0;
-				printf $OUT "\t\t.minval = %d,\n", $widget->{'minval'};
-				printf $OUT "\t\t.maxval = sizeof(widget_%s_choices) / sizeof(widget_%s_choices[0]) - 2,\n", $widget->{'name'}, $widget->{'name'};
+				printf $OUT "\t\t.default_value = %s,\n", defined($widget->{'default'}) ? ('"' . $widget->{'default'} . '"') : "NULL";
+				printf $OUT "\t\t.num_choices = sizeof(widget_%s_choices) / sizeof(widget_%s_choices[0]) - 1,\n", $widget->{'name'}, $widget->{'name'};
 				printf $OUT "\t\t.choices = widget_%s_choices } } },\n", $widget->{'name'};
 			} else
 			{
@@ -469,14 +479,14 @@ EOF
 
 		if (defined($section->{'icon'}))
 		{
-			$icon = '"' . escape($section->{'icon'}) . '"';
+			$icon = '"' . $section->{'icon'} . '"';
 		} else
 		{
 			$icon = "NULL";
 		}
 		if (defined($section->{'_desc'}))
 		{
-			$desc = 'N_("' . escape($section->{'_desc'}) . '")';
+			$desc = 'N_("' . $section->{'_desc'} . '")';
 		} else
 		{
 			$desc = "0";
@@ -484,8 +494,8 @@ EOF
 		my $section_name = "section_" . lc($section->{'name'});
 		$section_name =~ tr/ /_/;
 		printf $OUT "\t{\n";
-		printf $OUT "\t\t.name = \"%s\",\n", escape($section->{'name'});
-		printf $OUT "\t\t.label = N_(\"%s\"),\n", escape($section->{'_label'});
+		printf $OUT "\t\t.name = \"%s\",\n", $section->{'name'};
+		printf $OUT "\t\t.label = N_(\"%s\"),\n", $section->{'_label'};
 		printf $OUT "\t\t.desc = %s,\n", $desc;
 		printf $OUT "\t\t.icon_name = %s,\n", $icon;
 		printf $OUT "\t\t.scrolled = %d,\n", $section->{'scrolled'};

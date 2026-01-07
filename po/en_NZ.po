@@ -19,7 +19,7 @@ msgid  ""
 msgstr ""
 "Project-Id-Version: MagicOnLinux 0.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-01-01 17:04+0100\n"
+"POT-Creation-Date: 2026-01-06 13:40+0100\n"
 "PO-Revision-Date: 2025-12-10 11:35+0100\n"
 "Last-Translator: Timothy Richard Musson <trmusson@gmail.com>\n"
 "Language-Team: New Zealand English <en@li.org>\n"
@@ -42,8 +42,12 @@ msgid  "Kernel File (ROM)"
 msgstr "Kernel File (ROM)"
 
 #: ../src/gui/preferences.xml:4
-msgid  "Path to the Atari Kernel/ROM file (e.g., MAGICLIN.OS)"
-msgstr "Path to the Atari Kernel/ROM file (e.g., MAGICLIN.OS)"
+msgid  ""
+"Path to the Atari Kernel/ROM file.\n"
+"If empty, MAGICLIN.OS in the root filesystem will be used."
+msgstr ""
+"Path to the Atari Kernel/ROM file.\n"
+"If empty, MAGICLIN.OS in the root filesystem will be used."
 
 #: ../src/gui/preferences.xml:5
 msgid  "Path for boot filesystem (Folder)"
@@ -269,19 +273,19 @@ msgstr "Selects the language ROM to be used by the emulation (affects keyboard l
 
 #: ../src/gui/preferences.xml:42
 #: ../src/gui/preferences.xml:48
-#: ../src/gui/mxgtk-settings.c:2070
+#: ../src/gui/mxgtk-settings.c:2044
 msgid  "English (USA)"
 msgstr "English (USA)"
 
 #: ../src/gui/preferences.xml:43
 #: ../src/gui/preferences.xml:49
-#: ../src/gui/mxgtk-settings.c:2071
+#: ../src/gui/mxgtk-settings.c:2045
 msgid  "German"
 msgstr "German"
 
 #: ../src/gui/preferences.xml:44
 #: ../src/gui/preferences.xml:50
-#: ../src/gui/mxgtk-settings.c:2072
+#: ../src/gui/mxgtk-settings.c:2046
 msgid  "French"
 msgstr "French"
 
@@ -298,441 +302,211 @@ msgid  "System Default"
 msgstr "System Default"
 
 #: ../src/gui/preferences.xml:51
-#: ../src/gui/mxgtk-settings.c:2073
+#: ../src/gui/mxgtk-settings.c:2047
 msgid  "English (UK)"
 msgstr "English (UK)"
 
-#: ../src/gui/preferences.xml:52
-#: ../src/gui/mxgtk-settings.c:2074
-msgid  "Spanish"
-msgstr "Spanish"
-
-#: ../src/gui/preferences.xml:53
-#: ../src/gui/mxgtk-settings.c:2075
-msgid  "Italian"
-msgstr "Italian"
-
-#: ../src/gui/preferences.xml:54
-#: ../src/gui/mxgtk-settings.c:2076
-msgid  "Swedish"
-msgstr "Swedish"
-
-#: ../src/gui/preferences.xml:55
-#: ../src/gui/mxgtk-settings.c:2077
-msgid  "French (Switzerland)"
-msgstr "French (Switzerland)"
-
-#: ../src/gui/preferences.xml:56
-#: ../src/gui/mxgtk-settings.c:2078
-msgid  "German (Switzerland)"
-msgstr "German (Switzerland)"
-
-#: ../src/gui/preferences.xml:57
-#: ../src/gui/mxgtk-settings.c:2079
-msgid  "Turkish"
-msgstr "Turkish"
-
-#: ../src/gui/preferences.xml:58
-#: ../src/gui/mxgtk-settings.c:2080
-msgid  "Finnish"
-msgstr "Finnish"
-
-#: ../src/gui/preferences.xml:59
-#: ../src/gui/mxgtk-settings.c:2081
-msgid  "Norwegian"
-msgstr "Norwegian"
-
-#: ../src/gui/preferences.xml:60
-#: ../src/gui/mxgtk-settings.c:2082
-msgid  "Danish"
-msgstr "Danish"
-
-#: ../src/gui/preferences.xml:61
-#: ../src/gui/mxgtk-settings.c:2083
-msgid  "Arabic"
-msgstr "Arabic"
-
-#: ../src/gui/preferences.xml:62
-#: ../src/gui/mxgtk-settings.c:2084
-msgid  "Dutch"
-msgstr "Dutch"
-
-#: ../src/gui/preferences.xml:63
-#: ../src/gui/mxgtk-settings.c:2085
-msgid  "Hungarian"
-msgstr "Hungarian"
-
-#: ../src/gui/preferences.xml:64
-#: ../src/gui/mxgtk-settings.c:2086
-msgid  "Czech"
-msgstr "Czech"
-
-#: ../src/gui/preferences.xml:65
-#: ../src/gui/mxgtk-settings.c:2087
-msgid  "Polish"
-msgstr "Polish"
-
-#: ../src/gui/preferences.xml:66
-#: ../src/gui/mxgtk-settings.c:2088
-msgid  "Lithuanian"
-msgstr "Lithuanian"
-
-#: ../src/gui/preferences.xml:67
-#: ../src/gui/mxgtk-settings.c:2089
-msgid  "Russian"
-msgstr "Russian"
-
-#: ../src/gui/preferences.xml:68
-#: ../src/gui/mxgtk-settings.c:2090
-msgid  "Estonian"
-msgstr "Estonian"
-
-#: ../src/gui/preferences.xml:69
-#: ../src/gui/mxgtk-settings.c:2091
-msgid  "Belarusian"
-msgstr "Belarusian"
-
-#: ../src/gui/preferences.xml:70
-#: ../src/gui/mxgtk-settings.c:2092
-msgid  "Ukrainian"
-msgstr "Ukrainian"
-
-#: ../src/gui/preferences.xml:71
-#: ../src/gui/mxgtk-settings.c:2093
-msgid  "Slovak"
-msgstr "Slovak"
-
-#: ../src/gui/preferences.xml:72
-#: ../src/gui/mxgtk-settings.c:2094
-msgid  "Romanian"
-msgstr "Romanian"
-
-#: ../src/gui/preferences.xml:73
-#: ../src/gui/mxgtk-settings.c:2095
-msgid  "Bulgarian"
-msgstr "Bulgarian"
-
-#: ../src/gui/preferences.xml:74
-#: ../src/gui/mxgtk-settings.c:2096
-msgid  "Slovenian"
-msgstr "Slovenian"
-
-#: ../src/gui/preferences.xml:75
-#: ../src/gui/mxgtk-settings.c:2097
-msgid  "Croatian"
-msgstr "Croatian"
-
-#: ../src/gui/preferences.xml:76
-#: ../src/gui/mxgtk-settings.c:2098
-msgid  "Serbian"
-msgstr "Serbian"
-
-#: ../src/gui/preferences.xml:77
-#: ../src/gui/mxgtk-settings.c:2099
-msgid  "Serbian (Montenegro)"
-msgstr "Serbian (Montenegro)"
-
-#: ../src/gui/preferences.xml:78
-#: ../src/gui/mxgtk-settings.c:2100
-msgid  "Macedonian"
-msgstr "Macedonian"
-
-#: ../src/gui/preferences.xml:79
-#: ../src/gui/mxgtk-settings.c:2101
-msgid  "Greek"
-msgstr "Greek"
-
-#: ../src/gui/preferences.xml:80
-#: ../src/gui/mxgtk-settings.c:2102
-msgid  "Latvian"
-msgstr "Latvian"
-
-#: ../src/gui/preferences.xml:81
-#: ../src/gui/mxgtk-settings.c:2103
-msgid  "Hebrew"
-msgstr "Hebrew"
-
-#: ../src/gui/preferences.xml:82
-#: ../src/gui/mxgtk-settings.c:2104
-msgid  "Afrikaans"
-msgstr "Afrikaans"
-
-#: ../src/gui/preferences.xml:83
-#: ../src/gui/mxgtk-settings.c:2105
-msgid  "Portuguese"
-msgstr "Portuguese"
-
-#: ../src/gui/preferences.xml:84
-#: ../src/gui/mxgtk-settings.c:2106
-msgid  "Walloon"
-msgstr "Walloon"
-
-#: ../src/gui/preferences.xml:85
-#: ../src/gui/mxgtk-settings.c:2107
-msgid  "Japanese"
-msgstr "Japanese"
-
-#: ../src/gui/preferences.xml:86
-#: ../src/gui/mxgtk-settings.c:2108
-msgid  "Chinese"
-msgstr "Chinese"
-
-#: ../src/gui/preferences.xml:87
-#: ../src/gui/mxgtk-settings.c:2109
-msgid  "Korean"
-msgstr "Korean"
-
-#: ../src/gui/preferences.xml:88
-#: ../src/gui/mxgtk-settings.c:2110
-msgid  "Vietnamese"
-msgstr "Vietnamese"
-
-#: ../src/gui/preferences.xml:89
-#: ../src/gui/mxgtk-settings.c:2111
-msgid  "Hindi"
-msgstr "Hindi"
-
-#: ../src/gui/preferences.xml:90
-#: ../src/gui/mxgtk-settings.c:2112
-msgid  "Persian"
-msgstr "Persian"
-
-#: ../src/gui/preferences.xml:91
-#: ../src/gui/mxgtk-settings.c:2113
-msgid  "Mongolian"
-msgstr "Mongolian"
-
-#: ../src/gui/preferences.xml:92
-#: ../src/gui/mxgtk-settings.c:2114
-msgid  "Nepali"
-msgstr "Nepali"
-
-#: ../src/gui/preferences.xml:93
-#: ../src/gui/mxgtk-settings.c:2115
-msgid  "Lao"
-msgstr "Lao"
-
-#: ../src/gui/preferences.xml:94
-#: ../src/gui/mxgtk-settings.c:2116
-msgid  "Khmer"
-msgstr "Khmer"
-
-#: ../src/gui/preferences.xml:95
-#: ../src/gui/mxgtk-settings.c:2117
-msgid  "Indonesian"
-msgstr "Indonesian"
-
-#: ../src/gui/preferences.xml:96
-#: ../src/gui/mxgtk-settings.c:2118
-msgid  "Bengali"
-msgstr "Bengali"
-
-#: ../src/gui/preferences.xml:97
-#: ../src/gui/mxgtk-settings.c:2119
-msgid  "Catalan"
-msgstr "Catalan"
-
-#: ../src/gui/preferences.xml:99
+#: ../src/gui/preferences.xml:101
 msgid  "Show host menu"
 msgstr "Show host menu"
 
-#: ../src/gui/preferences.xml:99
+#: ../src/gui/preferences.xml:101
 msgid  "If enabled, the host menu bar (File, View, Help, etc.) is visible"
 msgstr "If enabled, the host menu bar (File, View, Help, etc.) is visible"
 
-#: ../src/gui/preferences.xml:100
+#: ../src/gui/preferences.xml:102
 msgid  "Auto start MagiC"
 msgstr "Auto start MagiC"
 
-#: ../src/gui/preferences.xml:100
+#: ../src/gui/preferences.xml:102
 msgid  "If enabled, the emulation starts immediately upon application launch"
 msgstr "If enabled, the emulation starts immediately upon application launch"
 
-#: ../src/gui/preferences.xml:101
+#: ../src/gui/preferences.xml:103
 msgid  "Show Help Tooltips"
 msgstr "Show Help Tooltips"
 
-#: ../src/gui/preferences.xml:101
+#: ../src/gui/preferences.xml:103
 msgid  "Toggle help tooltips for all widgets"
 msgstr "Toggle help tooltips for all widgets"
 
-#: ../src/gui/preferences.xml:103
+#: ../src/gui/preferences.xml:105
 msgid  "Additional Drives"
 msgstr "Additional Drives"
 
-#: ../src/gui/preferences.xml:103
+#: ../src/gui/preferences.xml:105
 msgid  "Manage additional mounted host folders or disk image files (A-Z) for the emulation"
 msgstr "Manage additional mounted host folders or disk image files (A-Z) for the emulation"
 
-#: ../src/gui/preferences.xml:104
+#: ../src/gui/preferences.xml:106
 msgid  "Path for Drive A:"
 msgstr "Path for Drive A:"
 
-#: ../src/gui/preferences.xml:105
+#: ../src/gui/preferences.xml:107
 msgid  "Path for Drive B:"
 msgstr "Path for Drive B:"
 
-#: ../src/gui/preferences.xml:108
+#: ../src/gui/preferences.xml:110
 msgid  "Path for Drive D:"
 msgstr "Path for Drive D:"
 
-#: ../src/gui/preferences.xml:109
+#: ../src/gui/preferences.xml:111
 msgid  "Path for Drive E:"
 msgstr "Path for Drive E:"
 
-#: ../src/gui/preferences.xml:110
+#: ../src/gui/preferences.xml:112
 msgid  "Path for Drive F:"
 msgstr "Path for Drive F:"
 
-#: ../src/gui/preferences.xml:111
+#: ../src/gui/preferences.xml:113
 msgid  "Path for Drive G:"
 msgstr "Path for Drive G:"
 
-#: ../src/gui/preferences.xml:114
+#: ../src/gui/preferences.xml:116
 msgid  "Path for Drive I:"
 msgstr "Path for Drive I:"
 
-#: ../src/gui/preferences.xml:115
+#: ../src/gui/preferences.xml:117
 msgid  "Path for Drive J:"
 msgstr "Path for Drive J:"
 
-#: ../src/gui/preferences.xml:116
+#: ../src/gui/preferences.xml:118
 msgid  "Path for Drive K:"
 msgstr "Path for Drive K:"
 
-#: ../src/gui/preferences.xml:117
+#: ../src/gui/preferences.xml:119
 msgid  "Path for Drive L:"
 msgstr "Path for Drive L:"
 
-#: ../src/gui/preferences.xml:120
+#: ../src/gui/preferences.xml:122
 msgid  "Path for Drive N:"
 msgstr "Path for Drive N:"
 
-#: ../src/gui/preferences.xml:121
+#: ../src/gui/preferences.xml:123
 msgid  "Path for Drive O:"
 msgstr "Path for Drive O:"
 
-#: ../src/gui/preferences.xml:122
+#: ../src/gui/preferences.xml:124
 msgid  "Path for Drive P:"
 msgstr "Path for Drive P:"
 
-#: ../src/gui/preferences.xml:123
+#: ../src/gui/preferences.xml:125
 msgid  "Path for Drive Q:"
 msgstr "Path for Drive Q:"
 
-#: ../src/gui/preferences.xml:124
+#: ../src/gui/preferences.xml:126
 msgid  "Path for Drive R:"
 msgstr "Path for Drive R:"
 
-#: ../src/gui/preferences.xml:125
+#: ../src/gui/preferences.xml:127
 msgid  "Path for Drive S:"
 msgstr "Path for Drive S:"
 
-#: ../src/gui/preferences.xml:126
+#: ../src/gui/preferences.xml:128
 msgid  "Path for Drive T:"
 msgstr "Path for Drive T:"
 
-#: ../src/gui/preferences.xml:129
+#: ../src/gui/preferences.xml:131
 msgid  "Path for Drive V:"
 msgstr "Path for Drive V:"
 
-#: ../src/gui/preferences.xml:130
+#: ../src/gui/preferences.xml:132
 msgid  "Path for Drive W:"
 msgstr "Path for Drive W:"
 
-#: ../src/gui/preferences.xml:131
+#: ../src/gui/preferences.xml:133
 msgid  "Path for Drive X:"
 msgstr "Path for Drive X:"
 
-#: ../src/gui/preferences.xml:132
+#: ../src/gui/preferences.xml:134
 msgid  "Path for Drive Y:"
 msgstr "Path for Drive Y:"
 
-#: ../src/gui/preferences.xml:133
+#: ../src/gui/preferences.xml:135
 msgid  "Path for Drive Z:"
 msgstr "Path for Drive Z:"
 
-#: ../src/gui/preferences.xml:135
+#: ../src/gui/preferences.xml:137
 msgid  "Network"
 msgstr "Network"
 
-#: ../src/gui/preferences.xml:135
+#: ../src/gui/preferences.xml:137
 msgid  "Configure network settings for the emulated Ethernet device (ETH0)"
 msgstr "Configure network settings for the emulated Ethernet device (ETH0)"
 
-#: ../src/gui/preferences.xml:136
+#: ../src/gui/preferences.xml:138
 msgid  "Network Type"
 msgstr "Network Type"
 
-#: ../src/gui/preferences.xml:136
+#: ../src/gui/preferences.xml:138
 msgid  "Select the Ethernet emulation mode (e.g., Disabled, TAP/Tunnel)"
 msgstr "Select the Ethernet emulation mode (e.g., Disabled, TAP/Tunnel)"
 
-#: ../src/gui/preferences.xml:137
+#: ../src/gui/preferences.xml:139
 msgid  "Disabled"
 msgstr "Disabled"
 
-#: ../src/gui/preferences.xml:138
+#: ../src/gui/preferences.xml:140
 msgid  "Bridge"
 msgstr "Bridge"
 
-#: ../src/gui/preferences.xml:139
+#: ../src/gui/preferences.xml:141
 msgid  "Point-to-Point"
 msgstr "Point-to-Point"
 
-#: ../src/gui/preferences.xml:141
+#: ../src/gui/preferences.xml:143
 msgid  "Tunnel Device"
 msgstr "Tunnel Device"
 
-#: ../src/gui/preferences.xml:141
+#: ../src/gui/preferences.xml:143
 msgid  "The host's virtual network interface name (e.g., tap0)"
 msgstr "The host's virtual network interface name (e.g., tap0)"
 
-#: ../src/gui/preferences.xml:142
+#: ../src/gui/preferences.xml:144
 msgid  "Host IP"
 msgstr "Host IP"
 
-#: ../src/gui/preferences.xml:142
+#: ../src/gui/preferences.xml:144
 msgid  "The IP address of the Host's side of the virtual link"
 msgstr "The IP address of the Host's side of the virtual link"
 
-#: ../src/gui/preferences.xml:143
+#: ../src/gui/preferences.xml:145
 msgid  "Atari IP"
 msgstr "Atari IP"
 
-#: ../src/gui/preferences.xml:143
+#: ../src/gui/preferences.xml:145
 msgid  "The IP address assigned to the emulated Atari device"
 msgstr "The IP address assigned to the emulated Atari device"
 
-#: ../src/gui/preferences.xml:144
+#: ../src/gui/preferences.xml:146
 msgid  "Netmask"
 msgstr "Netmask"
 
-#: ../src/gui/preferences.xml:144
+#: ../src/gui/preferences.xml:146
 msgid  "The network mask for the virtual subnet"
 msgstr "The network mask for the virtual subnet"
 
-#: ../src/gui/preferences.xml:145
+#: ../src/gui/preferences.xml:147
 msgid  "Gateway"
 msgstr "Gateway"
 
-#: ../src/gui/preferences.xml:145
+#: ../src/gui/preferences.xml:147
 msgid  "The gateway IP address (usually the host IP)"
 msgstr "The gateway IP address (usually the host IP)"
 
-#: ../src/gui/preferences.xml:146
+#: ../src/gui/preferences.xml:148
 msgid  "MAC address"
 msgstr "MAC address"
 
-#: ../src/gui/preferences.xml:146
+#: ../src/gui/preferences.xml:148
 msgid  "The unique MAC address for the emulated device"
 msgstr "The unique MAC address for the emulated device"
 
-#: ../src/gui/preferences.xml:147
+#: ../src/gui/preferences.xml:149
 msgid  "Interrupt Level"
 msgstr "Interrupt Level"
 
-#: ../src/gui/preferences.xml:147
+#: ../src/gui/preferences.xml:149
 msgid  "The interrupt level used by the emulated device (4 is standard)"
 msgstr "The interrupt level used by the emulated device (4 is standard)"
 
@@ -743,8 +517,8 @@ msgstr "_OK"
 
 #: ../src/gui/gxmessage.c:400
 #: ../src/gui/mxgtk-settings.c:253
-#: ../src/gui/mxgtk-settings.c:1855
-#: ../src/gui/mxgtk-settings.c:1923
+#: ../src/gui/mxgtk-settings.c:1829
+#: ../src/gui/mxgtk-settings.c:1897
 msgid  "_Cancel"
 msgstr "_Cancel"
 
@@ -912,7 +686,7 @@ msgstr "  -version               Show gxmessage version and Copyright details\n"
 msgid  "Please report bugs to %s.\n"
 msgstr "Please report bugs to %s.\n"
 
-#: ../src/gui/gxmessage.c:1273
+#: ../src/gui/gxmessage.c:1278
 #, c-format
 msgid  ""
 "Copyright (©) %s %s\n"
@@ -925,90 +699,90 @@ msgstr ""
 "the terms of the GNU General Public License <https://www.gnu.org/licenses/gpl.html>.\n"
 "There is NO WARRANTY, to the extent permitted by law.\n"
 
-#: ../src/gui/gxmessage.c:1282
-#: ../src/gui/gxmessage.c:1326
+#: ../src/gui/gxmessage.c:1287
+#: ../src/gui/gxmessage.c:1331
 #, c-format
 msgid  "%s: can't have both -entry and -print\n"
 msgstr "%s: can't have both -entry and -print\n"
 
-#: ../src/gui/gxmessage.c:1311
-#: ../src/gui/gxmessage.c:1406
+#: ../src/gui/gxmessage.c:1316
+#: ../src/gui/gxmessage.c:1411
 #, c-format
 msgid  "%s: can't get message from both -file and command line\n"
 msgstr "%s: can't get message from both -file and command line\n"
 
-#: ../src/gui/gxmessage.c:1335
+#: ../src/gui/gxmessage.c:1340
 #, c-format
 msgid  "%s: integer -timeout value expected\n"
 msgstr "%s: integer -timeout value expected\n"
 
-#: ../src/gui/gxmessage.c:1435
+#: ../src/gui/gxmessage.c:1440
 #, c-format
 msgid  "%s: unable to read file\n"
 msgstr "%s: unable to read file\n"
 
-#: ../src/gui/gxmessage.c:1448
+#: ../src/gui/gxmessage.c:1453
 #, c-format
 msgid  "%s: message text is required\n"
 msgstr "%s: message text is required\n"
 
-#: ../src/gui/gxmessage.c:1449
+#: ../src/gui/gxmessage.c:1454
 #, c-format
 msgid  "Try `%s --help' for more information\n"
 msgstr "Try `%s --help' for more information\n"
 
-#: ../src/gui/mxgtk-settings.c:500
-#: ../src/gui/mxqt-settings.cc:1548
+#: ../src/gui/mxgtk-settings.c:518
+#: ../src/gui/mxqt-settings.cc:1551
 msgid  "Accept and confirm the changes in this dialog"
 msgstr "Accept and confirm the changes in this dialog"
 
-#: ../src/gui/mxgtk-settings.c:501
-#: ../src/gui/mxqt-settings.cc:1549
+#: ../src/gui/mxgtk-settings.c:519
+#: ../src/gui/mxqt-settings.cc:1552
 msgid  "Discard the current changes and close the dialog"
 msgstr "Discard the current changes and close the dialog"
 
-#: ../src/gui/mxgtk-settings.c:765
+#: ../src/gui/mxgtk-settings.c:788
 #: ../src/gui/mxqt-settings.cc:428
 msgid  "Select a Folder"
 msgstr "Select a Folder"
 
-#: ../src/gui/mxgtk-settings.c:765
+#: ../src/gui/mxgtk-settings.c:788
 #: ../src/gui/mxqt-settings.cc:428
 msgid  "Select a File"
 msgstr "Select a File"
 
-#: ../src/gui/mxgtk-settings.c:804
-#: ../src/gui/mxqt-settings.cc:1267
+#: ../src/gui/mxgtk-settings.c:827
+#: ../src/gui/mxqt-settings.cc:1268
 msgid  "read-only"
 msgstr "read-only"
 
-#: ../src/gui/mxgtk-settings.c:807
-#: ../src/gui/mxqt-settings.cc:1268
+#: ../src/gui/mxgtk-settings.c:830
+#: ../src/gui/mxqt-settings.cc:1269
 msgid  "Mount drive in read-only mode, preventing writes from the emulation"
 msgstr "Mount drive in read-only mode, preventing writes from the emulation"
 
-#: ../src/gui/mxgtk-settings.c:816
-#: ../src/gui/mxqt-settings.cc:1271
+#: ../src/gui/mxgtk-settings.c:839
+#: ../src/gui/mxqt-settings.cc:1272
 msgid  "DOS 8+3 format"
 msgstr "DOS 8+3 format"
 
-#: ../src/gui/mxgtk-settings.c:819
-#: ../src/gui/mxqt-settings.cc:1272
+#: ../src/gui/mxgtk-settings.c:842
+#: ../src/gui/mxqt-settings.cc:1273
 msgid  "Force 8.3 short filenames (FAT-style) on host directories"
 msgstr "Force 8.3 short filenames (FAT-style) on host directories"
 
-#: ../src/gui/mxgtk-settings.c:828
-#: ../src/gui/mxqt-settings.cc:1275
+#: ../src/gui/mxgtk-settings.c:851
+#: ../src/gui/mxqt-settings.cc:1276
 msgid  "case insensitive"
 msgstr "case insensitive"
 
-#: ../src/gui/mxgtk-settings.c:831
-#: ../src/gui/mxqt-settings.cc:1276
+#: ../src/gui/mxgtk-settings.c:854
+#: ../src/gui/mxqt-settings.cc:1277
 msgid  "Ignore case sensitivity when accessing files/folders"
 msgstr "Ignore case sensitivity when accessing files/folders"
 
-#: ../src/gui/mxgtk-settings.c:1013
-#: ../src/gui/mxqt-settings.cc:737
+#: ../src/gui/mxgtk-settings.c:1036
+#: ../src/gui/mxqt-settings.cc:738
 #, c-format
 msgid  ""
 "can't create %s:\n"
@@ -1018,93 +792,277 @@ msgstr ""
 "%s"
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1444
+#: ../src/gui/mxgtk-settings.c:1467
 #, c-format
 msgid  "%s:%d: unknown section '%s'\n"
 msgstr "%s:%d: unknown section '%s'\n"
 
 #. FIXME: use dialog
-#: ../src/gui/mxgtk-settings.c:1476
+#: ../src/gui/mxgtk-settings.c:1499
 #, c-format
 msgid  "%s:%d: Syntax error: %s"
 msgstr "%s:%d: Syntax error: %s"
 
-#: ../src/gui/mxgtk-settings.c:1853
-#: ../src/gui/mxgtk-settings.c:1921
+#: ../src/gui/mxgtk-settings.c:1827
+#: ../src/gui/mxgtk-settings.c:1895
 msgid  "_Save"
 msgstr "_Save"
 
-#: ../src/gui/mxgtk-settings.c:1854
-#: ../src/gui/mxgtk-settings.c:1922
+#: ../src/gui/mxgtk-settings.c:1828
+#: ../src/gui/mxgtk-settings.c:1896
 msgid  "_Delete"
 msgstr "_Delete"
 
-#: ../src/gui/mxgtk-settings.c:1863
+#: ../src/gui/mxgtk-settings.c:1837
 msgid  "You have unsaved changes. Do you want to save them and quit?"
 msgstr "You have unsaved changes. Do you want to save them and quit?"
 
-#: ../src/gui/mxgtk-settings.c:1931
-#: ../src/gui/mxqt-settings.cc:1591
+#: ../src/gui/mxgtk-settings.c:1905
+#: ../src/gui/mxqt-settings.cc:1599
 msgid  "You have unsaved changes. Do you want to discard them and quit?"
 msgstr "You have unsaved changes. Do you want to discard them and quit?"
 
-#: ../src/gui/mxgtk-settings.c:2229
-#: ../src/gui/mxqt-settings.cc:1460
+#: ../src/gui/mxgtk-settings.c:2048
+msgid  "Spanish"
+msgstr "Spanish"
+
+#: ../src/gui/mxgtk-settings.c:2049
+msgid  "Italian"
+msgstr "Italian"
+
+#: ../src/gui/mxgtk-settings.c:2050
+msgid  "Swedish"
+msgstr "Swedish"
+
+#: ../src/gui/mxgtk-settings.c:2051
+msgid  "French (Switzerland)"
+msgstr "French (Switzerland)"
+
+#: ../src/gui/mxgtk-settings.c:2052
+msgid  "German (Switzerland)"
+msgstr "German (Switzerland)"
+
+#: ../src/gui/mxgtk-settings.c:2053
+msgid  "Turkish"
+msgstr "Turkish"
+
+#: ../src/gui/mxgtk-settings.c:2054
+msgid  "Finnish"
+msgstr "Finnish"
+
+#: ../src/gui/mxgtk-settings.c:2055
+msgid  "Norwegian"
+msgstr "Norwegian"
+
+#: ../src/gui/mxgtk-settings.c:2056
+msgid  "Danish"
+msgstr "Danish"
+
+#: ../src/gui/mxgtk-settings.c:2057
+msgid  "Arabic"
+msgstr "Arabic"
+
+#: ../src/gui/mxgtk-settings.c:2058
+msgid  "Dutch"
+msgstr "Dutch"
+
+#: ../src/gui/mxgtk-settings.c:2059
+msgid  "Hungarian"
+msgstr "Hungarian"
+
+#: ../src/gui/mxgtk-settings.c:2060
+msgid  "Czech"
+msgstr "Czech"
+
+#: ../src/gui/mxgtk-settings.c:2061
+msgid  "Polish"
+msgstr "Polish"
+
+#: ../src/gui/mxgtk-settings.c:2062
+msgid  "Lithuanian"
+msgstr "Lithuanian"
+
+#: ../src/gui/mxgtk-settings.c:2063
+msgid  "Russian"
+msgstr "Russian"
+
+#: ../src/gui/mxgtk-settings.c:2064
+msgid  "Estonian"
+msgstr "Estonian"
+
+#: ../src/gui/mxgtk-settings.c:2065
+msgid  "Belarusian"
+msgstr "Belarusian"
+
+#: ../src/gui/mxgtk-settings.c:2066
+msgid  "Ukrainian"
+msgstr "Ukrainian"
+
+#: ../src/gui/mxgtk-settings.c:2067
+msgid  "Slovak"
+msgstr "Slovak"
+
+#: ../src/gui/mxgtk-settings.c:2068
+msgid  "Romanian"
+msgstr "Romanian"
+
+#: ../src/gui/mxgtk-settings.c:2069
+msgid  "Bulgarian"
+msgstr "Bulgarian"
+
+#: ../src/gui/mxgtk-settings.c:2070
+msgid  "Slovenian"
+msgstr "Slovenian"
+
+#: ../src/gui/mxgtk-settings.c:2071
+msgid  "Croatian"
+msgstr "Croatian"
+
+#: ../src/gui/mxgtk-settings.c:2072
+msgid  "Serbian"
+msgstr "Serbian"
+
+#: ../src/gui/mxgtk-settings.c:2073
+msgid  "Serbian (Montenegro)"
+msgstr "Serbian (Montenegro)"
+
+#: ../src/gui/mxgtk-settings.c:2074
+msgid  "Macedonian"
+msgstr "Macedonian"
+
+#: ../src/gui/mxgtk-settings.c:2075
+msgid  "Greek"
+msgstr "Greek"
+
+#: ../src/gui/mxgtk-settings.c:2076
+msgid  "Latvian"
+msgstr "Latvian"
+
+#: ../src/gui/mxgtk-settings.c:2077
+msgid  "Hebrew"
+msgstr "Hebrew"
+
+#: ../src/gui/mxgtk-settings.c:2078
+msgid  "Afrikaans"
+msgstr "Afrikaans"
+
+#: ../src/gui/mxgtk-settings.c:2079
+msgid  "Portuguese"
+msgstr "Portuguese"
+
+#: ../src/gui/mxgtk-settings.c:2080
+msgid  "Walloon"
+msgstr "Walloon"
+
+#: ../src/gui/mxgtk-settings.c:2081
+msgid  "Japanese"
+msgstr "Japanese"
+
+#: ../src/gui/mxgtk-settings.c:2082
+msgid  "Chinese"
+msgstr "Chinese"
+
+#: ../src/gui/mxgtk-settings.c:2083
+msgid  "Korean"
+msgstr "Korean"
+
+#: ../src/gui/mxgtk-settings.c:2084
+msgid  "Vietnamese"
+msgstr "Vietnamese"
+
+#: ../src/gui/mxgtk-settings.c:2085
+msgid  "Hindi"
+msgstr "Hindi"
+
+#: ../src/gui/mxgtk-settings.c:2086
+msgid  "Persian"
+msgstr "Persian"
+
+#: ../src/gui/mxgtk-settings.c:2087
+msgid  "Mongolian"
+msgstr "Mongolian"
+
+#: ../src/gui/mxgtk-settings.c:2088
+msgid  "Nepali"
+msgstr "Nepali"
+
+#: ../src/gui/mxgtk-settings.c:2089
+msgid  "Lao"
+msgstr "Lao"
+
+#: ../src/gui/mxgtk-settings.c:2090
+msgid  "Khmer"
+msgstr "Khmer"
+
+#: ../src/gui/mxgtk-settings.c:2091
+msgid  "Indonesian"
+msgstr "Indonesian"
+
+#: ../src/gui/mxgtk-settings.c:2092
+msgid  "Bengali"
+msgstr "Bengali"
+
+#: ../src/gui/mxgtk-settings.c:2093
+msgid  "Catalan"
+msgstr "Catalan"
+
+#: ../src/gui/mxgtk-settings.c:2203
+#: ../src/gui/mxqt-settings.cc:1463
 msgid  "MagicOnLinux Settings"
 msgstr "MagicOnLinux Settings"
 
-#: ../src/gui/mxgtk-settings.c:2298
+#: ../src/gui/mxgtk-settings.c:2272
 msgid  "Sets the client geometry of the main window"
 msgstr "Sets the client geometry of the main window"
 
-#: ../src/gui/mxgtk-settings.c:2298
+#: ../src/gui/mxgtk-settings.c:2272
 msgid  "GEOMETRY"
 msgstr "GEOMETRY"
 
-#: ../src/gui/mxgtk-settings.c:2299
-#: ../src/gui/mxqt-settings.cc:1673
+#: ../src/gui/mxgtk-settings.c:2273
+#: ../src/gui/mxqt-settings.cc:1681
 msgid  "Specify an alternative configuration file path"
 msgstr "Specify an alternative configuration file path"
 
-#: ../src/gui/mxgtk-settings.c:2299
-#: ../src/gui/mxqt-settings.cc:1673
+#: ../src/gui/mxgtk-settings.c:2273
+#: ../src/gui/mxqt-settings.cc:1681
 msgid  "FILE"
 msgstr "FILE"
 
-#: ../src/gui/mxgtk-settings.c:2300
+#: ../src/gui/mxgtk-settings.c:2274
 msgid  "Show version information and exit"
 msgstr "Show version information and exit"
 
-#: ../src/gui/mxgtk-settings.c:2301
+#: ../src/gui/mxgtk-settings.c:2275
 msgid  "Show help information and exit"
 msgstr "Show help information and exit"
 
-#: ../src/gui/mxgtk-settings.c:2330
+#: ../src/gui/mxgtk-settings.c:2304
 msgid  "GTK Configurator for MagicOnLinux"
 msgstr "GTK Configurator for MagicOnLinux"
 
-#: ../src/gui/mxgtk-settings.c:2357
+#: ../src/gui/mxgtk-settings.c:2331
 msgid  "error parsing command line"
 msgstr "error parsing command line"
 
 #. FIXME: use dialog
-#: ../src/gui/mxqt-settings.cc:922
+#: ../src/gui/mxqt-settings.cc:923
 #, c-format
 msgid  "value %ld out of range %ld..%ld"
 msgstr "value %ld out of range %ld..%ld"
 
-#: ../src/gui/mxqt-settings.cc:1104
+#: ../src/gui/mxqt-settings.cc:1105
 msgid  "unknown key"
 msgstr "unknown key"
 
 #. FIXME: use dialog
 #. remove trailing newline
-#: ../src/gui/mxqt-settings.cc:1176
+#: ../src/gui/mxqt-settings.cc:1177
 #, c-format
 msgid  "Syntax error in configuration file:%d: %s"
 msgstr "Syntax error in configuration file:%d: %s"
 
-#: ../src/gui/mxqt-settings.cc:1672
+#: ../src/gui/mxqt-settings.cc:1680
 msgid  "ID of the parent window"
 msgstr "ID of the parent window"
 

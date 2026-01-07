@@ -454,53 +454,57 @@ class Q_WIDGETS_EXPORT PrefChoice : public QComboBox, public PrefWidget
 	Q_OBJECT
 
 public:
-	PrefChoice(QString &section, const char *name, int default_value, bool gui_only) :
-		PrefWidget(TYPE_CHOICE, "choice", section, name, gui_only),
-		m_value(default_value),
-		m_default_value(default_value),
-		m_orig_value(default_value)
+	PrefChoice(QString &section, const xml_widget *xml) :
+		PrefWidget(TYPE_CHOICE, "choice", section, xml->name, xml->gui_only)
 	{
+		num_choices = xml->u.choice.num_choices;
+		choices = xml->u.choice.choices;
+		m_value = 0;
+		if (xml->u.choice.default_value != NULL)
+			setPrefValue(xml->u.choice.default_value);
+		m_default_value = m_value;
+		m_orig_value = m_value;
 		this->setObjectName(m_name);
 	}
 #ifdef FORCE_LIBINTL
-	typedef struct { QByteArray orig_text; int value; } choiceItem;
+	typedef struct { QByteArray orig_text; const char *value; } choiceItem;
 #else
-	typedef struct { libnls_msgid_type orig_text; int value; } choiceItem;
+	typedef struct { libnls_msgid_type orig_text; const char *value; } choiceItem;
 #endif
 	QVector <choiceItem> items;
-	virtual const QString getPrefValue(void) { return QString().setNum(items[m_value].value); }
-	virtual void setPrefValue(const QString &v) { m_value = v.toInt(); }
-	virtual void setOrigValue(void) { m_orig_value = m_value; }
-	virtual bool isChanged(void) { return m_orig_value != items[m_value].value; }
-public:
-	int m_value;
-	int m_default_value;
-	int m_orig_value;
-public:
-	int minval;
-	int maxval;
-	void setToolTip(const char *tooltip) { PrefWidget::setToolTip(static_cast<QWidget *>(this), tooltip); }
-	virtual void populatePreferences(void)
-	{
+	virtual const QString getPrefValue(void) { return QString(items[m_value].value); }
+	virtual void setPrefValue(const QString &v) {
 		/*
 		 * convert the value from preferences to the combobox index
 		 */
-		for (int i = 0; i < count(); i++)
+		for (int i = 0; i < num_choices; i++)
 		{
-			int v = items[i].value;
-			if (v == m_value)
+			if (v == choices[i].value)
 			{
 				m_value = i;
 				break;
 			}
 		}
+	}
+	virtual void setOrigValue(void) { m_orig_value = m_value; }
+	virtual bool isChanged(void) { return m_orig_value != m_value; }
+public:
+	int m_value;
+	int m_default_value;
+	int m_orig_value;
+public:
+	int num_choices;
+	const xml_widget_choice *choices;
+	void setToolTip(const char *tooltip) { PrefWidget::setToolTip(static_cast<QWidget *>(this), tooltip); }
+	virtual void populatePreferences(void)
+	{
 		setCurrentIndex(m_value);
 	}
 	virtual void updatePreferences(void)
 	{
 		m_value = currentIndex();
 	}
-	void addItem(const char *text, const QIcon &icon, int value)
+	void addItem(const char *text, const QIcon &icon, const char *value)
 	{
 #ifdef FORCE_LIBINTL
 		items.push_back({text, value});
@@ -1069,13 +1073,16 @@ bool GuiWindow::evaluatePreferencesLine(const char *line, bool gui_only)
 
 			case TYPE_CHOICE:
 				{
-					long lv = 0;
 					// PrefChoice *p = dynamic_cast<PrefChoice *>(w);
-					ok = eval_int(lv, 0, 0, line);
-					if (ok)
+					str = eval_quotated_str(line);
+					if (str != nullptr)
 					{
-						w->setPrefValue(QString().setNum(lv));
+						w->setPrefValue(*str);
+						delete str;
 						w->setOrigValue();
+					} else
+					{
+						ok = false;
 					}
 				}
 				break;
@@ -1333,7 +1340,7 @@ void GuiWindow::parseXml(void)
 					const xml_widget_choice *c;
 					auto label = new QLabel();
 					section_table->addWidget(label, section_row, 0);
-					auto choice = new PrefChoice(section_name, widget->name, widget->u.choice.default_value, widget->gui_only);
+					auto choice = new PrefChoice(section_name, widget);
 					choice->setToolTip(widget->tooltip);
 					choice->setButtonLabel(label, widget->label);
 					section_table->addWidget(choice, section_row, 1);
@@ -1564,7 +1571,12 @@ void GuiWindow::language_changed(int index)
 	/* The index is -1 if the combobox becomes empty or the currentIndex was reset. */
 	if (language_choice && index >= 0)
 	{
-		language_t lang = (language_t)language_choice->items[index].value;
+		language_t lang;
+		
+		if (strcmp(language_choice->items[index].value, "default") == 0)
+			lang = LANG_SYSTEM;
+		else
+			lang = language_from_name(language_choice->items[index].value);
 		if (lang == LANG_SYSTEM)
 		{
 			setlocale(LC_MESSAGES, "");
@@ -1701,7 +1713,7 @@ int main(int argc, char **argv)
 	}
 
 	gui.parseXml();
-	gui.notebook->setCurrentIndex(0);
+	gui.notebook->setCurrentIndex(4);
 
 	gui.getPreferences();
 	gui.populatePreferences();

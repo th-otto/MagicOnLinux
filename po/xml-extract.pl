@@ -241,7 +241,8 @@ EOF
 		for (my $n = 0; $n < @lines; $n++)
 		{
 			print $OUT "\""; 
-			print $OUT escape($lines[$n]);
+			# print $OUT escape($lines[$n]);
+			print $OUT $lines[$n];
 			print $OUT "\"\n"; 
 		}
 		print $OUT "msgstr \"\"\n\n";

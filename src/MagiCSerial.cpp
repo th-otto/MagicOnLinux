@@ -591,11 +591,14 @@ uint32_t CMagiCSerial::Config
     {
         switch(gActualTTYAttrs.c_cflag & CSIZE)
         {
-#ifndef __HAIKU__
+/* in Haiku, CS5, CS6 and CS7 all have the same value */
+#if CS5 != CS7
             case CS5:
                 *pOldnBits = 5;
                 break;
+#endif
 
+#if CS6 != CS7
             case CS6:
                 *pOldnBits = 6;
                 break;

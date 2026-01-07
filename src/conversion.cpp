@@ -472,11 +472,11 @@ unsigned CConversion::strAtari2Host(const unsigned char *src, char *buf, unsigne
  * @return Atari uppercase character, if convertible, otherwise c
  *
  ************************************************************************************************/
+/* äöüçé(a°)(ae)(oe)à(ij)(n˜)(a˜)(o/)(o˜) */
+static const char lowers[] = {'\x84','\x94','\x81','\x87','\x82','\x86','\x91','\xb4','\x85','\xc0','\xa4','\xb0','\xb3','\xb1',0};
+static const char uppers[] = {'\x8e','\x99','\x9a','\x80','\x90','\x8f','\x92','\xb5','\xb6','\xc1','\xa5','\xb7','\xb2','\xb8',0};
 unsigned char CConversion::charAtari2UpperCase(unsigned char c)
 {
-    /* äöüçé(a°)(ae)(oe)à(ij)(n˜)(a˜)(o/)(o˜) */
-    static const char lowers[] = {'\x84','\x94','\x81','\x87','\x82','\x86','\x91','\xb4','\x85','\xc0','\xa4','\xb0','\xb3','\xb1',0};
-    static const char uppers[] = {'\x8e','\x99','\x9a','\x80','\x90','\x8f','\x92','\xb5','\xb6','\xc1','\xa5','\xb7','\xb2','\xb8',0};
 
     if (c >= 'a' && c <= 'z')
     {
@@ -487,6 +487,32 @@ unsigned char CConversion::charAtari2UpperCase(unsigned char c)
     if (((unsigned char) c >= 128) && ((found = strchr(lowers, c)) != nullptr))
     {
         return uppers[found - lowers];
+    }
+
+    return(c);
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief [static] Convert Atari uppercase character to lowercase
+ *
+ * @param[in]   c     Atari lowercase character
+ *
+ * @return Atari uppercase character, if convertible, otherwise c
+ *
+ ************************************************************************************************/
+unsigned char CConversion::charAtari2LowerCase(unsigned char c)
+{
+    if (c >= 'A' && c <= 'Z')
+    {
+        return((char) (c | '\x20'));
+    }
+
+    const char *found;
+    if (((unsigned char) c >= 128) && ((found = strchr(uppers, c)) != nullptr))
+    {
+        return lowers[found - uppers];
     }
 
     return(c);

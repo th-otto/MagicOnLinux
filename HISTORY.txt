@@ -41,3 +41,9 @@ Atari coldboot handled.
 For program name tidy-up: The configuration file is now "magic-on-linux.conf".
 Language string in config file is explained in default config, set to "" for default language.
 Trying to resolve failed icon installation on some Ubuntu computer.
+Trying to resolve macOS's incompatible "cp" options.
+
+2026-01-08
+
+Some compiler warning solved.
+Cartridge ROM support with MIME type, icon, command line and "Open with".

@@ -26,6 +26,7 @@
 #include "Debug.h"
 #include "emulation_globals.h"
 #include "MagiCScreen.h"
+#include "preferences.h"
 #include "register_model.h"
 #include <assert.h>
 
@@ -71,7 +72,39 @@ class CReservedIO_1 : public CRegisterModel
 class CRomCartridge : public CRegisterModel
 {
   public:
-    CRomCartridge() : CRegisterModel("128k ROM cartridge expansion port", 0x00fa0000, 0x00fc0000 - 1) { }
+    CRomCartridge() : CRegisterModel("128k ROM cartridge expansion port", 0x00fa0000, 0x00fc0000 - 1)
+    {
+        logcnt = 20;
+    }
+
+    virtual uint32_t read(uint32_t addr, unsigned len, bool *p_success)
+    {
+        uint32_t ret = 0;
+
+        if (Preferences::AtariCartridge != nullptr)
+        {
+            addr -= start_addr;
+            if (len == 1)
+            {
+                const uint8_t *src = (const uint8_t *) (Preferences::AtariCartridge + addr);
+                ret = src[0];
+            }
+            else
+            if (len == 2)
+            {
+                const uint16_t *src = (const uint16_t *) (Preferences::AtariCartridge + addr);
+                ret = htobe16(src[0]);
+            }
+            else
+            {
+                const uint32_t *src = (const uint32_t *) (Preferences::AtariCartridge + addr);
+                ret = htobe32(src[0]);
+            }
+        }
+
+        *p_success = true;      // never bus error
+        return ret;
+    }
 };
 
 class CTosRom192k : public CRegisterModel

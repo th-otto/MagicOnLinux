@@ -56,7 +56,8 @@ static void print_opt(const struct option *options)
         "size",
         "EN|DE|FR",
         "path",
-        "kernel-file",
+        "file",
+        "file",
         "program",
         "atari_txtfile",
         "host_txtfile"
@@ -75,7 +76,8 @@ static void print_opt(const struct option *options)
         "             Atari RAM size, e.g. 512k or 4M or 3m",
         "            language for Atari localisation, either EN or DE or FR",
         "              location of C: drive (root fs)",
-        "       location of kernel file (MAGICLIN.OS)",
+        "              location of kernel file (MAGICLIN.OS)",
+        "           location of cartridge file (EXAMPLE.STC, 131076 bytes)",
         "           choose editor program for -e option, to override '" DEFAULT_EDITOR "'",
         "  convert text file from Atari to host format",
         "   convert text file from host to Atari format"
@@ -446,6 +448,89 @@ static void conv_text_host2atari(const char *file_h2a)
 
 /** **********************************************************************************************
  *
+ * @brief Check file extension for cartridge
+ *
+ * @param[in]  path         disk image path
+ *
+ * @return true, if file extension matches
+ *
+ ************************************************************************************************/
+bool isCartridgeName(const char *path)
+{
+    static const char *extensions = CATRIDGE_IMAGE_FILENAME_EXT;
+    const char *ext = strrchr(path, '.');
+    if (ext == nullptr)
+    {
+        return false;
+    }
+    unsigned extlen = strlen(++ext);
+
+    const char *cmp = extensions;
+    while(*cmp)
+    {
+        const char *s = strchr(cmp, ',');
+        unsigned len = (s == nullptr) ? strlen(cmp) : (s - cmp);
+        if ((extlen == len) && !strncasecmp(ext, cmp, len))
+        {
+            return true;
+        }
+        cmp += len;
+        if (*cmp == ',')
+        {
+            cmp++;
+        }
+    }
+
+    return false;   // unknown file name extension
+}
+
+
+/** **********************************************************************************************
+ *
+ * @brief Load a cartridge file
+ *
+ * @param[in]  path         cartridge file, 4 bytes header plus 128 kBytes
+ *
+ * @return zero or error code
+ *
+ ************************************************************************************************/
+static int load_cartridge(const char *path)
+{
+    FILE *f = fopen(path, "rb");
+    if (f != nullptr)
+    {
+        uint32_t header;
+        if (1 == fread(&header, 4, 1, f))
+        {
+            Preferences::AtariCartridge = (char *) malloc(131072);
+            if (1 == fread(Preferences::AtariCartridge, 131072, 1, f))
+            {
+                printf("cartridge read\n");
+            }
+            else
+            {
+                return 3;
+                free(Preferences::AtariCartridge);
+                Preferences::AtariCartridge = nullptr;
+            }
+        }
+        else
+        {
+            return 2;
+        }
+        fclose(f);
+    }
+    else
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/** **********************************************************************************************
+ *
  * @brief Main function
  *
  * @param[in]  argc     number of arguments
@@ -465,6 +550,7 @@ int main(int argc, char * const argv[])
     const char *arg_lang = nullptr;
     const char *arg_rootfs = nullptr;
     const char *arg_kernel = nullptr;
+    const char *arg_cartridge = nullptr;
     int colour_mode = -1;
     bool double_vert = false;       // for ST medium resolution: double vertical size
     int width = -1;
@@ -503,9 +589,10 @@ int main(int argc, char * const argv[])
             {"lang",              required_argument, nullptr, 'l' },
             {"rootfs",            required_argument, nullptr, 'r' },
             {"kernel",            required_argument, nullptr, 'k' },
-            {"editor",            required_argument, nullptr,  0 },      // long_option_index 12
-            {"tconv-a2h",         required_argument, nullptr,  0 },      // long_option_index 13
-            {"tconv-h2a",         required_argument, nullptr,  0 },      // long_option_index 14
+            {"cartridge",         required_argument, nullptr,  0 },      // long_option_index 12
+            {"editor",            required_argument, nullptr,  0 },      // long_option_index 13
+            {"tconv-a2h",         required_argument, nullptr,  0 },      // long_option_index 14
+            {"tconv-h2a",         required_argument, nullptr,  0 },      // long_option_index 15
             {nullptr,             0,                 nullptr,  0 }
         };
         c = getopt_long(argc, argv, "hc:ewa:g:s:m:l:r:k:",
@@ -535,15 +622,20 @@ int main(int argc, char * const argv[])
                 else
                 if (long_option_index == 12)
                 {
-                    editor_command = optarg;
+                    arg_cartridge = optarg;
                 }
                 else
                 if (long_option_index == 13)
                 {
-                    file_a2h = optarg;
+                    editor_command = optarg;
                 }
                 else
                 if (long_option_index == 14)
+                {
+                    file_a2h = optarg;
+                }
+                else
+                if (long_option_index == 15)
                 {
                     file_h2a = optarg;
                 }
@@ -758,6 +850,16 @@ int main(int argc, char * const argv[])
     }
 
     /*
+    * cartridge file
+    */
+
+    if ((arg_cartridge != nullptr) && load_cartridge(arg_cartridge))
+    {
+        printf("cartridge file not found or invalid\n");
+        return 5;
+    }
+
+    /*
     * Additional parameters are treated as Atari files to open.
     */
 
@@ -767,6 +869,22 @@ int main(int argc, char * const argv[])
         while (optind < argc)
         {
             const char *arg = argv[optind];
+            if (isCartridgeName(arg))
+            {
+                // cartridge ROM image
+                if (Preferences::AtariCartridge == nullptr)
+                {
+                    if (load_cartridge(arg))
+                    {
+                        printf("ERROR: ignore invalid cartridge ROM image: %s\n", arg);
+                    }
+                }
+                else
+                {
+                    printf("ERROR: additional cartridge ROM image ignored: %s\n", arg);
+                }
+            }
+            else
             if (CVolumeImages::isImageName(arg))
             {
                 // floppy disk image

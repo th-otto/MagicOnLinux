@@ -28,6 +28,7 @@
 #define STE_COLOUR_PALETTE      // STe has additional low bit at positions 3,7 and 11
 
 #define DISKIMAGE_FILENAME_EXT "st,raw-disk-image,img,fd,qd"
+#define CATRIDGE_IMAGE_FILENAME_EXT "stc"
 
 // debug output for debug configuration
 #if !defined(NDEBUG)

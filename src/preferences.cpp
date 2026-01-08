@@ -148,6 +148,7 @@ unsigned Preferences::AtariScreenStretchX = 2;      // for 4k screens, this is e
 unsigned Preferences::AtariScreenStretchY = 2;
 unsigned Preferences::ScreenRefreshFrequency = 60;
 const char *Preferences::AtariStartApplications[MAX_START_APPS];
+char *Preferences::AtariCartridge = nullptr;                    // 128 kbytes data
 const char *Preferences::mountDriveParameter = nullptr;
 //bool Preferences::bPPC_VDI_Patch;
 struct ethernet_options Preferences::eth[MAX_ETH] =

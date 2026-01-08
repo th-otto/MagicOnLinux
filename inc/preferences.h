@@ -125,6 +125,7 @@ class Preferences
     //static bool m_bPPC_VDI_Patch;                 // used for native VDI output on PPC
     static struct ethernet_options eth[MAX_ETH];
     static const char *AtariStartApplications[MAX_START_APPS];
+    static char *AtariCartridge;                    // 128 kbytes data
     static const char *mountDriveParameter;
 
     static const char *drvPath[NDRIVES];

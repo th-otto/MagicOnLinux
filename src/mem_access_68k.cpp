@@ -56,7 +56,6 @@ extern void m68k_write_memory_16(m68k_addr_type address, m68k_data_type value);
 extern void m68k_write_memory_32(m68k_addr_type address, m68k_data_type value);
 
 
-#ifndef NDEBUG
 /** **********************************************************************************************
  *
  * @brief Get the name of the addressed Atari chip from 68k address

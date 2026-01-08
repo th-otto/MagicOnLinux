@@ -70,6 +70,7 @@ case $os in
 linux)
     echo "register MIME type and icon for Atari executables ..."
     sudo ./install-program-mime-types.sh
+    sudo ./install-cartridge-mime-types.sh
     if test "`which hatari 2>/dev/null`" != ""; then
         echo "Hatari is installed. Please read instructions in ./install-image-mime-types.sh!"
     else

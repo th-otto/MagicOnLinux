@@ -332,7 +332,8 @@ void CClipboard::host2Atari(const uint8_t *pData)
     unsigned done = CConversion::strHost2Atari((const char *) pData, scrapBuffer, stringlen + 1, true);
     assert(done == stringlen);
 
-    (void) write(fd, scrapBuffer, done + 1);
+    ssize_t res = write(fd, scrapBuffer, done + 1);
+    (void) res;
     (void) close(fd);
 
 #if 0

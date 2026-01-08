@@ -2399,7 +2399,7 @@ uint32_t CMagiC::AtariSetscreen(uint32_t params, uint8_t *addrOffset68k)
         CMagiCScreen::m_res = res;
         const char *resname = (res == 0) ? "ST LOW" : ((res == 1) ? "ST MID" : ((res == 2) ? "ST HIGH" : "(unknown)"));
         DebugError2("() -- changing of screen resolution to %u (%s) not supported, yet", res, resname);
-        (void)resname;
+        (void) resname;
     }
     return 0;
 }
@@ -2868,7 +2868,7 @@ uint32_t CMagiC::AtariIkbdws(uint32_t params, uint8_t *addrOffset68k)
     uint32_t len = be16toh(theParm->len_minus_one) + 1;
     //const uint8_t *pData = (uint8_t *) (addrOffset68k + be32toh(theParm->data));
     DebugError2("(len = %u, data = 0x%08x) -- not implemented", len, be32toh(theParm->data));
-    (void)len;
+    (void) len;
     return EINVFN;
 }
 

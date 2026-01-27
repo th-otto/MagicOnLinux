@@ -1,5 +1,17 @@
-# If you change the rootfs path, you must later adapt the config file accordingly!
-ROOTFS=`xdg-user-dir DOCUMENTS`/MAGIC_C
+case `uname -s` in
+Linux*)
+	# If you change the rootfs path, you must later adapt the config file accordingly!
+	ROOTFS=`xdg-user-dir DOCUMENTS`/MAGIC_C
+	;;
+Darwin*)
+	ROOTFS='~/Documents/MAGIC_C'
+	;;
+*)
+    echo "unknown operating system" >&2
+    exit 1
+    ;;
+esac
+
 # This is only the default language, it can easily be changed later.
 INITIAL_LANGUAGE=EN
 

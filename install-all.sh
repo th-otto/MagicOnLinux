@@ -22,12 +22,13 @@ Linux*)
         echo "Don't know how to install packages on $release; assuming already installed" >&2
         ;;
     esac
+    ;;
 Darwin*)
     os=macos
     if test "`which port 2>/dev/null`" != ""; then
         sudo port install cmake pkgconfig libsdl2 libsdl2_mixer
     elif test "`which brew 2>/dev/null`" != ""; then
-        sudo brew install sdl2 sdl2_mixer pkg-config cmake
+        brew install sdl2 sdl2_mixer pkg-config cmake
     else
         echo "Don't know how to install packages on macOS" >&2
         echo "Please install MacPorts or HomeBrew first" >&2
@@ -55,11 +56,11 @@ pushd build >/dev/null
 # VARIANTS: cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX:PATH=/opt ..
 cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
 make
-echo "register emulator with MIME types and icon..."
-sudo make install
 popd
 case $os in
 linux)
+	echo "installing emulator"
+	sudo make install
     echo "register MIME type and icon for Atari executables ..."
     sudo ./install-program-mime-types.sh
     if test "`which hatari 2>/dev/null`" != ""; then
